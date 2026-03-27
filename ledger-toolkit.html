@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger Diagnostic Toolkit</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.10/babel.min.js"></script>
+<script src="https://bundle.run/buffer@6.0.3"></script>
+<script src="https://bundle.run/bs58@4.0.1"></script>
+<script src="https://bundle.run/bitcoinjs-lib@5.2.0"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--panel:#1e293b;--border:#334155;--text:#f8fafc;--muted:#94a3b8;--primary:#3b82f6;--success:#10b981;--error:#ef4444;--warning:#f59e0b}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo,useCallback,useRef,useEffect}=React;
+
+/* Icons */
+const Ico={
+  Logs:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  Wallet:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 100 4 2 2 0 000-4z"/></svg>,
+  Upload:()=><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+  Chip:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg>,
+  Alert:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Copy:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+  Ok:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>,
+  ChevD:()=><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
+  ChevR:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
+  File:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
+  X:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
+  Link:()=><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
+  Scan:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  DL:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+};
+
+/* Theme & helpers */
+const T={bg:'#0f172a',panel:'#1e293b',border:'#334155',text:'#f8fafc',muted:'#94a3b8',primary:'#3b82f6',success:'#10b981',error:'#ef4444',warning:'#f59e0b'};
+const MF='ui-monospace,SFMono-Regular,Menlo,monospace';
+const crd={background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:20,marginBottom:16};
+const bdg=c=>({display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:700,background:c+'22',color:c,fontFamily:MF});
+const sGet=(o,p,fb)=>{try{let c=o;for(const k of p.split('.')){if(c==null)return fb;c=c[k];}return c??fb;}catch{return fb;}};
+const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',{hour12:false})+'.'+String(d.getMilliseconds()).padStart(3,'0');}catch{return '';}};
+const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return '';}};
+const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
+const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Apex'};
+const TC={action:'#64748b',analytics:'#8b5cf6',countervalues:'#06b6d4',bridge:'#f59e0b',network:'#3b82f6',persistence:'#10b981',walletsync:'#ec4899',error:'#ef4444','live-dmk-logger':'#a78bfa'};
+const gtc=t=>t?TC[t.toLowerCase()]||'#64748b':'#64748b';
+
+function copyText(text){
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(text);return;}
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:-9999px';
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch{}document.body.removeChild(ta);
+}
+function downloadJSON(data,fn){
+  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);
+}
+
+/* Address encoders: convert raw log credentials to explorer-ready addresses */
+
+// Cardano: hex credential (payment_key_hash + stake_key_hash, or 64-byte xpub pair)
+// → stake1... bech32 address using standard bech32 (not bech32m), HRP 'stake', header 0xe1.
+// Rule: extract last 28 bytes as stake_key_hash regardless of total length (≥28B).
+// Test vectors:
+//   last28=0dda8b6667ffa204420be1f96f8319c9f7136d3df648d2a91c13f2e47f63c94c
+//   → stake1u9nllgsygg97r7t0svvunacnd57lvjxj4ywp8uhy0a3ujnqmyjm9n (59 chars, mainnet stake key)
+function cardanoCredToStake(hex){
+  if(typeof hex!=='string'||hex.length<56||hex.length%2!==0)return null;
+  const b=[];
+  for(let i=0;i<hex.length;i+=2){const v=parseInt(hex.slice(i,i+2),16);if(isNaN(v))return null;b.push(v);}
+  if(b.length<28)return null;
+  const addrBytes=[0xe1,...b.slice(-28)]; // mainnet stake key header + last 28B as stake hash
+  // 8-bit → 5-bit groups with padding
+  const to5=data=>{let acc=0,bits=0,ret=[];for(const v of data){acc=(acc<<8)|v;bits+=8;while(bits>=5){bits-=5;ret.push((acc>>bits)&31);}}if(bits>0)ret.push((acc<<(5-bits))&31);return ret;};
+  const d5=to5(addrBytes);
+  // standard bech32 checksum (BIP-0173, constant ^1)
+  const hrp='stake',C='qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+  const ex=[...[...hrp].map(c=>c.charCodeAt(0)>>5),0,...[...hrp].map(c=>c.charCodeAt(0)&31)];
+  const G=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];
+  const pm=vs=>{let c=1;for(const v of vs){const b=c>>25;c=((c&0x1ffffff)<<5)^v;for(let i=0;i<5;i++)if((b>>i)&1)c^=G[i];}return c;};
+  const cs=pm([...ex,...d5,0,0,0,0,0,0])^1;
+  const chk=Array.from({length:6},(_,p)=>(cs>>(5*(5-p)))&31);
+  return hrp+'1'+[...d5,...chk].map(i=>C[i]).join('');
+}
+
+// Stacks: 33-byte compressed secp256k1 pubkey (hex, starts 02/03)
+// → SP... c32check address (version 22 = mainnet P2PKH, alphabet 0123456789ABCDEFGHJKMNPQRSTVWXYZ).
+// Requires bitcoinjs-lib (loaded via CDN) for hash160 and hash256.
+// Test vector:
+//   in: 036fcc9dc8811f227ff417bff1928540190e35d9a7800011ed123422666537a793
+//   → SP... (41 chars: 'S' + c32[22]='P' + 39-char c32 of hash160+checksum)
+function stacksPubkeyToAddr(hex){
+  if(typeof hex!=='string'||hex.length!==66||!/^0[23][0-9a-f]{64}$/i.test(hex))return null;
+  if(typeof bitcoin==='undefined')return null;
+  const h160=bitcoin.crypto.hash160(Buffer.from(hex,'hex')); // 20B: RIPEMD160(SHA256(pubkey))
+  const ver=22; // mainnet P2PKH → 'P' in c32 alphabet → addresses start SP
+  // checksum = SHA256(SHA256([version, ...hash160]))[0:4]
+  const cs=bitcoin.crypto.hash256(Buffer.concat([Buffer.from([ver]),h160])).slice(0,4);
+  // c32-encode [hash160..., checksum...] (24 bytes) as 39 chars using Stacks alphabet
+  const ALPHA='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const payload=[...h160,...cs];
+  let acc=0,bits=0,result='';
+  for(const v of payload){acc=(acc<<8)|v;bits+=8;while(bits>=5){bits-=5;result+=ALPHA[(acc>>bits)&31];}}
+  if(bits>0)result+=ALPHA[(acc<<(5-bits))&31];
+  while(result.length<39)result='0'+result; // zero-pad to canonical 39 chars
+  return 'S'+ALPHA[ver]+result;
+}
+
+// TON: 64-char hex (32-byte hash component of raw address, workchain 0)
+// → UQ... user-friendly non-bounceable address (base64url, tag=0x51)
+// Format: [0x51, 0x00, ...32-byte hash, CRC16-CCITT(34 bytes)] base64url-encoded
+function tonHexToAddr(hex){
+  if(typeof hex!=='string'||!/^[0-9a-f]{64}$/i.test(hex))return null;
+  const hash=[];
+  for(let i=0;i<64;i+=2)hash.push(parseInt(hex.slice(i,i+2),16));
+  const addr=[0x51,0x00,...hash]; // non-bounceable mainnet tag + workchain 0 + hash
+  let crc=0;
+  for(const b of addr){crc^=(b<<8);for(let i=0;i<8;i++)crc=crc&0x8000?(crc<<1)^0x1021:(crc<<1);crc&=0xffff;}
+  const full=[...addr,crc>>8,crc&0xff];
+  return btoa(String.fromCharCode(...full)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+/* Chains — synced with ledger-live cryptoassets/src/currencies.ts */
+const CHAINS={
+  aptos:{name:'Aptos',ticker:'APT',color:'#231F20',url:a=>`https://explorer.aptoslabs.com/account/${a}?network=mainnet`},
+  bitcoin:{name:'Bitcoin',ticker:'BTC',color:'#ffae35',url:a=>`https://blockstream.info/address/${a}`,xc:'BTC'},
+  ethereum:{name:'Ethereum',ticker:'ETH',color:'#0ebdcd',url:a=>`https://etherscan.io/address/${a}`},
+  tezos:{name:'Tezos',ticker:'XTZ',color:'#007BFF',url:a=>`https://tzkt.io/${a}`},
+  cosmos:{name:'Cosmos',ticker:'ATOM',color:'#16192f',url:a=>`https://www.mintscan.io/cosmos/address/${a}`},
+  tron:{name:'Tron',ticker:'TRX',color:'#D9012C',url:a=>`https://tronscan.org/#/address/${a}`},
+  near:{name:'NEAR',ticker:'NEAR',color:'#000000',url:a=>`https://nearblocks.io/address/${a}`},
+  solana:{name:'Solana',ticker:'SOL',color:'#000000',url:a=>`https://explorer.solana.com/address/${a}`},
+  polkadot:{name:'Polkadot',ticker:'DOT',color:'#E6007A',url:a=>`https://polkadot.subscan.io/account/${a}`},
+  assethub_polkadot:{name:'Polkadot',ticker:'DOT',color:'#E6007A',url:a=>`https://assethub-polkadot.subscan.io/account/${a}`},
+  ton:{name:'TON',ticker:'TON',color:'#0098ea',convert:tonHexToAddr,url:a=>{const u=tonHexToAddr(a);if(u)return`https://tonscan.org/address/${u}`;if(/^[UE]Q/.test(a))return`https://tonscan.org/address/${a}`;return null;}},
+  ripple:{name:'XRP',ticker:'XRP',color:'#27a2db',url:a=>`https://bithomp.com/explorer/${a}`},
+  cardano:{name:'Cardano',ticker:'ADA',color:'#0A1D2C',convert:cardanoCredToStake,url:a=>{const s=cardanoCredToStake(a);if(s)return`https://cexplorer.io/stake/${s}`;if(/^stake1/.test(a))return`https://cexplorer.io/stake/${a}`;if(/^addr1/.test(a))return`https://cexplorer.io/address/${a}`;return null;}},
+  bsc:{name:'BNB Chain',ticker:'BNB',color:'#F0B90A',url:a=>`https://bscscan.com/address/${a}`},
+  polygon:{name:'Polygon',ticker:'POL',color:'#6d29de',url:a=>`https://polygonscan.com/address/${a}`},
+  avalanche_c_chain:{name:'Avalanche C-Chain',ticker:'AVAX',color:'#E84142',url:a=>`https://cchain.explorer.avax.network/address/${a}`},
+  optimism:{name:'OP Mainnet',ticker:'ETH',color:'#FF0421',url:a=>`https://optimism.blockscout.com/address/${a}`},
+  arbitrum:{name:'Arbitrum',ticker:'ETH',color:'#28a0f0',url:a=>`https://arbitrum.blockscout.com/address/${a}`},
+  stacks:{name:'Stacks',ticker:'STX',color:'#5546ff',convert:stacksPubkeyToAddr,url:a=>{const s=stacksPubkeyToAddr(a);if(s)return`https://explorer.stacks.co/address/${s}`;if(/^S[TP]/.test(a))return`https://explorer.stacks.co/address/${a}`;return null;}},
+  crypto_org:{name:'Cronos POS Chain',ticker:'CRO',color:'#0e1c37',url:a=>`https://www.mintscan.io/crypto-org/address/${a}`},
+  litecoin:{name:'Litecoin',ticker:'LTC',color:'#cccccc',url:a=>`https://live.blockcypher.com/ltc/address/${a}`,xc:'LTC'},
+  dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#65d196',url:a=>`https://dogechain.info/address/${a}`,xc:'DOGE'},
+  bitcoin_cash:{name:'Bitcoin Cash',ticker:'BCH',color:'#3ca569',url:a=>`https://blockchair.com/bitcoin-cash/address/${a}`,xc:'BCH'},
+  stellar:{name:'Stellar',ticker:'XLM',color:'#000000',url:()=>null},
+  hedera:{name:'Hedera',ticker:'HBAR',color:'#000000',url:a=>`https://hashscan.io/mainnet/account/${a}`},
+  elrond:{name:'MultiversX',ticker:'EGLD',color:'#23F7DD',url:a=>`https://explorer.multiversx.com/accounts/${a}`},
+  celo:{name:'Celo',ticker:'CELO',color:'#35D07F',url:a=>`https://explorer.celo.org/address/${a}`},
+  // Osmosis: object key in currencies.ts is 'osmosis' but id field is 'osmo'; account IDs use 'osmo'
+  osmo:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/validators/${a}`},
+  osmosis:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/validators/${a}`},
+  sui:{name:'Sui',ticker:'SUI',color:'#000000',url:a=>`https://suiscan.xyz/mainnet/account/${a}`},
+  dydx:{name:'dYdX',ticker:'dydx',color:'#6666FF',url:a=>`https://www.mintscan.io/dydx/validators/${a}`},
+  injective:{name:'Injective',ticker:'INJ',color:'#00F2FE',url:a=>`https://www.mintscan.io/injective/validators/${a}`},
+  mantra:{name:'Mantra',ticker:'MANTRA',color:'#ffb386',url:a=>`https://www.mintscan.io/mantra/validators/${a}`},
+  persistence:{name:'Persistence',ticker:'XPRT',color:'#e50a13',url:a=>`https://www.mintscan.io/persistence/validators/${a}`},
+  axelar:{name:'Axelar',ticker:'AXL',color:'#b2b6bc',url:a=>`https://www.mintscan.io/axelar/validators/${a}`},
+  quicksilver:{name:'Quicksilver',ticker:'QCK',color:'#9b9b9b',url:a=>`https://explorer.quicksilver.zone/validators/${a}`},
+  zenrock:{name:'Zenrock',ticker:'ROCK',color:'#080c44',url:()=>null},
+  base:{name:'Base',ticker:'ETH',color:'#1755FE',url:a=>`https://base.blockscout.com/address/${a}`},
+  zksync:{name:'ZKsync',ticker:'ETH',color:'#000000',url:a=>`https://zksync.blockscout.com/address/${a}`},
+  linea:{name:'Linea',ticker:'ETH',color:'#000000',url:a=>`https://lineascan.build/address/${a}`},
+  scroll:{name:'Scroll',ticker:'ETH',color:'#ebc28e',url:a=>`https://scroll.blockscout.com/address/${a}`},
+  blast:{name:'Blast',ticker:'ETH',color:'#FCFC06',url:a=>`https://blastscan.io/address/${a}`},
+  hyperevm:{name:'HyperEVM',ticker:'HYPE',color:'#97FCE4',url:a=>`https://www.hyperscan.com/address/${a}`},
+  flare:{name:'Flare',ticker:'FLR',color:'#D95F6C',url:a=>`https://flare-explorer.flare.network/address/${a}`},
+  filecoin:{name:'Filecoin',ticker:'FIL',color:'#0090ff',url:a=>`https://beryx.io/v1/explore/fil/mainnet/address/${a}`},
+  // ICP: object key in currencies.ts is 'internet_computer', id field is 'internet_computer'
+  internet_computer:{name:'Internet Computer',ticker:'ICP',color:'#e1effa',url:a=>`https://dashboard.internetcomputer.org/account/${a}`},
+  icp:{name:'Internet Computer',ticker:'ICP',color:'#e1effa',url:a=>`https://dashboard.internetcomputer.org/account/${a}`},
+  vechain:{name:'Vechain',ticker:'VET',color:'#82BE00',url:a=>`https://explore.vechain.org/accounts/${a}`},
+  algorand:{name:'Algorand',ticker:'ALGO',color:'#000000',url:()=>null},
+  fantom:{name:'Fantom',ticker:'FTM',color:'#1969ff',url:a=>`https://ftmscan.com/address/${a}`},
+  klaytn:{name:'Klaytn',ticker:'KLAY',color:'#FF8B00',url:a=>`https://www.klaytnfinder.io/account/${a}`},
+  cronos:{name:'Cronos',ticker:'CRO',color:'#002D74',url:a=>`https://cronos.org/explorer/address/${a}`},
+  moonbeam:{name:'Moonbeam',ticker:'GLMR',color:'#958FDC',url:a=>`https://moonbeam.moonscan.io/address/${a}`},
+  moonriver:{name:'Moonriver',ticker:'MOVR',color:'#95F921',url:a=>`https://moonriver.moonscan.io/address/${a}`},
+  mantle:{name:'Mantle',ticker:'MNT',color:'#0E121B',url:a=>`https://explorer.mantle.xyz/address/${a}`},
+  mina:{name:'Mina',ticker:'MINA',color:'#e1effa',url:a=>`https://minascan.io/mainnet/account/${a}`},
+  neon_evm:{name:'Neon EVM',ticker:'NEON',color:'#D13BB7',url:a=>`https://neon.blockscout.com/address/${a}`},
+  lukso:{name:'Lukso',ticker:'LYX',color:'#FE0167',url:a=>`https://explorer.execution.mainnet.lukso.network/address/${a}`},
+  sonic:{name:'Sonic',ticker:'S',color:'#FFFFFF',url:a=>`https://sonicscan.org/address/${a}`},
+  kaspa:{name:'KASPA',ticker:'KAS',color:'#70C7BA',url:a=>`https://explorer.kaspa.org/addresses/${a}`},
+};
+const DC={name:'Unknown',ticker:'???',color:'#64748b',url:()=>null};
+const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
+
+/* Error KB */
+const ERR_DB=[
+  {m:'TransportStatusError',c:'hardware',s:'high',t:'Device communication failed',a:'Unlock device, open correct app, try different cable.',causes:['Device locked','Wrong app open','Faulty USB cable','USB hub interference']},
+  {m:'DisconnectedDevice',c:'hardware',s:'high',t:'Device disconnected',a:'Connect directly, try different cable.',causes:['Loose USB connection','Low battery (Nano X)','USB hub issue','Driver conflict']},
+  {m:'ManagerDeviceLockedError',c:'hardware',s:'medium',t:'Device is locked',a:'Ask customer to enter PIN.',causes:['Auto-lock timeout','User stepped away','PIN not entered after connection','Inactivity during long operation']},
+  {m:'CantOpenDevice',c:'hardware',s:'high',t:'Cannot connect to device',a:'Close other apps and retry.',causes:['Another app using device','Missing USB drivers','Insufficient permissions']},
+  {m:'GenuineCheckFailed',c:'hardware',s:'high',t:'Genuine check failed',a:'Retry. If persistent, escalate.',causes:['Firmware mismatch','Modified firmware','Connection interrupted during check'],u:'https://support.ledger.com/article/360003117594-zd'},
+  {m:'SyncError',c:'software',s:'medium',t:'Account sync failed',a:'Wait and retry.',causes:['API rate limit','Network timeout','Corrupted account cache']},
+  {m:'failed to fetch nominations',c:'software',s:'low',t:'Staking info unavailable',a:'No action needed.',causes:['Validator node API unreachable','Chain RPC timeout','No nominations set for this account']},
+  {m:'LedgerAPI4xx',c:'software',s:'low',t:'Price data unavailable',a:'Expected for newer tokens.',causes:['Token not yet indexed by Ledger','Unsupported asset','API endpoint deprecated']},
+  {m:'Failed to fetch daily history',c:'software',s:'low',t:'Price data unavailable',a:'Balance correct.'},
+  {m:'Failed to fetch hourly history',c:'software',s:'low',t:'Chart data unavailable',a:'No action needed.'},
+  {m:'pushDevices',c:'server',s:'low',t:'Push notifications skipped',a:'No action needed.'},
+  {m:'FETCH_ERROR',c:'server',s:'low',t:'Background request failed',a:'Safe to ignore.'},
+  {m:'TypeError: Failed to fetch',c:'server',s:'low',t:'Background request failed',a:'Check connectivity.'},
+  // Hardware errors
+  {m:'PairingNotFound',c:'hardware',s:'high',t:'Bluetooth pairing lost',a:'Re-pair device via Ledger Live settings.',causes:['Bluetooth cache cleared','OS pairing removed','Device reset']},
+  {m:'WebHidNotSupported',c:'hardware',s:'high',t:'WebHID not supported',a:'Use Chrome/Edge browser, or try USB.',causes:['Unsupported browser','Firefox/Safari limitation','Old browser version']},
+  {m:'DeviceOnDashboardExpected',c:'hardware',s:'medium',t:'App open on device — dashboard needed',a:'Exit app on device, go back to dashboard.',causes:['Coin app left open','Previous operation incomplete']},
+  {m:'DeviceOnDashboardUnexpected',c:'hardware',s:'medium',t:'App expected but dashboard shown',a:'Open the correct app on device.',causes:['App not opened','Wrong app opened','App crashed on device']},
+  {m:'LockedDeviceError',c:'hardware',s:'medium',t:'Device locked',a:'Enter PIN on device.',causes:['Auto-lock timeout','Device idle too long']},
+  {m:'UnexpectedBootloader',c:'hardware',s:'high',t:'Device in bootloader mode',a:'Unplug, hold left button while plugging in, follow recovery steps.',causes:['Incomplete firmware update','Manual bootloader entry','Power loss during update'],u:'https://support.ledger.com/article/360003117594-zd'},
+  {m:'FirmwareUpdateFailed',c:'hardware',s:'high',t:'Firmware update failed',a:'Retry update. Do not unplug device. If stuck, use Recovery mode.',causes:['USB disconnection during update','Insufficient battery (Nano X)','Antivirus interference'],u:'https://support.ledger.com/article/360003117594-zd'},
+  {m:'LatestMCUInstalledError',c:'hardware',s:'low',t:'MCU already up to date',a:'No action needed.',causes:['Redundant update attempt']},
+  {m:'NetworkDown',c:'server',s:'medium',t:'Ledger services unreachable',a:'Check status.ledger.com and retry.',causes:['Internet outage','Firewall blocking Ledger domains','VPN interference']},
+  {m:'TimeoutTagError',c:'hardware',s:'medium',t:'Device response timeout',a:'Unlock device, ensure correct app is open.',causes:['Device locked mid-operation','Slow USB connection','App loading slowly']},
+  // Software errors
+  {m:'AccountAlreadyExists',c:'software',s:'low',t:'Account already added',a:'Account is already in the wallet.',causes:['Duplicate add attempt','Re-import of existing account']},
+  {m:'NotEnoughBalance',c:'software',s:'medium',t:'Insufficient balance',a:'Check balance and fee estimate.',causes:['Fees not accounted for','Balance recently spent','Wrong account selected']},
+  {m:'NotEnoughGas',c:'software',s:'medium',t:'Insufficient gas',a:'Increase gas limit or add funds for fees.',causes:['Gas limit too low','ETH balance insufficient for fees','Gas price spike']},
+  {m:'InvalidAddress',c:'software',s:'medium',t:'Invalid recipient address',a:'Double-check address format for the chain.',causes:['Wrong network address pasted','Checksum mismatch','Truncated address']},
+  {m:'ReplacementTransactionUnderpriced',c:'software',s:'low',t:'Speed-up gas too low',a:'Increase gas price above original transaction.',causes:['Gas bump less than 10%','Network fee spike']},
+  {m:'cannot estimate gas',c:'software',s:'medium',t:'Gas estimation failed',a:'Contract may have reverted. Check inputs.',causes:['Contract revert condition','Invalid parameters','Insufficient balance for call']},
+  {m:'nonce too low',c:'software',s:'low',t:'Nonce conflict',a:'Previous transaction may be pending. Wait or reset account nonce.',causes:['Pending transaction in mempool','Account used in another wallet','RPC node out of sync']},
+  {m:'getAccountBridgeT0',c:'software',s:'low',t:'Bridge init error',a:'Reload Ledger Live.',causes:['App state corruption','Stale bridge connection']},
+  {m:'deserializeTransaction',c:'software',s:'medium',t:'Transaction deserialization failed',a:'Log data may be corrupted. Try re-syncing.',causes:['Corrupted local cache','Schema mismatch after update','Incomplete transaction data']},
+  // Server / network errors
+  {m:'403',c:'server',s:'medium',t:'API access denied (403)',a:'May be rate-limited or geo-blocked. Try VPN off.',causes:['Geo-restriction','API key expired','Rate limit reached']},
+  {m:'429',c:'server',s:'low',t:'API rate limited (429)',a:'Too many requests. Will retry automatically.',causes:['Too many sync requests','Multiple accounts syncing','Background refresh frequency']},
+  {m:'503',c:'server',s:'medium',t:'Service unavailable (503)',a:'Ledger service is down. Check status.ledger.com.',causes:['Ledger backend maintenance','Service overload','Deployment in progress']},
+  {m:'ECONNREFUSED',c:'server',s:'medium',t:'Connection refused',a:'Local service not running or blocked by firewall.',causes:['Local proxy not running','Firewall blocking port','Service crashed']},
+  {m:'certificate',c:'server',s:'high',t:'TLS/certificate error',a:'Check system clock. Antivirus may be intercepting traffic.',causes:['System clock wrong','Antivirus SSL inspection','Corporate proxy MITM','Expired certificate']},
+  {m:'walletconnect',c:'software',s:'low',t:'WalletConnect session issue',a:'Re-connect WalletConnect session.',causes:['Session expired','dApp disconnected','WalletConnect relay down']},
+  // Bluetooth errors
+  {m:'BluetoothRequired',c:'hardware',s:'high',t:'Bluetooth required',a:'Enable Bluetooth on your device and grant Ledger Live Bluetooth permission.',causes:['Bluetooth disabled on host device','OS Bluetooth permission not granted','Ledger Live Bluetooth access revoked']},
+  {m:'BleError',c:'hardware',s:'high',t:'Bluetooth communication error',a:'Toggle Bluetooth off/on, re-pair the device, and retry.',causes:['Bluetooth signal interference','OS BLE stack crash','Device out of range','Stale BLE connection not cleaned up']},
+  {m:'BleDeviceNotFound',c:'hardware',s:'high',t:'Bluetooth device not found',a:'Ensure device is in pairing mode, Bluetooth is on, and retry scan.',causes:['Device not in pairing mode','Already paired to another host','Bluetooth range too large','OS BLE cache stale']},
+  // WalletSync / Trustchain errors
+  {m:'CloudSyncError',c:'software',s:'medium',t:'Cloud sync failed',a:'Check internet connection and retry. Re-enable WalletSync if problem persists.',causes:['Network unavailable during sync','Ledger Sync service outage','Authentication token expired']},
+  {m:'TrustchainNotFound',c:'software',s:'medium',t:'Trustchain not found',a:'Re-initialize WalletSync in settings.',causes:['Trustchain deleted or never initialized','Account migrated without trustchain','Backend data purged']},
+  {m:'MemberCredentialsNotFound',c:'software',s:'medium',t:'WalletSync credentials missing',a:'Re-authenticate WalletSync. You may need to re-add devices to the sync group.',causes:['Credentials cleared from local storage','App reinstalled without backup','Sync group membership revoked']},
+  // ETH RPC errors
+  {m:'execution reverted',c:'software',s:'medium',t:'Smart contract execution reverted',a:'Transaction conditions not met. Check contract state, inputs, and balance.',causes:['Contract require() condition failed','Insufficient token approval','Slippage exceeded in DeFi swap','Function called on wrong network']},
+  {m:'insufficient funds for gas',c:'software',s:'medium',t:'Insufficient ETH for gas fees',a:'Add ETH to cover gas fees and retry.',causes:['ETH balance too low after token balance','Gas price spike since estimate','Wallet holds only ERC-20 tokens without ETH']},
+  {m:'gas price too low',c:'software',s:'medium',t:'Gas price below network minimum',a:'Increase gas price in advanced settings and resubmit.',causes:['Network base fee increased since estimate','Transaction underpriced for current mempool','Gas price set manually too low']},
+  // Firmware / app errors
+  {m:'AppNotFound',c:'software',s:'low',t:'App not found on device',a:'Install the required app via My Ledger.',causes:['App not installed on device','Wrong firmware version for app','App removed after firmware update']},
+  {m:'AppAlreadyInstalled',c:'software',s:'medium',t:'App already installed',a:'Uninstall the existing app first, then reinstall if needed.',causes:['Duplicate install attempt','Partial install left stale entry','Firmware update did not clean app list']},
+  // APDU status codes (hex)
+  {m:'0x6985',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.'},
+  {m:'27013',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.'},
+  {m:'0x6982',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met']},
+  {m:'27010',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met']},
+  {m:'0x6a82',c:'hardware',s:'medium',t:'App not open / file not found on device',a:'Open the required coin app on the device before retrying.',causes:['App not installed','Wrong app open','App crashed']},
+  {m:'27266',c:'hardware',s:'medium',t:'App not open / file not found on device',a:'Open the required coin app on the device before retrying.',causes:['App not installed','Wrong app open','App crashed']},
+  {m:'0x6700',c:'hardware',s:'medium',t:'Wrong data length sent to device',a:'Retry. If persistent, update the app and Ledger Live.',causes:['Malformed APDU command','App version mismatch','Ledger Live bug']},
+  {m:'26368',c:'hardware',s:'medium',t:'Wrong data length sent to device',a:'Retry. If persistent, update the app and Ledger Live.',causes:['Malformed APDU command','App version mismatch','Ledger Live bug']},
+  {m:'0x6d00',c:'software',s:'medium',t:'Invalid instruction sent to device',a:'Update the coin app and Ledger Live to latest versions.',causes:['Outdated app on device','Unsupported instruction for app version','Ledger Live / app version mismatch']},
+  {m:'27904',c:'software',s:'medium',t:'Invalid instruction sent to device',a:'Update the coin app and Ledger Live to latest versions.',causes:['Outdated app on device','Unsupported instruction for app version','Ledger Live / app version mismatch']},
+  {m:'0x6e00',c:'hardware',s:'medium',t:'CLA not supported / wrong app open',a:'Ensure the correct coin app is open on the device.',causes:['Wrong app open','App does not support this command class','Firmware too old']},
+  {m:'28160',c:'hardware',s:'medium',t:'CLA not supported / wrong app open',a:'Ensure the correct coin app is open on the device.',causes:['Wrong app open','App does not support this command class','Firmware too old']},
+  {m:'0x6f00',c:'hardware',s:'high',t:'Technical problem on device',a:'Restart device. If persistent, reinstall app or update firmware.',causes:['Internal device error','Corrupted app state','Firmware issue']},
+  {m:'28416',c:'hardware',s:'high',t:'Technical problem on device',a:'Restart device. If persistent, reinstall app or update firmware.',causes:['Internal device error','Corrupted app state','Firmware issue']},
+  {m:'0x5515',c:'hardware',s:'medium',t:'Device locked during operation',a:'Unlock device and retry the operation.',causes:['Auto-lock triggered mid-operation','Inactivity timeout','PIN required']},
+  {m:'21781',c:'hardware',s:'medium',t:'Device locked during operation',a:'Unlock device and retry the operation.',causes:['Auto-lock triggered mid-operation','Inactivity timeout','PIN required']},
+  // Missing error class entries
+  {m:'DeviceSoldNotActivated',c:'hardware',s:'high',t:'Device not onboarded',a:'Ask customer to complete the device setup (onboarding) process before use.',causes:['New device never configured','Factory-reset device not re-onboarded']},
+  {m:'HardResetDeviceError',c:'hardware',s:'high',t:'Device requires reset',a:'Escalate to Tier 2. Device may be bricked. Do not attempt self-repair.',causes:['Critical firmware failure','Hardware fault','Unrecoverable software state']},
+  {m:'SerialAccessNotGranted',c:'hardware',s:'high',t:'Serial port access denied',a:'Grant serial/USB permission in Chrome (Settings \u2192 Privacy \u2192 Serial ports) or OS device permissions.',causes:['Browser serial permission not granted','OS USB permissions missing','Security software blocking serial access']},
+  {m:'LedgerAPI5xx',c:'server',s:'medium',t:'Ledger API server error',a:'Check status.ledger.com for incidents. Ask customer to retry in a few minutes.',causes:['Ledger backend error','Service deployment in progress','Unexpected server fault']},
+  {m:'PasswordIncorrectError',c:'software',s:'medium',t:'Incorrect password',a:'Ask customer to re-enter their Ledger Live password carefully.',causes:['Typo in password','Caps Lock on','Password changed and forgotten']},
+  {m:'DeviceGenuineSocketEarlyClose',c:'hardware',s:'high',t:'Genuine check connection dropped',a:'Retry genuine check. If it persists more than 3 times, escalate.',causes:['USB disconnection during genuine check','Network drop during check','Server-side timeout']},
+  {m:'AppInstallFail',c:'software',s:'medium',t:'App installation failed',a:'Retry install. Ensure device has sufficient storage. Uninstall unused apps if needed.',causes:['Insufficient device storage','Interrupted install','Firmware / Manager API error']},
+  {m:'EthAppPleaseEnableContractData',c:'hardware',s:'medium',t:'Enable blind signing / contract data',a:'On device: go to Ethereum app \u2192 Settings \u2192 Blind signing / Contract data \u2192 Enable.',causes:['Blind signing disabled in ETH app settings','Smart contract interaction attempted without enabling setting']},
+  {m:'UserRefusedOnDevice',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device if the action was unintentional.',causes:['User pressed X/reject button','Prompt timeout']},
+  {m:'UserRefusedAddress',c:'hardware',s:'high',t:'Address rejected on device',a:'User rejected address verification. Ask them to retry and confirm if the address is correct.',causes:['User pressed X during address verification','Suspicious address','Unintentional rejection']},
+  {m:'UserRefusedFirmwareUpdate',c:'hardware',s:'medium',t:'Firmware update rejected',a:'User cancelled the firmware update. Advise them to retry if update is desired.',causes:['User pressed cancel on device','Accidental rejection','User not ready to update']},
+  {m:'NoAccessToCamera',c:'software',s:'low',t:'Camera access denied',a:'Grant camera permission to Ledger Live in browser or OS settings for QR code scanning.',causes:['Camera permission denied','OS privacy settings blocking camera','Browser permission not granted']},
+  {m:'LedgerAPINotAvailable',c:'server',s:'medium',t:'Ledger API unavailable',a:'Check status.ledger.com. Ask customer to retry after a few minutes.',causes:['Ledger API service down','Network outage','Maintenance window']},
+  {m:'UpdateYourApp',c:'software',s:'medium',t:'App out of date',a:'Ask customer to update Ledger Live to the latest version.',causes:['Outdated Ledger Live version','Auto-update disabled','Using beta/old build']},
+  {m:'RecommendUndelegation',c:'software',s:'low',t:'Undelegation recommended before operation',a:'Customer must undelegate funds before performing this operation.',causes:['Delegated stake blocking operation','Protocol restriction']},
+  {m:'NetworkCongestionError',c:'server',s:'medium',t:'Network congestion',a:'Fees are elevated. Ask customer to retry later when congestion eases.',causes:['High blockchain network traffic','Gas price spike','Block space demand high']},
+  {m:'SwapExchangeRateOutOfRange',c:'software',s:'medium',t:'Swap rate out of range',a:'Exchange rate shifted since quote. Ask customer to refresh the swap and retry.',causes:['Rate moved outside provider bounds','High market volatility','Quote expired']},
+];
+const SEV={high:{l:'Critical',c:'#ef4444',bg:'rgba(239,68,68,0.10)',bd:'rgba(239,68,68,0.3)'},medium:{l:'Warning',c:'#f59e0b',bg:'rgba(245,158,11,0.08)',bd:'rgba(245,158,11,0.25)'},low:{l:'Info',c:'#3b82f6',bg:'rgba(59,130,246,0.08)',bd:'rgba(59,130,246,0.25)'}};
+const CAT={hardware:{l:'Hardware / Device',i:'🔌'},software:{l:'Software / Sync',i:'🔄'},server:{l:'Server / Network',i:'☁️'},unknown:{l:'Unknown',i:'❓'}};
+
+function diagnose(e,allErrors){
+  const parts=[(e.message||''),sGet(e,'error.message',''),sGet(e,'payload.error',''),sGet(e,'payload.status','')].filter(Boolean);
+  const h=parts.join(' | ')+' '+sGet(e,'queryArg.endpointName','');
+  const SEV_RANK={high:3,medium:2,low:1};
+  const matches=ERR_DB.filter(r=>h.includes(r.m));
+  let result;
+  if(matches.length>0){
+    const best=matches.reduce((a,b)=>{
+      const da=SEV_RANK[a.s]||0,db=SEV_RANK[b.s]||0;
+      if(db!==da)return db>da?b:a;
+      return b.m.length>a.m.length?b:a;
+    });
+    result={c:best.c,s:best.s,t:best.t,a:best.a,r:parts.join(' | ')};
+    if(best.causes)result.causes=best.causes;
+  }
+  if(!result)result={c:'unknown',s:'low',t:'Unexpected error',a:'Review raw entry.',r:parts.join(' | ')};
+  // Subcode extraction: if the best match is the generic TransportStatusError, try to find a more specific APDU subcode match
+  if(result.t==='Device communication failed'){
+    const subcodeMatch=h.match(/(0x[0-9a-fA-F]{4}|\b\d{4,5}\b)/);
+    if(subcodeMatch){
+      const code=subcodeMatch[1];
+      const subMatches=ERR_DB.filter(r=>r.m===code);
+      if(subMatches.length>0){
+        const subBest=subMatches.reduce((a,b)=>{const da=SEV_RANK[a.s]||0,db=SEV_RANK[b.s]||0;if(db!==da)return db>da?b:a;return b.m.length>a.m.length?b:a;});
+        result={c:subBest.c,s:subBest.s,t:subBest.t,a:subBest.a,r:parts.join(' | ')};
+        if(subBest.causes)result.causes=subBest.causes;
+      }
+      result.subcode=code;
+    }
+  }
+  if(allErrors){
+    const sameTitle=allErrors.filter(other=>{const raw=other.raw||other;return raw!==e&&diagnose(raw).t===result.t;});
+    if(sameTitle.length>0)result.repeatCount=sameTitle.length;
+  }
+  return result;
+}
+
+/* Parsing */
+function parseLogs(text){
+  // Strip UTF-8 BOM if present
+  let raw=text;
+  if(raw.charCodeAt(0)===0xFEFF)raw=raw.slice(1);
+  const t=raw.trim();
+  if(t[0]==='['||t[0]==='{'){
+    try{
+      const p=JSON.parse(t);
+      const arr=Array.isArray(p)?p:[p];
+      // Filter out non-objects, add logIndex if missing, normalise mobile fields
+      return arr.filter(e=>e!==null&&typeof e==='object'&&!Array.isArray(e)).map((e,i)=>{
+        const out=Object.assign({},e);
+        if(out.logIndex==null)out.logIndex=i;
+        // Mobile: logLevel -> level, tag -> type
+        if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
+        if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
+        return out;
+      });
+    }catch{}
+  }
+  // Line-by-line fallback (handles mixed JSON+text)
+  return raw.split('\n').map((l,i)=>{
+    const lt=l.trim();if(!lt)return null;
+    try{
+      const p=JSON.parse(lt);
+      if(p===null||typeof p!=='object'||Array.isArray(p))return{logIndex:i,timestamp:'',type:'raw',level:'info',message:lt};
+      const out=Object.assign({},p);
+      if(out.logIndex==null)out.logIndex=i;
+      if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
+      if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
+      return out;
+    }catch{return{logIndex:i,timestamp:'',type:'raw',level:'info',message:lt};}
+  }).filter(Boolean);
+}
+
+function extractDevice(entries){
+  const info={};
+  const nes=v=>typeof v==='string'&&v.length>0; // non-empty string helper
+  for(const e of entries){
+    const d=e.data;
+    if(d){
+      if(nes(d.modelId)&&!info.modelId){info.modelId=d.modelId;info.modelName=DN[d.modelId]||d.modelId;}
+      if(nes(d.deviceVersion)&&!info.fw)info.fw=d.deviceVersion;
+      if(nes(d.deviceLanguage)&&!info.lang)info.lang=d.deviceLanguage;
+      if(d.modelIdList!=null&&!info.devices)info.devices=d.modelIdList;
+      if(nes(d.appVersion||d.version)&&!info.appVer)info.appVer=d.appVersion||d.version;
+      if(nes(d.osType)&&!info.os)info.os=d.osType;
+      if(nes(d.osVersion)&&!info.osVer)info.osVer=d.osVersion;
+      if(nes(d.platform)&&!info.platform)info.platform=d.platform;
+      // Guard: only set totalAccts when value is a positive number; never overwrite existing value with 0
+      if(d.totalAccounts&&!info.totalAccts)info.totalAccts=d.totalAccounts;
+      if(d.totalOperations&&!info.totalOps)info.totalOps=d.totalOperations;
+      if(d.accountsWithFunds&&!info.fundedAccts)info.fundedAccts=d.accountsWithFunds;
+      if(d.tokenWithFunds&&!info.fundedTokens)info.fundedTokens=d.tokenWithFunds;
+      if(d.ledgerSyncActivated!==undefined&&info.ledgerSync===undefined)info.ledgerSync=d.ledgerSyncActivated;
+      if(d.MEVProtectionActivated&&!info.mev)info.mev=d.MEVProtectionActivated;
+    }
+  }
+  // exportLogsMeta: check e.env / e.data?.env
+  const meta=entries.find(e=>e.message==='exportLogsMeta');
+  if(meta){
+    const metaEnv=meta.env||(meta.data&&meta.data.env)||{};
+    info.envBlock=metaEnv;
+    if(meta.release)info.appVer=meta.release;
+    if(meta.git_commit)info.commit=meta.git_commit;
+    // userId: prefer explicit userId/anonymousId, fall back to userAnonymousId
+    if(meta.userId&&!info.userId)info.userId=meta.userId;
+    if(meta.anonymousId&&!info.userId)info.userId=meta.anonymousId;
+    if(meta.userAnonymousId&&!info.userId)info.userId=meta.userAnonymousId;
+    if(meta.accountsIds)info.accountIds=meta.accountsIds;
+    // Pull extra fields from envBlock
+    if(nes(metaEnv.appVersion)&&!info.appVer)info.appVer=metaEnv.appVersion;
+    if(nes(metaEnv.version)&&!info.appVer)info.appVer=metaEnv.version;
+    if(nes(metaEnv.osType)&&!info.os)info.os=metaEnv.osType;
+    if(nes(metaEnv.osVersion)&&!info.osVer)info.osVer=metaEnv.osVersion;
+    if(nes(metaEnv.platform)&&!info.platform)info.platform=metaEnv.platform;
+    // Mobile exports may put env fields directly on the meta entry (not nested)
+    if(nes(meta.appVersion)&&!info.appVer)info.appVer=meta.appVersion;
+    if(nes(meta.osType)&&!info.os)info.os=meta.osType;
+    if(nes(meta.osVersion)&&!info.osVer)info.osVer=meta.osVersion;
+    if(nes(meta.platform)&&!info.platform)info.platform=meta.platform;
+  }
+  return info;
+}
+
+function extractAccounts(entries){
+  const syncs=[];
+  for(const e of entries){
+    if(e.type!=='analytics'||!e.message?.includes('SyncSuccess')||e.message.includes('AllAccounts'))continue;
+    const d=e.data;if(!d?.currencyName)continue;
+    syncs.push({
+      cn:d.currencyName,dm:d.derivationMode||'',fp:d.freshAddressPath||'',
+      ops:d.operationsLength||0,dur:d.duration,toks:d.tokens||[],
+      bal:d.balance??null,spendBal:d.spendableBalance??null,
+      used:false
+    });
+  }
+  const meta=entries.find(e=>e.message==='exportLogsMeta');
+  const ids=meta?.accountsIds||[];
+  const out=[];
+  for(const id of ids){
+    const p=id.split(':');if(p.length<4)continue;
+    const cid=p[2];
+    let addr,deriv;
+    const last=p[p.length-1];
+    // Derivation modes are short words (≤13 chars seen in practice); addresses are always ≥25 chars
+    if(last.length<20){deriv=last;addr=p.slice(3,p.length-1).join(':');}
+    else{deriv='';addr=p.slice(3).join(':');}
+    const ch=getChain(cid);
+    let sync=null;
+    for(const sv of syncs){
+      if(sv.used)continue;
+      const cn=sv.cn.toLowerCase().replace(/[\s\-]/g,'_');
+      if(cn===cid||cid.startsWith(cn)||cn.startsWith(cid.split('/')[0])){sync=sv;sv.used=true;break;}
+    }
+    const isXpub=['xpub','ypub','zpub','Ltub','Mtub','dgub'].some(pre=>addr.startsWith(pre));
+    out.push({
+      id,cid,ch,addr,dm:deriv,fp:sync?.fp||'',ops:sync?.ops||0,
+      dur:sync?.dur??null,toks:sync?.toks||[],isXpub,
+      bal:sync?.bal??null,spendBal:sync?.spendBal??null
+    });
+  }
+  out.sort((a,b)=>b.ops-a.ops);
+  return out;
+}
+
+function extractErrors(entries){
+  const out=[];
+  for(const e of entries){
+    let isE=false,msg='';
+    if(e.error){isE=true;msg=e.error.message||JSON.stringify(e.error);}
+    const ps=sGet(e,'payload.status','');
+    if(ps?.includes('ERROR')){isE=true;msg+=(msg?' | ':'')+(sGet(e,'payload.error','')||ps);}
+    if(e.message&&e.type!=='analytics'){
+      const ml=e.message.toLowerCase();
+      if(ml.includes('rejected')||ml.includes('failed')||ml.includes('error')){isE=true;if(!msg)msg=e.message;}
+    }
+    if(e.data?.error&&typeof e.data.error==='object'&&Object.keys(e.data.error).length===0&&e.message?.includes('failed')){isE=true;msg=e.message;}
+    if(isE)out.push({li:e.logIndex,ts:e.timestamp,tp:e.type,msg:e.message,det:msg,dg:diagnose(e),raw:e});
+  }
+  return out;
+}
+
+function extractSync(entries){
+  const e=entries.find(e=>e.type==='bridge'&&e.message?.includes('SyncSession finished'));
+  if(!e)return null;
+  const m=e.message.match(/duration=([\d.]+)s/);
+  return m?m[1]:'?';
+}
+
+function extractApdu(entries){
+  const out=[];
+  for(const e of entries){
+    const msg=(e.message||'').toLowerCase();
+    const typ=(e.type||'').toLowerCase();
+    let dir=null,hex=null;
+    // Direct apdu-in / apdu-out messages
+    if(e.message==='apdu-in'||msg==='apdu-in')dir='in';
+    else if(e.message==='apdu-out'||msg==='apdu-out')dir='out';
+    // Type contains 'apdu'
+    else if(typ.includes('apdu')){dir=msg.includes('out')?'out':'in';}
+    // live-dmk-logger entries with apdu data
+    else if(e.type==='live-dmk-logger'&&(e.data?.apdu!=null||(e.data?.direction!=null))){
+      const edir=(e.data?.direction||'').toLowerCase();
+      dir=edir==='out'?'out':'in';
+    }
+    if(dir===null)continue;
+    // Extract hex payload: e.data.apdu, e.apdu, or e.data.hex
+    hex=e.data?.apdu||e.apdu||e.data?.hex||e.data?.raw||null;
+    if(hex!=null)hex=String(hex);
+    out.push({ts:e.timestamp,dir,hex,li:e.logIndex});
+  }
+  return out;
+}
+
+function logQualityScore(entries,dev,accts,errs){
+  const details=[];
+  let score=0;
+  // Device model found: 15pts
+  const hasModel=!!(dev.modelId||dev.modelName);
+  details.push({field:'Device model',found:hasModel,note:hasModel?dev.modelName:'Not found in logs'});
+  if(hasModel)score+=15;
+  // Firmware version found: 10pts
+  const hasFw=!!dev.fw;
+  details.push({field:'Firmware version',found:hasFw,note:hasFw?dev.fw:'Not found'});
+  if(hasFw)score+=10;
+  // App version found: 10pts
+  const hasApp=!!dev.appVer;
+  details.push({field:'App version',found:hasApp,note:hasApp?dev.appVer:'Not found'});
+  if(hasApp)score+=10;
+  // At least 1 account with ops>0: 20pts
+  const hasActiveAcct=accts.some(a=>a.ops>0);
+  details.push({field:'Active account (ops>0)',found:hasActiveAcct,note:hasActiveAcct?`${accts.filter(a=>a.ops>0).length} active`:'No accounts with operations'});
+  if(hasActiveAcct)score+=20;
+  // OS info present: 5pts
+  const hasOs=!!(dev.os||dev.osVer);
+  details.push({field:'OS info',found:hasOs,note:hasOs?`${dev.os||''} ${dev.osVer||''}`.trim():'Not found'});
+  if(hasOs)score+=5;
+  // User ID present: 5pts
+  const hasUser=!!dev.userId;
+  details.push({field:'User ID',found:hasUser,note:hasUser?'Present':'Not found'});
+  if(hasUser)score+=5;
+  // Sync duration found: 10pts
+  const hasSyncDur=accts.some(a=>a.dur!=null)||!!entries.find(e=>e.type==='bridge'&&e.message?.includes('SyncSession finished'));
+  details.push({field:'Sync duration',found:hasSyncDur,note:hasSyncDur?'Present':'Not found'});
+  if(hasSyncDur)score+=10;
+  // No critical errors: 15pts (reduce by 5 per critical error, min 0)
+  const criticalErrs=errs.filter(e=>e.dg&&e.dg.s==='high');
+  const errPts=Math.max(0,15-criticalErrs.length*5);
+  details.push({field:'No critical errors',found:criticalErrs.length===0,note:criticalErrs.length===0?'Clean':`${criticalErrs.length} critical error(s) (-${15-errPts}pts)`});
+  score+=errPts;
+  // Total entries > 100: 10pts
+  const hasEnough=entries.length>100;
+  details.push({field:'Log volume (>100 entries)',found:hasEnough,note:`${entries.length} entries`});
+  if(hasEnough)score+=10;
+  // Clamp to 0-100
+  score=Math.max(0,Math.min(100,score));
+  let label,color;
+  if(score>=85){label='Excellent';color='#10b981';}
+  else if(score>=65){label='Good';color='#3b82f6';}
+  else if(score>=40){label='Fair';color='#f59e0b';}
+  else{label='Poor';color='#ef4444';}
+  return{score,label,color,details};
+}
+
+function extractActivity(entries){
+  let managerOpened=false,swapBrowsed=false,swapExecuted=false,deviceScan=false;
+  for(const e of entries){
+    const mlo=(e.message||'').toLowerCase();
+    if(mlo.includes('manager.api.live.ledger.com/api/apps'))managerOpened=true;
+    if(mlo.includes('swap.ledger.com')){
+      swapBrowsed=true;
+      if((mlo.startsWith('post ')||mlo.includes('/v5/swap')||mlo.includes('/v5/exchange'))&&mlo.includes('swap.ledger.com'))swapExecuted=true;
+    }
+    if(e.type==='live-dmk-logger'&&(mlo.includes('available')||mlo.includes('transport')))deviceScan=true;
+  }
+  return{managerOpened,swapBrowsed,swapExecuted,deviceScan};
+}
+
+/* Components */
+function CopyBtn({text}){
+  const[copied,setCopied]=useState(false);
+  return <button onClick={e=>{e.stopPropagation();copyText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);}} style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'#94a3b8',display:'inline-flex',alignItems:'center'}} title="Copy" aria-label="Copy">{copied?<Ico.Ok/>:<Ico.Copy/>}</button>;
+}
+
+function Tooltip({children,tip}){
+  const[show,setShow]=useState(false);
+  const[pos,setPos]=useState({x:0,y:0});
+  return <span onMouseEnter={e=>{setShow(true);const r=e.currentTarget.getBoundingClientRect();setPos({x:r.left,y:r.bottom+6});}} onMouseLeave={()=>setShow(false)} style={{cursor:'help'}}>
+    {children}
+    {show&&<div style={{position:'fixed',left:Math.min(pos.x,window.innerWidth-400),top:pos.y,zIndex:9999,maxWidth:400,padding:'12px 16px',background:'#1a1a2e',border:'1px solid #334155',borderRadius:8,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',fontSize:12,lineHeight:1.6,color:'#e2e8f0',fontFamily:'monospace',pointerEvents:'none'}}>{tip}</div>}
+  </span>;
+}
+
+function HighlightText({text,term}){
+  if(!term||!text)return <span>{text||''}</span>;
+  const lower=text.toLowerCase();
+  const idx=lower.indexOf(term.toLowerCase());
+  if(idx===-1)return <span>{text}</span>;
+  return <span>
+    {text.slice(0,idx)}
+    <mark style={{background:'#f59e0b33',color:'#fbbf24',borderRadius:2,padding:'0 1px'}}>{text.slice(idx,idx+term.length)}</mark>
+    {text.slice(idx+term.length)}
+  </span>;
+}
+
+function ErrCard({err,onJump}){
+  const d=err.dg,sv=SEV[d.s]||SEV.low,ct=CAT[d.c]||CAT.unknown;
+  const[detOpen,setDetOpen]=useState(false);
+  return <div style={{background:sv.bg,border:`1px solid ${sv.bd}`,borderRadius:12,padding:18,marginBottom:12}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:18}}>{ct.i}</span>
+        <div>
+          <div style={{fontSize:15,fontWeight:600,color:sv.c}}>{d.t}</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>
+            {ct.l} · {onJump?<span onClick={()=>onJump(err.li)} style={{cursor:'pointer',color:T.primary,textDecoration:'underline'}}>#{err.li}</span>:<span>#{err.li}</span>} · {fmtTime(err.ts)}
+          </div>
+        </div>
+      </div>
+      <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:'rgba(255,255,255,0.06)',color:'#94a3b8',border:'1px solid #334155',display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer'}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
+    </div>
+    <div style={{fontSize:13,color:'#e2e8f0',paddingLeft:34}}>{d.a}</div>
+    <div style={{paddingLeft:34,marginTop:8,display:'flex',alignItems:'center',flexWrap:'wrap',gap:6}}>
+      <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:sv.bg,color:sv.c,border:`1px solid ${sv.bd}`}}>{sv.l.toUpperCase()}</span>
+      {d.repeatCount>0&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,158,11,0.15)',color:'#f59e0b',border:'1px solid rgba(245,158,11,0.3)'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
+    </div>
+    {d.causes&&d.causes.length>0&&<div style={{paddingLeft:34,marginTop:10}}>
+      <span style={{fontSize:11,color:'#64748b',fontWeight:600,marginRight:6}}>Common causes:</span>
+      {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,background:'rgba(255,255,255,0.06)',color:'#94a3b8',marginRight:4,marginBottom:4}}>{cause}</span>)}
+    </div>}
+    {detOpen&&<div style={{paddingLeft:34,marginTop:12,borderTop:`1px solid ${sv.bd}`,paddingTop:10}}>
+      <div style={{fontSize:11,fontWeight:700,color:sv.c,marginBottom:6}}>Technical Details</div>
+      <pre style={{fontFamily:MF,fontSize:11,color:'#cbd5e1',whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{d.r}</pre>
+    </div>}
+  </div>;
+}
+
+/* Xpub Scanner — full address derivation + balance lookup */
+const UTXO_NETS={
+  BTC:{bech32:'bc',pubKeyHash:0x00,scriptHash:0x05,wif:0x80,label:'Bitcoin',color:'#f7931a',delay:200,
+    fetchBal:(addr,cb)=>{
+      fetch(`https://mempool.space/api/address/${addr}`)
+        .then(r=>r.json())
+        .then(d=>{
+          const b=(d.chain_stats.funded_txo_sum-d.chain_stats.spent_txo_sum)/1e8;
+          cb(null,{bal:b,txs:d.chain_stats.tx_count+d.mempool_stats.tx_count});
+        })
+        .catch(()=>{
+          // Fallback to Blockchair
+          fetch(`https://api.blockchair.com/bitcoin/dashboards/address/${addr}`)
+            .then(r=>r.json())
+            .then(d=>{
+              const stats=d.data?.[addr]?.address;
+              if(!stats)return cb(new Error('no data'));
+              const b=(stats.balance)/1e8;
+              cb(null,{bal:b,txs:stats.transaction_count||0});
+            })
+            .catch(e=>cb(e));
+        });
+    },
+    addrUrl:a=>`https://mempool.space/address/${a}`},
+  LTC:{bech32:'ltc',pubKeyHash:0x30,scriptHash:0x32,wif:0xb0,label:'Litecoin',color:'#345d9d',delay:650,
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/ltc/main/addrs/${addr}/balance`).then(r=>{
+      if(r.status===429){setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.LTC.fetchBal(addr,cb);},1500);return null;}return r.json();
+    }).then(d=>{if(d)cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}).catch(e=>cb(e));},
+    addrUrl:a=>`https://blockchair.com/litecoin/address/${a}`},
+  DOGE:{bech32:'doge',pubKeyHash:0x1e,scriptHash:0x16,wif:0x9e,label:'Dogecoin',color:'#ba9f33',delay:650,
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/doge/main/addrs/${addr}/balance`).then(r=>{
+      if(r.status===429){setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.DOGE.fetchBal(addr,cb);},1500);return null;}return r.json();
+    }).then(d=>{if(d)cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}).catch(e=>cb(e));},
+    addrUrl:a=>`https://blockchair.com/dogecoin/address/${a}`},
+  BCH:{bech32:'bitcoincash',pubKeyHash:0x00,scriptHash:0x05,wif:0x80,label:'Bitcoin Cash',color:'#8dc351',delay:100,
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockchair.com/bitcoin-cash/dashboards/address/${addr}`).then(r=>r.json()).then(d=>{const s=d.data?.[addr]?.address;if(!s)return cb(new Error('no data'));cb(null,{bal:s.balance/1e8,txs:s.transaction_count||0});}).catch(e=>cb(e));},
+    addrUrl:a=>`https://blockchair.com/bitcoin-cash/address/${a}`},
+};
+
+function XpubView({xpub,coin,dm}){
+  const net=UTXO_NETS[coin];
+  const[running,setRunning]=useState(false);
+  const[results,setResults]=useState([]);
+  const[stats,setStats]=useState(null);
+  const[progress,setProgress]=useState({chain:0,idx:0,gap:0});
+  const[scanErr,setScanErr]=useState('');
+  const[libReady,setLibReady]=useState(false);
+  const libRef=useRef({});
+  // Each scan gets its own ctx object; old callbacks check ctx.stop before touching state
+  const ctxRef=useRef(null);
+
+  useEffect(()=>{
+    const check=()=>{
+      if(window.bitcoinjsLib&&window.buffer&&window.bs58){
+        window.Buffer=window.buffer.Buffer;
+        libRef.current={bitcoin:window.bitcoinjsLib,bs58:window.bs58};
+        setLibReady(true);
+        return true;
+      }
+      return false;
+    };
+    if(check())return;
+    const iv=setInterval(()=>{if(check())clearInterval(iv);},200);
+    const to=setTimeout(()=>{clearInterval(iv);if(!libRef.current.bitcoin)setScanErr('Crypto libraries failed to load. Open this HTML file locally (not in an iframe).');},10000);
+    return()=>{clearInterval(iv);clearTimeout(to);};
+  },[]);
+
+  const convertXpub=key=>{
+    try{
+      const{bs58,bitcoin}=libRef.current;
+      let raw=bs58.decode(key);raw=raw.slice(0,raw.length-4);
+      const data=raw.slice(4);
+      const pre=window.Buffer.from('0488b21e','hex');
+      const payload=window.Buffer.concat([pre,data]);
+      const h=bitcoin.crypto.sha256(bitcoin.crypto.sha256(payload));
+      return bs58.encode(window.Buffer.concat([payload,h.slice(0,4)]));
+    }catch{return key;}
+  };
+
+  const getAddr=(pub)=>{
+    const{bitcoin}=libRef.current;
+    let addrType='p2pkh';
+    const pfx=xpub.slice(0,4);
+    if(pfx==='ypub')addrType='p2sh-p2wpkh';
+    else if(pfx==='zpub')addrType='p2wpkh';
+    if(dm==='native_segwit')addrType='p2wpkh';
+    else if(dm==='segwit')addrType='p2sh-p2wpkh';
+    else if(dm==='legacy'||dm==='')addrType='p2pkh';
+    if(coin==='DOGE'||coin==='BCH')addrType='p2pkh';
+    if(addrType==='p2wpkh')return bitcoin.payments.p2wpkh({pubkey:pub,network:net}).address;
+    if(addrType==='p2sh-p2wpkh'){const inner=bitcoin.payments.p2wpkh({pubkey:pub,network:net});return bitcoin.payments.p2sh({redeem:inner,network:net}).address;}
+    return bitcoin.payments.p2pkh({pubkey:pub,network:net}).address;
+  };
+
+  const doStop=()=>{if(ctxRef.current)ctxRef.current.stop=true;};
+
+  const doScan=()=>{
+    // Cancel any previous scan so its callbacks ignore state
+    if(ctxRef.current)ctxRef.current.stop=true;
+    const ctx={stop:false};
+    ctxRef.current=ctx;
+
+    setRunning(true);setScanErr('');setResults([]);setStats(null);setProgress({chain:0,idx:0,gap:0});
+    const{bitcoin}=libRef.current;
+    let node;
+    try{node=bitcoin.bip32.fromBase58(convertXpub(xpub),bitcoin.networks.bitcoin);}
+    catch(e){setScanErr('Invalid key: '+e.message);setRunning(false);return;}
+
+    const all=[];let bal=0,txc=0,act=0;
+
+    const scanChain=(chain,cb)=>{
+      let gap=0,idx=0;
+      const chainNode=node.derive(chain); // derive once per chain
+      const next=()=>{
+        if(ctx.stop){setRunning(false);setProgress({chain:0,idx:0,gap:0});return;}
+        if(gap>=20){cb();return;}
+        setProgress({chain,idx,gap});
+        // Yield to event loop before CPU-bound derivation
+        setTimeout(()=>{
+          if(ctx.stop){setRunning(false);setProgress({chain:0,idx:0,gap:0});return;}
+          let addr;
+          try{addr=getAddr(chainNode.derive(idx).publicKey);}
+          catch(e){setScanErr('Derivation error: '+e.message);setRunning(false);return;}
+          const _cb=(err,data)=>{
+            if(ctx.stop)return;
+            if(err){
+              setScanErr(`Network error at ${chain===0?'Receive':'Change'} #${idx}: ${err.message||String(err)}`);
+              setRunning(false);return;
+            }
+            all.push({chain,index:idx,address:addr,bal:data.bal,txs:data.txs});
+            if(data.txs>0){bal+=data.bal;txc+=data.txs;act++;gap=0;}else{gap++;}
+            idx++;
+            setResults([...all].sort((a,b)=>(a.chain-b.chain)||(a.index-b.index)));
+            setStats({balance:bal,txCount:txc,activeAddrs:act});
+            setTimeout(next,net.delay);
+          };
+          _cb._ctx=ctx;
+          net.fetchBal(addr,_cb);
+        },0);
+      };
+      next();
+    };
+
+    scanChain(0,()=>{
+      if(ctx.stop)return;
+      scanChain(1,()=>{
+        if(ctx.stop)return;
+        setResults([...all].sort((a,b)=>(a.chain-b.chain)||(a.index-b.index)));
+        setStats({balance:bal,txCount:txc,activeAddrs:act});
+        setRunning(false);setProgress({chain:0,idx:0,gap:0});
+      });
+    });
+  };
+
+  const pfxLabel=(()=>{const p=xpub.slice(0,4);if(p==='ypub')return'ypub \u2192 Nested SegWit';if(p==='zpub')return'zpub \u2192 Native SegWit';return'xpub \u2192 Legacy';})();
+  const at=dm==='native_segwit'?'Native SegWit':dm==='segwit'?'Nested SegWit':'Legacy';
+
+  return <div style={{marginTop:16,borderTop:`1px solid ${T.border}`,paddingTop:16}}>
+    <div style={{fontSize:12,fontWeight:700,color:net.color,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>
+      <Ico.Scan/> {net.label} Address Scanner
+      <span style={{fontWeight:400,color:T.muted,fontSize:11}}>({coin==='DOGE'||coin==='BCH'?'Legacy':at})</span>
+    </div>
+
+    {/* Key type badge */}
+    <div style={{marginBottom:10}}><span style={bdg('#64748b')}>{pfxLabel}</span></div>
+
+    {/* Scan / Stop buttons */}
+    <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+      {!running
+        ?<button onClick={doScan} disabled={!libReady} style={{padding:'10px 20px',borderRadius:8,border:'none',background:net.color,color:'#fff',fontWeight:700,fontSize:13,cursor:!libReady?'not-allowed':'pointer',opacity:!libReady?0.6:1,display:'flex',alignItems:'center',gap:6}}>
+          <Ico.Scan/>{!libReady?'Loading libraries...':'Derive & Scan Addresses'}
+        </button>
+        :<button onClick={doStop} style={{padding:'10px 20px',borderRadius:8,border:'1px solid rgba(239,68,68,0.4)',background:'rgba(239,68,68,0.1)',color:'#f87171',fontWeight:700,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+          <Ico.X/> Stop scan
+        </button>
+      }
+      {coin==='BTC'&&<a href={`https://www.blockchain.com/btc/xpub/${xpub}`} target="_blank" rel="noopener noreferrer" style={{padding:'10px 16px',borderRadius:8,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,textDecoration:'none',fontWeight:600,fontSize:12,display:'inline-flex',alignItems:'center',gap:6}}><Ico.Link/> Blockchain.com</a>}
+    </div>
+
+    {/* Progress bar */}
+    {running&&<div style={{marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.muted,marginBottom:4}}>
+        <span>{progress.chain===0?'Receive':'Change'} #{progress.idx} · gap {progress.gap}/20</span>
+        <span style={{opacity:0.5}}>scanning…</span>
+      </div>
+      <div style={{height:4,background:'rgba(255,255,255,0.06)',borderRadius:2,overflow:'hidden'}}>
+        <div style={{height:'100%',width:`${(progress.gap/20)*100}%`,background:net.color,borderRadius:2,transition:'width 0.15s'}}/>
+      </div>
+    </div>}
+
+    {scanErr&&<div style={{color:T.error,fontSize:12,marginBottom:8,padding:10,background:'rgba(239,68,68,0.08)',borderRadius:6,border:'1px solid rgba(239,68,68,0.2)'}}>{scanErr}</div>}
+
+    {/* Stats */}
+    {stats&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:12}}>
+      {[{l:'Balance',v:`${stats.balance.toFixed(8)} ${coin}`,c:net.color},{l:'Transactions',v:stats.txCount,c:T.text},{l:'Active Addresses',v:stats.activeAddrs,c:T.text}].map(x=>
+        <div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:12,borderRadius:8,textAlign:'center'}}>
+          <div style={{fontSize:18,fontWeight:700,color:x.c,fontFamily:MF}}>{x.v}</div>
+          <div style={{fontSize:11,color:T.muted}}>{x.l}</div>
+        </div>
+      )}
+    </div>}
+
+    {/* Address list */}
+    {results.length>0&&<div style={{maxHeight:400,overflowY:'auto',border:`1px solid ${T.border}`,borderRadius:8}}>
+      {results.map(r=>
+        <div key={`${r.chain}-${r.index}`} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:`1px solid ${T.border}`,fontSize:12,fontFamily:MF}}>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={bdg(r.chain===0?'#3b82f6':'#8b5cf6')}>{r.chain===0?'RX':'CH'}:{r.index}</span>
+            <a href={net.addrUrl(r.address)} target="_blank" rel="noopener noreferrer" style={{color:T.primary,textDecoration:'none',fontSize:11}}>{r.address}</a>
+            <CopyBtn text={r.address}/>
+          </div>
+          {r.txs>0?<div style={{textAlign:'right'}}>
+            <div style={{color:T.success,fontWeight:700}}>{r.bal.toFixed(8)}</div>
+            <div style={{fontSize:10,color:T.muted}}>{r.txs} txs</div>
+          </div>:<span style={{color:T.muted,opacity:0.4}}>Unused</span>}
+        </div>
+      )}
+    </div>}
+  </div>;
+}
+
+/* Account Card */
+function AcctCard({acct}){
+  const[open,setOpen]=useState(false);
+  const ch=acct.ch,hasFunds=acct.ops>0;
+  let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
+  const hasExp=eUrl&&eUrl!=='#';
+  const canX=acct.isXpub&&ch.xc;
+  return <div style={{background:T.panel,border:`1px solid ${open?ch.color+'60':T.border}`,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65}}>
+    <div role="button" tabIndex={0} onClick={()=>setOpen(!open)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setOpen(o=>!o);}}} style={{display:'flex',alignItems:'center',padding:'16px 20px',cursor:'pointer',gap:14}}>
+      <div style={{width:42,height:42,borderRadius:10,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:13,color:ch.color,flexShrink:0,fontFamily:MF}}>{ch.ticker.slice(0,4)}</div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
+          {acct.toks.length>0&&<span style={bdg('#8b5cf6')}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
+          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg('#475569')}>empty</span>}
+          {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
+        </div>
+        <div style={{fontFamily:MF,fontSize:11,color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        {acct.dm&&<span style={{fontSize:11,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'3px 8px',borderRadius:4,fontFamily:MF}}>{acct.dm}</span>}
+        <span style={{color:T.muted,transform:open?'rotate(90deg)':'none',transition:'transform 0.2s',display:'inline-block'}}><Ico.ChevR/></span>
+      </div>
+    </div>
+    {open&&<div style={{padding:'0 20px 20px',borderTop:`1px solid ${T.border}`}}>
+      <div style={{paddingTop:16}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:ch.convert?8:16,flexWrap:'wrap'}}>
+          <span style={{fontFamily:MF,fontSize:12,wordBreak:'break-all',flex:1,minWidth:200}}>{acct.addr}</span>
+          <CopyBtn text={acct.addr}/>
+          {hasExp&&!acct.isXpub&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:ch.color+'15',color:ch.color,border:`1px solid ${ch.color}30`,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}><Ico.Link/> View on explorer</a>}
+        </div>
+        {ch.convert&&(()=>{
+          const derived=ch.convert(acct.addr);
+          if(!derived)return <div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:8,padding:12,marginBottom:16,fontSize:12,color:T.muted}}>Could not derive explorer address from stored credential. Ask the customer for their receive address.</div>;
+          return <div style={{background:'rgba(59,130,246,0.06)',border:'1px solid rgba(59,130,246,0.15)',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:6}}>Derived address</div>
+            <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+              <span style={{fontFamily:MF,fontSize:12,wordBreak:'break-all',flex:1}}>{derived}</span>
+              <CopyBtn text={derived}/>
+            </div>
+            <div style={{fontSize:11,color:'#475569',marginTop:6}}>Derived from log data — verify with customer</div>
+          </div>;
+        })()}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
+          {[{l:'Derivation',v:acct.dm||'default'},{l:'Address Path',v:acct.fp||'—'},{l:'Operations',v:String(acct.ops)},{l:'Sync',v:acct.dur?acct.dur.toFixed(2)+'s':'—'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:4}}>{x.l}</div><div style={{fontFamily:MF,fontSize:12}}>{x.v}</div></div>)}
+        </div>
+        <div style={{marginBottom:12}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,fontFamily:MF,fontSize:10,color:'#94a3b8',wordBreak:'break-all'}}>{acct.id}<CopyBtn text={acct.id}/></div></div>
+        {acct.toks.length>0&&<div style={{marginBottom:12}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:6}}>Tokens</div><div style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
+          const lb=tk.tokenTicker||tk.tokenId||'token';
+          const turl=(()=>{
+            const tid=tk.tokenId||'';const pts=tid.split('/');if(pts.length<3)return null;
+            const[tch,,con]=pts;
+            const isEvmCon=/^0x[0-9a-f]{40}$/i.test(con);
+            if(tch==='ethereum'&&isEvmCon)return`https://etherscan.io/token/${con}?a=${acct.addr}`;
+            if(tch==='arbitrum'&&isEvmCon)return`https://arbiscan.io/token/${con}?a=${acct.addr}`;
+            if(tch==='polygon'&&isEvmCon)return`https://polygonscan.com/token/${con}?a=${acct.addr}`;
+            if(tch==='bsc'&&isEvmCon)return`https://bscscan.com/token/${con}?a=${acct.addr}`;
+            if(tch==='tron')return`https://tronscan.org/#/token20/${con}`;
+            if(tch==='stacks')return`https://explorer.hiro.so/token/${con}?chain=mainnet`;
+            if(tch==='cardano')return`https://cexplorer.io/asset/${con}`;
+            return null;
+          })();
+          const inner=<>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></>;
+          const s={display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:'#8b5cf622',color:'#8b5cf6',fontFamily:MF};
+          return turl
+            ?<a key={lb} href={turl} target="_blank" rel="noopener noreferrer" style={{...s,textDecoration:'none'}}>{inner}</a>
+            :<span key={lb} style={s}>{inner}</span>;
+        })}</div></div>}
+        {canX&&<XpubView xpub={acct.addr} dm={acct.dm} coin={ch.xc}/>}
+        {acct.isXpub&&!canX&&hasExp&&<div style={{marginTop:12}}><a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:ch.color+'15',color:ch.color,border:`1px solid ${ch.color}30`,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}><Ico.Link/> Search on explorer</a></div>}
+      </div>
+    </div>}
+  </div>;
+}
+
+/* ═══ MAIN APP ═══ */
+const TABS=['Overview','Timeline','Accounts','Errors','Network'];
+
+function App(){
+  const[logData,setLogData]=useState(null);
+  const[fileName,setFileName]=useState('');
+  const[tab,setTab]=useState('Overview');
+  const[searchTerm,setSearchTerm]=useState('');
+  const[typeFilter,setTypeFilter]=useState('all');
+  const[expandedRow,setExpandedRow]=useState(null);
+  const[dragOver,setDragOver]=useState(false);
+  const[acctFilter,setAcctFilter]=useState('');
+  const[hoveredTab,setHoveredTab]=useState(null);
+  const[qualityOpen,setQualityOpen]=useState(false);
+  const[sumCopied,setSumCopied]=useState(false);
+  const[apduExportCopied,setApduExportCopied]=useState(false);
+  const fileRef=useRef();
+
+  const visibleTabs=useMemo(()=>{
+    const base=['Overview','Timeline','Accounts','Errors','Network'];
+    if(logData?.apdu?.length>0)base.push('APDU');
+    return base;
+  },[logData]);
+
+  const handleFile=useCallback(file=>{
+    if(!file)return;setFileName(file.name);
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const entries=parseLogs(ev.target.result);
+        const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
+        const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
+        setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries)});
+        setTab('Overview');setSearchTerm('');setTypeFilter('all');
+      }catch(e){console.error(e);}
+    };reader.readAsText(file);
+  },[]);
+
+  const clearLog=()=>{setLogData(null);setFileName('');setTab('Overview');};
+  const openPicker=()=>fileRef.current?.click();
+  const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
+  const jumpTo=li=>{setTab('Timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
+
+  const filtered=useMemo(()=>{
+    if(!logData)return[];let f=logData.entries;
+    if(typeFilter!=='all')f=f.filter(e=>e.type===typeFilter);
+    if(searchTerm){const s=searchTerm.toLowerCase();f=f.filter(e=>(e.message||'').toLowerCase().includes(s)||(e.type||'').toLowerCase().includes(s));}
+    return f;
+  },[logData,typeFilter,searchTerm]);
+
+  const netEntries=useMemo(()=>logData?logData.entries.filter(e=>e.type==='network'):[],[logData]);
+  const filtAccts=useMemo(()=>{
+    if(!logData)return[];if(!acctFilter)return logData.accts;
+    const s=acctFilter.toLowerCase();
+    return logData.accts.filter(a=>a.ch.name.toLowerCase().includes(s)||a.ch.ticker.toLowerCase().includes(s)||a.addr.toLowerCase().includes(s)||a.cid.toLowerCase().includes(s));
+  },[logData,acctFilter]);
+
+  useEffect(()=>{
+    const onKey=e=>{if(!logData)return;const idx=parseInt(e.key)-1;if((e.ctrlKey||e.metaKey)&&idx>=0&&idx<visibleTabs.length){e.preventDefault();setTab(visibleTabs[idx]);}};
+    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);
+  },[logData,visibleTabs]);
+
+  return <div style={{minHeight:'100vh',background:T.bg,color:T.text,fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif'}}>
+    {/* Top bar */}
+    <div style={{height:52,borderBottom:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:T.bg,position:'sticky',top:0,zIndex:10}}>
+      <div style={{fontSize:15,fontWeight:700}}><span style={{color:T.primary}}>Ledger</span> Diagnostic Toolkit</div>
+      {logData&&<div style={{display:'flex',alignItems:'center',gap:12,fontSize:12}}>
+        <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
+          <Ico.File/>
+          <span style={{fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
+          <span style={{color:'#475569',marginLeft:4}}>{logData.entries.length} entries · {logData.accts.length} accounts · {logData.errs.length} issue{logData.errs.length!==1?'s':''}</span>
+        </div>
+        <button onClick={openPicker} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
+        <button onClick={clearLog} style={{padding:'6px 12px',borderRadius:6,border:'1px solid rgba(239,68,68,0.3)',background:'rgba(239,68,68,0.08)',color:'#f87171',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.X/> Close</button>
+      </div>}
+    </div>
+    <input ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
+
+    {/* Main */}
+    <div style={{padding:24,overflowY:'auto',maxHeight:'calc(100vh - 52px)'}}>
+      {/* Drop zone */}
+      {!logData&&<div onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{background:dragOver?'rgba(59,130,246,0.05)':T.panel,border:`2px dashed ${dragOver?T.primary:T.border}`,borderRadius:12,padding:80,textAlign:'center',cursor:'pointer'}}>
+        <div style={{color:dragOver?T.primary:T.muted,marginBottom:16}}><Ico.Upload/></div>
+        <div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Drop a Ledger Wallet log file here</div>
+        <div style={{color:T.muted,fontSize:14,marginBottom:20}}>Accepts .json and .txt (Ctrl+E or Settings → Help → Export Logs)</div>
+        <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:'#475569'}}>
+          <span>Device info</span><span>Accounts</span><span>Error diagnosis</span><span>On-chain links</span><span>Network</span>
+        </div>
+      </div>}
+
+      {/* Log Viewer */}
+      {logData&&<div>
+        <div role="tablist" style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
+          {visibleTabs.map((t,tidx)=>{const act=tab===t;const ex=t==='Errors'&&logData.errs.length>0?` (${logData.errs.length})`:t==='Accounts'?` (${logData.accts.length})`:'';return <button key={t} role="tab" aria-selected={act} onClick={()=>setTab(t)} onMouseEnter={()=>setHoveredTab(t)} onMouseLeave={()=>setHoveredTab(null)} style={{position:'relative',padding:'8px 16px',borderRadius:6,cursor:'pointer',border:'none',fontSize:13,fontWeight:600,background:act?T.primary:'transparent',color:act?'#fff':T.muted}}>{t}{ex}{hoveredTab===t&&<span style={{position:'absolute',top:-8,right:-4,background:'rgba(255,255,255,0.1)',color:'#94a3b8',fontSize:9,padding:'1px 4px',borderRadius:3,fontFamily:MF,pointerEvents:'none'}}>⌃{tidx+1}</span>}</button>;})}
+        </div>
+        <div style={{fontSize:11,color:'#475569',marginBottom:16,fontFamily:MF}}>⌃1–{visibleTabs.length} switch tabs · ⌃E open file</div>
+
+        {/* Overview */}
+        {tab==='Overview'&&<div>
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+            <button onClick={()=>{
+              const d=logData.dev;
+              const accts=logData.accts;
+              const errs=logData.errs;
+              const lines=[
+                '=== Ledger Diagnostic Summary ===',
+                `File: ${fileName}`,
+                '',
+                'DEVICE',
+                `  Model:      ${d.modelName||d.modelId||'Unknown'}`,
+                `  Firmware:   ${d.fw||'Unknown'}`,
+                `  App ver:    ${d.appVer||'Unknown'}`,
+                `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
+                `  Platform:   ${d.platform||'Unknown'}`,
+                '',
+                `ACCOUNTS (${accts.length})`,
+                ...accts.slice(0,10).map(a=>`  ${a.ch.name} — ${a.ops} ops — ${a.addr.slice(0,20)}...`),
+                accts.length>10?`  ... and ${accts.length-10} more`:'',
+                '',
+                `ERRORS (${errs.length})`,
+                ...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`),
+                errs.length>8?`  ... and ${errs.length-8} more`:'',
+                '',
+                `APDU exchanges: ${logData.apdu?.length||0}`,
+                `Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
+                '=================================',
+              ].filter(l=>l!==undefined).join('\n');
+              copyText(lines);
+              setSumCopied(true);
+              setTimeout(()=>setSumCopied(false),2000);
+            }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'rgba(59,130,246,0.12)',color:'#3b82f6',border:'1px solid rgba(59,130,246,0.3)',cursor:'pointer'}}>
+              {sumCopied?'Copied!':'Copy Summary'}
+            </button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:12}}>
+            {[{l:'Entries',v:logData.entries.length,c:T.primary},{l:'Accounts',v:logData.accts.length,c:T.success},{l:'Operations',v:logData.dev.totalOps||'—',c:'#8b5cf6'},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted}].map(s=><div key={s.l} style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:24,fontWeight:700,color:s.c,fontFamily:MF}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4}}>{s.l}</div></div>)}
+          </div>
+          {(()=>{
+            const act=logData.activity||{};
+            const badges=[];
+            if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});
+            if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:'#8b5cf6'});
+            if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});
+            if(!badges.length)return <div style={{marginBottom:8}}/>;
+            return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+              {badges.map(b=><span key={b.k} style={bdg(b.c)}>{b.l}</span>)}
+            </div>;
+          })()}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            <div style={crd}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,fontSize:14,fontWeight:600}}><Ico.Chip/> Device & App</div>
+              {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['App',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,fontSize:13}}><span style={{color:T.muted}}>{k}</span><span style={{fontFamily:MF}}>{v}</span></div>)}
+            </div>
+            <div style={crd}><div style={{fontSize:14,fontWeight:600,marginBottom:16}}>Environment</div>
+              {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,fontSize:13}}><span style={{color:T.muted}}>{k}</span><span style={{fontFamily:MF,display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
+            </div>
+          </div>
+          {logData.errs.length>0&&<div style={{background:'rgba(239,68,68,0.04)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:12,padding:20,marginBottom:16}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,fontWeight:600,fontSize:15,color:T.error,marginBottom:16}}><Ico.Alert/> {logData.errs.length} Issue{logData.errs.length!==1?'s':''}</div>
+            {logData.errs.slice(0,3).map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
+            {logData.errs.length>3&&<button onClick={()=>setTab('Errors')} style={{marginTop:4,background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:13,cursor:'pointer'}}>View all →</button>}
+          </div>}
+          {/* Session banner */}
+          {logData.entries.length>1&&(()=>{
+            const chainCounts={};
+            logData.accts.forEach(a=>{const key=a.ch.name;if(!chainCounts[key]){chainCounts[key]={count:0,color:a.ch.color};}chainCounts[key].count++;});
+            const topChains=Object.entries(chainCounts).sort((x,y)=>y[1].count-x[1].count).slice(0,5);
+            return <div style={{background:'rgba(59,130,246,0.06)',border:'1px solid rgba(59,130,246,0.15)',borderRadius:10,padding:'14px 18px',marginBottom:20,fontSize:12,color:T.muted}}>
+              <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:'6px 12px'}}>
+                <span style={{fontWeight:600,color:T.primary}}>Session:</span>
+                <span>{fmtDate(logData.entries[0].timestamp)}&nbsp;&nbsp;{fmtTime(logData.entries[0].timestamp)} — {fmtTime(logData.entries[logData.entries.length-1].timestamp)}</span>
+                <span>·</span>
+                <span>{((new Date(logData.entries[logData.entries.length-1].timestamp)-new Date(logData.entries[0].timestamp))/1000).toFixed(1)}s</span>
+                <span>·</span>
+                <span>{logData.accts.filter(a=>a.ops>0).length}/{logData.accts.length} accounts active</span>
+              </div>
+              {topChains.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+                {topChains.map(([name,info])=>(
+                  <span key={name} style={{background:info.color+'22',color:info.color,padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600}}>{name} ×{info.count}</span>
+                ))}
+              </div>}
+            </div>;
+          })()}
+          {/* Log Quality Score */}
+          {logData.quality&&(()=>{
+            const q=logData.quality;
+            return <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:'12px 20px',marginBottom:20}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{fontWeight:700,fontSize:13,color:q.color,fontFamily:MF}}>{q.score}/100</span>
+                <span style={{fontSize:13,color:T.muted}}>Log Quality: {q.label}</span>
+                <button onClick={()=>setQualityOpen(o=>!o)} style={{marginLeft:'auto',padding:'4px 10px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>Details {qualityOpen?<Ico.ChevD/>:<Ico.ChevR/>}</button>
+              </div>
+              {qualityOpen&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:12}}>
+                {q.details.map((d,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
+                    <span style={{width:16,flexShrink:0,color:d.found?T.success:T.error,fontWeight:700}}>{d.found?'✓':'✗'}</span>
+                    <span style={{flex:1,color:T.text,fontWeight:600}}>{d.field}</span>
+                    <span style={{color:T.muted,fontFamily:MF,fontSize:11}}>{d.note}</span>
+                  </div>
+                ))}
+              </div>}
+            </div>;
+          })()}
+        </div>}
+
+        {/* Timeline */}
+        {tab==='Timeline'&&<div>
+          <div style={{display:'flex',gap:10,marginBottom:16}}>
+            <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search logs..." style={{flex:1,padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,fontFamily:MF}}/>
+            <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,minWidth:160}}>
+              <option value="all">All ({logData.entries.length})</option>
+              {logData.types.map(t=><option key={t} value={t}>{t} ({logData.entries.filter(e=>e.type===t).length})</option>)}
+            </select>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <div style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</div>
+            <button onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
+          </div>
+          <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'65vh',overflowY:'auto'}}>
+            <div style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
+              {['#','Time','Type','Message'].map(h=><div key={h} style={{padding:'10px 12px',color:T.muted,fontWeight:600,fontSize:11,textTransform:'uppercase',background:T.panel}}>{h}</div>)}
+            </div>
+            {filtered.slice(0,500).map(e=>{
+              const isExp=expandedRow===e.logIndex;
+              const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
+              const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
+              return <div key={e.logIndex}>
+                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',background:isErr?'rgba(239,68,68,0.05)':'transparent'}}>
+                  <div style={{padding:'8px 12px',color:T.muted,fontFamily:MF,fontSize:12}}>{e.logIndex}</div>
+                  <div style={{padding:'8px 12px',fontFamily:MF,color:T.muted,whiteSpace:'nowrap',fontSize:11}}>{fmtTime(e.timestamp)}</div>
+                  <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
+                  <div style={{padding:'8px 12px',fontFamily:MF,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
+                </div>
+                {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre style={{fontFamily:MF,fontSize:11,color:'#e2e8f0',whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
+              </div>;
+            })}
+            {filtered.length===0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>
+              <div style={{fontSize:28,marginBottom:12}}>🔍</div>
+              <div style={{fontWeight:600,marginBottom:6}}>No log entries match your filters</div>
+              <div style={{fontSize:12,marginBottom:16}}>Try clearing the search or switching to "All" types</div>
+              <button onClick={()=>{setSearchTerm('');setTypeFilter('all');}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filters</button>
+            </div>}
+            {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {filtered.length}</div>}
+          </div>
+        </div>}
+
+        {/* Accounts */}
+        {tab==='Accounts'&&<div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <div style={{fontSize:12,color:T.muted}}>{logData.accts.filter(a=>a.ops>0).length} funded · {logData.accts.filter(a=>a.ops===0).length} empty</div>
+            <div style={{display:'flex',gap:6}}>
+              {logData.dev.accountIds&&logData.dev.accountIds.length>0&&<button onClick={()=>copyText(logData.dev.accountIds.join('\n'))} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.Copy/> Copy all IDs ({logData.dev.accountIds.length})</button>}
+              <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export</button>
+            </div>
+          </div>
+          <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,fontFamily:MF,marginBottom:16,boxSizing:'border-box'}}/>
+          {filtAccts.map(a=><AcctCard key={a.id} acct={a}/>)}
+          {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
+            <div style={{fontSize:28,marginBottom:8}}>👛</div>
+            <div style={{fontWeight:600,marginBottom:4}}>No accounts match "{acctFilter}"</div>
+            <div style={{fontSize:12,marginBottom:12}}>Try searching by chain name, ticker, or partial address</div>
+            <button onClick={()=>setAcctFilter('')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filter</button>
+          </div>}
+          {filtAccts.length===0&&!acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>No accounts found in this log</div>}
+        </div>}
+
+        {/* Errors */}
+        {tab==='Errors'&&(()=>{
+          const allErrs=logData.errs;
+          // Enrich diagnostics with repeat counts
+          const enrichedErrs=allErrs.map(e=>({...e,dg:diagnose(e.raw,allErrs)}));
+          const highCount=enrichedErrs.filter(e=>e.dg.s==='high').length;
+          const medCount=enrichedErrs.filter(e=>e.dg.s==='medium').length;
+          const lowCount=enrichedErrs.filter(e=>e.dg.s==='low').length;
+          const topHigh=enrichedErrs.find(e=>e.dg.s==='high');
+          const topMed=enrichedErrs.find(e=>e.dg.s==='medium');
+          const repeating=enrichedErrs.filter(e=>e.dg.repeatCount>0);
+          // Deduplicate repeating by title
+          const seenTitles=new Set();
+          const repeatingUniq=repeating.filter(e=>{if(seenTitles.has(e.dg.t))return false;seenTitles.add(e.dg.t);return true;});
+
+          let summaryText='No issues detected — log appears healthy.';
+          if(enrichedErrs.length>0){
+            if(highCount>0){
+              summaryText=`Log contains ${highCount} critical issue${highCount>1?'s':''} — ${topHigh.dg.t}. Immediate attention may be needed.`;
+            } else if(medCount>0){
+              summaryText=`Log shows ${medCount} warning${medCount>1?'s':''} including ${topMed.dg.t}. Review recommended.`;
+            } else {
+              summaryText='Log shows minor informational events only. No action required.';
+            }
+          }
+
+          return <div>
+            {/* Severity summary bar */}
+            {enrichedErrs.length>0&&<div style={{display:'flex',gap:16,marginBottom:16,padding:'12px 16px',background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,flexWrap:'wrap'}}>
+              {[{label:'Critical',count:highCount,color:'#ef4444'},{label:'Warning',count:medCount,color:'#f59e0b'},{label:'Info',count:lowCount,color:'#3b82f6'}].map(item=>(
+                <div key={item.label} style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:item.color,display:'inline-block',flexShrink:0}}></span>
+                  <span style={{fontWeight:700,color:item.color,fontFamily:MF}}>{item.count}</span>
+                  <span style={{color:T.muted}}>{item.label}</span>
+                </div>
+              ))}
+            </div>}
+
+            {/* Diagnostic summary card */}
+            <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,padding:'14px 16px',marginBottom:16,display:'flex',alignItems:'flex-start',gap:10}}>
+              <span style={{fontSize:16,flexShrink:0}}>📋</span>
+              <div style={{fontSize:13,color:'#e2e8f0',lineHeight:1.6}}>{summaryText}</div>
+            </div>
+
+            {/* Repeating patterns */}
+            {repeatingUniq.length>0&&<div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:10,padding:'14px 16px',marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#f59e0b',marginBottom:10}}>&#x27F3; Repeating Patterns</div>
+              {repeatingUniq.map(e=>(
+                <div key={e.li} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid rgba(245,158,11,0.1)',fontSize:13}}>
+                  <span style={{color:'#e2e8f0'}}>{e.dg.t}</span>
+                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,158,11,0.15)',color:'#f59e0b'}}>{e.dg.repeatCount+1}× repeated</span>
+                </div>
+              ))}
+            </div>}
+
+            {/* No errors state */}
+            {enrichedErrs.length===0&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.success,padding:40}}>No issues detected</div>}
+
+            {/* Category groups */}
+            {['hardware','software','server','unknown'].map(cat=>{
+              const g=enrichedErrs.filter(e=>e.dg.c===cat);if(!g.length)return null;
+              const cm=CAT[cat]||CAT.unknown;
+              return <div key={cat} style={{marginBottom:24}}>
+                <div style={{fontSize:14,fontWeight:600,color:T.muted,marginBottom:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:16}}>{cm.i}</span> {cm.l} ({g.length})</div>
+                {g.map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
+              </div>;
+            })}
+          </div>;
+        })()}
+
+        {/* Network */}
+        {tab==='Network'&&<div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{netEntries.length} requests</div>
+          <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
+            {netEntries.length===0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>None</div>}
+            {netEntries.slice(0,500).map(e=>{
+              const method=sGet(e,'data.method','GET');
+              const body=sGet(e,'data.body','');
+              let parsed=null;if(body){try{parsed=JSON.parse(body);}catch{}}
+              const url=e.message||'';const isUrl=url.startsWith('https://');
+              return <div key={e.logIndex} style={{padding:'10px 14px',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={bdg('#3b82f6')}>{method}</span>
+                    {isUrl?<a href={url} target="_blank" rel="noopener noreferrer" style={{fontFamily:MF,fontSize:11,color:T.primary,textDecoration:'none'}}>{url}</a>:<span style={{fontFamily:MF,fontSize:11}}>{url}</span>}
+                  </div>
+                  <span style={{color:T.muted,fontFamily:MF,fontSize:10}}>{fmtTime(e.timestamp)}</span>
+                </div>
+                {parsed&&<div style={{fontFamily:MF,fontSize:10,color:'#94a3b8',marginTop:4}}>→ {parsed.method}({parsed.params?.[0]?trunc(typeof parsed.params[0]==='string'?parsed.params[0]:JSON.stringify(parsed.params[0]),60):''})</div>}
+              </div>;
+            })}
+            {netEntries.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {netEntries.length}</div>}
+          </div>
+        </div>}
+
+        {/* APDU */}
+        {tab==='APDU'&&(()=>{
+          function decodeApduStatus(hex,dir){
+            if(!hex||dir==='in')return null;
+            const sw=hex.replace(/\s/g,'').slice(-4).toLowerCase();
+            const swMap={
+              '9000':{label:'OK',color:'#10b981'},
+              '6985':{label:'Rejected',color:'#ef4444'},
+              '6982':{label:'Locked',color:'#f59e0b'},
+              '6a82':{label:'App not open',color:'#f59e0b'},
+              '6700':{label:'Bad length',color:'#f59e0b'},
+              '6d00':{label:'Bad INS',color:'#f59e0b'},
+              '6e00':{label:'Wrong app',color:'#f59e0b'},
+              '6f00':{label:'Tech error',color:'#ef4444'},
+              '5515':{label:'Locked',color:'#f59e0b'},
+            };
+            return swMap[sw]||{label:`0x${sw.toUpperCase()}`,color:'#94a3b8'};
+          }
+          return <div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <span style={{fontSize:12,color:T.muted}}>{logData.apdu.length} APDU exchanges</span>
+              <button onClick={()=>{
+                copyText(logData.apdu.map(a=>[a.dir.toUpperCase(),fmtTime(a.ts),a.hex||''].join('\t')).join('\n'));
+                setApduExportCopied(true);
+                setTimeout(()=>setApduExportCopied(false),2000);
+              }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'rgba(16,185,129,0.10)',color:'#10b981',border:'1px solid rgba(16,185,129,0.3)',cursor:'pointer'}}>
+                {apduExportCopied?'Copied!':'Export APDUs'}
+              </button>
+            </div>
+            <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
+              {logData.apdu.slice(0,500).map((a,i)=>{
+                const status=decodeApduStatus(a.hex,a.dir);
+                const claLabel=a.dir==='in'&&a.hex?`CLA:${a.hex.replace(/\s/g,'').slice(0,2).toUpperCase()}`:null;
+                return <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',borderBottom:`1px solid ${T.border}`,fontSize:12,fontFamily:MF}}>
+                  <span style={bdg(a.dir==='in'?'#3b82f6':'#10b981')}>{a.dir==='in'?'→ IN':'← OUT'}</span>
+                  <span style={{color:'#94a3b8',fontSize:10,flexShrink:0}}>{fmtTime(a.ts)}</span>
+                  <span style={{width:100,flexShrink:0,fontWeight:600,fontSize:11,color:status?status.color:'#94a3b8'}}>
+                    {status?status.label:claLabel||'—'}
+                  </span>
+                  <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#e2e8f0'}}>{a.hex||'—'}</span>
+                  {a.hex&&<CopyBtn text={a.hex}/>}
+                </div>;
+              })}
+              {logData.apdu.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {logData.apdu.length}</div>}
+            </div>
+          </div>;
+        })()}
+      </div>}
+    </div>
+  </div>;
+}
+
+class ErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={hasError:false};}
+  static getDerivedStateFromError(){return{hasError:true};}
+  render(){
+    if(this.state.hasError)return<div style={{minHeight:'100vh',background:'#0f172a',color:'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',textAlign:'center'}}><div><div style={{fontSize:24,marginBottom:12}}>⚠️</div><div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div><div style={{fontSize:13,color:'#94a3b8',marginBottom:16}}>Reload the page to try again.</div><button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#3b82f6',color:'#fff',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button></div></div>;
+    return this.props.children;
+  }
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(open ledger-toolkit.html)",
+      "Bash(open *.html)",
+      "Bash(npx vite *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npm init *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(find *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(sudo *)",
+      "Bash(git push --force*)",
+      "Bash(git push *--force*)",
+      "Bash(git reset --hard*)"
+    ]
+  }
+}
