@@ -12,7 +12,7 @@
 <script src="https://bundle.run/bitcoinjs-lib@5.2.0"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f172a;--panel:#1e293b;--border:#334155;--text:#f8fafc;--muted:#94a3b8;--primary:#3b82f6;--success:#10b981;--error:#ef4444;--warning:#f59e0b}
+:root{--bg:#000000;--panel:#151515;--border:#3c3c3c;--text:#ffffff;--muted:#9c9c9c;--primary:#d4a0ff;--success:#6ec85c;--error:#f87274;--warning:#ffbd42}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
@@ -39,7 +39,7 @@ const Ico={
   Chip:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg>,
   Alert:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   Copy:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
-  Ok:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>,
+  Ok:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6ec85c" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>,
   ChevD:()=><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
   ChevR:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
   File:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
@@ -50,7 +50,7 @@ const Ico={
 };
 
 /* Theme & helpers */
-const T={bg:'#0f172a',panel:'#1e293b',border:'#334155',text:'#f8fafc',muted:'#94a3b8',primary:'#3b82f6',success:'#10b981',error:'#ef4444',warning:'#f59e0b'};
+const T={bg:'#000000',panel:'#151515',border:'#3c3c3c',text:'#ffffff',muted:'#9c9c9c',primary:'#d4a0ff',success:'#6ec85c',error:'#f87274',warning:'#ffbd42'};
 const MF='ui-monospace,SFMono-Regular,Menlo,monospace';
 const crd={background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:20,marginBottom:16};
 const bdg=c=>({display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:700,background:c+'22',color:c,fontFamily:MF});
@@ -59,8 +59,8 @@ const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',
 const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return '';}};
 const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Apex'};
-const TC={action:'#64748b',analytics:'#8b5cf6',countervalues:'#06b6d4',bridge:'#f59e0b',network:'#3b82f6',persistence:'#10b981',walletsync:'#ec4899',error:'#ef4444','live-dmk-logger':'#a78bfa'};
-const gtc=t=>t?TC[t.toLowerCase()]||'#64748b':'#64748b';
+const TC={action:'#717070',analytics:'#d4a0ff',countervalues:'#06b6d4',bridge:'#ffbd42',network:'#677ce7',persistence:'#6ec85c',walletsync:'#ec4899',error:'#f87274','live-dmk-logger':'#d4a0ff'};
+const gtc=t=>t?TC[t.toLowerCase()]||'#717070':'#717070';
 
 function copyText(text){
   if(navigator.clipboard?.writeText){navigator.clipboard.writeText(text);return;}
@@ -201,7 +201,7 @@ const CHAINS={
   sonic:{name:'Sonic',ticker:'S',color:'#FFFFFF',url:a=>`https://sonicscan.org/address/${a}`},
   kaspa:{name:'KASPA',ticker:'KAS',color:'#70C7BA',url:a=>`https://explorer.kaspa.org/addresses/${a}`},
 };
-const DC={name:'Unknown',ticker:'???',color:'#64748b',url:()=>null};
+const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
 
 /* Error KB */
@@ -298,7 +298,7 @@ const ERR_DB=[
   {m:'NetworkCongestionError',c:'server',s:'medium',t:'Network congestion',a:'Fees are elevated. Ask customer to retry later when congestion eases.',causes:['High blockchain network traffic','Gas price spike','Block space demand high']},
   {m:'SwapExchangeRateOutOfRange',c:'software',s:'medium',t:'Swap rate out of range',a:'Exchange rate shifted since quote. Ask customer to refresh the swap and retry.',causes:['Rate moved outside provider bounds','High market volatility','Quote expired']},
 ];
-const SEV={high:{l:'Critical',c:'#ef4444',bg:'rgba(239,68,68,0.10)',bd:'rgba(239,68,68,0.3)'},medium:{l:'Warning',c:'#f59e0b',bg:'rgba(245,158,11,0.08)',bd:'rgba(245,158,11,0.25)'},low:{l:'Info',c:'#3b82f6',bg:'rgba(59,130,246,0.08)',bd:'rgba(59,130,246,0.25)'}};
+const SEV={high:{l:'Critical',c:'#f87274',bg:'rgba(248,114,116,0.10)',bd:'rgba(248,114,116,0.3)'},medium:{l:'Warning',c:'#ffbd42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#677ce7',bg:'rgba(103,124,231,0.08)',bd:'rgba(103,124,231,0.25)'}};
 const CAT={hardware:{l:'Hardware / Device',i:'🔌'},software:{l:'Software / Sync',i:'🔄'},server:{l:'Server / Network',i:'☁️'},unknown:{l:'Unknown',i:'❓'}};
 
 function diagnose(e,allErrors){
@@ -557,10 +557,10 @@ function logQualityScore(entries,dev,accts,errs){
   // Clamp to 0-100
   score=Math.max(0,Math.min(100,score));
   let label,color;
-  if(score>=85){label='Excellent';color='#10b981';}
-  else if(score>=65){label='Good';color='#3b82f6';}
-  else if(score>=40){label='Fair';color='#f59e0b';}
-  else{label='Poor';color='#ef4444';}
+  if(score>=85){label='Excellent';color='#6ec85c';}
+  else if(score>=65){label='Good';color='#d4a0ff';}
+  else if(score>=40){label='Fair';color='#ffbd42';}
+  else{label='Poor';color='#f87274';}
   return{score,label,color,details};
 }
 
@@ -581,7 +581,7 @@ function extractActivity(entries){
 /* Components */
 function CopyBtn({text}){
   const[copied,setCopied]=useState(false);
-  return <button onClick={e=>{e.stopPropagation();copyText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);}} style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'#94a3b8',display:'inline-flex',alignItems:'center'}} title="Copy" aria-label="Copy">{copied?<Ico.Ok/>:<Ico.Copy/>}</button>;
+  return <button onClick={e=>{e.stopPropagation();copyText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);}} style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',color:'#9c9c9c',display:'inline-flex',alignItems:'center'}} title="Copy" aria-label="Copy">{copied?<Ico.Ok/>:<Ico.Copy/>}</button>;
 }
 
 function Tooltip({children,tip}){
@@ -589,7 +589,7 @@ function Tooltip({children,tip}){
   const[pos,setPos]=useState({x:0,y:0});
   return <span onMouseEnter={e=>{setShow(true);const r=e.currentTarget.getBoundingClientRect();setPos({x:r.left,y:r.bottom+6});}} onMouseLeave={()=>setShow(false)} style={{cursor:'help'}}>
     {children}
-    {show&&<div style={{position:'fixed',left:Math.min(pos.x,window.innerWidth-400),top:pos.y,zIndex:9999,maxWidth:400,padding:'12px 16px',background:'#1a1a2e',border:'1px solid #334155',borderRadius:8,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',fontSize:12,lineHeight:1.6,color:'#e2e8f0',fontFamily:'monospace',pointerEvents:'none'}}>{tip}</div>}
+    {show&&<div style={{position:'fixed',left:Math.min(pos.x,window.innerWidth-400),top:pos.y,zIndex:9999,maxWidth:400,padding:'12px 16px',background:'#1f1f1f',border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',fontSize:12,lineHeight:1.6,color:T.text,fontFamily:'monospace',pointerEvents:'none'}}>{tip}</div>}
   </span>;
 }
 
@@ -614,21 +614,21 @@ function ErrCard({err,onJump}){
         <span style={{fontSize:18}}>{ct.i}</span>
         <div>
           <div style={{fontSize:15,fontWeight:600,color:sv.c}}>{d.t}</div>
-          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>
+          <div style={{fontSize:11,color:'#9c9c9c',marginTop:2}}>
             {ct.l} · {onJump?<span onClick={()=>onJump(err.li)} style={{cursor:'pointer',color:T.primary,textDecoration:'underline'}}>#{err.li}</span>:<span>#{err.li}</span>} · {fmtTime(err.ts)}
           </div>
         </div>
       </div>
-      <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:'rgba(255,255,255,0.06)',color:'#94a3b8',border:'1px solid #334155',display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer'}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
+      <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:'rgba(255,255,255,0.06)',color:'#9c9c9c',border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer'}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
     </div>
-    <div style={{fontSize:13,color:'#e2e8f0',paddingLeft:34}}>{d.a}</div>
+    <div style={{fontSize:13,color:T.text,paddingLeft:34}}>{d.a}</div>
     <div style={{paddingLeft:34,marginTop:8,display:'flex',alignItems:'center',flexWrap:'wrap',gap:6}}>
       <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:sv.bg,color:sv.c,border:`1px solid ${sv.bd}`}}>{sv.l.toUpperCase()}</span>
-      {d.repeatCount>0&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,158,11,0.15)',color:'#f59e0b',border:'1px solid rgba(245,158,11,0.3)'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
+      {d.repeatCount>0&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:'#ffbd42',border:'1px solid rgba(255,189,66,0.3)'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
     </div>
     {d.causes&&d.causes.length>0&&<div style={{paddingLeft:34,marginTop:10}}>
-      <span style={{fontSize:11,color:'#64748b',fontWeight:600,marginRight:6}}>Common causes:</span>
-      {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,background:'rgba(255,255,255,0.06)',color:'#94a3b8',marginRight:4,marginBottom:4}}>{cause}</span>)}
+      <span style={{fontSize:11,color:'#717070',fontWeight:600,marginRight:6}}>Common causes:</span>
+      {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,background:'rgba(255,255,255,0.06)',color:'#9c9c9c',marginRight:4,marginBottom:4}}>{cause}</span>)}
     </div>}
     {detOpen&&<div style={{paddingLeft:34,marginTop:12,borderTop:`1px solid ${sv.bd}`,paddingTop:10}}>
       <div style={{fontSize:11,fontWeight:700,color:sv.c,marginBottom:6}}>Technical Details</div>
@@ -801,7 +801,7 @@ function XpubView({xpub,coin,dm}){
     </div>
 
     {/* Key type badge */}
-    <div style={{marginBottom:10}}><span style={bdg('#64748b')}>{pfxLabel}</span></div>
+    <div style={{marginBottom:10}}><span style={bdg('#717070')}>{pfxLabel}</span></div>
 
     {/* Scan / Stop buttons */}
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
@@ -844,7 +844,7 @@ function XpubView({xpub,coin,dm}){
       {results.map(r=>
         <div key={`${r.chain}-${r.index}`} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:`1px solid ${T.border}`,fontSize:12,fontFamily:MF}}>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={bdg(r.chain===0?'#3b82f6':'#8b5cf6')}>{r.chain===0?'RX':'CH'}:{r.index}</span>
+            <span style={bdg(r.chain===0?'#677ce7':'#d4a0ff')}>{r.chain===0?'RX':'CH'}:{r.index}</span>
             <a href={net.addrUrl(r.address)} target="_blank" rel="noopener noreferrer" style={{color:T.primary,textDecoration:'none',fontSize:11}}>{r.address}</a>
             <CopyBtn text={r.address}/>
           </div>
@@ -871,8 +871,8 @@ function AcctCard({acct}){
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
-          {acct.toks.length>0&&<span style={bdg('#8b5cf6')}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
-          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg('#475569')}>empty</span>}
+          {acct.toks.length>0&&<span style={bdg('#d4a0ff')}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
+          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg('#565656')}>empty</span>}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
         </div>
         <div style={{fontFamily:MF,fontSize:11,color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
@@ -898,13 +898,13 @@ function AcctCard({acct}){
               <span style={{fontFamily:MF,fontSize:12,wordBreak:'break-all',flex:1}}>{derived}</span>
               <CopyBtn text={derived}/>
             </div>
-            <div style={{fontSize:11,color:'#475569',marginTop:6}}>Derived from log data — verify with customer</div>
+            <div style={{fontSize:11,color:'#717070',marginTop:6}}>Derived from log data — verify with customer</div>
           </div>;
         })()}
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
           {[{l:'Derivation',v:acct.dm||'default'},{l:'Address Path',v:acct.fp||'—'},{l:'Operations',v:String(acct.ops)},{l:'Sync',v:acct.dur?acct.dur.toFixed(2)+'s':'—'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:4}}>{x.l}</div><div style={{fontFamily:MF,fontSize:12}}>{x.v}</div></div>)}
         </div>
-        <div style={{marginBottom:12}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,fontFamily:MF,fontSize:10,color:'#94a3b8',wordBreak:'break-all'}}>{acct.id}<CopyBtn text={acct.id}/></div></div>
+        <div style={{marginBottom:12}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,fontFamily:MF,fontSize:10,color:'#9c9c9c',wordBreak:'break-all'}}>{acct.id}<CopyBtn text={acct.id}/></div></div>
         {acct.toks.length>0&&<div style={{marginBottom:12}}><div style={{fontSize:10,color:T.muted,textTransform:'uppercase',fontWeight:600,marginBottom:6}}>Tokens</div><div style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
           const lb=tk.tokenTicker||tk.tokenId||'token';
           const turl=(()=>{
@@ -921,7 +921,7 @@ function AcctCard({acct}){
             return null;
           })();
           const inner=<>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></>;
-          const s={display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:'#8b5cf622',color:'#8b5cf6',fontFamily:MF};
+          const s={display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:'rgba(212,160,255,0.13)',color:'#d4a0ff',fontFamily:MF};
           return turl
             ?<a key={lb} href={turl} target="_blank" rel="noopener noreferrer" style={{...s,textDecoration:'none'}}>{inner}</a>
             :<span key={lb} style={s}>{inner}</span>;
@@ -1003,7 +1003,7 @@ function App(){
         <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
           <Ico.File/>
           <span style={{fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
-          <span style={{color:'#475569',marginLeft:4}}>{logData.entries.length} entries · {logData.accts.length} accounts · {logData.errs.length} issue{logData.errs.length!==1?'s':''}</span>
+          <span style={{color:'#717070',marginLeft:4}}>{logData.entries.length} entries · {logData.accts.length} accounts · {logData.errs.length} issue{logData.errs.length!==1?'s':''}</span>
         </div>
         <button onClick={openPicker} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
         <button onClick={clearLog} style={{padding:'6px 12px',borderRadius:6,border:'1px solid rgba(239,68,68,0.3)',background:'rgba(239,68,68,0.08)',color:'#f87171',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.X/> Close</button>
@@ -1018,7 +1018,7 @@ function App(){
         <div style={{color:dragOver?T.primary:T.muted,marginBottom:16}}><Ico.Upload/></div>
         <div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Drop a Ledger Wallet log file here</div>
         <div style={{color:T.muted,fontSize:14,marginBottom:20}}>Accepts .json and .txt (Ctrl+E or Settings → Help → Export Logs)</div>
-        <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:'#475569'}}>
+        <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:'#717070'}}>
           <span>Device info</span><span>Accounts</span><span>Error diagnosis</span><span>On-chain links</span><span>Network</span>
         </div>
       </div>}
@@ -1026,9 +1026,9 @@ function App(){
       {/* Log Viewer */}
       {logData&&<div>
         <div role="tablist" style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
-          {visibleTabs.map((t,tidx)=>{const act=tab===t;const ex=t==='Errors'&&logData.errs.length>0?` (${logData.errs.length})`:t==='Accounts'?` (${logData.accts.length})`:'';return <button key={t} role="tab" aria-selected={act} onClick={()=>setTab(t)} onMouseEnter={()=>setHoveredTab(t)} onMouseLeave={()=>setHoveredTab(null)} style={{position:'relative',padding:'8px 16px',borderRadius:6,cursor:'pointer',border:'none',fontSize:13,fontWeight:600,background:act?T.primary:'transparent',color:act?'#fff':T.muted}}>{t}{ex}{hoveredTab===t&&<span style={{position:'absolute',top:-8,right:-4,background:'rgba(255,255,255,0.1)',color:'#94a3b8',fontSize:9,padding:'1px 4px',borderRadius:3,fontFamily:MF,pointerEvents:'none'}}>⌃{tidx+1}</span>}</button>;})}
+          {visibleTabs.map((t,tidx)=>{const act=tab===t;const ex=t==='Errors'&&logData.errs.length>0?` (${logData.errs.length})`:t==='Accounts'?` (${logData.accts.length})`:'';return <button key={t} role="tab" aria-selected={act} onClick={()=>setTab(t)} onMouseEnter={()=>setHoveredTab(t)} onMouseLeave={()=>setHoveredTab(null)} style={{position:'relative',padding:'8px 16px',borderRadius:6,cursor:'pointer',border:'none',fontSize:13,fontWeight:600,background:act?T.primary:'transparent',color:act?'#fff':T.muted}}>{t}{ex}{hoveredTab===t&&<span style={{position:'absolute',top:-8,right:-4,background:'rgba(255,255,255,0.1)',color:'#9c9c9c',fontSize:9,padding:'1px 4px',borderRadius:3,fontFamily:MF,pointerEvents:'none'}}>⌃{tidx+1}</span>}</button>;})}
         </div>
-        <div style={{fontSize:11,color:'#475569',marginBottom:16,fontFamily:MF}}>⌃1–{visibleTabs.length} switch tabs · ⌃E open file</div>
+        <div style={{fontSize:11,color:'#717070',marginBottom:16,fontFamily:MF}}>⌃1–{visibleTabs.length} switch tabs · ⌃E open file</div>
 
         {/* Overview */}
         {tab==='Overview'&&<div>
@@ -1063,18 +1063,18 @@ function App(){
               copyText(lines);
               setSumCopied(true);
               setTimeout(()=>setSumCopied(false),2000);
-            }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'rgba(59,130,246,0.12)',color:'#3b82f6',border:'1px solid rgba(59,130,246,0.3)',cursor:'pointer'}}>
+            }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'rgba(212,160,255,0.12)',color:'#d4a0ff',border:'1px solid rgba(212,160,255,0.3)',cursor:'pointer'}}>
               {sumCopied?'Copied!':'Copy Summary'}
             </button>
           </div>
           <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:12}}>
-            {[{l:'Entries',v:logData.entries.length,c:T.primary},{l:'Accounts',v:logData.accts.length,c:T.success},{l:'Operations',v:logData.dev.totalOps||'—',c:'#8b5cf6'},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted}].map(s=><div key={s.l} style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:24,fontWeight:700,color:s.c,fontFamily:MF}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4}}>{s.l}</div></div>)}
+            {[{l:'Entries',v:logData.entries.length,c:T.primary},{l:'Accounts',v:logData.accts.length,c:T.success},{l:'Operations',v:logData.dev.totalOps||'—',c:'#d4a0ff'},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted}].map(s=><div key={s.l} style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:24,fontWeight:700,color:s.c,fontFamily:MF}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4}}>{s.l}</div></div>)}
           </div>
           {(()=>{
             const act=logData.activity||{};
             const badges=[];
             if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});
-            if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:'#8b5cf6'});
+            if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:'#d4a0ff'});
             if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});
             if(!badges.length)return <div style={{marginBottom:8}}/>;
             return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
@@ -1227,7 +1227,7 @@ function App(){
           return <div>
             {/* Severity summary bar */}
             {enrichedErrs.length>0&&<div style={{display:'flex',gap:16,marginBottom:16,padding:'12px 16px',background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,flexWrap:'wrap'}}>
-              {[{label:'Critical',count:highCount,color:'#ef4444'},{label:'Warning',count:medCount,color:'#f59e0b'},{label:'Info',count:lowCount,color:'#3b82f6'}].map(item=>(
+              {[{label:'Critical',count:highCount,color:'#f87274'},{label:'Warning',count:medCount,color:'#ffbd42'},{label:'Info',count:lowCount,color:'#677ce7'}].map(item=>(
                 <div key={item.label} style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
                   <span style={{width:8,height:8,borderRadius:'50%',background:item.color,display:'inline-block',flexShrink:0}}></span>
                   <span style={{fontWeight:700,color:item.color,fontFamily:MF}}>{item.count}</span>
@@ -1243,12 +1243,12 @@ function App(){
             </div>
 
             {/* Repeating patterns */}
-            {repeatingUniq.length>0&&<div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:10,padding:'14px 16px',marginBottom:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#f59e0b',marginBottom:10}}>&#x27F3; Repeating Patterns</div>
+            {repeatingUniq.length>0&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:10,padding:'14px 16px',marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#ffbd42',marginBottom:10}}>&#x27F3; Repeating Patterns</div>
               {repeatingUniq.map(e=>(
-                <div key={e.li} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid rgba(245,158,11,0.1)',fontSize:13}}>
-                  <span style={{color:'#e2e8f0'}}>{e.dg.t}</span>
-                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,158,11,0.15)',color:'#f59e0b'}}>{e.dg.repeatCount+1}× repeated</span>
+                <div key={e.li} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid rgba(255,189,66,0.1)',fontSize:13}}>
+                  <span style={{color:T.text}}>{e.dg.t}</span>
+                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:'#ffbd42'}}>{e.dg.repeatCount+1}× repeated</span>
                 </div>
               ))}
             </div>}
@@ -1281,12 +1281,12 @@ function App(){
               return <div key={e.logIndex} style={{padding:'10px 14px',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={bdg('#3b82f6')}>{method}</span>
+                    <span style={bdg('#677ce7')}>{method}</span>
                     {isUrl?<a href={url} target="_blank" rel="noopener noreferrer" style={{fontFamily:MF,fontSize:11,color:T.primary,textDecoration:'none'}}>{url}</a>:<span style={{fontFamily:MF,fontSize:11}}>{url}</span>}
                   </div>
                   <span style={{color:T.muted,fontFamily:MF,fontSize:10}}>{fmtTime(e.timestamp)}</span>
                 </div>
-                {parsed&&<div style={{fontFamily:MF,fontSize:10,color:'#94a3b8',marginTop:4}}>→ {parsed.method}({parsed.params?.[0]?trunc(typeof parsed.params[0]==='string'?parsed.params[0]:JSON.stringify(parsed.params[0]),60):''})</div>}
+                {parsed&&<div style={{fontFamily:MF,fontSize:10,color:'#9c9c9c',marginTop:4}}>→ {parsed.method}({parsed.params?.[0]?trunc(typeof parsed.params[0]==='string'?parsed.params[0]:JSON.stringify(parsed.params[0]),60):''})</div>}
               </div>;
             })}
             {netEntries.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {netEntries.length}</div>}
@@ -1299,17 +1299,17 @@ function App(){
             if(!hex||dir==='in')return null;
             const sw=hex.replace(/\s/g,'').slice(-4).toLowerCase();
             const swMap={
-              '9000':{label:'OK',color:'#10b981'},
-              '6985':{label:'Rejected',color:'#ef4444'},
-              '6982':{label:'Locked',color:'#f59e0b'},
-              '6a82':{label:'App not open',color:'#f59e0b'},
-              '6700':{label:'Bad length',color:'#f59e0b'},
-              '6d00':{label:'Bad INS',color:'#f59e0b'},
-              '6e00':{label:'Wrong app',color:'#f59e0b'},
-              '6f00':{label:'Tech error',color:'#ef4444'},
-              '5515':{label:'Locked',color:'#f59e0b'},
+              '9000':{label:'OK',color:'#6ec85c'},
+              '6985':{label:'Rejected',color:'#f87274'},
+              '6982':{label:'Locked',color:'#ffbd42'},
+              '6a82':{label:'App not open',color:'#ffbd42'},
+              '6700':{label:'Bad length',color:'#ffbd42'},
+              '6d00':{label:'Bad INS',color:'#ffbd42'},
+              '6e00':{label:'Wrong app',color:'#ffbd42'},
+              '6f00':{label:'Tech error',color:'#f87274'},
+              '5515':{label:'Locked',color:'#ffbd42'},
             };
-            return swMap[sw]||{label:`0x${sw.toUpperCase()}`,color:'#94a3b8'};
+            return swMap[sw]||{label:`0x${sw.toUpperCase()}`,color:'#9c9c9c'};
           }
           return <div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
@@ -1318,7 +1318,7 @@ function App(){
                 copyText(logData.apdu.map(a=>[a.dir.toUpperCase(),fmtTime(a.ts),a.hex||''].join('\t')).join('\n'));
                 setApduExportCopied(true);
                 setTimeout(()=>setApduExportCopied(false),2000);
-              }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'rgba(16,185,129,0.10)',color:'#10b981',border:'1px solid rgba(16,185,129,0.3)',cursor:'pointer'}}>
+              }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'rgba(110,200,92,0.10)',color:'#6ec85c',border:'1px solid rgba(110,200,92,0.3)',cursor:'pointer'}}>
                 {apduExportCopied?'Copied!':'Export APDUs'}
               </button>
             </div>
@@ -1327,9 +1327,9 @@ function App(){
                 const status=decodeApduStatus(a.hex,a.dir);
                 const claLabel=a.dir==='in'&&a.hex?`CLA:${a.hex.replace(/\s/g,'').slice(0,2).toUpperCase()}`:null;
                 return <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',borderBottom:`1px solid ${T.border}`,fontSize:12,fontFamily:MF}}>
-                  <span style={bdg(a.dir==='in'?'#3b82f6':'#10b981')}>{a.dir==='in'?'→ IN':'← OUT'}</span>
-                  <span style={{color:'#94a3b8',fontSize:10,flexShrink:0}}>{fmtTime(a.ts)}</span>
-                  <span style={{width:100,flexShrink:0,fontWeight:600,fontSize:11,color:status?status.color:'#94a3b8'}}>
+                  <span style={bdg(a.dir==='in'?'#677ce7':'#6ec85c')}>{a.dir==='in'?'→ IN':'← OUT'}</span>
+                  <span style={{color:'#9c9c9c',fontSize:10,flexShrink:0}}>{fmtTime(a.ts)}</span>
+                  <span style={{width:100,flexShrink:0,fontWeight:600,fontSize:11,color:status?status.color:'#9c9c9c'}}>
                     {status?status.label:claLabel||'—'}
                   </span>
                   <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#e2e8f0'}}>{a.hex||'—'}</span>
@@ -1349,7 +1349,7 @@ class ErrorBoundary extends React.Component{
   constructor(props){super(props);this.state={hasError:false};}
   static getDerivedStateFromError(){return{hasError:true};}
   render(){
-    if(this.state.hasError)return<div style={{minHeight:'100vh',background:'#0f172a',color:'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',textAlign:'center'}}><div><div style={{fontSize:24,marginBottom:12}}>⚠️</div><div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div><div style={{fontSize:13,color:'#94a3b8',marginBottom:16}}>Reload the page to try again.</div><button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#3b82f6',color:'#fff',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button></div></div>;
+    if(this.state.hasError)return<div style={{minHeight:'100vh',background:'#000000',color:'#ffffff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',textAlign:'center'}}><div><div style={{fontSize:24,marginBottom:12}}>⚠️</div><div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div><div style={{fontSize:13,color:'#9c9c9c',marginBottom:16}}>Reload the page to try again.</div><button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#d4a0ff',color:'#000',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button></div></div>;
     return this.props.children;
   }
 }
