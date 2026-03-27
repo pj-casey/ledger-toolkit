@@ -16,6 +16,14 @@
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
+@media (max-width: 1024px) {
+  .ov-grid-2col { grid-template-columns: 1fr !important; }
+  .tl-grid { grid-template-columns: 130px 1fr !important; }
+  .tl-col-idx, .tl-col-time { display: none !important; }
+}
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+}
 </style>
 </head>
 <body>
@@ -145,18 +153,18 @@ const CHAINS={
   cardano:{name:'Cardano',ticker:'ADA',color:'#0A1D2C',convert:cardanoCredToStake,url:a=>{const s=cardanoCredToStake(a);if(s)return`https://cexplorer.io/stake/${s}`;if(/^stake1/.test(a))return`https://cexplorer.io/stake/${a}`;if(/^addr1/.test(a))return`https://cexplorer.io/address/${a}`;return null;}},
   bsc:{name:'BNB Chain',ticker:'BNB',color:'#F0B90A',url:a=>`https://bscscan.com/address/${a}`},
   polygon:{name:'Polygon',ticker:'POL',color:'#6d29de',url:a=>`https://polygonscan.com/address/${a}`},
-  avalanche_c_chain:{name:'Avalanche C-Chain',ticker:'AVAX',color:'#E84142',url:a=>`https://cchain.explorer.avax.network/address/${a}`},
+  avalanche_c_chain:{name:'Avalanche C-Chain',ticker:'AVAX',color:'#E84142',url:a=>`https://subnets.avax.network/c-chain/address/${a}`},
   optimism:{name:'OP Mainnet',ticker:'ETH',color:'#FF0421',url:a=>`https://optimism.blockscout.com/address/${a}`},
   arbitrum:{name:'Arbitrum',ticker:'ETH',color:'#28a0f0',url:a=>`https://arbitrum.blockscout.com/address/${a}`},
   stacks:{name:'Stacks',ticker:'STX',color:'#5546ff',convert:stacksPubkeyToAddr,url:a=>{const s=stacksPubkeyToAddr(a);if(s)return`https://explorer.stacks.co/address/${s}`;if(/^S[TP]/.test(a))return`https://explorer.stacks.co/address/${a}`;return null;}},
   crypto_org:{name:'Cronos POS Chain',ticker:'CRO',color:'#0e1c37',url:a=>`https://www.mintscan.io/crypto-org/address/${a}`},
-  litecoin:{name:'Litecoin',ticker:'LTC',color:'#cccccc',url:a=>`https://live.blockcypher.com/ltc/address/${a}`,xc:'LTC'},
-  dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#65d196',url:a=>`https://dogechain.info/address/${a}`,xc:'DOGE'},
+  litecoin:{name:'Litecoin',ticker:'LTC',color:'#cccccc',url:a=>`https://blockchair.com/litecoin/address/${a}`,xc:'LTC'},
+  dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#65d196',url:a=>`https://blockchair.com/dogecoin/address/${a}`,xc:'DOGE'},
   bitcoin_cash:{name:'Bitcoin Cash',ticker:'BCH',color:'#3ca569',url:a=>`https://blockchair.com/bitcoin-cash/address/${a}`,xc:'BCH'},
-  stellar:{name:'Stellar',ticker:'XLM',color:'#000000',url:()=>null},
+  stellar:{name:'Stellar',ticker:'XLM',color:'#14B8E6',url:()=>null},
   hedera:{name:'Hedera',ticker:'HBAR',color:'#000000',url:a=>`https://hashscan.io/mainnet/account/${a}`},
   elrond:{name:'MultiversX',ticker:'EGLD',color:'#23F7DD',url:a=>`https://explorer.multiversx.com/accounts/${a}`},
-  celo:{name:'Celo',ticker:'CELO',color:'#35D07F',url:a=>`https://explorer.celo.org/address/${a}`},
+  celo:{name:'Celo',ticker:'CELO',color:'#35D07F',url:a=>`https://celoscan.io/address/${a}`},
   // Osmosis: object key in currencies.ts is 'osmosis' but id field is 'osmo'; account IDs use 'osmo'
   osmo:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/validators/${a}`},
   osmosis:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/validators/${a}`},
@@ -166,7 +174,7 @@ const CHAINS={
   mantra:{name:'Mantra',ticker:'MANTRA',color:'#ffb386',url:a=>`https://www.mintscan.io/mantra/validators/${a}`},
   persistence:{name:'Persistence',ticker:'XPRT',color:'#e50a13',url:a=>`https://www.mintscan.io/persistence/validators/${a}`},
   axelar:{name:'Axelar',ticker:'AXL',color:'#b2b6bc',url:a=>`https://www.mintscan.io/axelar/validators/${a}`},
-  quicksilver:{name:'Quicksilver',ticker:'QCK',color:'#9b9b9b',url:a=>`https://explorer.quicksilver.zone/validators/${a}`},
+  quicksilver:{name:'Quicksilver',ticker:'QCK',color:'#9b9b9b',url:a=>`https://www.mintscan.io/quicksilver/address/${a}`},
   zenrock:{name:'Zenrock',ticker:'ROCK',color:'#080c44',url:()=>null},
   base:{name:'Base',ticker:'ETH',color:'#1755FE',url:a=>`https://base.blockscout.com/address/${a}`},
   zksync:{name:'ZKsync',ticker:'ETH',color:'#000000',url:a=>`https://zksync.blockscout.com/address/${a}`},
@@ -1059,7 +1067,7 @@ function App(){
               {sumCopied?'Copied!':'Copy Summary'}
             </button>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:12}}>
+          <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:12}}>
             {[{l:'Entries',v:logData.entries.length,c:T.primary},{l:'Accounts',v:logData.accts.length,c:T.success},{l:'Operations',v:logData.dev.totalOps||'—',c:'#8b5cf6'},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted}].map(s=><div key={s.l} style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:24,fontWeight:700,color:s.c,fontFamily:MF}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4}}>{s.l}</div></div>)}
           </div>
           {(()=>{
@@ -1073,7 +1081,7 @@ function App(){
               {badges.map(b=><span key={b.k} style={bdg(b.c)}>{b.l}</span>)}
             </div>;
           })()}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <div className="ov-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div style={crd}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,fontSize:14,fontWeight:600}}><Ico.Chip/> Device & App</div>
               {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['App',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,fontSize:13}}><span style={{color:T.muted}}>{k}</span><span style={{fontFamily:MF}}>{v}</span></div>)}
             </div>
@@ -1143,7 +1151,7 @@ function App(){
             <button onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
           </div>
           <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'65vh',overflowY:'auto'}}>
-            <div style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
+            <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
               {['#','Time','Type','Message'].map(h=><div key={h} style={{padding:'10px 12px',color:T.muted,fontWeight:600,fontSize:11,textTransform:'uppercase',background:T.panel}}>{h}</div>)}
             </div>
             {filtered.slice(0,500).map(e=>{
@@ -1151,9 +1159,9 @@ function App(){
               const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
               const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
               return <div key={e.logIndex}>
-                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',background:isErr?'rgba(239,68,68,0.05)':'transparent'}}>
-                  <div style={{padding:'8px 12px',color:T.muted,fontFamily:MF,fontSize:12}}>{e.logIndex}</div>
-                  <div style={{padding:'8px 12px',fontFamily:MF,color:T.muted,whiteSpace:'nowrap',fontSize:11}}>{fmtTime(e.timestamp)}</div>
+                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',background:isErr?'rgba(239,68,68,0.05)':'transparent'}}>
+                  <div className="tl-col-idx" style={{padding:'8px 12px',color:T.muted,fontFamily:MF,fontSize:12}}>{e.logIndex}</div>
+                  <div className="tl-col-time" style={{padding:'8px 12px',fontFamily:MF,color:T.muted,whiteSpace:'nowrap',fontSize:11}}>{fmtTime(e.timestamp)}</div>
                   <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
                   <div style={{padding:'8px 12px',fontFamily:MF,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
                 </div>
