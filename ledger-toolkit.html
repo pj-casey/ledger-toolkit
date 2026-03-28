@@ -209,24 +209,24 @@ const CHAINS={
   avalanche_c_chain:{name:'Avalanche C-Chain',ticker:'AVAX',color:'#E84142',url:a=>`https://subnets.avax.network/c-chain/address/${a}`},
   optimism:{name:'OP Mainnet',ticker:'ETH',color:'#FF0421',url:a=>`https://optimism.blockscout.com/address/${a}`},
   arbitrum:{name:'Arbitrum',ticker:'ETH',color:'#28a0f0',url:a=>`https://arbitrum.blockscout.com/address/${a}`},
-  stacks:{name:'Stacks',ticker:'STX',color:'#5546ff',convert:stacksPubkeyToAddr,url:a=>{const s=stacksPubkeyToAddr(a);if(s)return`https://explorer.stacks.co/address/${s}`;if(/^S[TP]/.test(a))return`https://explorer.stacks.co/address/${a}`;return null;}},
+  stacks:{name:'Stacks',ticker:'STX',color:'#5546ff',convert:stacksPubkeyToAddr,url:a=>{const s=stacksPubkeyToAddr(a);if(s)return`https://explorer.hiro.so/address/${s}?chain=mainnet`;if(/^S[TP]/.test(a))return`https://explorer.hiro.so/address/${a}?chain=mainnet`;return null;}},
   crypto_org:{name:'Cronos POS Chain',ticker:'CRO',color:'#0e1c37',url:a=>`https://www.mintscan.io/crypto-org/address/${a}`},
   litecoin:{name:'Litecoin',ticker:'LTC',color:'#cccccc',url:a=>`https://blockchair.com/litecoin/address/${a}`,xc:'LTC'},
   dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#65d196',url:a=>`https://blockchair.com/dogecoin/address/${a}`,xc:'DOGE'},
   bitcoin_cash:{name:'Bitcoin Cash',ticker:'BCH',color:'#3ca569',url:a=>`https://blockchair.com/bitcoin-cash/address/${a}`,xc:'BCH'},
-  stellar:{name:'Stellar',ticker:'XLM',color:'#14B8E6',url:()=>null},
+  stellar:{name:'Stellar',ticker:'XLM',color:'#14B8E6',url:()=>null,note:'Stellar stores accounts by public key. Search manually at stellar.expert/explorer/public/account/'},
   hedera:{name:'Hedera',ticker:'HBAR',color:'#000000',url:a=>`https://hashscan.io/mainnet/account/${a}`},
   elrond:{name:'MultiversX',ticker:'EGLD',color:'#23F7DD',url:a=>`https://explorer.multiversx.com/accounts/${a}`},
   celo:{name:'Celo',ticker:'CELO',color:'#35D07F',url:a=>`https://celoscan.io/address/${a}`},
   // Osmosis: object key in currencies.ts is 'osmosis' but id field is 'osmo'; account IDs use 'osmo'
-  osmo:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/validators/${a}`},
-  osmosis:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/validators/${a}`},
+  osmo:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/address/${a}`},
+  osmosis:{name:'Osmosis',ticker:'OSMO',color:'#493c9b',url:a=>`https://www.mintscan.io/osmosis/address/${a}`},
   sui:{name:'Sui',ticker:'SUI',color:'#000000',url:a=>`https://suiscan.xyz/mainnet/account/${a}`},
-  dydx:{name:'dYdX',ticker:'dydx',color:'#6666FF',url:a=>`https://www.mintscan.io/dydx/validators/${a}`},
-  injective:{name:'Injective',ticker:'INJ',color:'#00F2FE',url:a=>`https://www.mintscan.io/injective/validators/${a}`},
-  mantra:{name:'Mantra',ticker:'MANTRA',color:'#ffb386',url:a=>`https://www.mintscan.io/mantra/validators/${a}`},
-  persistence:{name:'Persistence',ticker:'XPRT',color:'#e50a13',url:a=>`https://www.mintscan.io/persistence/validators/${a}`},
-  axelar:{name:'Axelar',ticker:'AXL',color:'#b2b6bc',url:a=>`https://www.mintscan.io/axelar/validators/${a}`},
+  dydx:{name:'dYdX',ticker:'dydx',color:'#6666FF',url:a=>`https://www.mintscan.io/dydx/address/${a}`},
+  injective:{name:'Injective',ticker:'INJ',color:'#00F2FE',url:a=>`https://www.mintscan.io/injective/address/${a}`},
+  mantra:{name:'Mantra',ticker:'MANTRA',color:'#ffb386',url:a=>`https://www.mintscan.io/mantra/address/${a}`},
+  persistence:{name:'Persistence',ticker:'XPRT',color:'#e50a13',url:a=>`https://www.mintscan.io/persistence/address/${a}`},
+  axelar:{name:'Axelar',ticker:'AXL',color:'#b2b6bc',url:a=>`https://www.mintscan.io/axelar/address/${a}`},
   quicksilver:{name:'Quicksilver',ticker:'QCK',color:'#9b9b9b',url:a=>`https://www.mintscan.io/quicksilver/address/${a}`},
   zenrock:{name:'Zenrock',ticker:'ROCK',color:'#080c44',url:()=>null},
   base:{name:'Base',ticker:'ETH',color:'#1755FE',url:a=>`https://base.blockscout.com/address/${a}`},
@@ -234,9 +234,9 @@ const CHAINS={
   linea:{name:'Linea',ticker:'ETH',color:'#000000',url:a=>`https://lineascan.build/address/${a}`},
   scroll:{name:'Scroll',ticker:'ETH',color:'#ebc28e',url:a=>`https://scroll.blockscout.com/address/${a}`},
   blast:{name:'Blast',ticker:'ETH',color:'#FCFC06',url:a=>`https://blastscan.io/address/${a}`},
-  hyperevm:{name:'HyperEVM',ticker:'HYPE',color:'#97FCE4',url:a=>`https://www.hyperscan.com/address/${a}`},
+  hyperevm:{name:'HyperEVM',ticker:'HYPE',color:'#97FCE4',url:a=>`https://www.hyperscan.xyz/address/${a}`},
   flare:{name:'Flare',ticker:'FLR',color:'#D95F6C',url:a=>`https://flare-explorer.flare.network/address/${a}`},
-  filecoin:{name:'Filecoin',ticker:'FIL',color:'#0090ff',url:a=>`https://beryx.io/v1/explore/fil/mainnet/address/${a}`},
+  filecoin:{name:'Filecoin',ticker:'FIL',color:'#0090ff',url:a=>`https://beryx.io/fil/mainnet/address/${a}`},
   // ICP: object key in currencies.ts is 'internet_computer', id field is 'internet_computer'
   internet_computer:{name:'Internet Computer',ticker:'ICP',color:'#e1effa',url:a=>`https://dashboard.internetcomputer.org/account/${a}`},
   icp:{name:'Internet Computer',ticker:'ICP',color:'#e1effa',url:a=>`https://dashboard.internetcomputer.org/account/${a}`},
@@ -435,6 +435,9 @@ function extractDevice(entries){
     if(d){
       if(nes(d.modelId)&&!info.modelId){info.modelId=d.modelId;info.modelName=DN[d.modelId]||d.modelId;}
       if(nes(d.deviceVersion)&&!info.fw)info.fw=d.deviceVersion;
+      if(nes(d.firmwareVersion)&&!info.fw)info.fw=d.firmwareVersion;
+      if(nes(d.firmware)&&!info.fw)info.fw=d.firmware;
+      if(nes(d.seVersion)&&!info.fw)info.fw=d.seVersion;
       if(nes(d.deviceLanguage)&&!info.lang)info.lang=d.deviceLanguage;
       if(d.modelIdList!=null&&!info.devices)info.devices=d.modelIdList;
       if(nes(d.appVersion||d.version)&&!info.appVer)info.appVer=d.appVersion||d.version;
@@ -465,6 +468,9 @@ function extractDevice(entries){
     // Pull extra fields from envBlock
     if(nes(metaEnv.appVersion)&&!info.appVer)info.appVer=metaEnv.appVersion;
     if(nes(metaEnv.version)&&!info.appVer)info.appVer=metaEnv.version;
+    if(nes(metaEnv.deviceVersion)&&!info.fw)info.fw=metaEnv.deviceVersion;
+    if(nes(metaEnv.firmwareVersion)&&!info.fw)info.fw=metaEnv.firmwareVersion;
+    if(nes(metaEnv.seVersion)&&!info.fw)info.fw=metaEnv.seVersion;
     if(nes(metaEnv.osType)&&!info.os)info.os=metaEnv.osType;
     if(nes(metaEnv.osVersion)&&!info.osVer)info.osVer=metaEnv.osVersion;
     if(nes(metaEnv.platform)&&!info.platform)info.platform=metaEnv.platform;
@@ -622,7 +628,7 @@ function extractActivity(entries){
   for(const e of entries){
     const mlo=(e.message||'').toLowerCase();
     if(mlo.includes('manager.api.live.ledger.com/api/apps'))managerOpened=true;
-    if(mlo.includes('swap.ledger.com')){
+    if(mlo.includes('swap.ledger.com')&&!mlo.includes('/v5/currencies')){
       swapBrowsed=true;
       if((mlo.startsWith('post ')||mlo.includes('/v5/swap')||mlo.includes('/v5/exchange'))&&mlo.includes('swap.ledger.com'))swapExecuted=true;
     }
@@ -716,13 +722,13 @@ const UTXO_NETS={
     addrUrl:a=>`https://mempool.space/address/${a}`},
   LTC:{bech32:'ltc',pubKeyHash:0x30,scriptHash:0x32,wif:0xb0,label:'Litecoin',color:'#345d9d',delay:650,
     fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/ltc/main/addrs/${addr}/balance`).then(r=>{
-      if(r.status===429){setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.LTC.fetchBal(addr,cb);},1500);return null;}return r.json();
-    }).then(d=>{if(d)cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}).catch(e=>cb(e));},
+      if(r.status===429){cb._retries=(cb._retries||0)+1;if(cb._retries>5){cb(new Error('Rate limited (429)'));return null;}if(cb._warn)cb._warn(`Rate limited — retrying ${cb._retries}/5…`);setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.LTC.fetchBal(addr,cb);},1500*cb._retries);return null;}return r.json();
+    }).then(d=>{if(d){if(cb._warn)cb._warn('');cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}}).catch(e=>cb(e));},
     addrUrl:a=>`https://blockchair.com/litecoin/address/${a}`},
   DOGE:{bech32:'doge',pubKeyHash:0x1e,scriptHash:0x16,wif:0x9e,label:'Dogecoin',color:'#ba9f33',delay:650,
     fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/doge/main/addrs/${addr}/balance`).then(r=>{
-      if(r.status===429){setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.DOGE.fetchBal(addr,cb);},1500);return null;}return r.json();
-    }).then(d=>{if(d)cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}).catch(e=>cb(e));},
+      if(r.status===429){cb._retries=(cb._retries||0)+1;if(cb._retries>5){cb(new Error('Rate limited (429)'));return null;}if(cb._warn)cb._warn(`Rate limited — retrying ${cb._retries}/5…`);setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.DOGE.fetchBal(addr,cb);},1500*cb._retries);return null;}return r.json();
+    }).then(d=>{if(d){if(cb._warn)cb._warn('');cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}}).catch(e=>cb(e));},
     addrUrl:a=>`https://blockchair.com/dogecoin/address/${a}`},
   BCH:{bech32:'bitcoincash',pubKeyHash:0x00,scriptHash:0x05,wif:0x80,label:'Bitcoin Cash',color:'#8dc351',delay:100,
     fetchBal:(addr,cb)=>{fetch(`https://api.blockchair.com/bitcoin-cash/dashboards/address/${addr}`).then(r=>r.json()).then(d=>{const s=d.data?.[addr]?.address;if(!s)return cb(new Error('no data'));cb(null,{bal:s.balance/1e8,txs:s.transaction_count||0});}).catch(e=>cb(e));},
@@ -736,6 +742,7 @@ function XpubView({xpub,coin,dm}){
   const[stats,setStats]=useState(null);
   const[progress,setProgress]=useState({chain:0,idx:0,gap:0});
   const[scanErr,setScanErr]=useState('');
+  const[scanWarn,setScanWarn]=useState('');
   const[libReady,setLibReady]=useState(false);
   const libRef=useRef({});
   // Each scan gets its own ctx object; old callbacks check ctx.stop before touching state
@@ -792,7 +799,7 @@ function XpubView({xpub,coin,dm}){
     const ctx={stop:false};
     ctxRef.current=ctx;
 
-    setRunning(true);setScanErr('');setResults([]);setStats(null);setProgress({chain:0,idx:0,gap:0});
+    setRunning(true);setScanErr('');setScanWarn('');setResults([]);setStats(null);setProgress({chain:0,idx:0,gap:0});
     const{bitcoin}=libRef.current;
     let node;
     try{node=bitcoin.bip32.fromBase58(convertXpub(xpub),bitcoin.networks.bitcoin);}
@@ -827,6 +834,7 @@ function XpubView({xpub,coin,dm}){
             setTimeout(next,net.delay);
           };
           _cb._ctx=ctx;
+          _cb._warn=msg=>setScanWarn(msg);
           net.fetchBal(addr,_cb);
         },0);
       };
@@ -880,6 +888,7 @@ function XpubView({xpub,coin,dm}){
       </div>
     </div>}
 
+    {scanWarn&&<div style={{color:T.warning,fontSize:12,marginBottom:8,padding:10,background:'rgba(255,189,66,0.08)',borderRadius:6,border:'1px solid rgba(255,189,66,0.25)'}}>{scanWarn}</div>}
     {scanErr&&<div style={{color:T.error,fontSize:12,marginBottom:8,padding:10,background:'rgba(239,68,68,0.08)',borderRadius:6,border:'1px solid rgba(239,68,68,0.2)'}}>{scanErr}</div>}
 
     {/* Stats */}
@@ -942,6 +951,7 @@ function AcctCard({acct}){
           <CopyBtn text={acct.addr}/>
           {hasExp&&!acct.isXpub&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:ch.color+'15',color:ch.color,border:`1px solid ${ch.color}30`,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}><Ico.Link/> View on explorer</a>}
         </div>
+        {ch.note&&!hasExp&&<div style={{background:'rgba(20,184,230,0.06)',border:'1px solid rgba(20,184,230,0.2)',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12,color:T.muted,lineHeight:1.6}}>{ch.note}<span className="mono" style={{color:'#14B8E6',wordBreak:'break-all',display:'block',marginTop:4}}>{acct.addr}</span></div>}
         {ch.convert&&(()=>{
           const derived=ch.convert(acct.addr);
           if(!derived)return <div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:8,padding:12,marginBottom:16,lineHeight:1.6,color:T.muted}}>Could not derive explorer address from stored credential. Ask the customer for their receive address.</div>;
@@ -1084,7 +1094,7 @@ function App(){
         </svg>
         <div className={dragOver?'drop-icon-pulse':''} style={{color:dragOver?T.primary:T.muted,marginBottom:16,position:'relative'}}><Ico.Upload/></div>
         <div style={{fontSize:18,fontWeight:600,marginBottom:8,position:'relative'}}>Drop a Ledger Wallet log file here</div>
-        <div style={{color:T.muted,fontSize:14,marginBottom:20,position:'relative'}}>Accepts .json and .txt (Ctrl+E or Settings → Help → Export Logs)</div>
+        <div style={{color:T.muted,fontSize:14,marginBottom:20,position:'relative'}}>Accepts .json and .txt — export from Settings → Help → Export Logs in Ledger Live</div>
         <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:T.muted,position:'relative'}}>
           <span>Device info</span><span>Accounts</span><span>Error diagnosis</span><span>On-chain links</span><span>Network</span>
         </div>
@@ -1095,7 +1105,7 @@ function App(){
         <div role="tablist" className="ledger-tab-bar" style={{marginBottom:8}}>
           {visibleTabs.map((t,tidx)=>{const act=tab===t;const ex=t==='Errors'&&logData.errs.length>0?` (${logData.errs.length})`:t==='Accounts'?` (${logData.accts.length})`:'';return <button key={t} role="tab" aria-selected={act} onClick={()=>setTab(t)} onMouseEnter={()=>setHoveredTab(t)} onMouseLeave={()=>setHoveredTab(null)} className={`ledger-tab-btn${act?' active':''}`}>{t}{ex}{hoveredTab===t&&<span className="mono" style={{position:'absolute',top:-8,right:-4,background:'rgba(255,255,255,0.1)',color:'#9c9c9c',fontSize:9,padding:'1px 4px',borderRadius:3,pointerEvents:'none'}}>⌃{tidx+1}</span>}</button>;})}
         </div>
-        <div className="mono" style={{fontSize:11,color:T.muted,marginBottom:16}}>⌃1–{visibleTabs.length} switch tabs · ⌃E open file</div>
+        <div className="mono" style={{fontSize:11,color:T.muted,marginBottom:16}}>⌃1–{visibleTabs.length} switch tabs</div>
 
         {/* Overview */}
         {tab==='Overview'&&<div>
@@ -1104,9 +1114,11 @@ function App(){
               const d=logData.dev;
               const accts=logData.accts;
               const errs=logData.errs;
+              const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
               const lines=[
                 '=== Ledger Diagnostic Summary ===',
-                `File: ${fileName}`,
+                `File:        ${fileName}`,
+                `Session:     ${ses}`,
                 '',
                 'DEVICE',
                 `  Model:      ${d.modelName||d.modelId||'Unknown'}`,
@@ -1114,14 +1126,15 @@ function App(){
                 `  App ver:    ${d.appVer||'Unknown'}`,
                 `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
                 `  Platform:   ${d.platform||'Unknown'}`,
+                `  User ID:    ${d.userId||'Unknown'}`,
                 '',
                 `ACCOUNTS (${accts.length})`,
-                ...accts.slice(0,10).map(a=>`  ${a.ch.name} — ${a.ops} ops — ${a.addr.slice(0,20)}...`),
-                accts.length>10?`  ... and ${accts.length-10} more`:'',
+                ...accts.slice(0,10).map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}),
+                ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),
                 '',
                 `ERRORS (${errs.length})`,
                 ...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`),
-                errs.length>8?`  ... and ${errs.length-8} more`:'',
+                ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),
                 '',
                 `APDU exchanges: ${logData.apdu?.length||0}`,
                 `Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
@@ -1150,6 +1163,7 @@ function App(){
           })()}
           <div className="ov-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
+              {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>No device connected during this session — model and firmware not available.</div>}
               {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['App',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}</span></div>)}
             </div>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:16}}>Environment</div>
@@ -1254,6 +1268,7 @@ function App(){
               <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export</button>
             </div>
           </div>
+          {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:16,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>}
           <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:16,boxSizing:'border-box'}}/>
           {filtAccts.map(a=><AcctCard key={a.id} acct={a}/>)}
           {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
@@ -1268,8 +1283,10 @@ function App(){
         {/* Errors */}
         {tab==='Errors'&&(()=>{
           const allErrs=logData.errs;
-          // Enrich diagnostics with repeat counts
-          const enrichedErrs=allErrs.map(e=>({...e,dg:diagnose(e.raw,allErrs)}));
+          // O(N) pass: diagnose each error individually, then count repeating titles separately
+          const baseDg=allErrs.map(e=>({...e,dg:diagnose(e.raw)}));
+          const titleCounts={};for(const e of baseDg){const t=e.dg.t;titleCounts[t]=(titleCounts[t]||0)+1;}
+          const enrichedErrs=baseDg.map(e=>{const c=titleCounts[e.dg.t];return c>1?{...e,dg:{...e.dg,repeatCount:c-1}}:e;});
           const highCount=enrichedErrs.filter(e=>e.dg.s==='high').length;
           const medCount=enrichedErrs.filter(e=>e.dg.s==='medium').length;
           const lowCount=enrichedErrs.filter(e=>e.dg.s==='low').length;
