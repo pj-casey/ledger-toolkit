@@ -27,6 +27,7 @@ h1,h2,.section-title{font-size:16px;font-weight:600;line-height:1.4;}
 .mono,code,pre{font-family:'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace;font-size:12px;line-height:1.5;}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
+button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 @media (max-width: 1024px) {
   .ov-grid-2col { grid-template-columns: 1fr !important; }
   .tl-grid { grid-template-columns: 130px 1fr !important; }
@@ -112,7 +113,7 @@ const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',
 const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return '';}};
 const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Apex'};
-const TC={action:'#717070',analytics:'#BBB0FF',countervalues:'#06b6d4',bridge:'#FFBD42',network:'#677ce7',persistence:'#7AC26C',walletsync:'#ec4899',error:'#F57375','live-dmk-logger':'#BBB0FF'};
+const TC={action:'#717070',analytics:'#BBB0FF',countervalues:'#06b6d4',bridge:'#FFBD42',network:'#8A9EF5',persistence:'#7AC26C',walletsync:'#ec4899',error:'#F57375','live-dmk-logger':'#BBB0FF'};
 const gtc=t=>t?TC[t.toLowerCase()]||'#717070':'#717070';
 
 function copyText(text){
@@ -160,11 +161,11 @@ function cardanoCredToStake(hex){
 //   → SP... (41 chars: 'S' + c32[22]='P' + 39-char c32 of hash160+checksum)
 function stacksPubkeyToAddr(hex){
   if(typeof hex!=='string'||hex.length!==66||!/^0[23][0-9a-f]{64}$/i.test(hex))return null;
-  if(typeof bitcoin==='undefined')return null;
-  const h160=bitcoin.crypto.hash160(Buffer.from(hex,'hex')); // 20B: RIPEMD160(SHA256(pubkey))
+  if(typeof bitcoinjsLib==='undefined')return null;
+  const h160=bitcoinjsLib.crypto.hash160(Buffer.from(hex,'hex')); // 20B: RIPEMD160(SHA256(pubkey))
   const ver=22; // mainnet P2PKH → 'P' in c32 alphabet → addresses start SP
   // checksum = SHA256(SHA256([version, ...hash160]))[0:4]
-  const cs=bitcoin.crypto.hash256(Buffer.concat([Buffer.from([ver]),h160])).slice(0,4);
+  const cs=bitcoinjsLib.crypto.hash256(Buffer.concat([Buffer.from([ver]),h160])).slice(0,4);
   // c32-encode [hash160..., checksum...] (24 bytes) as 39 chars using Stacks alphabet
   const ALPHA='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
   const payload=[...h160,...cs];
@@ -192,8 +193,8 @@ function tonHexToAddr(hex){
 /* Chains — synced with ledger-live cryptoassets/src/currencies.ts */
 const CHAINS={
   aptos:{name:'Aptos',ticker:'APT',color:'#231F20',url:a=>`https://explorer.aptoslabs.com/account/${a}?network=mainnet`},
-  bitcoin:{name:'Bitcoin',ticker:'BTC',color:'#ffae35',url:a=>`https://blockstream.info/address/${a}`,xc:'BTC'},
-  ethereum:{name:'Ethereum',ticker:'ETH',color:'#0ebdcd',url:a=>`https://etherscan.io/address/${a}`},
+  bitcoin:{name:'Bitcoin',ticker:'BTC',color:'#f7931a',url:a=>`https://blockstream.info/address/${a}`,xc:'BTC'},
+  ethereum:{name:'Ethereum',ticker:'ETH',color:'#627EEA',url:a=>`https://etherscan.io/address/${a}`},
   tezos:{name:'Tezos',ticker:'XTZ',color:'#007BFF',url:a=>`https://tzkt.io/${a}`},
   cosmos:{name:'Cosmos',ticker:'ATOM',color:'#16192f',url:a=>`https://www.mintscan.io/cosmos/address/${a}`},
   tron:{name:'Tron',ticker:'TRX',color:'#D9012C',url:a=>`https://tronscan.org/#/address/${a}`},
@@ -211,9 +212,9 @@ const CHAINS={
   arbitrum:{name:'Arbitrum',ticker:'ETH',color:'#28a0f0',url:a=>`https://arbitrum.blockscout.com/address/${a}`},
   stacks:{name:'Stacks',ticker:'STX',color:'#5546ff',convert:stacksPubkeyToAddr,url:a=>{const s=stacksPubkeyToAddr(a);if(s)return`https://explorer.hiro.so/address/${s}?chain=mainnet`;if(/^S[TP]/.test(a))return`https://explorer.hiro.so/address/${a}?chain=mainnet`;return null;}},
   crypto_org:{name:'Cronos POS Chain',ticker:'CRO',color:'#0e1c37',url:a=>`https://www.mintscan.io/crypto-org/address/${a}`},
-  litecoin:{name:'Litecoin',ticker:'LTC',color:'#cccccc',url:a=>`https://blockchair.com/litecoin/address/${a}`,xc:'LTC'},
-  dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#65d196',url:a=>`https://blockchair.com/dogecoin/address/${a}`,xc:'DOGE'},
-  bitcoin_cash:{name:'Bitcoin Cash',ticker:'BCH',color:'#3ca569',url:a=>`https://blockchair.com/bitcoin-cash/address/${a}`,xc:'BCH'},
+  litecoin:{name:'Litecoin',ticker:'LTC',color:'#345d9d',url:a=>`https://blockchair.com/litecoin/address/${a}`,xc:'LTC'},
+  dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#ba9f33',url:a=>`https://blockchair.com/dogecoin/address/${a}`,xc:'DOGE'},
+  bitcoin_cash:{name:'Bitcoin Cash',ticker:'BCH',color:'#8dc351',url:a=>`https://blockchair.com/bitcoin-cash/address/${a}`,xc:'BCH'},
   stellar:{name:'Stellar',ticker:'XLM',color:'#14B8E6',url:()=>null,note:'Stellar stores accounts by public key. Search manually at stellar.expert/explorer/public/account/'},
   hedera:{name:'Hedera',ticker:'HBAR',color:'#000000',url:a=>`https://hashscan.io/mainnet/account/${a}`},
   elrond:{name:'MultiversX',ticker:'EGLD',color:'#23F7DD',url:a=>`https://explorer.multiversx.com/accounts/${a}`},
@@ -251,11 +252,88 @@ const CHAINS={
   mina:{name:'Mina',ticker:'MINA',color:'#e1effa',url:a=>`https://minascan.io/mainnet/account/${a}`},
   neon_evm:{name:'Neon EVM',ticker:'NEON',color:'#D13BB7',url:a=>`https://neon.blockscout.com/address/${a}`},
   lukso:{name:'Lukso',ticker:'LYX',color:'#FE0167',url:a=>`https://explorer.execution.mainnet.lukso.network/address/${a}`},
-  sonic:{name:'Sonic',ticker:'S',color:'#FFFFFF',url:a=>`https://sonicscan.org/address/${a}`},
+  sonic:{name:'Sonic',ticker:'S',color:'#4FC3F7',url:a=>`https://sonicscan.org/address/${a}`},
   kaspa:{name:'KASPA',ticker:'KAS',color:'#70C7BA',url:a=>`https://explorer.kaspa.org/addresses/${a}`},
 };
 const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
+
+/* ─── Token Contract Resolver ────────────────────────────────────────────────
+   Loads Ledger's full published token list from their open-source repo on GitHub
+   and caches it in localStorage for 24h. Resolves token slugs (ethereum/erc20/usd__coin)
+   to contract addresses so every token badge becomes a clickable explorer link.
+   Falls back to a block-explorer search URL for any token not yet in cache.      */
+const TOKEN_CONTRACTS={};
+// Ledger chain identifier → EVM chain ID (for fetching erc20.json data files)
+const EVM_CHAIN_IDS={
+  ethereum:1,bsc:56,polygon:137,arbitrum:42161,optimism:10,base:8453,
+  linea:59144,scroll:534352,blast:81457,zksync:324,mantle:5000,fantom:250,
+  avalanche_c_chain:43114,cronos:25,moonbeam:1284,moonriver:1285,celo:42220,
+  klaytn:8217,flare:14,neon_evm:245022934,lukso:42,hyperevm:999,
+};
+// Per-chain token page URL builders (contract address known)
+const TOKEN_URLS={
+  ethereum:(a,w)=>`https://etherscan.io/token/${a}?a=${w}`,
+  bsc:(a,w)=>`https://bscscan.com/token/${a}?a=${w}`,
+  polygon:(a,w)=>`https://polygonscan.com/token/${a}?a=${w}`,
+  arbitrum:(a,w)=>`https://arbiscan.io/token/${a}?a=${w}`,
+  optimism:(a,w)=>`https://optimistic.etherscan.io/token/${a}?a=${w}`,
+  base:(a,w)=>`https://basescan.org/token/${a}?a=${w}`,
+  linea:(a,w)=>`https://lineascan.build/token/${a}?a=${w}`,
+  scroll:(a,w)=>`https://scrollscan.com/token/${a}?a=${w}`,
+  blast:(a,w)=>`https://blastscan.io/token/${a}?a=${w}`,
+  zksync:(a,w)=>`https://era.zksync.network/token/${a}?a=${w}`,
+  mantle:(a,w)=>`https://explorer.mantle.xyz/token/${a}?a=${w}`,
+  fantom:(a,w)=>`https://ftmscan.com/token/${a}?a=${w}`,
+  avalanche_c_chain:(a,w)=>`https://snowtrace.io/token/${a}?a=${w}`,
+  cronos:(a,w)=>`https://cronos.org/explorer/tokens/${a}?a=${w}`,
+  moonbeam:(a,w)=>`https://moonbeam.moonscan.io/token/${a}?a=${w}`,
+  moonriver:(a,w)=>`https://moonriver.moonscan.io/token/${a}?a=${w}`,
+  celo:(a,w)=>`https://celoscan.io/token/${a}?a=${w}`,
+  klaytn:(a,w)=>`https://www.klaytnfinder.io/token/${a}?a=${w}`,
+  neon_evm:(a,w)=>`https://neon.blockscout.com/token/${a}?a=${w}`,
+  lukso:(a,w)=>`https://explorer.execution.mainnet.lukso.network/token/${a}?a=${w}`,
+  tron:a=>`https://tronscan.org/#/token20/${a}`,
+  stacks:a=>`https://explorer.hiro.so/token/${a}?chain=mainnet`,
+  cardano:a=>`https://cexplorer.io/asset/${a}`,
+};
+// Search fallback URL builders (contract not in cache)
+const TOKEN_SEARCH={
+  ethereum:s=>`https://etherscan.io/search?f=1&q=${encodeURIComponent(s)}`,
+  bsc:s=>`https://bscscan.com/search?f=1&q=${encodeURIComponent(s)}`,
+  polygon:s=>`https://polygonscan.com/search?f=1&q=${encodeURIComponent(s)}`,
+  arbitrum:s=>`https://arbiscan.io/search?f=1&q=${encodeURIComponent(s)}`,
+  optimism:s=>`https://optimistic.etherscan.io/search?f=1&q=${encodeURIComponent(s)}`,
+  base:s=>`https://basescan.org/search?f=1&q=${encodeURIComponent(s)}`,
+  fantom:s=>`https://ftmscan.com/search?f=1&q=${encodeURIComponent(s)}`,
+  avalanche_c_chain:s=>`https://snowtrace.io/search?f=1&q=${encodeURIComponent(s)}`,
+};
+(async()=>{
+  const KEY='ldt_tkc_v1',TTL=86400000; // 24h cache
+  try{
+    const c=localStorage.getItem(KEY);
+    if(c){const{ts,d}=JSON.parse(c);if(Date.now()-ts<TTL){Object.assign(TOKEN_CONTRACTS,d);return;}}
+  }catch{}
+  // Fetch from Ledger's open-source ledger-live repo (same data that drives Ledger Live)
+  const BASE='https://raw.githubusercontent.com/LedgerHQ/ledger-live/develop/libs/ledgerjs/packages/cryptoassets/src/data';
+  const fresh={};
+  await Promise.allSettled(Object.entries(EVM_CHAIN_IDS).map(async([chain,cid])=>{
+    try{
+      const r=await fetch(`${BASE}/evm/${cid}/erc20.json`);
+      if(!r.ok)return;
+      const tokens=await r.json();
+      for(const t of tokens){
+        if(!Array.isArray(t))continue;
+        const slug=t[0];
+        // Contract address: find the 0x... field regardless of tuple position
+        const addr=t.find(f=>typeof f==='string'&&/^0x[0-9a-fA-F]{40}$/.test(f));
+        if(slug&&addr)fresh[`${chain}/erc20/${slug}`]=addr;
+      }
+    }catch{}
+  }));
+  Object.assign(TOKEN_CONTRACTS,fresh);
+  try{localStorage.setItem(KEY,JSON.stringify({ts:Date.now(),d:fresh}));}catch{}
+})();
 
 /* Error KB */
 const ERR_DB=[
@@ -351,7 +429,7 @@ const ERR_DB=[
   {m:'NetworkCongestionError',c:'server',s:'medium',t:'Network congestion',a:'Fees are elevated. Ask customer to retry later when congestion eases.',causes:['High blockchain network traffic','Gas price spike','Block space demand high']},
   {m:'SwapExchangeRateOutOfRange',c:'software',s:'medium',t:'Swap rate out of range',a:'Exchange rate shifted since quote. Ask customer to refresh the swap and retry.',causes:['Rate moved outside provider bounds','High market volatility','Quote expired']},
 ];
-const SEV={high:{l:'Critical',c:'#F57375',bg:'rgba(245,115,117,0.10)',bd:'rgba(245,115,117,0.3)'},medium:{l:'Warning',c:'#FFBD42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#677ce7',bg:'rgba(103,124,231,0.08)',bd:'rgba(103,124,231,0.25)'}};
+const SEV={high:{l:'Critical',c:'#F57375',bg:'rgba(245,115,117,0.10)',bd:'rgba(245,115,117,0.3)'},medium:{l:'Warning',c:'#FFBD42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#8A9EF5',bg:'rgba(138,158,245,0.08)',bd:'rgba(138,158,245,0.25)'}};
 const CAT={hardware:{l:'Hardware / Device',i:'🔌'},software:{l:'Software / Sync',i:'🔄'},server:{l:'Server / Network',i:'☁️'},unknown:{l:'Unknown',i:'❓'}};
 
 function diagnose(e,allErrors){
@@ -453,6 +531,17 @@ function extractDevice(entries){
       if(d.MEVProtectionActivated&&!info.mev)info.mev=d.MEVProtectionActivated;
     }
   }
+  // D-4: extract device model/firmware from Manager API URL path params if not yet found from data fields
+  if(!info.modelId||!info.fw){
+    for(const e of entries){
+      const msg=e.message||'';
+      if(!msg.includes('manager.api.live.ledger.com'))continue;
+      // URL pattern: /api/v2/apps/by-target?livecommonversion=...&target_id=...&firmware_version_name=...&device_type=nanoX
+      if(!info.fw){const m=msg.match(/[?&]firmware_version_name=([^&\s]+)/i);if(m)info.fw=decodeURIComponent(m[1]);}
+      if(!info.modelId){const m=msg.match(/[?&]device_type=([^&\s]+)/i);if(m){info.modelId=m[1];info.modelName=DN[m[1]]||m[1];}}
+      if(info.modelId&&info.fw)break;
+    }
+  }
   // exportLogsMeta: check e.env / e.data?.env
   const meta=entries.find(e=>e.message==='exportLogsMeta');
   if(meta){
@@ -531,6 +620,7 @@ function extractErrors(entries){
     if(e.error){isE=true;msg=e.error.message||JSON.stringify(e.error);}
     const ps=sGet(e,'payload.status','');
     if(ps?.includes('ERROR')){isE=true;msg+=(msg?' | ':'')+(sGet(e,'payload.error','')||ps);}
+    if(e.level==='error'||e.type==='error'){isE=true;if(!msg)msg=e.message||'';}
     if(e.message&&e.type!=='analytics'){
       const ml=e.message.toLowerCase();
       if(ml.includes('rejected')||ml.includes('failed')||ml.includes('error')){isE=true;if(!msg)msg=e.message;}
@@ -627,8 +717,8 @@ function extractActivity(entries){
   let managerOpened=false,swapBrowsed=false,swapExecuted=false,deviceScan=false;
   for(const e of entries){
     const mlo=(e.message||'').toLowerCase();
-    if(mlo.includes('manager.api.live.ledger.com/api/apps'))managerOpened=true;
-    if(mlo.includes('swap.ledger.com')&&!mlo.includes('/v5/currencies')){
+    if(mlo.includes('manager.api.live.ledger.com/api'))managerOpened=true;
+    if(mlo.includes('swap.ledger.com')){
       swapBrowsed=true;
       if((mlo.startsWith('post ')||mlo.includes('/v5/swap')||mlo.includes('/v5/exchange'))&&mlo.includes('swap.ledger.com'))swapExecuted=true;
     }
@@ -870,7 +960,7 @@ function XpubView({xpub,coin,dm}){
         ?<button onClick={doScan} disabled={!libReady} style={{padding:'10px 20px',borderRadius:8,border:'none',background:net.color,color:'#fff',fontWeight:700,fontSize:13,cursor:!libReady?'not-allowed':'pointer',opacity:!libReady?0.6:1,display:'flex',alignItems:'center',gap:6}}>
           <Ico.Scan/>{!libReady?'Loading libraries...':'Derive & Scan Addresses'}
         </button>
-        :<button onClick={doStop} style={{padding:'10px 20px',borderRadius:8,border:'1px solid rgba(245,115,117,0.4)',background:'rgba(245,115,117,0.1)',color:T.error,fontWeight:700,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+        :<button aria-label="Stop address scan" onClick={doStop} style={{padding:'10px 20px',borderRadius:8,border:'1px solid rgba(245,115,117,0.4)',background:'rgba(245,115,117,0.1)',color:T.error,fontWeight:700,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
           <Ico.X/> Stop scan
         </button>
       }
@@ -906,7 +996,7 @@ function XpubView({xpub,coin,dm}){
       {results.map(r=>
         <div key={`${r.chain}-${r.index}`} className="mono" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:`1px solid ${T.border}`}}>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={bdg(r.chain===0?'#677ce7':T.primary)}>{r.chain===0?'RX':'CH'}:{r.index}</span>
+            <span style={bdg(r.chain===0?'#8A9EF5':T.primary)}>{r.chain===0?'RX':'CH'}:{r.index}</span>
             <a href={net.addrUrl(r.address)} target="_blank" rel="noopener noreferrer" style={{color:T.primary,textDecoration:'none'}}>{r.address}</a>
             <CopyBtn text={r.address}/>
           </div>
@@ -929,17 +1019,20 @@ function AcctCard({acct}){
   const canX=acct.isXpub&&ch.xc;
   return <div style={{background:T.panel,border:`1px solid ${open?ch.color+'60':T.border}`,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65}}>
     <div role="button" tabIndex={0} onClick={()=>setOpen(!open)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setOpen(o=>!o);}}} style={{display:'flex',alignItems:'center',padding:'16px 20px',cursor:'pointer',gap:14}}>
-      <div className="mono" style={{width:42,height:42,borderRadius:10,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:13,color:ch.color,flexShrink:0}}>{ch.ticker.slice(0,4)}</div>
+      <div className="mono" style={{width:42,height:42,borderRadius:10,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:ch.color,flexShrink:0}}>{ch.ticker.slice(0,4)}</div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
           {acct.toks.length>0&&<span style={bdg(T.primary)}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
-          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg('#565656')}>empty</span>}
+          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>empty</span>}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
+          {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
         </div>
         <div className="mono" style={{color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
       </div>
       <div style={{display:'flex',alignItems:'center',gap:8}}>
+        {hasExp&&!acct.isXpub&&<a href={eUrl} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()} aria-label={`View ${ch.name} on explorer`} style={{color:T.muted,display:'inline-flex',alignItems:'center',padding:4,borderRadius:4,opacity:0.6}} title="View on explorer"><Ico.Link/></a>}
+
         {acct.dm&&<span className="mono label" style={{color:T.muted,background:'rgba(255,255,255,0.04)',padding:'3px 8px',borderRadius:4,textTransform:'none',letterSpacing:'normal'}}>{acct.dm}</span>}
         <span style={{color:T.muted,transform:open?'rotate(90deg)':'none',transition:'transform 0.2s',display:'inline-block'}}><Ico.ChevR/></span>
       </div>
@@ -967,20 +1060,30 @@ function AcctCard({acct}){
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
           {[{l:'Derivation',v:acct.dm||'default'},{l:'Address Path',v:acct.fp||'—'},{l:'Operations',v:String(acct.ops)},{l:'Sync',v:acct.dur?acct.dur.toFixed(2)+'s':'—'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono">{x.v}</div></div>)}
         </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
+          {[{l:'Balance',v:acct.bal!=null?Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log — see explorer)'},{l:'Spendable Balance',v:acct.spendBal!=null?Number(acct.spendBal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log)'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono" style={{color:acct.bal!=null?T.success:T.muted}}>{x.v}</div></div>)}
+        </div>
         <div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,wordBreak:'break-all'}}><span className="mono" style={{color:T.muted}}>{acct.id}</span><CopyBtn text={acct.id}/></div></div>
         {acct.toks.length>0&&<div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:6}}>Tokens</div><div style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
           const lb=tk.tokenTicker||tk.tokenId||'token';
           const turl=(()=>{
-            const tid=tk.tokenId||'';const pts=tid.split('/');if(pts.length<3)return null;
-            const[tch,,con]=pts;
-            const isEvmCon=/^0x[0-9a-f]{40}$/i.test(con);
-            if(tch==='ethereum'&&isEvmCon)return`https://etherscan.io/token/${con}?a=${acct.addr}`;
-            if(tch==='arbitrum'&&isEvmCon)return`https://arbiscan.io/token/${con}?a=${acct.addr}`;
-            if(tch==='polygon'&&isEvmCon)return`https://polygonscan.com/token/${con}?a=${acct.addr}`;
-            if(tch==='bsc'&&isEvmCon)return`https://bscscan.com/token/${con}?a=${acct.addr}`;
-            if(tch==='tron')return`https://tronscan.org/#/token20/${con}`;
-            if(tch==='stacks')return`https://explorer.hiro.so/token/${con}?chain=mainnet`;
-            if(tch==='cardano')return`https://cexplorer.io/asset/${con}`;
+            const tid=tk.tokenId||'';
+            const pts=tid.split('/');if(pts.length<3)return null;
+            const tch=pts[0],tslug=pts.slice(2).join('/');
+            // Already a contract address (EVM 0x... or Tron T...)
+            const isEvmAddr=/^0x[0-9a-f]{40}$/i.test(tslug);
+            const isTronAddr=/^T[A-Za-z0-9]{33}$/.test(tslug);
+            // Resolve: direct address > TOKEN_CONTRACTS cache
+            const resolved=isEvmAddr?tslug:(TOKEN_CONTRACTS[tid]||null);
+            // Build URL from resolved contract address
+            if(resolved&&TOKEN_URLS[tch])return TOKEN_URLS[tch](resolved,acct.addr);
+            // Tron: use slug directly if it looks like an address, else tronscan search
+            if(tch==='tron')return isTronAddr?TOKEN_URLS.tron(tslug):`https://tronscan.org/#/token20/${tslug}`;
+            // Stacks & Cardano: pass slug directly to their explorers
+            if(tch==='stacks')return TOKEN_URLS.stacks(tslug);
+            if(tch==='cardano')return TOKEN_URLS.cardano(tslug);
+            // Search fallback: opens block explorer search so agent can find the token
+            if(TOKEN_SEARCH[tch])return TOKEN_SEARCH[tch](tslug.replace(/__/g,' ').replace(/_/g,' '));
             return null;
           })();
           const inner=<>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></>;
@@ -1002,6 +1105,7 @@ const TABS=['Overview','Timeline','Accounts','Errors','Network'];
 function App(){
   const[logData,setLogData]=useState(null);
   const[fileName,setFileName]=useState('');
+  const[loadErr,setLoadErr]=useState('');
   const[tab,setTab]=useState('Overview');
   const[searchTerm,setSearchTerm]=useState('');
   const[typeFilter,setTypeFilter]=useState('all');
@@ -1026,15 +1130,17 @@ function App(){
     reader.onload=ev=>{
       try{
         const entries=parseLogs(ev.target.result);
+        if(!entries||entries.length===0){setLoadErr('No log entries found. Make sure this is a valid Ledger Live log export (.json or .txt).');setFileName('');return;}
         const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
         const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
+        setLoadErr('');
         setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries)});
         setTab('Overview');setSearchTerm('');setTypeFilter('all');
-      }catch(e){console.error(e);}
+      }catch(e){console.error(e);setLoadErr('Failed to parse file: '+(e.message||String(e))+'. Make sure this is a valid Ledger Live log export.');setFileName('');}
     };reader.readAsText(file);
   },[]);
 
-  const clearLog=()=>{setLogData(null);setFileName('');setTab('Overview');};
+  const clearLog=()=>{setLogData(null);setFileName('');setLoadErr('');setTab('Overview');};
   const openPicker=()=>fileRef.current?.click();
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
   const jumpTo=li=>{setTab('Timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
@@ -1073,16 +1179,18 @@ function App(){
           <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
           <span style={{color:T.muted,marginLeft:4}}>{logData.entries.length} entries · {logData.accts.length} accounts · {logData.errs.length} issue{logData.errs.length!==1?'s':''}</span>
         </div>
-        <button onClick={openPicker} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
-        <button onClick={clearLog} style={{padding:'6px 12px',borderRadius:6,border:'1px solid rgba(245,115,117,0.3)',background:'rgba(245,115,117,0.08)',color:T.error,fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.X/> Close</button>
+        <button aria-label="Load a new log file" onClick={openPicker} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
+        <button aria-label="Close current log" onClick={clearLog} style={{padding:'6px 12px',borderRadius:6,border:'1px solid rgba(245,115,117,0.3)',background:'rgba(245,115,117,0.08)',color:T.error,fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.X/> Close</button>
       </div>}
     </div>
     <input ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
     {/* Main */}
     <div style={{padding:24,overflowY:'auto',maxHeight:'calc(100vh - 52px)'}}>
+      {/* Error state for failed file loads */}
+      {loadErr&&!logData&&<div style={{background:'rgba(245,115,117,0.08)',border:'1px solid rgba(245,115,117,0.3)',borderRadius:8,padding:'12px 16px',marginBottom:16,fontSize:13,color:T.error,display:'flex',alignItems:'center',gap:10}}><Ico.Alert/>{loadErr}</div>}
       {/* Drop zone — HUD scanning zone */}
-      {!logData&&<div onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{position:'relative',background:dragOver?T.primary+'08':T.panel,border:`1px solid ${dragOver?T.primary:T.border}`,borderRadius:4,padding:80,textAlign:'center',cursor:'pointer',overflow:'hidden',transition:'border-color 0.2s,background 0.2s'}}>
+      {!logData&&<div role="button" tabIndex={0} aria-label="Drop a log file or click to browse" onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openPicker();}}} onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{position:'relative',background:dragOver?T.primary+'08':T.panel,border:`1px solid ${dragOver?T.primary:T.border}`,borderRadius:4,padding:80,textAlign:'center',cursor:'pointer',overflow:'hidden',transition:'border-color 0.2s,background 0.2s'}}>
         {/* Corner bracket accents — large 16px */}
         <span style={{position:'absolute',top:12,left:12,width:16,height:16,borderTop:`1px solid ${dragOver?T.primary:T.border}`,borderLeft:`1px solid ${dragOver?T.primary:T.border}`,pointerEvents:'none'}}/>
         <span style={{position:'absolute',top:12,right:12,width:16,height:16,borderTop:`1px solid ${dragOver?T.primary:T.border}`,borderRight:`1px solid ${dragOver?T.primary:T.border}`,pointerEvents:'none'}}/>
@@ -1138,12 +1246,15 @@ function App(){
                 '',
                 `APDU exchanges: ${logData.apdu?.length||0}`,
                 `Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
+                '',
+                'SESSION ACTIVITY',
+                ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
                 '=================================',
               ].filter(l=>l!==undefined).join('\n');
               copyText(lines);
               setSumCopied(true);
               setTimeout(()=>setSumCopied(false),2000);
-            }} className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer'}}>
+            }} aria-label="Copy diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer'}}>
               {sumCopied?'Copied!':'Copy Summary'}
             </button>
           </div>
@@ -1229,7 +1340,7 @@ function App(){
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <div style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</div>
-            <button onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
+            <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
           </div>
           <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'65vh',overflowY:'auto'}}>
             <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
@@ -1311,7 +1422,7 @@ function App(){
           return <div>
             {/* Severity summary bar */}
             {enrichedErrs.length>0&&<div style={{display:'flex',gap:16,marginBottom:16,padding:'12px 16px',background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,flexWrap:'wrap'}}>
-              {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#677ce7'}].map(item=>(
+              {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].map(item=>(
                 <div key={item.label} style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
                   <span style={{width:8,height:8,borderRadius:'50%',background:item.color,display:'inline-block',flexShrink:0}}></span>
                   <span className="mono" style={{fontWeight:700,color:item.color}}>{item.count}</span>
@@ -1358,14 +1469,21 @@ function App(){
           <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
             {netEntries.length===0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>None</div>}
             {netEntries.slice(0,500).map(e=>{
-              const method=sGet(e,'data.method','GET');
+              // Support both new format (data.method + message=url) and old format ("get https://..." in message)
+              let method=sGet(e,'data.method','');
+              let url=e.message||'';
+              if(!method){
+                const m=url.match(/^(get|post|put|patch|delete|head)\s+(https?:\/\/\S+)/i);
+                if(m){method=m[1].toUpperCase();url=m[2];}
+                else method='GET';
+              }
               const body=sGet(e,'data.body','');
               let parsed=null;if(body){try{parsed=JSON.parse(body);}catch{}}
-              const url=e.message||'';const isUrl=url.startsWith('https://');
+              const isUrl=url.startsWith('https://');
               return <div key={e.logIndex} style={{padding:'10px 14px',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={bdg('#677ce7')}>{method}</span>
+                    <span style={bdg('#8A9EF5')}>{method}</span>
                     {isUrl?<a href={url} target="_blank" rel="noopener noreferrer" className="mono" style={{color:T.primary,textDecoration:'none'}}>{url}</a>:<span className="mono">{url}</span>}
                   </div>
                   <span className="mono" style={{color:T.muted,fontSize:10}}>{fmtTime(e.timestamp)}</span>
@@ -1398,7 +1516,7 @@ function App(){
           return <div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
               <span style={{fontSize:12,color:T.muted}}>{logData.apdu.length} APDU exchanges</span>
-              <button onClick={()=>{
+              <button aria-label="Copy APDU exchanges to clipboard" onClick={()=>{
                 copyText(logData.apdu.map(a=>[a.dir.toUpperCase(),fmtTime(a.ts),a.hex||''].join('\t')).join('\n'));
                 setApduExportCopied(true);
                 setTimeout(()=>setApduExportCopied(false),2000);
@@ -1411,7 +1529,7 @@ function App(){
                 const status=decodeApduStatus(a.hex,a.dir);
                 const claLabel=a.dir==='in'&&a.hex?`CLA:${a.hex.replace(/\s/g,'').slice(0,2).toUpperCase()}`:null;
                 return <div key={i} className="mono" style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',borderBottom:`1px solid ${T.border}`}}>
-                  <span style={bdg(a.dir==='in'?'#677ce7':T.success)}>{a.dir==='in'?'→ IN':'← OUT'}</span>
+                  <span style={bdg(a.dir==='in'?'#8A9EF5':T.success)}>{a.dir==='in'?'→ IN':'← OUT'}</span>
                   <span style={{color:T.muted,fontSize:10,flexShrink:0}}>{fmtTime(a.ts)}</span>
                   <span style={{width:100,flexShrink:0,fontWeight:600,fontSize:11,color:status?status.color:T.muted}}>
                     {status?status.label:claLabel||'—'}
