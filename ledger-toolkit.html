@@ -308,32 +308,45 @@ const TOKEN_SEARCH={
   fantom:s=>`https://ftmscan.com/search?f=1&q=${encodeURIComponent(s)}`,
   avalanche_c_chain:s=>`https://snowtrace.io/search?f=1&q=${encodeURIComponent(s)}`,
 };
-(async()=>{
-  const KEY='ldt_tkc_v1',TTL=86400000; // 24h cache
+const TOKEN_CHAINS_FETCHED=new Set();
+// Restore token contracts from localStorage cache (sync, no network fetch on load)
+(()=>{
+  const KEY='ldt_tkc_v1',TTL=86400000;
   try{
     const c=localStorage.getItem(KEY);
-    if(c){const{ts,d}=JSON.parse(c);if(Date.now()-ts<TTL){Object.assign(TOKEN_CONTRACTS,d);return;}}
+    if(c){const{ts,d}=JSON.parse(c);if(Date.now()-ts<TTL){Object.assign(TOKEN_CONTRACTS,d);Object.keys(d).forEach(k=>TOKEN_CHAINS_FETCHED.add(k.split('/')[0]));}}
   }catch{}
-  // Fetch from Ledger's open-source ledger-live repo (same data that drives Ledger Live)
+})();
+// Fetch token data for specific chains on demand (called when an account card is expanded)
+async function fetchTokenChains(chains){
   const BASE='https://raw.githubusercontent.com/LedgerHQ/ledger-live/develop/libs/ledgerjs/packages/cryptoassets/src/data';
+  const toFetch=chains.filter(ch=>EVM_CHAIN_IDS[ch]&&!TOKEN_CHAINS_FETCHED.has(ch));
+  if(!toFetch.length)return false;
+  toFetch.forEach(ch=>TOKEN_CHAINS_FETCHED.add(ch));
   const fresh={};
-  await Promise.allSettled(Object.entries(EVM_CHAIN_IDS).map(async([chain,cid])=>{
+  await Promise.allSettled(toFetch.map(async chain=>{
     try{
-      const r=await fetch(`${BASE}/evm/${cid}/erc20.json`);
+      const r=await fetch(`${BASE}/evm/${EVM_CHAIN_IDS[chain]}/erc20.json`);
       if(!r.ok)return;
       const tokens=await r.json();
       for(const t of tokens){
         if(!Array.isArray(t))continue;
         const slug=t[0];
-        // Contract address: find the 0x... field regardless of tuple position
         const addr=t.find(f=>typeof f==='string'&&/^0x[0-9a-fA-F]{40}$/.test(f));
         if(slug&&addr)fresh[`${chain}/erc20/${slug}`]=addr;
       }
     }catch{}
   }));
+  if(!Object.keys(fresh).length)return false;
   Object.assign(TOKEN_CONTRACTS,fresh);
-  try{localStorage.setItem(KEY,JSON.stringify({ts:Date.now(),d:fresh}));}catch{}
-})();
+  try{
+    const KEY='ldt_tkc_v1';
+    const existing={};try{const c=localStorage.getItem(KEY);if(c){const{d}=JSON.parse(c);Object.assign(existing,d);}}catch{}
+    Object.assign(existing,fresh);
+    localStorage.setItem(KEY,JSON.stringify({ts:Date.now(),d:existing}));
+  }catch{}
+  return true;
+}
 
 /* Error KB */
 const ERR_DB=[
@@ -342,13 +355,13 @@ const ERR_DB=[
   {m:'ManagerDeviceLockedError',c:'hardware',s:'medium',t:'Device is locked',a:'Ask customer to enter PIN.',causes:['Auto-lock timeout','User stepped away','PIN not entered after connection','Inactivity during long operation']},
   {m:'CantOpenDevice',c:'hardware',s:'high',t:'Cannot connect to device',a:'Close other apps and retry.',causes:['Another app using device','Missing USB drivers','Insufficient permissions']},
   {m:'GenuineCheckFailed',c:'hardware',s:'high',t:'Genuine check failed',a:'Retry. If persistent, escalate.',causes:['Firmware mismatch','Modified firmware','Connection interrupted during check'],u:'https://support.ledger.com/article/360003117594-zd'},
-  {m:'SyncError',c:'software',s:'medium',t:'Account sync failed',a:'Wait and retry.',causes:['API rate limit','Network timeout','Corrupted account cache']},
+  {m:'SyncError',c:'software',s:'medium',t:'Account sync failed',a:'Wait and retry.',causes:['API rate limit','Network timeout','Corrupted account cache'],w:1},
   {m:'failed to fetch nominations',c:'software',s:'low',t:'Staking info unavailable',a:'No action needed.',causes:['Validator node API unreachable','Chain RPC timeout','No nominations set for this account']},
   {m:'LedgerAPI4xx',c:'software',s:'low',t:'Price data unavailable',a:'Expected for newer tokens.',causes:['Token not yet indexed by Ledger','Unsupported asset','API endpoint deprecated']},
   {m:'Failed to fetch daily history',c:'software',s:'low',t:'Price data unavailable',a:'Balance correct.'},
   {m:'Failed to fetch hourly history',c:'software',s:'low',t:'Chart data unavailable',a:'No action needed.'},
   {m:'pushDevices',c:'server',s:'low',t:'Push notifications skipped',a:'No action needed.'},
-  {m:'FETCH_ERROR',c:'server',s:'low',t:'Background request failed',a:'Safe to ignore.'},
+  {m:'FETCH_ERROR',c:'server',s:'low',t:'Background request failed',a:'Safe to ignore.',w:1},
   {m:'TypeError: Failed to fetch',c:'server',s:'low',t:'Background request failed',a:'Check connectivity.'},
   // Hardware errors
   {m:'PairingNotFound',c:'hardware',s:'high',t:'Bluetooth pairing lost',a:'Re-pair device via Ledger Live settings.',causes:['Bluetooth cache cleared','OS pairing removed','Device reset']},
@@ -372,12 +385,12 @@ const ERR_DB=[
   {m:'getAccountBridgeT0',c:'software',s:'low',t:'Bridge init error',a:'Reload Ledger Live.',causes:['App state corruption','Stale bridge connection']},
   {m:'deserializeTransaction',c:'software',s:'medium',t:'Transaction deserialization failed',a:'Log data may be corrupted. Try re-syncing.',causes:['Corrupted local cache','Schema mismatch after update','Incomplete transaction data']},
   // Server / network errors
-  {m:'403',c:'server',s:'medium',t:'API access denied (403)',a:'May be rate-limited or geo-blocked. Try VPN off.',causes:['Geo-restriction','API key expired','Rate limit reached']},
-  {m:'429',c:'server',s:'low',t:'API rate limited (429)',a:'Too many requests. Will retry automatically.',causes:['Too many sync requests','Multiple accounts syncing','Background refresh frequency']},
-  {m:'503',c:'server',s:'medium',t:'Service unavailable (503)',a:'Ledger service is down. Check status.ledger.com.',causes:['Ledger backend maintenance','Service overload','Deployment in progress']},
+  {m:'403',c:'server',s:'medium',t:'API access denied (403)',a:'May be rate-limited or geo-blocked. Try VPN off.',causes:['Geo-restriction','API key expired','Rate limit reached'],w:1},
+  {m:'429',c:'server',s:'low',t:'API rate limited (429)',a:'Too many requests. Will retry automatically.',causes:['Too many sync requests','Multiple accounts syncing','Background refresh frequency'],w:1},
+  {m:'503',c:'server',s:'medium',t:'Service unavailable (503)',a:'Ledger service is down. Check status.ledger.com.',causes:['Ledger backend maintenance','Service overload','Deployment in progress'],w:1},
   {m:'ECONNREFUSED',c:'server',s:'medium',t:'Connection refused',a:'Local service not running or blocked by firewall.',causes:['Local proxy not running','Firewall blocking port','Service crashed']},
-  {m:'certificate',c:'server',s:'high',t:'TLS/certificate error',a:'Check system clock. Antivirus may be intercepting traffic.',causes:['System clock wrong','Antivirus SSL inspection','Corporate proxy MITM','Expired certificate']},
-  {m:'walletconnect',c:'software',s:'low',t:'WalletConnect session issue',a:'Re-connect WalletConnect session.',causes:['Session expired','dApp disconnected','WalletConnect relay down']},
+  {m:'certificate',c:'server',s:'high',t:'TLS/certificate error',a:'Check system clock. Antivirus may be intercepting traffic.',causes:['System clock wrong','Antivirus SSL inspection','Corporate proxy MITM','Expired certificate'],w:1},
+  {m:'walletconnect',c:'software',s:'low',t:'WalletConnect session issue',a:'Re-connect WalletConnect session.',causes:['Session expired','dApp disconnected','WalletConnect relay down'],w:1},
   // Bluetooth errors
   {m:'BluetoothRequired',c:'hardware',s:'high',t:'Bluetooth required',a:'Enable Bluetooth on your device and grant Ledger Live Bluetooth permission.',causes:['Bluetooth disabled on host device','OS Bluetooth permission not granted','Ledger Live Bluetooth access revoked']},
   {m:'BleError',c:'hardware',s:'high',t:'Bluetooth communication error',a:'Toggle Bluetooth off/on, re-pair the device, and retry.',causes:['Bluetooth signal interference','OS BLE stack crash','Device out of range','Stale BLE connection not cleaned up']},
@@ -395,21 +408,21 @@ const ERR_DB=[
   {m:'AppAlreadyInstalled',c:'software',s:'medium',t:'App already installed',a:'Uninstall the existing app first, then reinstall if needed.',causes:['Duplicate install attempt','Partial install left stale entry','Firmware update did not clean app list']},
   // APDU status codes (hex)
   {m:'0x6985',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.'},
-  {m:'27013',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.'},
+  {m:'27013',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.',w:1},
   {m:'0x6982',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met']},
-  {m:'27010',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met']},
+  {m:'27010',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met'],w:1},
   {m:'0x6a82',c:'hardware',s:'medium',t:'App not open / file not found on device',a:'Open the required coin app on the device before retrying.',causes:['App not installed','Wrong app open','App crashed']},
-  {m:'27266',c:'hardware',s:'medium',t:'App not open / file not found on device',a:'Open the required coin app on the device before retrying.',causes:['App not installed','Wrong app open','App crashed']},
+  {m:'27266',c:'hardware',s:'medium',t:'App not open / file not found on device',a:'Open the required coin app on the device before retrying.',causes:['App not installed','Wrong app open','App crashed'],w:1},
   {m:'0x6700',c:'hardware',s:'medium',t:'Wrong data length sent to device',a:'Retry. If persistent, update the app and Ledger Live.',causes:['Malformed APDU command','App version mismatch','Ledger Live bug']},
-  {m:'26368',c:'hardware',s:'medium',t:'Wrong data length sent to device',a:'Retry. If persistent, update the app and Ledger Live.',causes:['Malformed APDU command','App version mismatch','Ledger Live bug']},
+  {m:'26368',c:'hardware',s:'medium',t:'Wrong data length sent to device',a:'Retry. If persistent, update the app and Ledger Live.',causes:['Malformed APDU command','App version mismatch','Ledger Live bug'],w:1},
   {m:'0x6d00',c:'software',s:'medium',t:'Invalid instruction sent to device',a:'Update the coin app and Ledger Live to latest versions.',causes:['Outdated app on device','Unsupported instruction for app version','Ledger Live / app version mismatch']},
-  {m:'27904',c:'software',s:'medium',t:'Invalid instruction sent to device',a:'Update the coin app and Ledger Live to latest versions.',causes:['Outdated app on device','Unsupported instruction for app version','Ledger Live / app version mismatch']},
+  {m:'27904',c:'software',s:'medium',t:'Invalid instruction sent to device',a:'Update the coin app and Ledger Live to latest versions.',causes:['Outdated app on device','Unsupported instruction for app version','Ledger Live / app version mismatch'],w:1},
   {m:'0x6e00',c:'hardware',s:'medium',t:'CLA not supported / wrong app open',a:'Ensure the correct coin app is open on the device.',causes:['Wrong app open','App does not support this command class','Firmware too old']},
-  {m:'28160',c:'hardware',s:'medium',t:'CLA not supported / wrong app open',a:'Ensure the correct coin app is open on the device.',causes:['Wrong app open','App does not support this command class','Firmware too old']},
+  {m:'28160',c:'hardware',s:'medium',t:'CLA not supported / wrong app open',a:'Ensure the correct coin app is open on the device.',causes:['Wrong app open','App does not support this command class','Firmware too old'],w:1},
   {m:'0x6f00',c:'hardware',s:'high',t:'Technical problem on device',a:'Restart device. If persistent, reinstall app or update firmware.',causes:['Internal device error','Corrupted app state','Firmware issue']},
-  {m:'28416',c:'hardware',s:'high',t:'Technical problem on device',a:'Restart device. If persistent, reinstall app or update firmware.',causes:['Internal device error','Corrupted app state','Firmware issue']},
+  {m:'28416',c:'hardware',s:'high',t:'Technical problem on device',a:'Restart device. If persistent, reinstall app or update firmware.',causes:['Internal device error','Corrupted app state','Firmware issue'],w:1},
   {m:'0x5515',c:'hardware',s:'medium',t:'Device locked during operation',a:'Unlock device and retry the operation.',causes:['Auto-lock triggered mid-operation','Inactivity timeout','PIN required']},
-  {m:'21781',c:'hardware',s:'medium',t:'Device locked during operation',a:'Unlock device and retry the operation.',causes:['Auto-lock triggered mid-operation','Inactivity timeout','PIN required']},
+  {m:'21781',c:'hardware',s:'medium',t:'Device locked during operation',a:'Unlock device and retry the operation.',causes:['Auto-lock triggered mid-operation','Inactivity timeout','PIN required'],w:1},
   // Missing error class entries
   {m:'DeviceSoldNotActivated',c:'hardware',s:'high',t:'Device not onboarded',a:'Ask customer to complete the device setup (onboarding) process before use.',causes:['New device never configured','Factory-reset device not re-onboarded']},
   {m:'HardResetDeviceError',c:'hardware',s:'high',t:'Device requires reset',a:'Escalate to Tier 2. Device may be bricked. Do not attempt self-repair.',causes:['Critical firmware failure','Hardware fault','Unrecoverable software state']},
@@ -436,7 +449,7 @@ function diagnose(e,allErrors){
   const parts=[(e.message||''),sGet(e,'error.message',''),sGet(e,'payload.error',''),sGet(e,'payload.status','')].filter(Boolean);
   const h=parts.join(' | ')+' '+sGet(e,'queryArg.endpointName','');
   const SEV_RANK={high:3,medium:2,low:1};
-  const matches=ERR_DB.filter(r=>h.includes(r.m));
+  const matches=ERR_DB.filter(r=>{if(r.w){const re=new RegExp('(?:^|[\\s|/=:;,\'\".\\[\\(])'+r.m.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:$|[\\s|/=:;,\'\".\\]\\)])');return re.test(h);}return h.includes(r.m);});
   let result;
   if(matches.length>0){
     const best=matches.reduce((a,b)=>{
@@ -668,15 +681,15 @@ function logQualityScore(entries,dev,accts,errs){
   let score=0;
   // Device model found: 15pts
   const hasModel=!!(dev.modelId||dev.modelName);
-  details.push({field:'Device model',found:hasModel,note:hasModel?dev.modelName:'Not found in logs'});
+  details.push({field:'Device model',found:hasModel,note:hasModel?'Present':'Not found in logs'});
   if(hasModel)score+=15;
   // Firmware version found: 10pts
   const hasFw=!!dev.fw;
-  details.push({field:'Firmware version',found:hasFw,note:hasFw?dev.fw:'Not found'});
+  details.push({field:'Firmware version',found:hasFw,note:hasFw?'Present':'Not found'});
   if(hasFw)score+=10;
   // App version found: 10pts
   const hasApp=!!dev.appVer;
-  details.push({field:'App version',found:hasApp,note:hasApp?dev.appVer:'Not found'});
+  details.push({field:'App version',found:hasApp,note:hasApp?'Present':'Not found'});
   if(hasApp)score+=10;
   // At least 1 account with ops>0: 20pts
   const hasActiveAcct=accts.some(a=>a.ops>0);
@@ -1013,6 +1026,13 @@ function XpubView({xpub,coin,dm}){
 /* Account Card */
 function AcctCard({acct}){
   const[open,setOpen]=useState(false);
+  const[tokV,setTokV]=useState(0);
+  useEffect(()=>{
+    if(!open||!acct.toks.length)return;
+    const chains=[...new Set(acct.toks.map(tk=>(tk.tokenId||'').split('/')[0]).filter(ch=>EVM_CHAIN_IDS[ch]))];
+    if(!chains.some(ch=>!TOKEN_CHAINS_FETCHED.has(ch)))return;
+    fetchTokenChains(chains).then(hadNew=>{if(hadNew)setTokV(v=>v+1);});
+  },[open]);
   const ch=acct.ch,hasFunds=acct.ops>0;
   let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
   const hasExp=eUrl&&eUrl!=='#';
@@ -1064,7 +1084,7 @@ function AcctCard({acct}){
           {[{l:'Balance',v:acct.bal!=null?Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log — see explorer)'},{l:'Spendable Balance',v:acct.spendBal!=null?Number(acct.spendBal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log)'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono" style={{color:acct.bal!=null?T.success:T.muted}}>{x.v}</div></div>)}
         </div>
         <div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,wordBreak:'break-all'}}><span className="mono" style={{color:T.muted}}>{acct.id}</span><CopyBtn text={acct.id}/></div></div>
-        {acct.toks.length>0&&<div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:6}}>Tokens</div><div style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
+        {acct.toks.length>0&&<div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:6}}>Tokens</div><div data-tv={tokV} style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
           const lb=tk.tokenTicker||tk.tokenId||'token';
           const turl=(()=>{
             const tid=tk.tokenId||'';
@@ -1115,6 +1135,7 @@ function App(){
   const[hoveredTab,setHoveredTab]=useState(null);
   const[qualityOpen,setQualityOpen]=useState(false);
   const[sumCopied,setSumCopied]=useState(false);
+  const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
   const fileRef=useRef();
 
@@ -1217,7 +1238,7 @@ function App(){
 
         {/* Overview */}
         {tab==='Overview'&&<div>
-          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+          <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}>
             <button onClick={()=>{
               const d=logData.dev;
               const accts=logData.accts;
@@ -1257,6 +1278,43 @@ function App(){
             }} aria-label="Copy diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer'}}>
               {sumCopied?'Copied!':'Copy Summary'}
             </button>
+            <button onClick={()=>{
+              const d=logData.dev;
+              const accts=logData.accts;
+              const errs=logData.errs;
+              const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
+              const lines=[
+                '=== Ledger Diagnostic Summary (Full) ===',
+                `File:        ${fileName}`,
+                `Session:     ${ses}`,
+                '',
+                'DEVICE',
+                `  Model:      ${d.modelName||d.modelId||'Unknown'}`,
+                `  Firmware:   ${d.fw||'Unknown'}`,
+                `  App ver:    ${d.appVer||'Unknown'}`,
+                `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
+                `  Platform:   ${d.platform||'Unknown'}`,
+                `  User ID:    ${d.userId||'Unknown'}`,
+                '',
+                `ACCOUNTS (${accts.length})`,
+                ...accts.map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}),
+                '',
+                `ERRORS (${errs.length})`,
+                ...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`),
+                '',
+                `APDU exchanges: ${logData.apdu?.length||0}`,
+                `Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
+                '',
+                'SESSION ACTIVITY',
+                ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
+                '=================================',
+              ].filter(l=>l!==undefined).join('\n');
+              copyText(lines);
+              setFullCopied(true);
+              setTimeout(()=>setFullCopied(false),2000);
+            }} aria-label="Copy full diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'0F',color:T.primary,border:`1px solid ${T.primary}33`,cursor:'pointer',opacity:0.75}}>
+              {fullCopied?'Copied!':'Copy Full'}
+            </button>
           </div>
           <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:12}}>
             {[{l:'Entries',v:logData.entries.length,c:T.primary},{l:'Accounts',v:logData.accts.length,c:T.success},{l:'Operations',v:logData.dev.totalOps||'—',c:T.primary},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted}].map(s=><div key={s.l} className="card-bracketed" style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:4,padding:16,textAlign:'center'}}><span className="card-bracket-b"/><div className="stat-value" style={{color:s.c}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4,lineHeight:1.4}}>{s.l}</div></div>)}
@@ -1274,7 +1332,7 @@ function App(){
           })()}
           <div className="ov-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
-              {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>No device connected during this session — model and firmware not available.</div>}
+              {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified in this log.':'No device connected during this session — model and firmware not available.'}</div>}
               {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['App',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}</span></div>)}
             </div>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:16}}>Environment</div>
