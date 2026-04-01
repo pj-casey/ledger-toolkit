@@ -109,6 +109,12 @@ button:active{transform:scale(0.98);}
 .cv-tx-row:last-child{border-bottom:none;}
 .cv-tx-type{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;min-width:32px;text-align:center;flex-shrink:0;}
 .cv-bal-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;}
+/* ── JSON Tree ── */
+.jt-row{display:flex;align-items:baseline;gap:4px;padding:1px 12px;font-size:12px;transition:background 100ms ease;min-height:22px;white-space:nowrap;}
+.jt-row:hover{background:rgba(255,255,255,0.03);}
+.jt-arrow{font-size:8px;transition:transform 0.15s ease;}
+.jt-copy-path{margin-left:6px;cursor:pointer;font-size:10px;opacity:0.5;transition:opacity 100ms ease;}
+.jt-copy-path:hover{opacity:1;}
 </style>
 </head>
 <body>
@@ -1801,27 +1807,117 @@ function CustomerView({logData,appJson,onAppJson}){
 /* ═══ MAIN APP ═══ */
 const TABS=['Overview','Timeline','Accounts','Errors','Network'];
 
-function highlightJSON(text){
-  if(!text)return null;
-  let pretty=text;
-  try{const parsed=JSON.parse(text);pretty=JSON.stringify(parsed,null,2);}catch{}
-  const lines=pretty.split('\n');
-  const capped=lines.length>8000;
-  const displayLines=capped?lines.slice(0,8000):lines;
-  const highlighted=displayLines.map(line=>{
-    const html=line
-      .replace(/"([^"\\]*(\\.[^"\\]*)*)"\s*:/g,'<span style="color:#BBB0FF">"$1"</span>:')
-      .replace(/:\s*"([^"\\]*(\\.[^"\\]*)*)"/g,': <span style="color:#7AC26C">"$1"</span>')
-      .replace(/^\s*"([^"\\]*(\\.[^"\\]*)*)"\s*,?\s*$/gm,match=>{
-        if(match.includes('style='))return match;
-        return match.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g,'<span style="color:#7AC26C">"$1"</span>');
-      })
-      .replace(/:\s*(-?\d+\.?\d*([eE][+-]?\d+)?)\b/g,': <span style="color:#FFBD42">$1</span>')
-      .replace(/:\s*(true|false)\b/g,': <span style="color:#F57375">$1</span>')
-      .replace(/:\s*(null)\b/g,': <span style="color:#949494">$1</span>');
-    return html;
-  });
-  return{highlighted,capped,totalLines:lines.length};
+function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPath}){
+  const type=value===null?'null':Array.isArray(value)?'array':typeof value;
+  const isExpandable=type==='object'||type==='array';
+  const isExpanded=isExpandable&&expanded.has(path);
+  const entries=isExpandable?(type==='array'?value.map((v,i)=>[String(i),v]):Object.entries(value)):[];
+  const matchesSearch=searchTerm&&(
+    (keyName&&String(keyName).toLowerCase().includes(searchTerm))||
+    (!isExpandable&&String(value).toLowerCase().includes(searchTerm))
+  );
+  const renderValue=()=>{
+    if(value===null)return<span style={{color:T.muted,fontStyle:'italic'}}>null</span>;
+    if(type==='boolean')return<span style={{color:T.error}}>{String(value)}</span>;
+    if(type==='number')return<span style={{color:T.warning}}>{String(value)}</span>;
+    if(type==='string'){const display=value.length>120?value.slice(0,120)+'…':value;return<span style={{color:T.success}}>"{display}"</span>;}
+    return null;
+  };
+  const badge=isExpandable&&!isExpanded?<span style={{color:T.muted,fontSize:11,marginLeft:4}}>{type==='array'?`[${value.length} items]`:`{${Object.keys(value).length} keys}`}</span>:null;
+  const openBracket=isExpandable&&isExpanded?<span style={{color:T.muted}}>{type==='array'?'[':'{'}</span>:null;
+  const closeBracket=isExpandable&&isExpanded?<div style={{paddingLeft:depth>0?20:0}}><span style={{color:T.muted}}>{type==='array'?']':'}'}</span></div>:null;
+  const[hovered,setHovered]=useState(false);
+  return<div>
+    <div className="jt-row" style={{paddingLeft:depth*20,background:matchesSearch?'rgba(187,176,255,0.1)':'transparent'}} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}>
+      {isExpandable
+        ?<span className="jt-arrow" onClick={()=>onToggle(path)} style={{cursor:'pointer',userSelect:'none',color:T.muted,display:'inline-block',width:16,textAlign:'center',transition:'transform 0.15s',transform:isExpanded?'rotate(90deg)':'none'}}>▶</span>
+        :<span style={{display:'inline-block',width:16}}/>
+      }
+      {keyName!==null&&(()=>{const isIndex=/^\d+$/.test(keyName);return<><span style={{color:isIndex?T.muted:T.primary}}>{isIndex?keyName:`"${keyName}"`}</span><span style={{color:T.muted}}>: </span></>;})()}
+      {isExpandable?(isExpanded?openBracket:badge):renderValue()}
+      {hovered&&path&&<span className="jt-copy-path" onClick={e=>{e.stopPropagation();onCopyPath(path);}} title={`Copy path: ${path}`}>📋</span>}
+    </div>
+    {isExpanded&&(()=>{
+      const capped=entries.length>500;
+      const display=capped?entries.slice(0,500):entries;
+      return<>
+        {display.map(([k,v],i)=>(
+          <JTNode key={k+i} keyName={k} value={v}
+            path={type==='array'?`${path}[${k}]`:`${path}.${k}`}
+            depth={depth+1} expanded={expanded} onToggle={onToggle}
+            searchTerm={searchTerm} onCopyPath={onCopyPath}/>
+        ))}
+        {capped&&<div style={{paddingLeft:(depth+1)*20+16,color:T.muted,fontSize:11,fontStyle:'italic',padding:'4px 12px 4px '+(((depth+1)*20)+16)+'px'}}>… and {entries.length-500} more items</div>}
+      </>;
+    })()}
+    {closeBracket}
+  </div>;
+}
+
+function JTTree({data}){
+  const[expanded,setExpanded]=useState(()=>new Set());
+  const[search,setSearch]=useState('');
+  const[copiedPath,setCopiedPath]=useState('');
+  const searchLower=search.toLowerCase();
+  const toggle=useCallback(path=>{
+    setExpanded(prev=>{const next=new Set(prev);if(next.has(path))next.delete(path);else next.add(path);return next;});
+  },[]);
+  const expandToLevel=useCallback((maxDepth)=>{
+    const paths=new Set();
+    const walk=(val,path,depth)=>{
+      if(depth>=maxDepth)return;
+      if(val===null||typeof val!=='object')return;
+      paths.add(path);
+      if(Array.isArray(val)){val.forEach((v,i)=>walk(v,`${path}[${i}]`,depth+1));}
+      else{Object.entries(val).forEach(([k,v])=>walk(v,`${path}.${k}`,depth+1));}
+    };
+    walk(data,'$',0);
+    setExpanded(paths);
+  },[data]);
+  const collapseAll=useCallback(()=>setExpanded(new Set()),[]);
+  const expandAll=useCallback(()=>expandToLevel(20),[expandToLevel]);
+  const handleCopyPath=useCallback(path=>{
+    const clean=path.replace(/^\$\.?/,'').replace(/^\$/,'');
+    copyText(clean||'$');
+    setCopiedPath(path);
+    setTimeout(()=>setCopiedPath(''),1500);
+  },[]);
+  const matchCount=useMemo(()=>{
+    if(!searchLower)return 0;
+    let count=0;
+    const walk=(val,key)=>{
+      if(key&&String(key).toLowerCase().includes(searchLower))count++;
+      if(val===null||typeof val!=='object'){if(String(val).toLowerCase().includes(searchLower))count++;return;}
+      if(Array.isArray(val))val.forEach((v,i)=>walk(v,String(i)));
+      else Object.entries(val).forEach(([k,v])=>walk(v,k));
+    };
+    walk(data,null);
+    return count;
+  },[data,searchLower]);
+  return<div>
+    <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+      <div style={{position:'relative',flex:'1 1 200px',maxWidth:320}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search keys and values..." className="mono"
+          style={{width:'100%',padding:'8px 12px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,color:T.text,fontSize:12,boxSizing:'border-box'}}/>
+        {search&&<span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:10,color:matchCount>0?T.success:T.muted}}>{matchCount} match{matchCount!==1?'es':''}</span>}
+      </div>
+      <div style={{display:'flex',gap:4}}>
+        <button onClick={collapseAll} style={{padding:'6px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}}>Collapse</button>
+        <button onClick={()=>expandToLevel(1)} style={{padding:'6px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}}>Level 1</button>
+        <button onClick={()=>expandToLevel(2)} style={{padding:'6px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}}>Level 2</button>
+        <button onClick={()=>expandToLevel(3)} style={{padding:'6px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}}>Level 3</button>
+        <button onClick={expandAll} style={{padding:'6px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}}>All</button>
+      </div>
+      {copiedPath&&<span style={{fontSize:10,color:T.success,fontWeight:600}}>Path copied!</span>}
+    </div>
+    <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
+      <div style={{maxHeight:'75vh',overflowY:'auto',overflowX:'auto',padding:'12px 0'}}>
+        <div className="mono" style={{fontSize:12,lineHeight:1.7}}>
+          <JTNode keyName={null} value={data} path="$" depth={0} expanded={expanded} onToggle={toggle} searchTerm={searchLower} onCopyPath={handleCopyPath}/>
+        </div>
+      </div>
+    </div>
+  </div>;
 }
 
 function App(){
@@ -2306,32 +2402,22 @@ function App(){
           </div>;
         })()}
         {tab==='Raw'&&(()=>{
-          const result=highlightJSON(logData.rawText);
-          if(!result)return<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>No file data available</div>;
+          let treeData=null;
+          if(logData.rawText){
+            try{treeData=JSON.parse(logData.rawText);}catch{}
+            if(!treeData)treeData=logData.entries;
+          }
+          if(!treeData)return<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>No file data available</div>;
           return<div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
               <div style={{fontSize:12,color:T.muted}}>
-                {result.totalLines.toLocaleString()} lines
-                {result.capped&&<span style={{color:T.warning,marginLeft:8}}>· Showing first 8,000 lines</span>}
+                {Array.isArray(treeData)?`${treeData.length.toLocaleString()} entries`:'Object'}
               </div>
               <button onClick={()=>{copyText(logData.rawText);}} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>
                 <Ico.Copy/> Copy raw text
               </button>
             </div>
-            <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
-              <div style={{maxHeight:'75vh',overflowY:'auto',overflowX:'auto'}}>
-                <pre style={{margin:0,padding:16,fontSize:12,lineHeight:1.6,fontFamily:MF,tabSize:2,whiteSpace:'pre'}}>
-                  <code>
-                    {result.highlighted.map((line,i)=>(
-                      <div key={i} style={{display:'flex'}}>
-                        <span style={{color:'#555',minWidth:50,textAlign:'right',paddingRight:16,userSelect:'none',flexShrink:0,fontSize:11}}>{i+1}</span>
-                        <span dangerouslySetInnerHTML={{__html:line}}/>
-                      </div>
-                    ))}
-                  </code>
-                </pre>
-              </div>
-            </div>
+            <JTTree data={treeData}/>
           </div>;
         })()}
       </div>}
