@@ -1801,6 +1801,29 @@ function CustomerView({logData,appJson,onAppJson}){
 /* ═══ MAIN APP ═══ */
 const TABS=['Overview','Timeline','Accounts','Errors','Network'];
 
+function highlightJSON(text){
+  if(!text)return null;
+  let pretty=text;
+  try{const parsed=JSON.parse(text);pretty=JSON.stringify(parsed,null,2);}catch{}
+  const lines=pretty.split('\n');
+  const capped=lines.length>8000;
+  const displayLines=capped?lines.slice(0,8000):lines;
+  const highlighted=displayLines.map(line=>{
+    const html=line
+      .replace(/"([^"\\]*(\\.[^"\\]*)*)"\s*:/g,'<span style="color:#BBB0FF">"$1"</span>:')
+      .replace(/:\s*"([^"\\]*(\\.[^"\\]*)*)"/g,': <span style="color:#7AC26C">"$1"</span>')
+      .replace(/^\s*"([^"\\]*(\\.[^"\\]*)*)"\s*,?\s*$/gm,match=>{
+        if(match.includes('style='))return match;
+        return match.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g,'<span style="color:#7AC26C">"$1"</span>');
+      })
+      .replace(/:\s*(-?\d+\.?\d*([eE][+-]?\d+)?)\b/g,': <span style="color:#FFBD42">$1</span>')
+      .replace(/:\s*(true|false)\b/g,': <span style="color:#F57375">$1</span>')
+      .replace(/:\s*(null)\b/g,': <span style="color:#949494">$1</span>');
+    return html;
+  });
+  return{highlighted,capped,totalLines:lines.length};
+}
+
 function App(){
   const[logData,setLogData]=useState(null);
   const[fileName,setFileName]=useState('');
@@ -1821,7 +1844,7 @@ function App(){
   const fileRef=useRef();
 
   const visibleTabs=useMemo(()=>{
-    const base=['Overview','Timeline','Accounts','Errors','Network'];
+    const base=['Overview','Timeline','Accounts','Errors','Network','Raw'];
     if(logData?.apdu?.length>0)base.push('APDU');
     return base;
   },[logData]);
@@ -1836,7 +1859,7 @@ function App(){
         const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
         const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
         setLoadErr('');
-        setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries)});
+        setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries),rawText:ev.target.result});
         setTab('Overview');setSearchTerm('');setTypeFilter('all');
       }catch(e){console.error(e);setLoadErr('Failed to parse file: '+(e.message||String(e))+'. Make sure this is a valid Ledger Live log export.');setFileName('');}
     };reader.readAsText(file);
@@ -2279,6 +2302,35 @@ function App(){
                 </div>;
               })}
               {logData.apdu.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {logData.apdu.length}</div>}
+            </div>
+          </div>;
+        })()}
+        {tab==='Raw'&&(()=>{
+          const result=highlightJSON(logData.rawText);
+          if(!result)return<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>No file data available</div>;
+          return<div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <div style={{fontSize:12,color:T.muted}}>
+                {result.totalLines.toLocaleString()} lines
+                {result.capped&&<span style={{color:T.warning,marginLeft:8}}>· Showing first 8,000 lines</span>}
+              </div>
+              <button onClick={()=>{copyText(logData.rawText);}} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>
+                <Ico.Copy/> Copy raw text
+              </button>
+            </div>
+            <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
+              <div style={{maxHeight:'75vh',overflowY:'auto',overflowX:'auto'}}>
+                <pre style={{margin:0,padding:16,fontSize:12,lineHeight:1.6,fontFamily:MF,tabSize:2,whiteSpace:'pre'}}>
+                  <code>
+                    {result.highlighted.map((line,i)=>(
+                      <div key={i} style={{display:'flex'}}>
+                        <span style={{color:'#555',minWidth:50,textAlign:'right',paddingRight:16,userSelect:'none',flexShrink:0,fontSize:11}}>{i+1}</span>
+                        <span dangerouslySetInnerHTML={{__html:line}}/>
+                      </div>
+                    ))}
+                  </code>
+                </pre>
+              </div>
             </div>
           </div>;
         })()}
