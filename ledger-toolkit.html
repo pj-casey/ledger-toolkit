@@ -77,6 +77,38 @@ button:active{transform:scale(0.98);}
 .drop-icon-pulse{animation:iconPulse 1.5s ease-in-out infinite;}
 /* Error detail expand/collapse */
 .error-detail{transition:max-height 200ms ease,opacity 200ms ease;overflow:hidden;}
+
+/* ── Customer View ── */
+.cv-layout{display:flex;height:calc(100vh - 100px);overflow:hidden;}
+.cv-sidebar{width:240px;min-width:200px;background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;}
+.cv-sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.cv-main{flex:1;overflow-y:auto;padding:24px;}
+.cv-infobar{width:210px;min-width:180px;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:16px;flex-shrink:0;}
+.cv-acct-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(60,60,60,0.4);transition:background 100ms ease;}
+.cv-acct-row:hover{background:rgba(255,255,255,0.04);}
+.cv-acct-row.cv-active{background:rgba(187,176,255,0.08);border-left:2px solid var(--primary);padding-left:12px;}
+.cv-chain-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cv-sim-banner{background:rgba(255,189,66,0.08);border:1px solid rgba(255,189,66,0.2);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--warning);margin-bottom:16px;display:flex;align-items:center;gap:6px;}
+.cv-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+.cv-portfolio-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 150ms ease,box-shadow 150ms ease;}
+.cv-portfolio-card:hover{border-color:var(--primary);box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+.cv-detail-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:12px;}
+.cv-info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:12px;}
+.cv-info-row:last-child{border-bottom:none;}
+.cv-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;}
+.cv-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cv-mode-btn{padding:5px 13px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:0.04em;cursor:pointer;transition:background 150ms ease,color 150ms ease;}
+.cv-mode-btn.cv-active{background:var(--primary);color:#000;}
+@media (max-width:1024px){.cv-infobar{display:none;}}
+@media (max-width:768px){.cv-sidebar{width:180px;}.cv-portfolio-grid{grid-template-columns:1fr;}}
+.cv-drop-banner{border:1px dashed rgba(255,189,66,0.3);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--warning);margin-bottom:16px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:border-color 150ms ease,background 150ms ease;}
+.cv-drop-banner:hover{border-color:rgba(255,189,66,0.5);background:rgba(255,189,66,0.04);}
+.cv-drop-banner.cv-dragover{border-color:var(--warning);background:rgba(255,189,66,0.08);}
+.cv-enriched-banner{border:1px solid rgba(122,194,108,0.25);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--success);margin-bottom:16px;display:flex;align-items:center;gap:6px;background:rgba(122,194,108,0.06);}
+.cv-tx-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:11px;}
+.cv-tx-row:last-child{border-bottom:none;}
+.cv-tx-type{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;min-width:32px;text-align:center;flex-shrink:0;}
+.cv-bal-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;}
 </style>
 </head>
 <body>
@@ -257,6 +289,80 @@ const CHAINS={
 };
 const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
+const DECIMALS={ethereum:18,bitcoin:8,tezos:6,cosmos:6,tron:6,near:24,solana:9,ripple:6,polkadot:10,assethub_polkadot:10,ton:9,cardano:6,bsc:18,polygon:18,avalanche_c_chain:18,optimism:18,arbitrum:18,base:18,linea:18,scroll:18,blast:18,zksync:18,mantle:18,fantom:18,cronos:18,moonbeam:18,moonriver:18,celo:18,neon_evm:18,lukso:18,sonic:18,stellar:7,hedera:8,elrond:18,filecoin:18,vechain:18,algorand:6,klaytn:18,mina:9,kaspa:8,stacks:6,dogecoin:8,litecoin:8,bitcoin_cash:8,aptos:8,sui:9,dydx:18,injective:18,flare:18,hyperevm:18,osmo:6,osmosis:6,internet_computer:8,icp:8,mantra:6,persistence:6,axelar:6,quicksilver:6,zenrock:6};
+function fmtBal(raw,currencyId,ticker){
+  if(raw==null||raw==='')return null;
+  const d=DECIMALS[currencyId]||0;
+  try{
+    const s=String(raw);
+    if(d===0)return s+(ticker?' '+ticker:'');
+    const neg=s.startsWith('-');
+    const abs=neg?s.slice(1):s;
+    const padded=abs.padStart(d+1,'0');
+    const whole=padded.slice(0,padded.length-d);
+    const frac=padded.slice(padded.length-d).replace(/0+$/,'');
+    const formatted=frac?whole+'.'+frac:whole;
+    return(neg?'-':'')+Number(formatted).toLocaleString(undefined,{maximumFractionDigits:8})+(ticker?' '+ticker:'');
+  }catch{return String(raw);}
+}
+
+const TX_EXPLORERS={
+  ethereum:h=>`https://etherscan.io/tx/${h}`,
+  bitcoin:h=>`https://mempool.space/tx/${h}`,
+  tezos:h=>`https://tzkt.io/${h}`,
+  cosmos:h=>`https://www.mintscan.io/cosmos/tx/${h}`,
+  tron:h=>`https://tronscan.org/#/transaction/${h}`,
+  near:h=>`https://nearblocks.io/txns/${h}`,
+  solana:h=>`https://explorer.solana.com/tx/${h}`,
+  ripple:h=>`https://bithomp.com/explorer/${h}`,
+  polkadot:h=>`https://polkadot.subscan.io/extrinsic/${h}`,
+  assethub_polkadot:h=>`https://assethub-polkadot.subscan.io/extrinsic/${h}`,
+  ton:h=>`https://tonscan.org/tx/${h}`,
+  cardano:h=>`https://cexplorer.io/tx/${h}`,
+  bsc:h=>`https://bscscan.com/tx/${h}`,
+  polygon:h=>`https://polygonscan.com/tx/${h}`,
+  avalanche_c_chain:h=>`https://subnets.avax.network/c-chain/tx/${h}`,
+  optimism:h=>`https://optimism.blockscout.com/tx/${h}`,
+  arbitrum:h=>`https://arbitrum.blockscout.com/tx/${h}`,
+  base:h=>`https://base.blockscout.com/tx/${h}`,
+  linea:h=>`https://lineascan.build/tx/${h}`,
+  scroll:h=>`https://scroll.blockscout.com/tx/${h}`,
+  blast:h=>`https://blastscan.io/tx/${h}`,
+  zksync:h=>`https://zksync.blockscout.com/tx/${h}`,
+  mantle:h=>`https://explorer.mantle.xyz/tx/${h}`,
+  fantom:h=>`https://ftmscan.com/tx/${h}`,
+  cronos:h=>`https://cronos.org/explorer/tx/${h}`,
+  moonbeam:h=>`https://moonbeam.moonscan.io/tx/${h}`,
+  moonriver:h=>`https://moonriver.moonscan.io/tx/${h}`,
+  celo:h=>`https://celoscan.io/tx/${h}`,
+  klaytn:h=>`https://www.klaytnfinder.io/tx/${h}`,
+  neon_evm:h=>`https://neon.blockscout.com/tx/${h}`,
+  lukso:h=>`https://explorer.execution.mainnet.lukso.network/tx/${h}`,
+  sonic:h=>`https://sonicscan.org/tx/${h}`,
+  flare:h=>`https://flare-explorer.flare.network/tx/${h}`,
+  filecoin:h=>`https://beryx.io/fil/mainnet/transactions/${h}`,
+  litecoin:h=>`https://blockchair.com/litecoin/transaction/${h}`,
+  dogecoin:h=>`https://blockchair.com/dogecoin/transaction/${h}`,
+  bitcoin_cash:h=>`https://blockchair.com/bitcoin-cash/transaction/${h}`,
+  stellar:h=>`https://stellar.expert/explorer/public/tx/${h}`,
+  hedera:h=>`https://hashscan.io/mainnet/transaction/${h}`,
+  elrond:h=>`https://explorer.multiversx.com/transactions/${h}`,
+  stacks:h=>`https://explorer.hiro.so/txid/${h}?chain=mainnet`,
+  mina:h=>`https://minascan.io/mainnet/tx/${h}`,
+  aptos:h=>`https://explorer.aptoslabs.com/txn/${h}?network=mainnet`,
+  sui:h=>`https://suiscan.xyz/mainnet/tx/${h}`,
+  kaspa:h=>`https://explorer.kaspa.org/txs/${h}`,
+  vechain:h=>`https://explore.vechain.org/transactions/${h}`,
+  algorand:h=>null,
+  internet_computer:h=>null,
+  icp:h=>null,
+  crypto_org:h=>`https://www.mintscan.io/crypto-org/tx/${h}`,
+  osmo:h=>`https://www.mintscan.io/osmosis/tx/${h}`,
+  osmosis:h=>`https://www.mintscan.io/osmosis/tx/${h}`,
+  dydx:h=>`https://www.mintscan.io/dydx/tx/${h}`,
+  injective:h=>`https://www.mintscan.io/injective/tx/${h}`,
+  hyperevm:h=>`https://www.hyperscan.xyz/tx/${h}`,
+};
 
 /* ─── Token Contract Resolver ────────────────────────────────────────────────
    Loads Ledger's full published token list from their open-source repo on GitHub
@@ -502,6 +608,61 @@ function parseLogs(text){
         return out;
       });
     }catch{}
+    // Pretty-printed JSON recovery: reconstruct objects by tracking brace depth
+    try{
+      const objects=[];
+      let depth=0,start=-1,inString=false,escape=false;
+      for(let i=0;i<raw.length;i++){
+        const ch=raw[i];
+        if(escape){escape=false;continue;}
+        if(ch==='\\'&&inString){escape=true;continue;}
+        if(ch==='"'){
+          if(inString){
+            // Validate: a real closing " is followed by a JSON structural char
+            // (after optional whitespace): , : } ] or end of input
+            let j=i+1;
+            while(j<raw.length&&(raw[j]===' '||raw[j]==='\t'||raw[j]==='\n'||raw[j]==='\r'))j++;
+            const nx=raw[j];
+            if(nx===':'||nx===','||nx==='}'||nx===']'||j>=raw.length){
+              inString=false;
+            }
+            // else: garbage " inside string — ignore it, don't toggle
+          } else {
+            // Entering a string — validate: preceded by a JSON structural char
+            // (after optional whitespace): , : [ { or start of object
+            let j=i-1;
+            while(j>=0&&(raw[j]===' '||raw[j]==='\t'||raw[j]==='\n'||raw[j]==='\r'))j--;
+            const px=raw[j];
+            if(px===':'||px===','||px==='['||px==='{'||j<0){
+              inString=true;
+            }
+            // else: garbage " outside expected context — ignore it
+          }
+          continue;
+        }
+        if(inString)continue;
+        if(ch==='{'){if(depth===0)start=i;depth++;}
+        else if(ch==='}'){
+          depth--;
+          if(depth===0&&start>=0){
+            try{
+              const obj=JSON.parse(raw.slice(start,i+1).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,''));
+              if(obj!==null&&typeof obj==='object'&&!Array.isArray(obj))objects.push(obj);
+            }catch{}
+            start=-1;
+          }
+        }
+      }
+      if(objects.length>0){
+        return objects.map((e,i)=>{
+          const out=Object.assign({},e);
+          if(out.logIndex==null)out.logIndex=i;
+          if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
+          if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
+          return out;
+        });
+      }
+    }catch{}
   }
   // Line-by-line fallback (handles mixed JSON+text)
   return raw.split('\n').map((l,i)=>{
@@ -738,6 +899,82 @@ function extractActivity(entries){
     if(e.type==='live-dmk-logger'&&(mlo.includes('available')||mlo.includes('transport')))deviceScan=true;
   }
   return{managerOpened,swapBrowsed,swapExecuted,deviceScan};
+}
+
+function extractAnalytics(entries){
+  const res={appStarts:null,portfolio:null,syncAccts:[]};
+  for(const e of entries){
+    if(e.type!=='analytics')continue;
+    const msg=e.message||'';
+    const d=e.data||{};
+    if(!res.appStarts&&msg.includes('App Start')){
+      res.appStarts={
+        accountsWithFunds:d.accountsWithFunds,tokenWithFunds:d.tokenWithFunds,
+        modelId:d.modelId,modelIdList:d.modelIdList,deviceVersion:d.deviceVersion,
+        deviceLanguage:d.deviceLanguage,appVersion:d.appVersion,osType:d.osType,
+        osVersion:d.osVersion,platform:d.platform,userId:d.userId
+      };
+    }
+    if(!res.portfolio&&msg.includes('Portfolio')){
+      res.portfolio={
+        totalAccounts:d.totalAccounts,totalCurrencies:d.totalCurrencies,
+        totalOperations:d.totalOperations,ledgerSyncActivated:d.ledgerSyncActivated,
+        MEVProtectionActivated:d.MEVProtectionActivated,stakeableAssets:d.stakeableAssets
+      };
+    }
+    if(msg.includes('SyncSuccess')&&d.currencyName){
+      res.syncAccts.push({
+        currencyName:d.currencyName,derivationMode:d.derivationMode,
+        freshAddressPath:d.freshAddressPath,operationsLength:d.operationsLength,
+        tokens:d.tokens,tokensLength:d.tokensLength
+      });
+    }
+  }
+  return res;
+}
+
+function parseAppJson(text){
+  try{
+    const raw=JSON.parse(text);
+    const data=raw.data||raw;
+    const rawAccounts=data.accounts;
+    const encrypted=rawAccounts&&!Array.isArray(rawAccounts);
+    const accounts=Array.isArray(rawAccounts)?rawAccounts.map(a=>{
+      const d=a.data||a;
+      return{
+        id:d.id,name:d.name||'',currencyId:d.currencyId,
+        balance:d.balance,spendableBalance:d.spendableBalance,
+        operationsCount:d.operationsCount||0,
+        operations:(d.operations||[]).map(op=>({
+          type:op.type,value:op.value,fee:op.fee,date:op.date,hash:op.hash,
+          senders:op.senders||[],recipients:op.recipients||[],
+          hasFailed:op.hasFailed||false,blockHeight:op.blockHeight
+        })),
+        subAccounts:(d.subAccounts||[]).map(s=>({
+          tokenId:s.tokenId,type:s.type,balance:s.balance,
+          spendableBalance:s.spendableBalance,operationsCount:s.operationsCount||0,
+          operations:(s.operations||[]).slice(0,50).map(op=>({
+            type:op.type,value:op.value,fee:op.fee,date:op.date,hash:op.hash,
+            senders:op.senders||[],recipients:op.recipients||[],hasFailed:op.hasFailed||false
+          }))
+        })),
+        freshAddress:d.freshAddress,derivationMode:d.derivationMode,
+        blockHeight:d.blockHeight,starred:d.starred
+      };
+    }):[];
+    const byId={};
+    accounts.forEach(a=>{if(a.id)byId[a.id]=a;});
+    // Extract readable data from encrypted app.json
+    const settings=data.settings||{};
+    const devices=settings.devicesModelList||settings.modelIdList||[];
+    const lastDevice=settings.lastSeenDevice||null;
+    const discover=data.discover||{};
+    const cryptoTokens=(data.cryptoAssets&&data.cryptoAssets.tokens)||[];
+    const discoverAcctIds=Object.values(discover.currentAccountHist||{}).filter(v=>typeof v==='string'&&v.startsWith('js:2:'));
+    return{accounts,byId,raw:data,encrypted,
+      settings:{devices,lastDevice,counterValue:settings.counterValue,language:settings.language,locale:settings.locale},
+      cryptoTokens,discoverAcctIds};
+  }catch(e){console.error('parseAppJson error:',e);return null;}
 }
 
 /* Components */
@@ -1119,6 +1356,448 @@ function AcctCard({acct}){
   </div>;
 }
 
+/* ═══ CUSTOMER VIEW ═══ */
+
+function ModeToggle({mode,onChange}){
+  return <div className="cv-mode-toggle" role="group" aria-label="View mode">
+    <button className={`cv-mode-btn${mode==='diagnostic'?' cv-active':''}`} onClick={()=>onChange('diagnostic')} aria-pressed={mode==='diagnostic'}>Diagnostic</button>
+    <button className={`cv-mode-btn${mode==='customer'?' cv-active':''}`} onClick={()=>onChange('customer')} aria-pressed={mode==='customer'}>Customer View</button>
+  </div>;
+}
+
+function CVInfoBar({dev,as,port,accts,appJson}){
+  const withFunds=appJson ? appJson.accounts.filter(a=>a.balance!=='0').length : (as&&as.accountsWithFunds)?as.accountsWithFunds.length:accts.filter(a=>a.ops>0).length;
+  return <div className="cv-infobar">
+    <div className="cv-section-title">Device</div>
+    {dev&&(dev.modelName||dev.modelId)&&<div style={{marginBottom:14}}>
+      <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:8}}>{dev.modelName||dev.modelId}</div>
+      {dev.fw&&<div className="cv-info-row"><span style={{color:T.muted}}>Firmware</span><span className="mono" style={{fontSize:11,color:T.primary}}>{dev.fw}</span></div>}
+      {dev.lang&&<div className="cv-info-row"><span style={{color:T.muted}}>Language</span><span style={{fontSize:12}}>{dev.lang}</span></div>}
+      {dev.appVer&&<div className="cv-info-row"><span style={{color:T.muted}}>App</span><span className="mono" style={{fontSize:11}}>{dev.appVer}</span></div>}
+      {dev.platform&&<div className="cv-info-row"><span style={{color:T.muted}}>Platform</span><span style={{fontSize:12}}>{dev.platform}</span></div>}
+      {dev.os&&<div className="cv-info-row"><span style={{color:T.muted}}>OS</span><span className="mono" style={{fontSize:11}}>{dev.os}{dev.osVer?' '+dev.osVer:''}</span></div>}
+    </div>}
+    {as&&as.modelIdList&&as.modelIdList.length>1&&<div style={{marginBottom:14}}>
+      <div className="cv-section-title" style={{marginTop:6}}>Paired Devices</div>
+      {as.modelIdList.map(m=><div key={m} style={{fontSize:11,color:T.muted,padding:'3px 0'}}>{DN[m]||m}</div>)}
+    </div>}
+    {appJson&&appJson.settings&&appJson.settings.devices&&appJson.settings.devices.length>0&&!(dev&&(dev.modelName||dev.modelId))&&<div style={{marginBottom:14}}>
+      <div className="cv-section-title" style={{marginTop:6}}>Devices from app.json</div>
+      {appJson.settings.devices.map(m=><div key={m} style={{fontSize:11,color:T.muted,padding:'3px 0'}}>{DN[m]||m}</div>)}
+    </div>}
+    <div style={{marginTop:6}}>
+      <div className="cv-section-title">Session</div>
+      <div className="cv-info-row"><span style={{color:T.muted}}>Accounts</span><span style={{fontWeight:600}}>{accts.length}</span></div>
+      <div className="cv-info-row"><span style={{color:T.muted}}>With funds</span><span style={{fontWeight:600,color:T.success}}>{withFunds}</span></div>
+      {port&&port.totalOperations!=null&&<div className="cv-info-row"><span style={{color:T.muted}}>Total ops</span><span style={{fontWeight:600}}>{port.totalOperations}</span></div>}
+      {port&&port.totalCurrencies!=null&&<div className="cv-info-row"><span style={{color:T.muted}}>Currencies</span><span style={{fontWeight:600}}>{port.totalCurrencies}</span></div>}
+      {port&&port.ledgerSyncActivated!=null&&<div className="cv-info-row"><span style={{color:T.muted}}>Ledger Sync</span><span style={{fontWeight:600,color:port.ledgerSyncActivated?T.success:T.muted}}>{port.ledgerSyncActivated?'On':'Off'}</span></div>}
+    </div>
+  </div>;
+}
+
+function CVSidebar({accts,namedAccts,selected,onSelect,errs,as,appJson}){
+  return <div className="cv-sidebar">
+    <div className="cv-sidebar-header">
+      <div style={{fontSize:11,fontWeight:600,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Accounts</div>
+      <div style={{fontSize:11,color:T.muted}}>{accts.length} total · {appJson ? appJson.accounts.filter(a=>a.balance!=='0').length : (as&&as.accountsWithFunds&&as.accountsWithFunds.length)||accts.filter(a=>a.ops>0).length} with funds</div>
+    </div>
+    <div className={`cv-acct-row${selected===null?' cv-active':''}`} onClick={()=>onSelect(null)}>
+      <span style={{fontSize:14,flexShrink:0}}>◈</span>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:12,fontWeight:600,color:T.text}}>Portfolio</div>
+        <div style={{fontSize:10,color:T.muted}}>All accounts</div>
+      </div>
+    </div>
+    {namedAccts.map((a,i)=>{
+      const ch=a.ch;
+      const hasErr=errs.some(e=>(e.det||e.msg||'').includes(a.addr||'____NOMATCH'));
+      const enriched=a.enriched&&a.ajBalance!=null;
+      const bal=enriched?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
+      const ops=enriched?a.ajOps:a.ops;
+      const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
+      return <div key={i} className={`cv-acct-row${selected===i?' cv-active':''}`} onClick={()=>onSelect(i)}>
+        <span className="cv-chain-dot" style={{background:ch.color||T.muted}}/>
+        <div style={{flex:1,minWidth:0,overflow:'hidden'}}>
+          <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}{a.ajStarred?' ★':''}</div>
+          <div style={{fontSize:10,color:T.muted,display:'flex',gap:4,flexWrap:'wrap'}}>
+            <span>{ch.ticker}</span>
+            {bal&&<span style={{color:T.success,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>· {bal}</span>}
+            {!bal&&funded&&<span style={{color:T.success}}>· {ops} ops</span>}
+            {!bal&&!funded&&<span style={{opacity:0.5}}>· empty</span>}
+          </div>
+        </div>
+        {hasErr&&a.addr&&<span title="Has related errors" style={{color:T.error,fontSize:10,flexShrink:0}}>⚠</span>}
+      </div>;
+    })}
+  </div>;
+}
+
+function CVPortfolioView({accts,namedAccts,port,as,appJson,onSelectAcct}){
+  const acctCount=appJson?appJson.accounts.length:accts.length;
+  const fundedCount=appJson
+    ?appJson.accounts.filter(a=>a.balance&&a.balance!=='0').length
+    :(as&&as.accountsWithFunds&&as.accountsWithFunds.length)||accts.filter(a=>a.ops>0).length;
+  return <div>
+    <div style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
+      <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90}}>
+        <div style={{fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Accounts</div>
+        <div style={{fontSize:22,fontWeight:700}}>{acctCount}</div>
+      </div>
+      <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90}}>
+        <div style={{fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>With Funds</div>
+        <div style={{fontSize:22,fontWeight:700,color:T.success}}>{fundedCount}</div>
+      </div>
+      {port&&port.totalOperations!=null&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90}}>
+        <div style={{fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Operations</div>
+        <div style={{fontSize:22,fontWeight:700}}>{port.totalOperations}</div>
+      </div>}
+      {port&&port.totalCurrencies!=null&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90}}>
+        <div style={{fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Currencies</div>
+        <div style={{fontSize:22,fontWeight:700}}>{port.totalCurrencies}</div>
+      </div>}
+    </div>
+    <div className="cv-portfolio-grid">
+      {namedAccts.map((a,i)=>{
+        const ch=a.ch;
+        const enriched=a.enriched&&a.ajBalance!=null;
+        const bal=enriched?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
+        const ops=enriched?a.ajOps:a.ops;
+        const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
+        const tokCount=enriched?(a.ajSubAccounts||[]).length:(a.toks||[]).length;
+        return <div key={i} className="cv-portfolio-card" onClick={()=>onSelectAcct(i)}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <span className="cv-chain-dot" style={{background:ch.color||T.muted,width:10,height:10}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}{a.ajStarred?' ★':''}</div>
+              <div style={{fontSize:10,color:T.muted}}>{ch.name} · {ch.ticker}</div>
+            </div>
+          </div>
+          {bal&&<div style={{fontSize:13,fontWeight:700,color:T.success,marginBottom:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bal}</div>}
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
+            <span style={{fontSize:10,padding:'2px 7px',borderRadius:4,fontWeight:700,background:funded?T.success+'22':T.border+'88',color:funded?T.success:T.muted}}>{funded?`${ops} ops`:'empty'}</span>
+            {tokCount>0&&<span style={{fontSize:10,padding:'2px 7px',borderRadius:4,fontWeight:700,background:T.primary+'22',color:T.primary}}>{tokCount} token{tokCount!==1?'s':''}</span>}
+          </div>
+          <div className="mono" style={{fontSize:10,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.addr?trunc(a.addr,18):'—'}</div>
+        </div>;
+      })}
+    </div>
+  </div>;
+}
+
+function CVCopyText({text,mono}){
+  const[copied,setCopied]=useState(false);
+  if(!text)return <span style={{color:T.muted}}>—</span>;
+  return <span onClick={()=>{copyText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);}}
+    style={{cursor:'pointer',fontFamily:mono?MF:'inherit',wordBreak:'break-all',position:'relative'}}
+    title="Click to copy">
+    {text}
+    {copied&&<span style={{position:'absolute',top:-18,left:0,fontSize:9,color:T.success,fontWeight:700,fontFamily:'Inter,sans-serif'}}>Copied!</span>}
+  </span>;
+}
+
+function CVAccountDetail({acct,errs,onBack}){
+  const ch=acct.ch;
+  const acctErrs=errs.filter(e=>acct.addr&&acct.addr.length>4&&(e.det||e.msg||'').includes(acct.addr));
+  let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
+  const enriched=acct.enriched;
+  const ajOps=acct.ajOperations||[];
+  const displayOps=ajOps.slice(0,50);
+  const txTypeStyle=type=>{
+    if(type==='IN')return{background:T.success+'22',color:T.success};
+    if(type==='OUT')return{background:T.error+'22',color:T.error};
+    if(type==='FEES')return{background:T.warning+'22',color:T.warning};
+    return{background:T.primary+'22',color:T.primary};
+  };
+  const ajSubs=acct.ajSubAccounts||[];
+  const logToks=(acct.toks||[]).filter(Boolean);
+  return <div>
+    <button onClick={onBack} style={{background:'none',border:'none',color:T.muted,cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:12,marginBottom:16,padding:0}}>
+      ← Back to Portfolio
+    </button>
+    <div className="cv-detail-card">
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+        <span className="cv-chain-dot" style={{background:ch.color||T.muted,width:12,height:12}}/>
+        <div style={{flex:1}}>
+          <div style={{fontSize:16,fontWeight:600}}>{acct.displayName}{acct.ajStarred?' ★':''}</div>
+          <div style={{fontSize:12,color:T.muted}}>{ch.name} · {ch.ticker}</div>
+        </div>
+        {eUrl&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:(ch.color||T.primary)+'22',color:ch.color||T.primary,border:`1px solid ${ch.color||T.primary}33`,textDecoration:'none',display:'flex',alignItems:'center',gap:4}}><Ico.Link/> Explorer</a>}
+      </div>
+      {enriched&&acct.ajBalance!=null&&<div style={{marginBottom:14}}>
+        <div className="cv-section-title">Balance</div>
+        <div className="cv-bal-card" style={{marginBottom:4}}>
+          <span style={{color:T.muted,fontSize:12}}>Balance</span>
+          <span style={{fontWeight:600,color:T.success,fontSize:13}}>{fmtBal(acct.ajBalance,acct.cid,ch.ticker)||'—'}</span>
+        </div>
+        {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div className="cv-bal-card" style={{marginBottom:4}}>
+          <span style={{color:T.muted,fontSize:12}}>Spendable</span>
+          <span style={{fontWeight:600,fontSize:12}}>{fmtBal(acct.ajSpendable,acct.cid,ch.ticker)||'—'}</span>
+        </div>}
+        {acct.ajBlockHeight!=null&&<div className="cv-bal-card">
+          <span style={{color:T.muted,fontSize:12}}>Block height</span>
+          <span className="mono" style={{fontSize:11}}>{Number(acct.ajBlockHeight).toLocaleString()}</span>
+        </div>}
+      </div>}
+      <div style={{marginBottom:14}}>
+        <div className="cv-section-title">Address</div>
+        <div className="mono" style={{fontSize:11,color:T.text,wordBreak:'break-all',padding:'8px 12px',background:T.bg,borderRadius:6,border:`1px solid ${T.border}`}}><CVCopyText text={acct.addr} mono={true}/></div>
+      </div>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+        <div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center',minWidth:80}}>
+          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Operations</div>
+          <div style={{fontSize:18,fontWeight:700}}>{enriched?acct.ajOps:acct.ops}</div>
+        </div>
+        {acct.dm&&<div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center'}}>
+          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Derivation</div>
+          <div className="mono" style={{fontSize:11,fontWeight:600}}>{acct.dm}</div>
+        </div>}
+        {acct.fp&&<div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center'}}>
+          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Path</div>
+          <div className="mono" style={{fontSize:11,fontWeight:600}}>{acct.fp}</div>
+        </div>}
+        {acct.isXpub&&<div style={{background:T.primary+'22',border:`1px solid ${T.primary}33`,borderRadius:6,padding:'8px 14px',textAlign:'center'}}>
+          <div style={{fontSize:10,color:T.primary,marginBottom:2}}>Type</div>
+          <div className="mono" style={{fontSize:11,fontWeight:600,color:T.primary}}>xpub</div>
+        </div>}
+      </div>
+    </div>
+    {enriched&&ajSubs.length>0&&<div className="cv-detail-card">
+      <div className="cv-section-title">Token Holdings ({ajSubs.length})</div>
+      <div style={{display:'flex',flexDirection:'column',gap:4}}>
+        {ajSubs.map((s,si)=>{
+          const rawName=(s.tokenId||'').split('/').pop()||s.tokenId||'?';
+          const name=rawName.replace(/__/g,' ').replace(/_/g,' ');
+          const bal=fmtBal(s.balance,'tezos',null);// tezos=6dec; ERC-20 default per spec
+          return <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 0',borderBottom:si<ajSubs.length-1?`1px solid ${T.border}40`:'none'}}>
+            <span style={{flex:1,fontSize:12,fontWeight:600,textTransform:'capitalize',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+            {bal&&<span style={{fontSize:11,color:T.success,fontFamily:MF}}>{bal}</span>}
+            <span style={{fontSize:10,color:T.muted}}>{s.operationsCount} ops</span>
+          </div>;
+        })}
+      </div>
+    </div>}
+    {!enriched&&logToks.length>0&&<div className="cv-detail-card">
+      <div className="cv-section-title">Token Holdings ({logToks.length})</div>
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+        {logToks.map((tk,ti)=>{
+          const lb=tk.ticker||tk.name||tk.id||'?';
+          return <span key={ti} style={{display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:T.primary+'22',color:T.primary,fontFamily:MF}}>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></span>;
+        })}
+      </div>
+    </div>}
+    {enriched&&displayOps.length>0&&<div className="cv-detail-card">
+      <div className="cv-section-title">Transactions ({acct.ajOps})</div>
+      {ajOps.length>50&&<div style={{fontSize:10,color:T.muted,marginBottom:8}}>Showing 50 of {ajOps.length}</div>}
+      <div>
+        {displayOps.map((op,oi)=>{
+          const opType=(op.type||'').toUpperCase();
+          const ts=txTypeStyle(opType);
+          const amtColor=opType==='IN'?T.success:opType==='OUT'?T.error:T.text;
+          const counterparty=opType==='IN'?(op.senders||[])[0]:(op.recipients||[])[0];
+          const txUrl=op.hash&&TX_EXPLORERS[acct.cid]?TX_EXPLORERS[acct.cid](op.hash):null;
+          return <div key={oi} className="cv-tx-row">
+            <div style={{minWidth:68,flexShrink:0}}>
+              <div style={{fontSize:10,color:T.text}}>{fmtDate(op.date)}</div>
+              <div style={{fontSize:9,color:T.muted}}>{fmtTime(op.date)}</div>
+            </div>
+            <span className="cv-tx-type" style={ts}>{opType||'?'}</span>
+            {op.hasFailed&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:T.error+'22',color:T.error,fontWeight:700}}>FAILED</span>}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:600,color:amtColor,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</div>
+              {op.fee&&fmtBal(op.fee,acct.cid,null)&&<div style={{fontSize:9,color:T.muted}}>Fee: {fmtBal(op.fee,acct.cid,null)}</div>}
+            </div>
+            {counterparty&&<div style={{minWidth:0,maxWidth:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(counterparty,16)} mono={true}/></div>}
+            {op.hash&&<div style={{flexShrink:0}}>
+              {txUrl
+                ?<a href={txUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.primary,fontFamily:MF,textDecoration:'none'}}>{trunc(op.hash,12)}</a>
+                :<span style={{fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(op.hash,12)} mono={true}/></span>
+              }
+            </div>}
+          </div>;
+        })}
+      </div>
+    </div>}
+    {acctErrs.length>0&&<div className="cv-detail-card" style={{borderColor:'rgba(245,115,117,0.3)'}}>
+      <div className="cv-section-title" style={{color:T.error}}>Related Issues ({acctErrs.length})</div>
+      {acctErrs.map((err,i)=><div key={i} style={{fontSize:12,color:T.error,padding:'4px 0',borderBottom:i<acctErrs.length-1?'1px solid rgba(245,115,117,0.15)':'none'}}>{err.dg?.t||err.msg||'Unknown error'}</div>)}
+    </div>}
+  </div>;
+}
+
+function CustomerView({logData,appJson,onAppJson}){
+  const[selectedAcct,setSelectedAcct]=useState(null);
+  const[ajDragOver,setAjDragOver]=useState(false);
+  const[summCopied,setSummCopied]=useState(false);
+  const appJsonRef=useRef();
+  const analytics=logData.analytics||{};
+  const as=analytics.appStarts||{};
+  const port=analytics.portfolio||{};
+  const namedAccts=useMemo(()=>{
+    const counts={};
+    logData.accts.forEach(a=>{counts[a.ch.name]=(counts[a.ch.name]||0)+1;});
+    const running={};
+    return logData.accts.map(a=>{
+      const base=a.ch.name;
+      running[base]=(running[base]||0)+1;
+      return{...a,displayName:counts[base]>1?`${base} ${running[base]}`:base};
+    });
+  },[logData.accts]);
+  const enrichedAccts=useMemo(()=>{
+    // Case 1: Log has accounts — enrich with app.json if available
+    if(namedAccts.length>0){
+      if(!appJson)return namedAccts;
+      return namedAccts.map(a=>{
+        const match=appJson.byId[a.id];
+        if(!match)return a;
+        return{...a,displayName:match.name||a.displayName,enriched:true,
+          ajBalance:match.balance,ajSpendable:match.spendableBalance,
+          ajOps:match.operationsCount,ajOperations:match.operations,
+          ajSubAccounts:match.subAccounts,ajBlockHeight:match.blockHeight,
+          ajStarred:match.starred};
+      });
+    }
+    // Case 2: No log accounts but app.json available — build from app.json
+    if(appJson&&appJson.accounts.length>0){
+      const counts={};
+      appJson.accounts.forEach(a=>{const ch=getChain(a.currencyId);counts[ch.name]=(counts[ch.name]||0)+1;});
+      const running={};
+      return appJson.accounts.map(a=>{
+        const cid=a.currencyId;
+        const ch=getChain(cid);
+        running[ch.name]=(running[ch.name]||0)+1;
+        const displayName=a.name||(counts[ch.name]>1?`${ch.name} ${running[ch.name]}`:ch.name);
+        const isXpub=['xpub','ypub','zpub','Ltub','Mtub','dgub'].some(pre=>(a.freshAddress||'').startsWith(pre));
+        return{id:a.id,cid:cid,ch:ch,addr:a.freshAddress||'',dm:a.derivationMode||'',fp:'',
+          ops:a.operationsCount||0,dur:null,
+          toks:(a.subAccounts||[]).map(s=>({tokenId:s.tokenId,tokenTicker:(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' '),operationsLength:s.operationsCount||0})),
+          isXpub:isXpub,bal:null,spendBal:null,displayName:displayName,enriched:true,
+          ajBalance:a.balance,ajSpendable:a.spendableBalance,ajOps:a.operationsCount,
+          ajOperations:a.operations,ajSubAccounts:a.subAccounts,ajBlockHeight:a.blockHeight,ajStarred:a.starred};
+      });
+    }
+    // Case 3: No log accounts and no app.json
+    return namedAccts;
+  },[namedAccts,appJson]);
+  const copyCustomerSummary=useCallback(()=>{
+    const dev=logData.dev;
+    const as=logData.analytics?.appStarts||{};
+    const port=logData.analytics?.portfolio||{};
+    const lines=[
+      '=== Customer Wallet Summary ===',
+      '',
+      'DEVICE',
+      `  Model:     ${dev.modelName||DN[as.modelId]||as.modelId||'Unknown'}`,
+      `  Firmware:  ${dev.fw||as.deviceVersion||'Unknown'}`,
+      `  App:       ${dev.appVer||as.appVersion||'Unknown'}`,
+      `  OS:        ${[dev.os||as.osType,dev.osVer||as.osVersion].filter(Boolean).join(' ')||'Unknown'}`,
+      `  Platform:  ${dev.platform||as.platform||'Unknown'}`,
+      '',
+      `ACCOUNTS (${enrichedAccts.length})`,
+    ];
+    const funded=enrichedAccts.filter(a=>a.enriched?a.ajBalance!=='0':a.ops>0);
+    const empty=enrichedAccts.filter(a=>a.enriched?a.ajBalance==='0':a.ops<=0);
+    for(const a of funded){
+      const bal=a.enriched?fmtBal(a.ajBalance,a.cid,a.ch.ticker):`${a.ops} ops`;
+      const addr=a.addr?(a.addr.length>30?a.addr.slice(0,16)+'...'+a.addr.slice(-8):a.addr):'';
+      lines.push(`  ${a.displayName}: ${bal} — ${addr}`);
+      if(a.enriched&&a.ajSubAccounts){
+        for(const s of a.ajSubAccounts){
+          if(s.balance&&s.balance!=='0'){
+            const tName=(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
+            lines.push(`    └ ${tName}: ${s.balance}`);
+          }
+        }
+      }
+    }
+    if(empty.length>0)lines.push(`  (${empty.length} empty account${empty.length!==1?'s':''}: ${empty.map(a=>a.displayName).join(', ')})`);
+    lines.push('');
+    lines.push('ACTIVITY');
+    const act=logData.activity||{};
+    if(act.managerOpened)lines.push('  Manager opened during session');
+    if(act.swapBrowsed)lines.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);
+    if(act.deviceScan)lines.push('  Device scan active');
+    if(!act.managerOpened&&!act.swapBrowsed&&!act.deviceScan)lines.push('  (none detected)');
+    if(logData.errs.length>0){
+      lines.push('');
+      lines.push(`ISSUES (${logData.errs.length})`);
+      const seen=new Set();
+      for(const e of logData.errs){
+        const t=e.dg?.t||e.msg||'Unknown';
+        if(seen.has(t))continue;
+        seen.add(t);
+        lines.push(`  [${(e.dg?.s||'?').toUpperCase()}] ${t}`);
+      }
+    }
+    lines.push('');
+    lines.push(`Source: ${appJson?'app.json + logs':'logs only'}`);
+    lines.push('===========================');
+    copyText(lines.join('\n'));
+    setSummCopied(true);
+    setTimeout(()=>setSummCopied(false),2000);
+  },[logData,appJson,enrichedAccts]);
+
+  const handleAppJsonDrop=useCallback(e=>{
+    e.preventDefault();e.stopPropagation();setAjDragOver(false);
+    const file=e.dataTransfer?.files?.[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const parsed=parseAppJson(ev.target.result);
+      if(parsed&&(parsed.accounts.length>0||parsed.encrypted))onAppJson(parsed);
+    };
+    reader.readAsText(file);
+  },[onAppJson]);
+  const handleAppJsonPick=useCallback(ev=>{
+    const file=ev.target.files?.[0];
+    if(!file)return;
+    ev.target.value='';
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const parsed=parseAppJson(e.target.result);
+      if(parsed&&(parsed.accounts.length>0||parsed.encrypted))onAppJson(parsed);
+    };
+    reader.readAsText(file);
+  },[onAppJson]);
+  const selData=selectedAcct!==null?enrichedAccts[selectedAcct]:null;
+  return <div className="cv-layout">
+    <CVSidebar accts={enrichedAccts} namedAccts={enrichedAccts} selected={selectedAcct} onSelect={setSelectedAcct} errs={logData.errs} as={logData.analytics&&logData.analytics.appStarts} appJson={appJson}/>
+    <div className="cv-main">
+      <input type="file" accept=".json" style={{display:'none'}} ref={appJsonRef} onChange={handleAppJsonPick}/>
+      {appJson
+        ?appJson.encrypted
+          ?<div className="cv-sim-banner">
+              <span>⚠ This app.json uses Ledger Sync encryption — account data cannot be read. Showing device info and {appJson.cryptoTokens.length} token definitions.</span>
+              <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+            </div>
+          :<div className="cv-enriched-banner">
+              <span>{logData.accts.length===0
+                ?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`
+                :`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}
+              </span>
+              <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.success,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+            </div>
+        :<div className={`cv-drop-banner${ajDragOver?' cv-dragover':''}`}
+            onDrop={handleAppJsonDrop}
+            onDragOver={e=>{e.preventDefault();setAjDragOver(true);}}
+            onDragLeave={()=>setAjDragOver(false)}
+            onClick={()=>appJsonRef.current?.click()}>
+            <span>⚠ Diagnostic simulation — drop customer's app.json here to enrich with real balances and transactions</span>
+            <button onClick={e=>{e.stopPropagation();appJsonRef.current?.click();}} style={{marginLeft:'auto',flexShrink:0,padding:'2px 8px',borderRadius:4,border:`1px solid ${T.warning}55`,background:'transparent',color:T.warning,fontSize:10,fontWeight:600,cursor:'pointer'}}>Browse</button>
+          </div>
+      }
+      <button onClick={copyCustomerSummary} style={{padding:'5px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',marginBottom:12}}>
+        {summCopied?'Copied!':'Copy Customer Summary'}
+      </button>
+      {selectedAcct===null
+        ?<CVPortfolioView accts={enrichedAccts} namedAccts={enrichedAccts} port={port} as={as} appJson={appJson} onSelectAcct={setSelectedAcct}/>
+        :<CVAccountDetail acct={selData} errs={logData.errs} onBack={()=>setSelectedAcct(null)}/>
+      }
+    </div>
+    <CVInfoBar dev={logData.dev} as={as} port={port} accts={enrichedAccts} appJson={appJson}/>
+  </div>;
+}
+
 /* ═══ MAIN APP ═══ */
 const TABS=['Overview','Timeline','Accounts','Errors','Network'];
 
@@ -1137,6 +1816,8 @@ function App(){
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
+  const[viewMode,setViewMode]=useState('diagnostic');
+  const[appJson,setAppJson]=useState(null);
   const fileRef=useRef();
 
   const visibleTabs=useMemo(()=>{
@@ -1155,13 +1836,13 @@ function App(){
         const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
         const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
         setLoadErr('');
-        setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries)});
+        setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries)});
         setTab('Overview');setSearchTerm('');setTypeFilter('all');
       }catch(e){console.error(e);setLoadErr('Failed to parse file: '+(e.message||String(e))+'. Make sure this is a valid Ledger Live log export.');setFileName('');}
     };reader.readAsText(file);
   },[]);
 
-  const clearLog=()=>{setLogData(null);setFileName('');setLoadErr('');setTab('Overview');};
+  const clearLog=()=>{setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setViewMode('diagnostic');setAppJson(null);};
   const openPicker=()=>fileRef.current?.click();
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
   const jumpTo=li=>{setTab('Timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
@@ -1194,6 +1875,7 @@ function App(){
         </svg>
         <span style={{fontSize:13,fontWeight:500,letterSpacing:'0.06em',textTransform:'uppercase',color:T.muted}}>Diagnostic Toolkit</span>
       </div>
+      {logData&&<ModeToggle mode={viewMode} onChange={setViewMode}/>}
       {logData&&<div style={{display:'flex',alignItems:'center',gap:12,fontSize:12}}>
         <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
           <Ico.File/>
@@ -1230,7 +1912,7 @@ function App(){
       </div>}
 
       {/* Log Viewer */}
-      {logData&&<div>
+      {logData&&viewMode==='diagnostic'&&<div>
         <div role="tablist" className="ledger-tab-bar" style={{marginBottom:8}}>
           {visibleTabs.map((t,tidx)=>{const act=tab===t;const ex=t==='Errors'&&logData.errs.length>0?` (${logData.errs.length})`:t==='Accounts'?` (${logData.accts.length})`:'';return <button key={t} role="tab" aria-selected={act} onClick={()=>setTab(t)} onMouseEnter={()=>setHoveredTab(t)} onMouseLeave={()=>setHoveredTab(null)} className={`ledger-tab-btn${act?' active':''}`}>{t}{ex}{hoveredTab===t&&<span className="mono" style={{position:'absolute',top:-8,right:-4,background:'rgba(255,255,255,0.1)',color:'#9c9c9c',fontSize:9,padding:'1px 4px',borderRadius:3,pointerEvents:'none'}}>⌃{tidx+1}</span>}</button>;})}
         </div>
@@ -1602,7 +2284,9 @@ function App(){
         })()}
       </div>}
     </div>
-  </div>;
+  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson}/>}
+  </div>
+
 }
 
 class ErrorBoundary extends React.Component{
