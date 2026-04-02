@@ -969,10 +969,12 @@ function extractDeviceApps(entries){
   // Primary: actions-manager-event with a full installed app list
   for(const e of entries){
     if(e.type==='actions-manager-event'&&e.message==='result'&&Array.isArray(e.data?.result?.installed)&&e.data.result.installed.length>0){
+      const fw=e.data.result.firmware;
       return{
         installed:e.data.result.installed,
         deviceModelId:e.data.result.deviceModelId||null,
         deviceInfo:e.data.result.deviceInfo||null,
+        firmware:fw?{id:fw.id,name:fw.name,version:fw.version}:null,
         source:'manager-result'
       };
     }
@@ -1618,6 +1620,35 @@ function CVPortfolioView({accts,namedAccts,port,as,appJson,onSelectAcct}){
         </div>;
       })}
     </div>
+    {(()=>{
+      const recentlyUsed=appJson?.raw?.discover?.recentlyUsed;
+      if(!Array.isArray(recentlyUsed)||recentlyUsed.length===0)return null;
+      const hist=appJson.raw.discover.currentAccountHist||{};
+      const fmtDAppName=id=>id.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+      const shown=recentlyUsed.slice(0,8);
+      const overflow=recentlyUsed.length-shown.length;
+      return(
+        <div className="cv-detail-card" style={{marginTop:20}}>
+          <div className="cv-section-title">Recent dApp Activity</div>
+          {shown.map((entry,i)=>{
+            const histKey=Object.keys(hist).find(k=>k.includes(entry.id));
+            const acctId=histKey?hist[histKey]:null;
+            const addr=acctId?acctId.split(':')[3]:null;
+            const linked=addr?namedAccts.find(a=>a.addr&&a.addr.toLowerCase()===addr.toLowerCase()):null;
+            return(
+              <div key={i} className="cv-info-row">
+                <span style={{fontWeight:600,fontSize:12}}>{fmtDAppName(entry.id)}</span>
+                <span style={{display:'flex',alignItems:'center',gap:10}}>
+                  {linked&&<span style={{fontSize:11,color:T.primary}}>{linked.displayName}</span>}
+                  <span style={{fontSize:11,color:T.muted}}>{fmtDate(entry.usedAt)}</span>
+                </span>
+              </div>
+            );
+          })}
+          {overflow>0&&<div style={{fontSize:11,color:T.muted,marginTop:6}}>and {overflow} more</div>}
+        </div>
+      );
+    })()}
   </div>;
 }
 
@@ -1847,7 +1878,7 @@ function CustomerView({logData,appJson,onAppJson}){
       '',
       'DEVICE',
       `  Model:     ${dev.modelName||DN[as.modelId]||as.modelId||'Unknown'}`,
-      `  Firmware:  ${dev.fw||as.deviceVersion||'Unknown'}`,
+      `  Firmware:  ${(()=>{const fw=dev.fw||as.deviceVersion||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===(dev.fw||as.deviceVersion)?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
       `  Ledger Live: ${dev.appVer||as.appVersion||'Unknown'}`,
       `  OS:        ${[dev.os||as.osType,dev.osVer||as.osVersion].filter(Boolean).join(' ')||'Unknown'}`,
       `  Platform:  ${dev.platform||as.platform||'Unknown'}`,
@@ -2151,6 +2182,8 @@ function buildDeviceAppsLines(logData, isFull) {
       const others = da.installed.filter(i => !rn.has(i.name.toLowerCase()));
       if (others.length > 0) lines.push(`  Other on device: ${others.map(a => `${a.name} ${a.version}`).join(', ')}`);
     }
+    const usedBlocks=da.installed.reduce((s,a)=>s+(a.blocks||0),0);
+    if(usedBlocks>0)lines.push(`  ${da.installed.length} apps installed · ${usedBlocks} blocks used`);
   } else if (da?.source === 'apdu-only') {
     lines.push(`DEVICE APPS (${req.length} required)`);
     for (const r of req) {
@@ -2210,7 +2243,7 @@ function DiagSidebar({ logData, section, setSection }) {
       '',
       'DEVICE',
       `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
-      `  Firmware:    ${d.fw || 'Unknown'}`,
+      `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
       `  Ledger Live: ${d.appVer || 'Unknown'}`,
       `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
       `  Platform:   ${d.platform || 'Unknown'}`,
@@ -2247,7 +2280,7 @@ function DiagSidebar({ logData, section, setSection }) {
       '',
       'DEVICE',
       `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
-      `  Firmware:    ${d.fw || 'Unknown'}`,
+      `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
       `  Ledger Live: ${d.appVer || 'Unknown'}`,
       `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
       `  Platform:   ${d.platform || 'Unknown'}`,
@@ -2280,7 +2313,7 @@ function DiagSidebar({ logData, section, setSection }) {
       '',
       'DEVICE',
       `  Model:     ${dev.modelName || dev.modelId || 'Unknown'}`,
-      `  Firmware:  ${dev.fw || 'Unknown'}`,
+      `  Firmware:  ${(()=>{const fw=dev.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===dev.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
       `  Ledger Live: ${dev.appVer || 'Unknown'}`,
       `  OS:        ${[dev.os, dev.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
       `  Platform:  ${dev.platform || 'Unknown'}`,
@@ -2683,7 +2716,7 @@ function App(){
                 '',
                 'DEVICE',
                 `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
-                `  Firmware:    ${d.fw||'Unknown'}`,
+                `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
                 `  Ledger Live: ${d.appVer||'Unknown'}`,
                 `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
                 `  Platform:   ${d.platform||'Unknown'}`,
@@ -2723,7 +2756,7 @@ function App(){
                 '',
                 'DEVICE',
                 `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
-                `  Firmware:    ${d.fw||'Unknown'}`,
+                `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
                 `  Ledger Live: ${d.appVer||'Unknown'}`,
                 `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
                 `  Platform:   ${d.platform||'Unknown'}`,
@@ -2767,7 +2800,19 @@ function App(){
           <div className="ov-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
               {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model. This can happen with older Ledger Wallet versions.':'No device was connected during this session. Device model and firmware are not available. This is expected if the customer exported logs without their device plugged in.'}</div>}
-              {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Ledger Live',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}</span></div>)}
+              {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Ledger Live',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=>{
+                const fwLatest=k==='Firmware'&&logData.deviceApps?.source==='manager-result'?logData.deviceApps.firmware:null;
+                const fwBadge=fwLatest?(fwLatest.version===v?<span style={{color:T.success,marginLeft:4}}>✓</span>:<span style={{color:T.warning,marginLeft:4}}>⚠ {fwLatest.version} available</span>):null;
+                const syncCell=(()=>{
+                  if(k!=='Sync'||!logData.dev.ledgerSync)return null;
+                  const wsErr=logData.entries.filter(e=>e.type==='walletsync'&&/error|failed|rejected|timeout/i.test(e.message||'')).length;
+                  const errBit=wsErr>0?<span style={{color:T.warning,marginLeft:4}}>⚠ {wsErr} sync error{wsErr!==1?'s':''}</span>:null;
+                  if(!appJson)return<span>Active{errBit}</span>;
+                  if(!appJson.encrypted)return<span style={{color:T.success}}>Active ✓{errBit}</span>;
+                  return<span style={{color:T.warning}}>Active (encrypted){errBit}</span>;
+                })();
+                return<div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{syncCell!==null?syncCell:v}{fwBadge}</span></div>;
+              })}
             </div>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:16}}>Environment</div>
               {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
@@ -2815,6 +2860,11 @@ function App(){
                     </span>
                   </div>
                 ))}
+                {da?.source==='manager-result'&&(()=>{
+                  const usedBlocks=da.installed.reduce((s,a)=>s+(a.blocks||0),0);
+                  if(!usedBlocks)return null;
+                  return<div style={{marginTop:8,fontSize:12,color:T.muted}}>{da.installed.length} apps installed · {usedBlocks} blocks used</div>;
+                })()}
                 <div style={{marginTop:8,fontSize:12,color:T.muted}}>{summary}</div>
                 {guidance&&<div style={{marginTop:6,fontSize:12,color:T.muted,fontStyle:'italic'}}>{guidance}</div>}
                 {others.length>0&&<div style={{marginTop:10}}>
@@ -2914,7 +2964,8 @@ function App(){
               const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
               const lvl=(e.level||'').toLowerCase();
               const isWarn=lvl==='warning'||lvl==='warn';
-              const dotColor=isErr?T.error:isWarn?T.warning:null;
+              const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
+              const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
               return <div key={e.logIndex}>
                 <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
                   <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
