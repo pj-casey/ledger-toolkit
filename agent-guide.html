@@ -105,7 +105,7 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <div class="page">
 
 <h1>Ledger Diagnostic Toolkit</h1>
-<p class="subtitle">Investigation guide for CS agents. v2.0</p>
+<p class="subtitle">Investigation guide for CS agents. v2.1</p>
 
 <!-- Table of Contents -->
 <div class="toc">
@@ -119,6 +119,8 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <a class="indent" href="#s-verify">Verify what the customer sees</a>
   <a class="indent" href="#s-general">General investigation</a>
   <a href="#interface">The Interface</a>
+  <a class="indent" href="#xpub-scanner">Xpub Scanner (UTXO chains)</a>
+  <a class="indent" href="#derived-addresses">Derived Addresses &amp; Token Links</a>
   <a href="#copy">Copy &amp; Export</a>
   <a href="#shortcuts">Keyboard Shortcuts</a>
   <a href="#troubleshooting">Tips &amp; Troubleshooting</a>
@@ -168,6 +170,8 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for exact balances.</p>
   <p><strong>Look for:</strong> Compare displayed balance with expected. Check if tokens are showing. Look for pending operations.</p>
   <p><strong>Next:</strong> If no app.json available, check <strong>Accounts</strong> in Diagnostic mode for sync status. Search <strong>Timeline</strong> for <kbd>sync</kbd> to see if synchronization completed.</p>
+  <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
+  <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
   <div class="warn">If app.json shows a different balance than Ledger Wallet, the local cache may be stale. Ask the customer to clear cache and resync.</div>
 </div>
 
@@ -231,17 +235,17 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <div class="feat-item">
     <div class="icon">⚠️</div>
     <div class="label">Issues</div>
-    <div class="desc">Errors and warnings. Severity borders, affected account links, jump-to-timeline. Expandable details on each card.</div>
+    <div class="desc">Errors and warnings from 82 known patterns. Severity borders, affected account links, jump-to-timeline. Expandable details on each card with common causes and suggested actions. Repeated errors show a count badge.</div>
   </div>
   <div class="feat-item">
     <div class="icon">👛</div>
     <div class="label">Accounts</div>
-    <div class="desc">Crypto accounts with chain color dots, operation counts, explorer links. Error badges show which accounts have problems.</div>
+    <div class="desc">Crypto accounts with chain color dots, operation counts, explorer links for 60+ chains. Token badges link to block explorers. Error badges show which accounts have problems. Bitcoin-family accounts with xpubs have a built-in scanner.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📋</div>
     <div class="label">Timeline</div>
-    <div class="desc">Every event, chronological. Searchable, filterable. Error/warning rows have colored left borders.</div>
+    <div class="desc">Every event, chronological. Use the search box to find keywords and the type filter dropdown to narrow by event category (network, bridge, analytics, etc.). Error/warning rows have colored left borders. Click any row to expand.</div>
   </div>
   <div class="feat-item">
     <div class="icon">🌐</div>
@@ -261,8 +265,28 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <div class="feat-item">
     <div class="icon">📊</div>
     <div class="label">Overview</div>
-    <div class="desc">Default view. Stat cards, device info, environment, activity badges, issues preview.</div>
+    <div class="desc">Default view. Stat cards (entries, accounts, operations, issues), device info, environment, and a log quality score (0–100) that rates how complete the log data is. Activity badges show if Manager was opened, a swap was browsed, or a device scan ran during the session.</div>
   </div>
+</div>
+
+<h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
+<div class="card">
+  <p>When you expand an account that stores an extended public key (xpub, ypub, or zpub), the tool shows a <strong>Scan</strong> button. Clicking it derives individual addresses from the key, queries the blockchain for each one, and shows the balance and transaction count per address.</p>
+  <p>This is your most powerful tool for "my balance is wrong" on UTXO chains. It shows exactly which addresses hold funds — even addresses Ledger Wallet's sync may have missed.</p>
+  <p>The scanner walks the derivation path (receive and change chains), stopping when it hits a gap of unused addresses. Each address gets an explorer link so you can verify on-chain.</p>
+  <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin and Dogecoin are slower due to rate limiting — the tool handles retries automatically.</div>
+</div>
+
+<h3 id="derived-addresses">Derived Addresses &amp; Token Explorer Links</h3>
+<div class="card">
+  <p><strong>Derived addresses:</strong> Some chains store raw credentials in logs that aren't directly searchable on an explorer. The tool converts them automatically:</p>
+  <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
+    <strong style="color:var(--text)">Cardano</strong> — hex credential → <span class="mono">stake1...</span> bech32 address<br>
+    <strong style="color:var(--text)">TON</strong> — 32-byte hash → <span class="mono">UQ...</span> user-friendly address<br>
+    <strong style="color:var(--text)">Stacks</strong> — compressed pubkey → <span class="mono">SP...</span> c32check address
+  </p>
+  <p>Look for the blue "Derived Address" block when you expand one of these accounts. It includes a copy button and an explorer link. Always verify derived addresses with the customer — they're computed from log data, not confirmed on-chain.</p>
+  <p><strong>Token explorer links:</strong> Token badges on account cards are clickable. The tool resolves contract addresses for 45+ chains and links directly to the token on the correct block explorer. If you're investigating "my tokens are missing," click the token badge to verify it exists on-chain.</p>
 </div>
 
 <h3>Customer View — "See the customer's wallet"</h3>
@@ -278,8 +302,8 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <h3 style="margin-top:0">Three formats</h3>
   <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts, top errors. Paste into your support ticket.</p>
   <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts, all errors. For escalation to Tier 2 or engineering.</p>
-  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Balances and transaction counts. For describing what the wallet looks like. Available in Customer View.</p>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:0">Find these in the Copy dropdown in the sidebar, or the buttons at the top of the Overview.</p>
+  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Balances and transaction counts. For describing what the wallet looks like. Available in the sidebar Copy dropdown and as a button in Customer View.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All three formats are in the <strong>Copy ▾</strong> dropdown in the sidebar's Diagnosis block. Quick Summary and Full Export also appear as buttons at the top of the Overview.</p>
 </div>
 
 
@@ -302,7 +326,7 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <h2 id="troubleshooting">Tips &amp; Troubleshooting</h2>
 
 <h3>The file won't load</h3>
-<p>Accepts <kbd>.json</kbd>, <kbd>.txt</kbd>, and <kbd>.log</kbd> files. Must be a Ledger Wallet log export. Large files show a loading indicator — give it a moment.</p>
+<p>Accepts <kbd>.json</kbd>, <kbd>.txt</kbd>, and <kbd>.log</kbd> files. Must be a Ledger Wallet log export. Large log files show a "Parsing log file..." indicator — give it a moment.</p>
 
 <h3>I see 0 accounts</h3>
 <p>Some logs don't include account data. Load the customer's <kbd>app.json</kbd> in Customer View for full account information.</p>
@@ -323,7 +347,10 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <p>Click ✕ on the green banner to remove it, then upload the correct file.</p>
 
 <h3>The xpub scanner is slow</h3>
-<p>It queries the blockchain for each extended public key. Normal for UTXO accounts (Bitcoin, Litecoin, Dogecoin) with many transactions.</p>
+<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. A scan across 20+ addresses is normal for accounts with long transaction histories. You can stop a running scan at any time.</p>
+
+<h3>App.json is taking a long time to load</h3>
+<p>Large app.json files (10MB+) may take several seconds to parse. The tool doesn't show a loading indicator for app.json — the page may appear to freeze briefly. Wait a few seconds. If it fails, you'll see a red error message with instructions.</p>
 
 </div>
 
