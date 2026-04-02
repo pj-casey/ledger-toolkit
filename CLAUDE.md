@@ -4,13 +4,13 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 **Branch:** `experimental`
 **Design reference:** REDESIGN_VISION_V5.md — sidebar + main area layout spec (implemented).
-**Current sprint:** DEVICE_APP_VERSIONS_SPEC.md — device coin app version detection and display.
+**Completed sprint:** DEVICE_APP_VERSIONS_SPEC.md + DEVICE_APP_VERSIONS_ADDENDUM.md — device coin app version detection and display (implemented).
 
 ---
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~3,000 lines)
+- **ONE file**: `ledger-toolkit.html` (~3,100 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 
@@ -22,7 +22,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 2. 3-tier parser handles minified, pretty-printed, and corrupted JSON
 3. **Two modes:**
 
-**Diagnostic Mode:** Sidebar (Diagnosis block + Issues/Accounts/Timeline/Advanced sections) + main content area. Copy Summary/Full/Customer via dropdown. Error → Timeline jump. Error → Account linking. Severity accents.
+**Diagnostic Mode:** Sidebar (Diagnosis block + Issues/Accounts/Timeline/Advanced sections) + main content area. Copy Summary/Full/Customer via dropdown. Error → Timeline jump. Error → Account linking. Severity accents. Device app version detection and display.
 
 **Customer View:** Sidebar + main area layout. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links.
 
@@ -32,6 +32,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 **Parsing:** `parseLogs()` (3-tier with brace scanner), `parseAppJson()` (encrypted-safe)
 **Extraction:** `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `extractActivity`, `logQualityScore`, `extractAnalytics`
+**Device Apps:** `extractDeviceApps`, `inferRequiredApps`, `CURRENCY_TO_APP`, `parseGetAppAndVersionResponse`
 **Error KB:** `ERR_DB` (82), `diagnose()`, `SEV`, `CAT`
 **Chains:** `CHAINS` (60), `TX_EXPLORERS` (45+), `UTXO_NETS`, `getChain()`, `DC`, `DECIMALS`
 **Address:** `cardanoCredToStake`, `stacksPubkeyToAddr`, `tonHexToAddr`, `fmtBal`
@@ -41,16 +42,6 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 Rendering and styling of ALL components may be modified for UX improvements. Rule: **change how things LOOK, never how things WORK.** Data flow, parsing, extraction, and diagnosis logic must not change.
 
-## CAN ADD (new data layer functions for device app sprint)
-
-New extraction functions may be added alongside existing ones. See DEVICE_APP_VERSIONS_SPEC.md for full spec. Key additions:
-- `extractDeviceApps(entries, apduData)` — parse APDU B001 responses and DMK logger entries for coin app names/versions
-- `inferRequiredApps(accounts)` — map accounts to required device apps
-- `CURRENCY_TO_APP` — currency ID → device app name lookup
-- `LATEST_APP_VERSIONS` — hardcoded latest app versions per device family (to be added in later phase)
-
-Once stable, these should be added to the DO NOT MODIFY list.
-
 ---
 
 ## Three version concepts (NEVER conflate)
@@ -59,9 +50,23 @@ Once stable, these should be added to the DO NOT MODIFY list.
 |---|---|---|---|
 | Ledger Live (desktop app) | `data.appVersion`, `release` | `info.appVer` | "Ledger Live" |
 | Device firmware (secure element OS) | `data.deviceVersion`, `seVersion` | `info.fw` | "Firmware" |
-| Device coin apps (on hardware) | APDU B001 responses, DMK logger | `extractDeviceApps()` | "Device Apps" |
+| Device coin apps (on hardware) | `actions-manager-event` result, DMK APDU | `extractDeviceApps()` | "Device Apps" |
 
 The label "App ver" must NEVER appear in the UI. Use "Ledger Live" for the desktop version.
+
+---
+
+## Device App Detection — How It Works
+
+**Primary source:** `actions-manager-event` entry with `message: "result"` and `data.result.installed[]` array. Present when user opened My Ledger (Manager). Contains every installed app with `name`, `version`, `availableVersion`, `updated` (boolean). This is the richest data source — no external API or APDU parsing needed.
+
+**Secondary source:** `live-dmk-logger` `[exchange]` entries containing GetAppAndVersion APDU responses (`b001` command). Only captures the one app that was running during the session. Returns app name + version. Filters out BOLOS (dashboard).
+
+**No data:** When device wasn't connected. `extractDeviceApps()` returns `null`. UI shows required apps as "not detected" with guidance to connect device and re-export.
+
+**`CURRENCY_TO_APP` mapping (46 entries):** Maps account currency IDs to verified Ledger catalog app names. Key non-obvious mappings: `tezos → 'Tezos Wallet'`, `ripple → 'XRP'`, `cardano → 'Cardano ADA'`, `internet_computer → 'InternetComputer'`. All EVM L2s (`polygon`, `arbitrum`, `base`, etc.) map to `'Ethereum'`.
+
+**`inferRequiredApps(accounts)`:** Groups accounts by required device app. Deduplicates. Returns `[{appName, currencyIds, chains}]`.
 
 ---
 
@@ -104,6 +109,24 @@ See REDESIGN_VISION_V5.md for the full design rationale, navigation behavior tab
 
 ---
 
+## Constants
+
+| Constant | Count | Purpose |
+|---|---|---|
+| `T` | 9 | Theme colors |
+| `TC` | 9 | Log type badge colors |
+| `DN` | 6 | Device model names (`nanoS`, `nanoSP`, `nanoX`, `stax`, `europa`→Flex, `apex`→Nano Gen5) |
+| `CHAINS` | 60 | Chain registry + address explorer URLs |
+| `TX_EXPLORERS` | 45+ | Chain → tx hash explorer URLs |
+| `DECIMALS` | 60+ | Currency → decimal places |
+| `ERR_DB` | 82 | Error diagnosis patterns (39 hw, 31 sw, 12 server) |
+| `EVM_CHAIN_IDS` | 22 | Chain → EVM chain ID |
+| `TOKEN_URLS` | 23 | Token page URL builders |
+| `TOKEN_SEARCH` | 8 | Token search fallbacks |
+| `CURRENCY_TO_APP` | 46 | Currency ID → device app name (verified against Ledger catalog) |
+
+---
+
 ## Functions
 
 Utilities (3): `copyText`, `downloadJSON`, `fmtBal`
@@ -112,12 +135,42 @@ Tokens (1): `fetchTokenChains`
 Diagnosis (1): `diagnose`
 Parsing (2): `parseLogs`, `parseAppJson`
 Extraction (8): `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `logQualityScore`, `extractActivity`, `extractAnalytics`
+Device Apps (3): `extractDeviceApps`, `inferRequiredApps`, `parseGetAppAndVersionResponse`
 Diagnostic UI (6): `CopyBtn`, `Tooltip`, `HighlightText`, `ErrCard`, `XpubView`, `AcctCard`
 Customer View (7): `ModeToggle`, `CVInfoBar`, `CVSidebar`, `CVPortfolioView`, `CVAccountDetail`, `CustomerView`, `CVCopyText`
 JSON Tree (2): `JTNode`, `JTTree`
 Sidebar (1): `DiagSidebar` (inline in App)
 App (1): `App`
-Scoped: `decodeApduStatus`, `copyCustomerSummary`, `buildSummaryText`, `buildFullText`, `buildCustomerText`, `SectionHeader`
+Scoped: `decodeApduStatus`, `copyCustomerSummary`, `buildSummaryText`, `buildFullText`, `buildCustomerText`, `buildDeviceAppsLines`, `SectionHeader`
+
+---
+
+## logData shape
+
+After file processing, `logData` contains:
+
+- `entries`, `dev`, `accts`, `errs`, `syncDur`, `apdu`, `quality`, `activity`, `analytics`, `rawText`
+- `deviceApps` — from `extractDeviceApps()`: `{installed[], deviceModelId, deviceInfo, source}` or `{openedApps[], source}` or `null`
+- `requiredApps` — from `inferRequiredApps()`: `[{appName, currencyIds, chains}]`
+
+---
+
+## Quality Score (10 fields / 100 pts)
+
+| Field | Pts |
+|---|---|
+| Device model | 10 |
+| Firmware version | 10 |
+| Ledger Live version | 10 |
+| Active account (ops>0) | 20 |
+| OS info | 5 |
+| User ID | 5 |
+| Sync duration | 10 |
+| No critical errors | 10 |
+| Log volume (>100 entries) | 10 |
+| Device app info | 10 |
+
+Device app info: full marks for `manager-result`, half for `apdu-only`, zero when `null`.
 
 ---
 
@@ -139,3 +192,9 @@ Scoped: `decodeApduStatus`, `copyCustomerSummary`, `buildSummaryText`, `buildFul
 - Keyboard shortcuts (Ctrl+1 through Ctrl+7)
 - Empty states for all sections
 - Contextual guidance lines in relevant views
+- `DN` `apex` → "Nano Gen5" (was incorrectly "Apex")
+- "Ledger Live" label (was "App ver" — fixes all 7 UI locations + 5 copy text outputs)
+- Device Apps card on Overview: three scenarios (Manager data / APDU-only / no device), collapsible "Other installed apps"
+- Device app version badges on AcctCard (✓ up to date / ⚠ outdated / ✕ missing / muted detected)
+- Device app data in Copy Summary/Full/Customer outputs via `buildDeviceAppsLines` helper
+- Quality score: 10th field "Device app info" (10 pts, rebalanced from 9 fields)

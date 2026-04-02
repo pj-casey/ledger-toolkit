@@ -149,7 +149,7 @@ const sGet=(o,p,fb)=>{try{let c=o;for(const k of p.split('.')){if(c==null)return
 const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',{hour12:false})+'.'+String(d.getMilliseconds()).padStart(3,'0');}catch{return '';}};
 const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return '';}};
 const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
-const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Apex'};
+const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Nano Gen5'};
 const TC={action:'#717070',analytics:'#BBB0FF',countervalues:'#06b6d4',bridge:'#FFBD42',network:'#8A9EF5',persistence:'#7AC26C',walletsync:'#ec4899',error:'#F57375','live-dmk-logger':'#BBB0FF'};
 const gtc=t=>t?TC[t.toLowerCase()]||'#717070':'#717070';
 
@@ -295,6 +295,23 @@ const CHAINS={
 const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
 const DECIMALS={ethereum:18,bitcoin:8,tezos:6,cosmos:6,tron:6,near:24,solana:9,ripple:6,polkadot:10,assethub_polkadot:10,ton:9,cardano:6,bsc:18,polygon:18,avalanche_c_chain:18,optimism:18,arbitrum:18,base:18,linea:18,scroll:18,blast:18,zksync:18,mantle:18,fantom:18,cronos:18,moonbeam:18,moonriver:18,celo:18,neon_evm:18,lukso:18,sonic:18,stellar:7,hedera:8,elrond:18,filecoin:18,vechain:18,algorand:6,klaytn:18,mina:9,kaspa:8,stacks:6,dogecoin:8,litecoin:8,bitcoin_cash:8,aptos:8,sui:9,dydx:18,injective:18,flare:18,hyperevm:18,osmo:6,osmosis:6,internet_computer:8,icp:8,mantra:6,persistence:6,axelar:6,quicksilver:6,zenrock:6};
+const CURRENCY_TO_APP={
+  ethereum:'Ethereum',bitcoin:'Bitcoin',tezos:'Tezos Wallet',cosmos:'Cosmos',
+  solana:'Solana',tron:'Tron',ripple:'XRP',polkadot:'Polkadot',
+  assethub_polkadot:'Polkadot',near:'NEAR',cardano:'Cardano ADA',ton:'TON',
+  stellar:'Stellar',litecoin:'Litecoin',dogecoin:'Dogecoin',bitcoin_cash:'Bitcoin Cash',
+  stacks:'Stacks',algorand:'Algorand',hedera:'Hedera',elrond:'MultiversX',
+  filecoin:'Filecoin',vechain:'VeChain',mina:'Mina',kaspa:'Kaspa',
+  aptos:'Aptos',sui:'Sui',celo:'Celo',internet_computer:'InternetComputer',
+  icp:'InternetComputer',
+  // EVM L2s — all use the Ethereum app on device
+  polygon:'Ethereum',arbitrum:'Ethereum',optimism:'Ethereum',base:'Ethereum',
+  bsc:'Ethereum',avalanche_c_chain:'Ethereum',linea:'Ethereum',scroll:'Ethereum',
+  blast:'Ethereum',zksync:'Ethereum',mantle:'Ethereum',fantom:'Ethereum',
+  cronos:'Ethereum',moonbeam:'Ethereum',moonriver:'Ethereum',klaytn:'Ethereum',
+  neon_evm:'Ethereum',lukso:'Ethereum',sonic:'Ethereum',flare:'Ethereum',
+  hyperevm:'Ethereum',
+};
 function fmtBal(raw,currencyId,ticker){
   if(raw==null||raw==='')return null;
   const d=DECIMALS[currencyId]||0;
@@ -842,13 +859,13 @@ function extractApdu(entries){
   return out;
 }
 
-function logQualityScore(entries,dev,accts,errs){
+function logQualityScore(entries,dev,accts,errs,deviceApps){
   const details=[];
   let score=0;
-  // Device model found: 15pts
+  // Device model found: 10pts
   const hasModel=!!(dev.modelId||dev.modelName);
   details.push({field:'Device model',found:hasModel,note:hasModel?'Present':'Not found in logs'});
-  if(hasModel)score+=15;
+  if(hasModel)score+=10;
   // Firmware version found: 10pts
   const hasFw=!!dev.fw;
   details.push({field:'Firmware version',found:hasFw,note:hasFw?'Present':'Not found'});
@@ -873,11 +890,21 @@ function logQualityScore(entries,dev,accts,errs){
   const hasSyncDur=accts.some(a=>a.dur!=null)||!!entries.find(e=>e.type==='bridge'&&e.message?.includes('SyncSession finished'));
   details.push({field:'Sync duration',found:hasSyncDur,note:hasSyncDur?'Present':'Not found'});
   if(hasSyncDur)score+=10;
-  // No critical errors: 15pts (reduce by 5 per critical error, min 0)
+  // No critical errors: 10pts (reduce by 5 per critical error, min 0)
   const criticalErrs=errs.filter(e=>e.dg&&e.dg.s==='high');
-  const errPts=Math.max(0,15-criticalErrs.length*5);
-  details.push({field:'No critical errors',found:criticalErrs.length===0,note:criticalErrs.length===0?'Clean':`${criticalErrs.length} critical error(s) (-${15-errPts}pts)`});
+  const errPts=Math.max(0,10-criticalErrs.length*5);
+  details.push({field:'No critical errors',found:criticalErrs.length===0,note:criticalErrs.length===0?'Clean':`${criticalErrs.length} critical error(s) (-${10-errPts}pts)`});
   score+=errPts;
+  // Device app info present: 10pts
+  const hasDeviceApp=deviceApps?.source==='manager-result'||deviceApps?.source==='apdu-only';
+  const deviceAppNote=(()=>{
+    if(!deviceApps)return'No device app data (device may not have been connected)';
+    if(deviceApps.source==='manager-result'){const n=deviceApps.installed?.length||0;return`${n} app${n!==1?'s':''} detected via Manager`;}
+    if(deviceApps.source==='apdu-only'){const n=deviceApps.openedApps?.length||0;return`${n} app${n!==1?'s':''} detected via APDU`;}
+    return'No device app data';
+  })();
+  details.push({field:'Device app info',found:hasDeviceApp,note:deviceAppNote});
+  if(hasDeviceApp)score+=10;
   // Total entries > 100: 10pts
   const hasEnough=entries.length>100;
   details.push({field:'Log volume (>100 entries)',found:hasEnough,note:`${entries.length} entries`});
@@ -936,6 +963,64 @@ function extractAnalytics(entries){
     }
   }
   return res;
+}
+
+function extractDeviceApps(entries){
+  // Primary: actions-manager-event with a full installed app list
+  for(const e of entries){
+    if(e.type==='actions-manager-event'&&e.message==='result'&&Array.isArray(e.data?.result?.installed)&&e.data.result.installed.length>0){
+      return{
+        installed:e.data.result.installed,
+        deviceModelId:e.data.result.deviceModelId||null,
+        deviceInfo:e.data.result.deviceInfo||null,
+        source:'manager-result'
+      };
+    }
+  }
+  // Secondary: live-dmk-logger APDU exchange responses (GetAppAndVersion format)
+  const seen={};
+  for(const e of entries){
+    if(e.type!=='live-dmk-logger')continue;
+    const msg=e.message||'';
+    if(!msg.includes('[exchange] <='))continue;
+    const raw=msg.split('[exchange] <=')[1]?.trim();
+    if(!raw)continue;
+    const hex=raw.replace(/\s+/g,'').toLowerCase();
+    if(!hex.startsWith('01')||!hex.endsWith('9000'))continue;
+    // TLV: [01][name_len][name_bytes][02][ver_len][ver_bytes][9000]
+    const payload=hex.slice(0,-4); // strip trailing 9000
+    let i=2; // skip tag 01
+    if(i>=payload.length)continue;
+    const nameLen=parseInt(payload.substr(i,2),16);i+=2;
+    if(isNaN(nameLen)||i+nameLen*2>payload.length)continue;
+    const name=payload.substr(i,nameLen*2).replace(/../g,h=>String.fromCharCode(parseInt(h,16)));
+    i+=nameLen*2;
+    if(!name||name==='BOLOS')continue;
+    if(payload.substr(i,2)==='02')i+=2; // skip optional version tag
+    if(i>=payload.length)continue;
+    const verLen=parseInt(payload.substr(i,2),16);i+=2;
+    if(isNaN(verLen)||i+verLen*2>payload.length)continue;
+    const version=payload.substr(i,verLen*2).replace(/../g,h=>String.fromCharCode(parseInt(h,16)));
+    const ts=e.timestamp||null;
+    if(!seen[name]||ts>seen[name].timestamp)seen[name]={name,version,timestamp:ts,source:'apdu'};
+  }
+  const openedApps=Object.values(seen);
+  if(openedApps.length>0)return{installed:null,openedApps,deviceModelId:null,deviceInfo:null,source:'apdu-only'};
+  return null;
+}
+
+function inferRequiredApps(accounts){
+  const byApp={};
+  for(const acct of accounts){
+    const appName=CURRENCY_TO_APP[acct.cid];
+    if(!appName)continue;
+    if(!byApp[appName])byApp[appName]={appName,currencyIds:[],chains:[]};
+    if(!byApp[appName].currencyIds.includes(acct.cid)){
+      byApp[appName].currencyIds.push(acct.cid);
+      byApp[appName].chains.push(acct.ch);
+    }
+  }
+  return Object.values(byApp);
 }
 
 function parseAppJson(text){
@@ -1274,7 +1359,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount}){
+function AcctCard({acct,errCount,deviceApps}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -1287,6 +1372,23 @@ function AcctCard({acct,errCount}){
   let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
   const hasExp=eUrl&&eUrl!=='#';
   const canX=acct.isXpub&&ch.xc;
+  const appBadge=(()=>{
+    const appName=CURRENCY_TO_APP[acct.cid];
+    if(!appName||!deviceApps)return null;
+    const tick=appName==='Ethereum'?'ETH':acct.ch.ticker.slice(0,4).toUpperCase();
+    if(deviceApps.source==='manager-result'){
+      const inst=deviceApps.installed?.find(i=>i.name.toLowerCase()===appName.toLowerCase());
+      if(!inst)return <span style={bdg(T.error)}>{tick} app missing</span>;
+      if(inst.updated)return <span style={bdg(T.success)} className="mono">{tick} {inst.version} ✓</span>;
+      return <span style={bdg(T.warning)} className="mono">{tick} {inst.version} ⚠</span>;
+    }
+    if(deviceApps.source==='apdu-only'){
+      const found=deviceApps.openedApps?.find(a=>a.name.toLowerCase()===appName.toLowerCase());
+      if(!found)return null;
+      return <span style={bdg(T.muted)} className="mono">{tick} {found.version}</span>;
+    }
+    return null;
+  })();
   return <div className="acct-hover" style={{background:T.panel,border:`1px solid ${open?ch.color+'60':T.border}`,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65}}>
     <div role="button" tabIndex={0} onClick={()=>setOpen(!open)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setOpen(o=>!o);}}} style={{display:'flex',alignItems:'center',padding:'16px 20px',cursor:'pointer',gap:14}}>
       <div className="mono" style={{width:42,height:42,borderRadius:10,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:ch.color,flexShrink:0}}>{ch.ticker.slice(0,4)}</div>
@@ -1296,6 +1398,7 @@ function AcctCard({acct,errCount}){
           {acct.toks.length>0&&<span style={bdg(T.primary)}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
           {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>empty</span>}
           {errCount>0&&<span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,115,117,0.15)',color:T.error}}>⚠ {errCount} issue{errCount!==1?'s':''}</span>}
+          {appBadge}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
         </div>
@@ -1393,7 +1496,7 @@ function CVInfoBar({dev,as,port,accts,appJson}){
       <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:8}}>{dev.modelName||dev.modelId}</div>
       {dev.fw&&<div className="cv-info-row"><span style={{color:T.muted}}>Firmware</span><span className="mono" style={{fontSize:11,color:T.primary}}>{dev.fw}</span></div>}
       {dev.lang&&<div className="cv-info-row"><span style={{color:T.muted}}>Language</span><span style={{fontSize:12}}>{dev.lang}</span></div>}
-      {dev.appVer&&<div className="cv-info-row"><span style={{color:T.muted}}>App</span><span className="mono" style={{fontSize:11}}>{dev.appVer}</span></div>}
+      {dev.appVer&&<div className="cv-info-row"><span style={{color:T.muted}}>Ledger Live</span><span className="mono" style={{fontSize:11}}>{dev.appVer}</span></div>}
       {dev.platform&&<div className="cv-info-row"><span style={{color:T.muted}}>Platform</span><span style={{fontSize:12}}>{dev.platform}</span></div>}
       {dev.os&&<div className="cv-info-row"><span style={{color:T.muted}}>OS</span><span className="mono" style={{fontSize:11}}>{dev.os}{dev.osVer?' '+dev.osVer:''}</span></div>}
     </div>}
@@ -1745,7 +1848,7 @@ function CustomerView({logData,appJson,onAppJson}){
       'DEVICE',
       `  Model:     ${dev.modelName||DN[as.modelId]||as.modelId||'Unknown'}`,
       `  Firmware:  ${dev.fw||as.deviceVersion||'Unknown'}`,
-      `  App:       ${dev.appVer||as.appVersion||'Unknown'}`,
+      `  Ledger Live: ${dev.appVer||as.appVersion||'Unknown'}`,
       `  OS:        ${[dev.os||as.osType,dev.osVer||as.osVersion].filter(Boolean).join(' ')||'Unknown'}`,
       `  Platform:  ${dev.platform||as.platform||'Unknown'}`,
       '',
@@ -2025,6 +2128,47 @@ function JTTree({data}){
   </div>;
 }
 
+function buildDeviceAppsLines(logData, isFull) {
+  const req = logData?.requiredApps;
+  if (!req || !req.length) return [];
+  const da = logData.deviceApps;
+  const lines = [];
+  if (da?.source === 'manager-result') {
+    lines.push(`DEVICE APPS (${req.length} required)`);
+    for (const r of req) {
+      const inst = da.installed.find(i => i.name.toLowerCase() === r.appName.toLowerCase());
+      const pad = r.appName.padEnd(16);
+      if (!inst) {
+        lines.push(`  ${pad}  —         ✕ not installed`);
+      } else if (inst.updated) {
+        lines.push(`  ${pad}  ${(inst.version||'').padEnd(10)}  ✓ up to date`);
+      } else {
+        lines.push(`  ${pad}  ${(inst.version||'').padEnd(10)}  ⚠ outdated (${inst.availableVersion} available)`);
+      }
+    }
+    if (isFull) {
+      const rn = new Set(req.map(r => r.appName.toLowerCase()));
+      const others = da.installed.filter(i => !rn.has(i.name.toLowerCase()));
+      if (others.length > 0) lines.push(`  Other on device: ${others.map(a => `${a.name} ${a.version}`).join(', ')}`);
+    }
+  } else if (da?.source === 'apdu-only') {
+    lines.push(`DEVICE APPS (${req.length} required)`);
+    for (const r of req) {
+      const found = da.openedApps.find(a => a.name.toLowerCase() === r.appName.toLowerCase());
+      const pad = r.appName.padEnd(16);
+      lines.push(found
+        ? `  ${pad}  ${(found.version||'').padEnd(10)}  (detected)`
+        : `  ${pad}  —         not detected`);
+    }
+    lines.push('  Note: Only apps open during session were detected. Full data requires My Ledger.');
+  } else {
+    lines.push(`DEVICE APPS (${req.length} required — none detected, device not connected)`);
+    lines.push(`  ${req.map(r => r.appName).join(', ')}`);
+  }
+  lines.push('');
+  return lines;
+}
+
 function DiagSidebar({ logData, section, setSection }) {
   const errors = logData ? logData.errs : [];
   const accounts = logData ? logData.accts : [];
@@ -2065,13 +2209,14 @@ function DiagSidebar({ logData, section, setSection }) {
       `Session:     ${ses}`,
       '',
       'DEVICE',
-      `  Model:      ${d.modelName || d.modelId || 'Unknown'}`,
-      `  Firmware:   ${d.fw || 'Unknown'}`,
-      `  App ver:    ${d.appVer || 'Unknown'}`,
+      `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
+      `  Firmware:    ${d.fw || 'Unknown'}`,
+      `  Ledger Live: ${d.appVer || 'Unknown'}`,
       `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
       `  Platform:   ${d.platform || 'Unknown'}`,
       `  User ID:    ${d.userId || 'Unknown'}`,
       '',
+      ...buildDeviceAppsLines(logData, false),
       `ACCOUNTS (${accts.length})`,
       ...accts.slice(0, 10).map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return `  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
       ...(accts.length > 10 ? [`  ... and ${accts.length - 10} more`] : []),
@@ -2101,13 +2246,14 @@ function DiagSidebar({ logData, section, setSection }) {
       `Session:     ${ses}`,
       '',
       'DEVICE',
-      `  Model:      ${d.modelName || d.modelId || 'Unknown'}`,
-      `  Firmware:   ${d.fw || 'Unknown'}`,
-      `  App ver:    ${d.appVer || 'Unknown'}`,
+      `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
+      `  Firmware:    ${d.fw || 'Unknown'}`,
+      `  Ledger Live: ${d.appVer || 'Unknown'}`,
       `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
       `  Platform:   ${d.platform || 'Unknown'}`,
       `  User ID:    ${d.userId || 'Unknown'}`,
       '',
+      ...buildDeviceAppsLines(logData, true),
       `ACCOUNTS (${accts.length})`,
       ...accts.map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return `  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
       '',
@@ -2135,10 +2281,11 @@ function DiagSidebar({ logData, section, setSection }) {
       'DEVICE',
       `  Model:     ${dev.modelName || dev.modelId || 'Unknown'}`,
       `  Firmware:  ${dev.fw || 'Unknown'}`,
-      `  App:       ${dev.appVer || 'Unknown'}`,
+      `  Ledger Live: ${dev.appVer || 'Unknown'}`,
       `  OS:        ${[dev.os, dev.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
       `  Platform:  ${dev.platform || 'Unknown'}`,
       '',
+      ...buildDeviceAppsLines(logData, false),
       `ACCOUNTS (${accts.length})`,
     ];
     for (const a of funded) {
@@ -2379,6 +2526,7 @@ function App(){
   const[dragOver,setDragOver]=useState(false);
   const[acctFilter,setAcctFilter]=useState('');
   const[qualityOpen,setQualityOpen]=useState(false);
+  const[otherAppsOpen,setOtherAppsOpen]=useState(false);
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
@@ -2401,8 +2549,9 @@ function App(){
           if(!entries||entries.length===0){setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');setParsing(false);return;}
           const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
           const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
+          const deviceApps=extractDeviceApps(entries);const requiredApps=inferRequiredApps(accts);
           setLoadErr('');
-          setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries),rawText:ev.target.result});
+          setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result});
           setFileKey(k=>k+1);
           setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
@@ -2533,13 +2682,14 @@ function App(){
                 `Session:     ${ses}`,
                 '',
                 'DEVICE',
-                `  Model:      ${d.modelName||d.modelId||'Unknown'}`,
-                `  Firmware:   ${d.fw||'Unknown'}`,
-                `  App ver:    ${d.appVer||'Unknown'}`,
+                `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
+                `  Firmware:    ${d.fw||'Unknown'}`,
+                `  Ledger Live: ${d.appVer||'Unknown'}`,
                 `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
                 `  Platform:   ${d.platform||'Unknown'}`,
                 `  User ID:    ${d.userId||'Unknown'}`,
                 '',
+                ...buildDeviceAppsLines(logData, false),
                 `ACCOUNTS (${accts.length})`,
                 ...accts.slice(0,10).map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}),
                 ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),
@@ -2572,13 +2722,14 @@ function App(){
                 `Session:     ${ses}`,
                 '',
                 'DEVICE',
-                `  Model:      ${d.modelName||d.modelId||'Unknown'}`,
-                `  Firmware:   ${d.fw||'Unknown'}`,
-                `  App ver:    ${d.appVer||'Unknown'}`,
+                `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
+                `  Firmware:    ${d.fw||'Unknown'}`,
+                `  Ledger Live: ${d.appVer||'Unknown'}`,
                 `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,
                 `  Platform:   ${d.platform||'Unknown'}`,
                 `  User ID:    ${d.userId||'Unknown'}`,
                 '',
+                ...buildDeviceAppsLines(logData, true),
                 `ACCOUNTS (${accts.length})`,
                 ...accts.map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}),
                 '',
@@ -2616,12 +2767,71 @@ function App(){
           <div className="ov-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
               {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model. This can happen with older Ledger Wallet versions.':'No device was connected during this session. Device model and firmware are not available. This is expected if the customer exported logs without their device plugged in.'}</div>}
-              {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['App',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}</span></div>)}
+              {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Ledger Live',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}</span></div>)}
             </div>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:16}}>Environment</div>
               {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
             </div>
           </div>
+          {/* Device Apps card */}
+          {logData.requiredApps?.length>0&&(()=>{
+            const da=logData.deviceApps;
+            const req=logData.requiredApps;
+            const rows=req.map(r=>{
+              const n=r.appName;
+              if(da?.source==='manager-result'){
+                const inst=da.installed.find(i=>i.name.toLowerCase()===n.toLowerCase());
+                if(!inst)return{n,status:'missing'};
+                return inst.updated?{n,status:'ok',ver:inst.version}:{n,status:'outdated',ver:inst.version,avail:inst.availableVersion};
+              }else if(da?.source==='apdu-only'){
+                const found=da.openedApps.find(a=>a.name.toLowerCase()===n.toLowerCase());
+                return found?{n,status:'detected',ver:found.version}:{n,status:'undetected'};
+              }
+              return{n,status:'undetected'};
+            });
+            const statusIcon=s=>({ok:'✓',detected:'✓',outdated:'⚠',missing:'✕',undetected:'?'}[s]);
+            const statusColor=s=>({ok:T.success,detected:T.success,outdated:T.warning,missing:T.error,undetected:T.muted}[s]);
+            const okCount=rows.filter(r=>r.status==='ok'||r.status==='detected').length;
+            const instCount=rows.filter(r=>r.status==='ok'||r.status==='outdated').length;
+            const others=da?.source==='manager-result'?(()=>{const rn=new Set(req.map(r=>r.appName.toLowerCase()));return da.installed.filter(i=>!rn.has(i.name.toLowerCase()));})():[];
+            const summary=da?.source==='manager-result'
+              ?`${req.length} app${req.length!==1?'s':''} required · ${instCount} installed · ${okCount} up to date`
+              :`${req.length} app${req.length!==1?'s':''} required · ${okCount} detected during session`;
+            const guidance=da?.source==='manager-result'?null:da?.source==='apdu-only'
+              ?'Open My Ledger with the device connected and re-export logs for full app version data.'
+              :'Device was not connected during this session. Connect the device, open My Ledger, and re-export logs to see installed app versions.';
+            return(
+              <div className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}>
+                <span className="card-bracket-b"/>
+                <div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}><Ico.Chip/> Device Apps</div>
+                {rows.map(r=>(
+                  <div key={r.n} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}>
+                    <span style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{fontWeight:700,fontSize:12,color:statusColor(r.status),width:12,textAlign:'center'}}>{statusIcon(r.status)}</span>
+                      <span style={{fontSize:13}}>{r.n}</span>
+                    </span>
+                    <span className="mono" style={{fontSize:12,color:r.status==='missing'||r.status==='undetected'?T.muted:T.text}}>
+                      {r.status==='ok'?r.ver:r.status==='outdated'?`${r.ver} → ${r.avail} available`:r.status==='detected'?`${r.ver} (detected)`:r.status==='missing'?'not installed':'not detected'}
+                    </span>
+                  </div>
+                ))}
+                <div style={{marginTop:8,fontSize:12,color:T.muted}}>{summary}</div>
+                {guidance&&<div style={{marginTop:6,fontSize:12,color:T.muted,fontStyle:'italic'}}>{guidance}</div>}
+                {others.length>0&&<div style={{marginTop:10}}>
+                  <button onClick={()=>setOtherAppsOpen(o=>!o)} style={{background:'transparent',border:'none',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:4}}>
+                    Other installed apps ({others.length}) {otherAppsOpen?<Ico.ChevD/>:<Ico.ChevR/>}
+                  </button>
+                  {otherAppsOpen&&<div style={{marginTop:6}}>
+                    {others.map(a=>(
+                      <div key={a.name} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:`1px solid ${T.border}`,fontSize:12,color:T.muted}}>
+                        <span>{a.name}</span><span className="mono">{a.version}</span>
+                      </div>
+                    ))}
+                  </div>}
+                </div>}
+              </div>
+            );
+          })()}
           {logData.errs.length>0&&<div style={{background:'rgba(239,68,68,0.04)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:12,padding:16,marginBottom:16}}>
             <div className="card-header" style={{display:'flex',alignItems:'center',gap:8,color:T.error,marginBottom:16}}><Ico.Alert/> {logData.errs.length} Issue{logData.errs.length!==1?'s':''}</div>
             {logData.errs.slice(0,3).map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
@@ -2747,7 +2957,7 @@ function App(){
               const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();
               for(const a of logData.accts){if(a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())){acctErrCounts[a.id]=(acctErrCounts[a.id]||0)+1;}}
             }
-            return filtAccts.map(a=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0}/>);
+            return filtAccts.map(a=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps}/>);
           })()}
           {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
             <div style={{fontSize:28,marginBottom:8}}>👛</div>
