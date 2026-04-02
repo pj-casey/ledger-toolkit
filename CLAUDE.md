@@ -10,7 +10,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~3,100 lines)
+- **ONE file**: `ledger-toolkit.html` (~3,200 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 
@@ -22,9 +22,9 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 2. 3-tier parser handles minified, pretty-printed, and corrupted JSON
 3. **Two modes:**
 
-**Diagnostic Mode:** Sidebar (Diagnosis block + Issues/Accounts/Timeline/Advanced sections) + main content area. Copy Summary/Full/Customer via dropdown. Error → Timeline jump. Error → Account linking. Severity accents. Device app version detection and display.
+**Diagnostic Mode:** Sidebar (Diagnosis block + Issues/Accounts/Timeline/Advanced sections) + main content area. Copy Summary/Full/Customer via dropdown. Error → Timeline jump. Error → Account linking. Severity accents. Device app version detection and display. Firmware update status. Timeline device event markers.
 
-**Customer View:** Sidebar + main area layout. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links.
+**Customer View:** Sidebar + main area layout. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links. dApp usage history.
 
 ---
 
@@ -58,15 +58,44 @@ The label "App ver" must NEVER appear in the UI. Use "Ledger Live" for the deskt
 
 ## Device App Detection — How It Works
 
-**Primary source:** `actions-manager-event` entry with `message: "result"` and `data.result.installed[]` array. Present when user opened My Ledger (Manager). Contains every installed app with `name`, `version`, `availableVersion`, `updated` (boolean). This is the richest data source — no external API or APDU parsing needed.
+**Primary source:** `actions-manager-event` entry with `message: "result"` and `data.result.installed[]` array. Present when user opened My Ledger (Manager). Contains every installed app with `name`, `version`, `availableVersion`, `updated` (boolean). Also contains `firmware` object for firmware update status and `blocks` per app for storage usage.
 
-**Secondary source:** `live-dmk-logger` `[exchange]` entries containing GetAppAndVersion APDU responses (`b001` command). Only captures the one app that was running during the session. Returns app name + version. Filters out BOLOS (dashboard).
+**Secondary source:** `live-dmk-logger` `[exchange]` entries containing GetAppAndVersion APDU responses (`b001` command). Only captures the one app that was running during the session. Returns app name + version. Filters out `BOLOS` (dashboard).
 
 **No data:** When device wasn't connected. `extractDeviceApps()` returns `null`. UI shows required apps as "not detected" with guidance to connect device and re-export.
 
-**`CURRENCY_TO_APP` mapping (46 entries):** Maps account currency IDs to verified Ledger catalog app names. Key non-obvious mappings: `tezos → 'Tezos Wallet'`, `ripple → 'XRP'`, `cardano → 'Cardano ADA'`, `internet_computer → 'InternetComputer'`. All EVM L2s (`polygon`, `arbitrum`, `base`, etc.) map to `'Ethereum'`.
+**`CURRENCY_TO_APP` mapping (46 entries):** Maps account currency IDs to verified Ledger catalog app names. Key non-obvious mappings: `tezos` → `'Tezos Wallet'`, `ripple` → `'XRP'`, `cardano` → `'Cardano ADA'`, `internet_computer` → `'InternetComputer'`. All EVM L2s (polygon, arbitrum, base, etc.) map to `'Ethereum'`.
 
 **`inferRequiredApps(accounts)`:** Groups accounts by required device app. Deduplicates. Returns `[{appName, currencyIds, chains}]`.
+
+---
+
+## Firmware Update Status
+
+Extracted from the `actions-manager-event` result's `firmware` object. Compares `dev.fw` against `firmware.version`. If `osu_versions` all point to the same firmware ID as the installed version, firmware is current. Shows `✓` green or `⚠ X.X.X available` yellow on the Device & App card Firmware row. Included in copy outputs.
+
+---
+
+## Wallet Sync Status
+
+Enhanced Sync row on the Device & App card. Combines three data sources:
+- `logData.dev.ledgerSync` — boolean from analytics
+- `appJson.encrypted` — whether app.json accounts are encrypted by Wallet Sync
+- `walletsync` type entries — scanned for error keywords
+
+States: `Active ✓` (green, unencrypted), `Active (encrypted)` (yellow), `Active` (neutral, no app.json), `Active ⚠ N sync errors` (with error count), `—` (off/unknown). Sensitive trustchain data (rootId, keys) is never displayed.
+
+---
+
+## Timeline Device Event Markers
+
+Timeline rows for device-related entry types get a purple (`T.primary`, `#BBB0FF`) left border accent. Types: `live-dmk-logger`, `list-apps`, `actions-manager-event`, `device-action`, `hw`, `manager`, `send-apdu`. Priority: red (errors) > yellow (warnings) > purple (device) > transparent (default).
+
+---
+
+## dApp Usage History (Customer View)
+
+When app.json is loaded and `discover.recentlyUsed` exists, a "Recent dApp Activity" card renders in CVPortfolioView below the account grid. Shows dApp name, date, and linked account (from `currentAccountHist`). Max 8 entries. Only renders when data exists.
 
 ---
 
@@ -115,7 +144,7 @@ See REDESIGN_VISION_V5.md for the full design rationale, navigation behavior tab
 |---|---|---|
 | `T` | 9 | Theme colors |
 | `TC` | 9 | Log type badge colors |
-| `DN` | 6 | Device model names (`nanoS`, `nanoSP`, `nanoX`, `stax`, `europa`→Flex, `apex`→Nano Gen5) |
+| `DN` | 6 | Device model names (nanoS, nanoSP, nanoX, stax, europa→Flex, apex→Nano Gen5) |
 | `CHAINS` | 60 | Chain registry + address explorer URLs |
 | `TX_EXPLORERS` | 45+ | Chain → tx hash explorer URLs |
 | `DECIMALS` | 60+ | Currency → decimal places |
@@ -148,9 +177,8 @@ Scoped: `decodeApduStatus`, `copyCustomerSummary`, `buildSummaryText`, `buildFul
 ## logData shape
 
 After file processing, `logData` contains:
-
 - `entries`, `dev`, `accts`, `errs`, `syncDur`, `apdu`, `quality`, `activity`, `analytics`, `rawText`
-- `deviceApps` — from `extractDeviceApps()`: `{installed[], deviceModelId, deviceInfo, source}` or `{openedApps[], source}` or `null`
+- `deviceApps` — from `extractDeviceApps()`: `{installed[], deviceModelId, deviceInfo, firmware, source}` or `{openedApps[], source}` or `null`
 - `requiredApps` — from `inferRequiredApps()`: `[{appName, currencyIds, chains}]`
 
 ---
@@ -170,7 +198,7 @@ After file processing, `logData` contains:
 | Log volume (>100 entries) | 10 |
 | Device app info | 10 |
 
-Device app info: full marks for `manager-result`, half for `apdu-only`, zero when `null`.
+Device app info: full marks for manager-result, half for apdu-only, zero when null.
 
 ---
 
@@ -192,9 +220,13 @@ Device app info: full marks for `manager-result`, half for `apdu-only`, zero whe
 - Keyboard shortcuts (Ctrl+1 through Ctrl+7)
 - Empty states for all sections
 - Contextual guidance lines in relevant views
-- `DN` `apex` → "Nano Gen5" (was incorrectly "Apex")
+- DN `apex` → "Nano Gen5" (was incorrectly "Apex")
 - "Ledger Live" label (was "App ver" — fixes all 7 UI locations + 5 copy text outputs)
-- Device Apps card on Overview: three scenarios (Manager data / APDU-only / no device), collapsible "Other installed apps"
+- Device Apps card on Overview: three scenarios (Manager data / APDU-only / no device), collapsible "Other installed apps", storage usage line (apps count + blocks used)
 - Device app version badges on AcctCard (✓ up to date / ⚠ outdated / ✕ missing / muted detected)
 - Device app data in Copy Summary/Full/Customer outputs via `buildDeviceAppsLines` helper
 - Quality score: 10th field "Device app info" (10 pts, rebalanced from 9 fields)
+- Timeline purple left border for device event types (live-dmk-logger, list-apps, actions-manager-event, device-action, hw, manager)
+- Firmware update status: green ✓ or yellow ⚠ on Device & App card Firmware row, included in copy outputs
+- Wallet Sync enhanced status: Active ✓ / Active (encrypted) / sync error count on Device & App card
+- dApp usage history card in Customer View (from app.json discover.recentlyUsed)
