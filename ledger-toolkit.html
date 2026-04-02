@@ -2340,7 +2340,7 @@ function DiagSidebar({ logData, section, setSection }) {
   };
 
   // Sub-components defined inline
-  const SectionHeader = ({ icon, label, subtitle, count, active, onClick, expandable, expanded }) => (
+  const SectionHeader = ({ icon, label, subtitle, count, active, onClick, expandable, expanded, dot }) => (
     <div
       onClick={onClick}
       style={{
@@ -2355,6 +2355,7 @@ function DiagSidebar({ logData, section, setSection }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: '#FFFFFF' }}>{label}</span>
+          {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, marginLeft: 6, display: 'inline-block' }}/>}
           {count != null && <span style={{ fontSize: 11, color: '#949494', marginLeft: 'auto', paddingLeft: 8 }}>{count}</span>}
           {expandable && <span style={{ fontSize: 10, color: '#949494', marginLeft: 4 }}>{expanded ? '▾' : '▸'}</span>}
         </div>
@@ -2396,6 +2397,16 @@ function DiagSidebar({ logData, section, setSection }) {
     : logData?.dev?.fw
     ? `FW ${logData.dev.fw}`
     : 'Device info & apps';
+  const deviceDotColor=(()=>{
+    const da=logData?.deviceApps;const req=logData?.requiredApps||[];
+    if(!da||da.source!=='manager-result')return null;
+    const missingAny=req.some(r=>!da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase()));
+    if(missingAny)return T.error;
+    const outdatedAny=req.some(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&!inst.updated;});
+    const fwOutdated=da.firmware&&logData.dev?.fw&&da.firmware.version!==logData.dev.fw;
+    if(outdatedAny||fwOutdated)return T.warning;
+    return T.success;
+  })();
 
   return (
     <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: '#1C1D1F', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
@@ -2515,6 +2526,7 @@ function DiagSidebar({ logData, section, setSection }) {
           icon={<Ico.Chip />} label="Device" subtitle={deviceSubtitle}
           active={section === 'device'}
           onClick={() => setSection('device')}
+          dot={deviceDotColor}
         />
 
         {/* Timeline */}
@@ -2841,7 +2853,12 @@ function App(){
               {/* Quality score — right */}
               {logData.quality&&(()=>{
                 const q=logData.quality;
+                const circ=2*Math.PI*11;const offset=circ-(q.score/100)*circ;
                 return <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:8,position:'relative'}}>
+                  <svg width="28" height="28" viewBox="0 0 28 28" style={{flexShrink:0}}>
+                    <circle cx="14" cy="14" r="11" fill="none" stroke={T.border} strokeWidth="3"/>
+                    <circle cx="14" cy="14" r="11" fill="none" stroke={q.color} strokeWidth="3" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 14 14)"/>
+                  </svg>
                   <span className="mono" style={{fontWeight:700,fontSize:13,color:q.color}}>{q.score}/100</span>
                   <span style={{fontSize:12,color:T.muted}}>{q.label}</span>
                   <button onClick={()=>setQualityOpen(o=>!o)} style={{padding:'3px 8px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>Details {qualityOpen?<Ico.ChevD/>:<Ico.ChevR/>}</button>
@@ -2864,6 +2881,28 @@ function App(){
         {/* Timeline */}
         {section==='timeline'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
           <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
+          {(()=>{
+            const ents=logData.entries;
+            if(ents.length<2)return null;
+            const t0=new Date(ents[0].timestamp).getTime();
+            const t1=new Date(ents[ents.length-1].timestamp).getTime();
+            const span=t1-t0||1;
+            const N=80;
+            const buckets=Array.from({length:N},()=>({total:0,errors:0,device:0}));
+            const devTypes=new Set(['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager']);
+            for(const e of ents){
+              const idx=Math.min(Math.floor(((new Date(e.timestamp).getTime()-t0)/span)*N),N-1);
+              buckets[idx].total++;
+              if(e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0))buckets[idx].errors++;
+              if(devTypes.has(e.type))buckets[idx].device++;
+            }
+            const maxTotal=Math.max(...buckets.map(b=>b.total),1);
+            return <div style={{display:'flex',alignItems:'flex-end',height:24,gap:1,marginBottom:12,borderRadius:3,overflow:'hidden',background:T.bg}}>
+              {buckets.map((b,i)=>(
+                <div key={i} style={{flex:1,height:Math.max(2,(b.total/maxTotal)*24),borderRadius:'1px 1px 0 0',background:b.errors>0?T.error:b.device>0?T.primary:'rgba(255,255,255,0.15)',alignSelf:'flex-end'}}/>
+              ))}
+            </div>;
+          })()}
           <div style={{display:'flex',gap:10,marginBottom:16}}>
             <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search logs..." className="mono" style={{flex:1,padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13}}/>
             <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,minWidth:160}}>
@@ -2925,7 +2964,12 @@ function App(){
               <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export</button>
             </div>
           </div>
-          {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:16,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>}
+          {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>}
+          {logData.accts.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
+            {logData.accts.map(a=>(
+              <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${a.ops>0?` · ${a.ops} ops`:' · empty'}`} style={{width:20,height:20,borderRadius:3,background:a.ops>0?a.ch.color:T.border,opacity:a.ops>0?1:0.4,cursor:'pointer',flexShrink:0}}/>
+            ))}
+          </div>}
           <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
           </div>{/* end fixed header */}
           <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
@@ -3133,6 +3177,19 @@ function App(){
               ))}
             </div>}
 
+            {/* Error distribution bar */}
+            {enrichedErrs.length>0&&(()=>{
+              const cats=[{k:'hardware',c:T.error},{k:'software',c:T.warning},{k:'server',c:T.primary},{k:'unknown',c:T.muted}];
+              const counts=cats.map(({k,c})=>({k,c,n:enrichedErrs.filter(e=>e.dg.c===k).length})).filter(x=>x.n>0);
+              const total=counts.reduce((s,x)=>s+x.n,0);
+              if(!total)return null;
+              return <div style={{marginBottom:16}}>
+                <div style={{display:'flex',height:8,borderRadius:4,overflow:'hidden',background:T.border}}>
+                  {counts.map(x=><div key={x.k} style={{width:`${(x.n/total)*100}%`,background:x.c}}/>)}
+                </div>
+                <div style={{fontSize:11,color:T.muted,marginTop:5}}>{counts.map(x=>`${x.n} ${x.k}`).join(' · ')}</div>
+              </div>;
+            })()}
             {/* Diagnostic summary card */}
             <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,padding:'14px 16px',marginBottom:16,display:'flex',alignItems:'flex-start',gap:10}}>
               <span style={{fontSize:16,flexShrink:0}}>📋</span>
