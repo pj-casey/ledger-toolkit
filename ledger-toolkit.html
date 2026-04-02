@@ -940,6 +940,7 @@ function extractAnalytics(entries){
 
 function parseAppJson(text){
   try{
+    text=Array.from(text).filter(ch=>{const c=ch.charCodeAt(0);return c>=0x20||c===0x0a||c===0x09;}).join('');
     const raw=JSON.parse(text);
     const data=raw.data||raw;
     const rawAccounts=data.accounts;
@@ -979,7 +980,7 @@ function parseAppJson(text){
     return{accounts,byId,raw:data,encrypted,
       settings:{devices,lastDevice,counterValue:settings.counterValue,language:settings.language,locale:settings.locale},
       cryptoTokens,discoverAcctIds};
-  }catch(e){console.error('parseAppJson error:',e);return null;}
+  }catch(e){console.error('parseAppJson error:',e.message,'at position:',e.message.match(/position (\d+)/)?.[1]);return null;}
 }
 
 /* Components */
@@ -1803,17 +1804,17 @@ function CustomerView({logData,appJson,onAppJson}){
       try{
         const parsed=parseAppJson(ev.target.result);
         if(!parsed||(parsed.accounts.length===0&&!parsed.encrypted)){
-          setAjError('Could not read app.json — no account data found. Make sure this is a Ledger Live app.json export.');
+          try{const cleaned=Array.from(ev.target.result).filter(ch=>{const c=ch.charCodeAt(0);return c>=0x20||c===0x0a||c===0x09;}).join('');const raw=JSON.parse(cleaned);const keys=Object.keys(raw).join(', ');const dataKeys=raw.data?Object.keys(raw.data).join(', '):'no .data key';console.error('parseAppJson diagnostic — top keys:',keys,'data keys:',dataKeys);setAjError('This app.json doesn\'t contain account data. It may be from a different version of Ledger Wallet or an incomplete export. Ask the customer to re-export.');}catch(err){console.error('parseAppJson diagnostic:', err.message);setAjError('This file couldn\'t be read. It may be corrupted or not a valid app.json file. Ask the customer to re-export from Ledger Wallet → Settings → Help → View user data.');}
         }else{
           setAjError('');
           onAppJson(parsed);
           setAjKey(k=>k+1);
         }
       }catch(err){
-        setAjError('Failed to parse app.json: '+(err.message||'unknown error'));
+        console.error('parseAppJson diagnostic:', err.message);setAjError('This file couldn\'t be read. It may be corrupted or not a valid app.json file. Ask the customer to re-export from Ledger Wallet → Settings → Help → View user data.');
       }
     };
-    reader.onerror=()=>setAjError('Failed to read file.');
+    reader.onerror=()=>setAjError('The file couldn\'t be opened. Try downloading it again from the customer\'s ticket.');
     reader.readAsText(file);
   },[onAppJson]);
   const handleAppJsonPick=useCallback(ev=>{
@@ -1827,17 +1828,17 @@ function CustomerView({logData,appJson,onAppJson}){
       try{
         const parsed=parseAppJson(e.target.result);
         if(!parsed||(parsed.accounts.length===0&&!parsed.encrypted)){
-          setAjError('Could not read app.json — no account data found. Make sure this is a Ledger Live app.json export.');
+          try{const cleaned=Array.from(e.target.result).filter(ch=>{const c=ch.charCodeAt(0);return c>=0x20||c===0x0a||c===0x09;}).join('');const raw=JSON.parse(cleaned);const keys=Object.keys(raw).join(', ');const dataKeys=raw.data?Object.keys(raw.data).join(', '):'no .data key';console.error('parseAppJson diagnostic — top keys:',keys,'data keys:',dataKeys);setAjError('This app.json doesn\'t contain account data. It may be from a different version of Ledger Wallet or an incomplete export. Ask the customer to re-export.');}catch(err){console.error('parseAppJson diagnostic:', err.message);setAjError('This file couldn\'t be read. It may be corrupted or not a valid app.json file. Ask the customer to re-export from Ledger Wallet → Settings → Help → View user data.');}
         }else{
           setAjError('');
           onAppJson(parsed);
           setAjKey(k=>k+1);
         }
       }catch(err){
-        setAjError('Failed to parse app.json: '+(err.message||'unknown error'));
+        console.error('parseAppJson diagnostic:', err.message);setAjError('This file couldn\'t be read. It may be corrupted or not a valid app.json file. Ask the customer to re-export from Ledger Wallet → Settings → Help → View user data.');
       }
     };
-    reader.onerror=()=>setAjError('Failed to read file.');
+    reader.onerror=()=>setAjError('The file couldn\'t be opened. Try downloading it again from the customer\'s ticket.');
     reader.readAsText(file);
   },[onAppJson]);
   const selData=selectedAcct!==null?enrichedAccts[selectedAcct]:null;
@@ -1848,7 +1849,7 @@ function CustomerView({logData,appJson,onAppJson}){
       {appJson
         ?appJson.encrypted
           ?<div className="cv-sim-banner">
-              <span>⚠ This app.json uses Ledger Sync encryption — account data cannot be read. Showing device info and {appJson.cryptoTokens.length} token definitions.</span>
+              <span>⚠ This customer has Ledger Sync enabled, which encrypts their account data. Balances and transactions can't be read from this file — only device info and token preferences. For full data, the customer would need to disable Ledger Sync and re-export.</span>
               <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
             </div>
           :bannerExpanded
@@ -2043,7 +2044,7 @@ function DiagSidebar({ logData, section, setSection }) {
     ? `${critCount} critical issue${critCount > 1 ? 's' : ''} — ${topErr?.dg?.t || 'review errors'}`
     : warnCount > 0
     ? `${warnCount} warning${warnCount > 1 ? 's' : ''} during session`
-    : errors.length === 0 ? 'Clean session — no issues detected' : 'No critical issues found';
+    : errors.length === 0 ? 'Clean session — no issues detected' : `No critical issues — ${errors.length} informational event${errors.length!==1?'s':''} logged (routine)`;
 
   const dropItemStyle = {
     display: 'block', width: '100%', padding: '8px 12px',
@@ -2397,20 +2398,22 @@ function App(){
       setTimeout(()=>{
         try{
           const entries=parseLogs(ev.target.result);
-          if(!entries||entries.length===0){setLoadErr('No log entries found. Make sure this is a valid Ledger Live log export (.json or .txt).');setFileName('');setParsing(false);return;}
+          if(!entries||entries.length===0){setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');setParsing(false);return;}
           const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
           const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
           setLoadErr('');
           setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries),rawText:ev.target.result});
           setFileKey(k=>k+1);
           setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');
-        }catch(e){console.error(e);setLoadErr('Failed to parse file: '+(e.message||String(e))+'. Make sure this is a valid Ledger Live log export.');setFileName('');}
+        }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
         setParsing(false);
       },10);
     };reader.readAsText(file);
   },[]);
 
-  const clearLog=()=>{setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setParsing(false);setFileKey(k=>k+1);};
+  const clearLog=()=>{
+    setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setParsing(false);setFileKey(k=>k+1);
+  };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
   const jumpTo=li=>{setSection('timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
@@ -2504,7 +2507,7 @@ function App(){
         </svg>
         <div className={dragOver?'drop-icon-pulse':''} style={{color:dragOver?T.primary:T.muted,marginBottom:16,position:'relative'}}><Ico.Upload/></div>
         <div style={{fontSize:18,fontWeight:600,marginBottom:8,position:'relative'}}>Drop a Ledger Wallet log file here</div>
-        <div style={{color:T.muted,fontSize:14,marginBottom:20,position:'relative'}}>Accepts .json and .txt — export from Settings → Help → Export Logs in Ledger Live</div>
+        <div style={{color:T.muted,fontSize:14,marginBottom:20,position:'relative'}}>Accepts .json and .txt — export from Settings → Help → Export Logs in Ledger Wallet</div>
         <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:T.muted,position:'relative'}}>
           <span>Device info</span><span>Accounts</span><span>Error diagnosis</span><span>On-chain links</span><span>Network</span>
         </div>
@@ -2612,7 +2615,7 @@ function App(){
           })()}
           <div className="ov-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
-              {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified in this log.':'No device connected during this session — model and firmware not available.'}</div>}
+              {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model. This can happen with older Ledger Wallet versions.':'No device was connected during this session. Device model and firmware are not available. This is expected if the customer exported logs without their device plugged in.'}</div>}
               {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['App',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}</span></div>)}
             </div>
             <div className="card-bracketed" style={{...crd,borderRadius:4}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:16}}>Environment</div>
@@ -2719,9 +2722,8 @@ function App(){
             </div>}
             {filtered.length===0&&logData.entries.length>0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>
               <div style={{fontSize:28,marginBottom:12}}>🔍</div>
-              <div style={{fontWeight:600,marginBottom:6}}>No log entries match your filters</div>
+              <div style={{fontWeight:600,marginBottom:6}}>No log entries match your search. Try different terms — common searches: error, rejected, sync, timeout, or a specific account address.</div>
               <div style={{fontSize:12,marginBottom:16}}>Try clearing the search or switching to "All" types</div>
-              {searchTerm&&<div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:8}}>Try searching for: error, rejected, sync, timeout, or a specific account address.</div>}
               <button onClick={()=>{setSearchTerm('');setTypeFilter('all');}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer',marginTop:16}}>Clear filters</button>
             </div>}
             {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {filtered.length}</div>}
@@ -2749,7 +2751,7 @@ function App(){
           })()}
           {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
             <div style={{fontSize:28,marginBottom:8}}>👛</div>
-            <div style={{fontWeight:600,marginBottom:4}}>No accounts match "{acctFilter}"</div>
+            <div style={{fontWeight:600,marginBottom:4}}>No accounts match your filter.</div>
             <div style={{fontSize:12,marginBottom:12}}>Try searching by chain name, ticker, or partial address</div>
             <button onClick={()=>setAcctFilter('')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filter</button>
           </div>}
@@ -2851,7 +2853,7 @@ function App(){
           <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{netEntries.length} requests</div>
           {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
             <div style={{fontSize:32,marginBottom:12}}>🌐</div>
-            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests captured</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests captured in this session. This is normal for short sessions or logs exported before a sync completed.</div>
           </div>}
           {netEntries.length>0&&(()=>{
             const errRequests=netEntries.filter(e=>{
@@ -2914,8 +2916,8 @@ function App(){
           }
           if(logData.apdu.length===0)return<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
             <div style={{fontSize:32,marginBottom:12}}>📡</div>
-            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No device communication data</div>
-            <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>The device may not have been connected during this session.</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No device communication data found</div>
+            <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>The customer's device was not connected during this session — this is expected if they exported logs without their device plugged in.</div>
           </div>;
           const rejections=logData.apdu.filter(a=>{
             if(!a.hex||a.dir==='in')return false;
