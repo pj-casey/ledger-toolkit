@@ -48,14 +48,6 @@ button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 .card-bracket-b::before{bottom:4px;left:4px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);}
 .card-bracket-b::after{bottom:4px;right:4px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
 
-/* ── Brand: tab bar nav style ── */
-.ledger-tab-bar{display:flex;gap:0;margin-bottom:0;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:0;}
-.ledger-tab-btn{position:relative;padding:10px 18px;border-radius:0;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;opacity:0.7;transition:opacity 150ms ease,color 150ms ease,border-color 150ms ease !important;margin-bottom:-1px;}
-.ledger-tab-btn:hover{opacity:1;color:var(--text);}
-.ledger-tab-btn.active{color:var(--text);opacity:1;padding-bottom:8px;}
-.ledger-tab-btn::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--primary);transform:scaleX(0);transition:transform 150ms ease;}
-.ledger-tab-btn.active::after{transform:scaleX(1);}
-
 /* ── Brand: watermark ── */
 .ledger-watermark{position:fixed;bottom:16px;right:20px;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);opacity:0.28;font-weight:500;pointer-events:none;user-select:none;z-index:1;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
 
@@ -80,18 +72,19 @@ button:active{transform:scale(0.98);}
 
 /* ── Customer View ── */
 .cv-layout{display:flex;height:calc(100vh - 100px);overflow:hidden;}
-.cv-sidebar{width:240px;min-width:200px;background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;}
+.cv-sidebar{width:240px;min-width:200px;background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;}
+.cv-sidebar::after{content:'';position:sticky;bottom:0;display:block;height:24px;background:linear-gradient(transparent,#131214);pointer-events:none;}
 .cv-sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
 .cv-main{flex:1;overflow-y:auto;padding:24px;}
 .cv-infobar{width:210px;min-width:180px;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:16px;flex-shrink:0;}
-.cv-acct-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(60,60,60,0.4);transition:background 100ms ease;}
+.cv-acct-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(60,60,60,0.4);transition:background 100ms ease;border-left:3px solid transparent;}
 .cv-acct-row:hover{background:rgba(255,255,255,0.04);}
-.cv-acct-row.cv-active{background:rgba(187,176,255,0.08);border-left:2px solid var(--primary);padding-left:12px;}
+.cv-acct-row.cv-active{background:rgba(187,176,255,0.08);border-left:3px solid #BBB0FF;}
 .cv-chain-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .cv-sim-banner{background:rgba(255,189,66,0.08);border:1px solid rgba(255,189,66,0.2);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--warning);margin-bottom:16px;display:flex;align-items:center;gap:6px;}
 .cv-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
-.cv-portfolio-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 150ms ease,box-shadow 150ms ease;}
-.cv-portfolio-card:hover{border-color:var(--primary);box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+.cv-portfolio-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:transform 150ms ease,border-color 150ms ease,box-shadow 150ms ease;}
+.cv-portfolio-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.12);box-shadow:0 4px 12px rgba(0,0,0,0.3);}
 .cv-detail-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:12px;}
 .cv-info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:12px;}
 .cv-info-row:last-child{border-bottom:none;}
@@ -101,14 +94,20 @@ button:active{transform:scale(0.98);}
 .cv-mode-btn.cv-active{background:var(--primary);color:#000;}
 @media (max-width:1024px){.cv-infobar{display:none;}}
 @media (max-width:768px){.cv-sidebar{width:180px;}.cv-portfolio-grid{grid-template-columns:1fr;}}
-.cv-drop-banner{border:1px dashed rgba(255,189,66,0.3);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--warning);margin-bottom:16px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:border-color 150ms ease,background 150ms ease;}
-.cv-drop-banner:hover{border-color:rgba(255,189,66,0.5);background:rgba(255,189,66,0.04);}
-.cv-drop-banner.cv-dragover{border-color:var(--warning);background:rgba(255,189,66,0.08);}
+.cv-drop-banner{}
 .cv-enriched-banner{border:1px solid rgba(122,194,108,0.25);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--success);margin-bottom:16px;display:flex;align-items:center;gap:6px;background:rgba(122,194,108,0.06);}
 .cv-tx-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:11px;}
+.cv-tx-row:nth-child(even){background:rgba(255,255,255,0.015);}
 .cv-tx-row:last-child{border-bottom:none;}
 .cv-tx-type{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;min-width:32px;text-align:center;flex-shrink:0;}
 .cv-bal-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;}
+.cv-sidebar-scroll{overflow-y:auto;flex:1;}
+.cv-sidebar-scroll::after{content:'';position:sticky;bottom:0;display:block;height:24px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none;}
+.cv-card-lift{transition:transform 0.15s ease,box-shadow 0.15s ease;}
+.cv-card-lift:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.35);}
+/* ── Diagnostic card hover states ── */
+.err-hover:hover{filter:brightness(1.05);}
+.acct-hover:hover{filter:brightness(1.05);}
 /* ── JSON Tree ── */
 .jt-row{display:flex;align-items:baseline;gap:4px;padding:1px 12px;font-size:12px;transition:background 100ms ease;min-height:22px;white-space:nowrap;}
 .jt-row:hover{background:rgba(255,255,255,0.03);}
@@ -1010,10 +1009,10 @@ function HighlightText({text,term}){
   </span>;
 }
 
-function ErrCard({err,onJump}){
+function ErrCard({err,onJump,linkedAcct,onGoAcct}){
   const d=err.dg,sv=SEV[d.s]||SEV.low,ct=CAT[d.c]||CAT.unknown;
   const[detOpen,setDetOpen]=useState(false);
-  return <div style={{background:sv.bg,border:`1px solid ${sv.bd}`,borderRadius:12,padding:18,marginBottom:12}}>
+  return <div className="err-hover" style={{background:sv.bg,border:`1px solid ${sv.bd}`,borderLeft:`3px solid ${sv.c}`,borderRadius:12,padding:18,marginBottom:12,transition:'border-color 0.15s ease'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <span style={{fontSize:18}}>{ct.i}</span>
@@ -1031,6 +1030,13 @@ function ErrCard({err,onJump}){
       <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:sv.bg,color:sv.c,border:`1px solid ${sv.bd}`}}>{sv.l.toUpperCase()}</span>
       {d.repeatCount>0&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning,border:'1px solid rgba(255,189,66,0.3)'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
     </div>
+    {linkedAcct&&onGoAcct&&<div style={{paddingLeft:34,marginTop:8}}>
+      <span onClick={()=>onGoAcct(linkedAcct.addr)} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'3px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.1)',border:'1px solid rgba(187,176,255,0.2)',color:T.primary,transition:'background 0.15s'}}>
+        <span style={{width:8,height:8,borderRadius:'50%',background:linkedAcct.ch.color||T.muted,flexShrink:0}}/>
+        Affected: {linkedAcct.ch.name}
+        <span style={{opacity:0.6,fontFamily:MF,fontSize:10}}>{linkedAcct.addr.slice(0,10)}…</span>
+      </span>
+    </div>}
     {d.causes&&d.causes.length>0&&<div style={{paddingLeft:34,marginTop:10}}>
       <span className="label" style={{color:T.muted,marginRight:6}}>Common causes:</span>
       {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,background:'rgba(255,255,255,0.06)',color:T.muted,marginRight:4,marginBottom:4}}>{cause}</span>)}
@@ -1267,7 +1273,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct}){
+function AcctCard({acct,errCount}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -1280,7 +1286,7 @@ function AcctCard({acct}){
   let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
   const hasExp=eUrl&&eUrl!=='#';
   const canX=acct.isXpub&&ch.xc;
-  return <div style={{background:T.panel,border:`1px solid ${open?ch.color+'60':T.border}`,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65}}>
+  return <div className="acct-hover" style={{background:T.panel,border:`1px solid ${open?ch.color+'60':T.border}`,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65}}>
     <div role="button" tabIndex={0} onClick={()=>setOpen(!open)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setOpen(o=>!o);}}} style={{display:'flex',alignItems:'center',padding:'16px 20px',cursor:'pointer',gap:14}}>
       <div className="mono" style={{width:42,height:42,borderRadius:10,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:ch.color,flexShrink:0}}>{ch.ticker.slice(0,4)}</div>
       <div style={{flex:1,minWidth:0}}>
@@ -1288,6 +1294,7 @@ function AcctCard({acct}){
           <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
           {acct.toks.length>0&&<span style={bdg(T.primary)}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
           {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>empty</span>}
+          {errCount>0&&<span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,115,117,0.15)',color:T.error}}>⚠ {errCount} issue{errCount!==1?'s':''}</span>}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
         </div>
@@ -1366,8 +1373,14 @@ function AcctCard({acct}){
 
 function ModeToggle({mode,onChange}){
   return <div className="cv-mode-toggle" role="group" aria-label="View mode">
-    <button className={`cv-mode-btn${mode==='diagnostic'?' cv-active':''}`} onClick={()=>onChange('diagnostic')} aria-pressed={mode==='diagnostic'}>Diagnostic</button>
-    <button className={`cv-mode-btn${mode==='customer'?' cv-active':''}`} onClick={()=>onChange('customer')} aria-pressed={mode==='customer'}>Customer View</button>
+    <button className={`cv-mode-btn${mode==='diagnostic'?' cv-active':''}`} onClick={()=>onChange('diagnostic')} aria-pressed={mode==='diagnostic'}>
+      <div>Diagnostic</div>
+      <div style={{fontSize:10,color:mode==='diagnostic'?'rgba(0,0,0,0.6)':'#949494',marginTop:1}}>Technical investigation</div>
+    </button>
+    <button className={`cv-mode-btn${mode==='customer'?' cv-active':''}`} onClick={()=>onChange('customer')} aria-pressed={mode==='customer'}>
+      <div>Customer View</div>
+      <div style={{fontSize:10,color:mode==='customer'?'rgba(0,0,0,0.6)':'#949494',marginTop:1}}>See the customer's wallet</div>
+    </button>
   </div>;
 }
 
@@ -1403,39 +1416,50 @@ function CVInfoBar({dev,as,port,accts,appJson}){
 }
 
 function CVSidebar({accts,namedAccts,selected,onSelect,errs,as,appJson}){
+  const sorted=[...namedAccts].sort((a,b)=>{
+    const aFunded=a.bal>0||a.ops>0||(a.enriched&&a.ajBalance&&a.ajBalance!=='0');
+    const bFunded=b.bal>0||b.ops>0||(b.enriched&&b.ajBalance&&b.ajBalance!=='0');
+    return aFunded===bFunded?0:aFunded?-1:1;
+  });
   return <div className="cv-sidebar">
     <div className="cv-sidebar-header">
       <div style={{fontSize:11,fontWeight:600,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Accounts</div>
       <div style={{fontSize:11,color:T.muted}}>{accts.length} total · {appJson ? appJson.accounts.filter(a=>a.balance!=='0').length : (as&&as.accountsWithFunds&&as.accountsWithFunds.length)||accts.filter(a=>a.ops>0).length} with funds</div>
     </div>
-    <div className={`cv-acct-row${selected===null?' cv-active':''}`} onClick={()=>onSelect(null)}>
+    <div className={`cv-acct-row${selected===null?' cv-active':''}`} style={{borderLeft:selected===null?`3px solid ${T.primary}`:'3px solid transparent',paddingLeft:selected===null?11:14}} onClick={()=>onSelect(null)}>
       <span style={{fontSize:14,flexShrink:0}}>◈</span>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:12,fontWeight:600,color:T.text}}>Portfolio</div>
         <div style={{fontSize:10,color:T.muted}}>All accounts</div>
       </div>
     </div>
-    {namedAccts.map((a,i)=>{
-      const ch=a.ch;
-      const hasErr=errs.some(e=>(e.det||e.msg||'').includes(a.addr||'____NOMATCH'));
-      const enriched=a.enriched&&a.ajBalance!=null;
-      const bal=enriched?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
-      const ops=enriched?a.ajOps:a.ops;
-      const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
-      return <div key={i} className={`cv-acct-row${selected===i?' cv-active':''}`} onClick={()=>onSelect(i)}>
-        <span className="cv-chain-dot" style={{background:ch.color||T.muted}}/>
-        <div style={{flex:1,minWidth:0,overflow:'hidden'}}>
-          <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}{a.ajStarred?' ★':''}</div>
-          <div style={{fontSize:10,color:T.muted,display:'flex',gap:4,flexWrap:'wrap'}}>
-            <span>{ch.ticker}</span>
-            {bal&&<span style={{color:T.success,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>· {bal}</span>}
-            {!bal&&funded&&<span style={{color:T.success}}>· {ops} ops</span>}
-            {!bal&&!funded&&<span style={{opacity:0.5}}>· empty</span>}
+    <div className="cv-sidebar-scroll">
+      {sorted.map((a,i)=>{
+        const ch=a.ch;
+        const originalIdx=namedAccts.indexOf(a);
+        const hasErr=errs.some(e=>(e.det||e.msg||'').includes(a.addr||'____NOMATCH'));
+        const enriched=a.enriched&&a.ajBalance!=null;
+        const bal=enriched?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
+        const ops=enriched?a.ajOps:a.ops;
+        const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
+        const isActive=selected===originalIdx;
+        return <div key={i} className={`cv-acct-row${isActive?' cv-active':''}`}
+          style={{borderLeft:isActive?`3px solid ${T.primary}`:'3px solid transparent',paddingLeft:isActive?11:14}}
+          onClick={()=>onSelect(originalIdx)}>
+          <span className="cv-chain-dot" style={{background:ch.color||T.muted}}/>
+          <div style={{flex:1,minWidth:0,overflow:'hidden'}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}{a.ajStarred?' ★':''}</div>
+            <div style={{fontSize:10,color:T.muted,display:'flex',gap:4,flexWrap:'wrap'}}>
+              <span>{ch.ticker}</span>
+              {bal&&<span style={{color:T.success,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>· {bal}</span>}
+              {!bal&&funded&&<span style={{color:T.success}}>· {ops} ops</span>}
+              {!bal&&!funded&&<span style={{opacity:0.5}}>· empty</span>}
+            </div>
           </div>
-        </div>
-        {hasErr&&a.addr&&<span title="Has related errors" style={{color:T.error,fontSize:10,flexShrink:0}}>⚠</span>}
-      </div>;
-    })}
+          {hasErr&&a.addr&&<span title="Has related errors" style={{color:T.error,fontSize:10,flexShrink:0}}>⚠</span>}
+        </div>;
+      })}
+    </div>
   </div>;
 }
 
@@ -1471,7 +1495,9 @@ function CVPortfolioView({accts,namedAccts,port,as,appJson,onSelectAcct}){
         const ops=enriched?a.ajOps:a.ops;
         const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
         const tokCount=enriched?(a.ajSubAccounts||[]).length:(a.toks||[]).length;
-        return <div key={i} className="cv-portfolio-card" onClick={()=>onSelectAcct(i)}>
+        const isFunded=a.bal>0||a.ops>0||(namedAccts[i]&&namedAccts[i].ajBalance&&namedAccts[i].ajBalance!=='0')||(a.enriched&&a.ajBalance&&a.ajBalance!=='0');
+        return <div key={i} className="cv-portfolio-card cv-card-lift" onClick={()=>onSelectAcct(i)}
+          style={{border:isFunded?`1px solid ${T.border}`:`1px solid rgba(60,60,60,0.4)`,opacity:isFunded?1:0.6,borderLeft:isFunded?`3px solid ${T.success}`:`3px solid ${T.border}`}}>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
             <span className="cv-chain-dot" style={{background:ch.color||T.muted,width:10,height:10}}/>
             <div style={{flex:1,minWidth:0}}>
@@ -1491,12 +1517,13 @@ function CVPortfolioView({accts,namedAccts,port,as,appJson,onSelectAcct}){
   </div>;
 }
 
-function CVCopyText({text,mono}){
+function CVCopyText({text,full,mono}){
   const[copied,setCopied]=useState(false);
+  const copyVal=full||text;
   if(!text)return <span style={{color:T.muted}}>—</span>;
-  return <span onClick={()=>{copyText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);}}
-    style={{cursor:'pointer',fontFamily:mono?MF:'inherit',wordBreak:'break-all',position:'relative'}}
-    title="Click to copy">
+  return <span onClick={()=>{copyText(copyVal);setCopied(true);setTimeout(()=>setCopied(false),1500);}}
+    style={{cursor:'pointer',fontFamily:mono?MF:'inherit',wordBreak:'break-all',position:'relative',padding:'2px 4px',margin:'-2px -4px',borderRadius:3}}
+    title={copyVal}>
     {text}
     {copied&&<span style={{position:'absolute',top:-18,left:0,fontSize:9,color:T.success,fontWeight:700,fontFamily:'Inter,sans-serif'}}>Copied!</span>}
   </span>;
@@ -1530,7 +1557,7 @@ function CVAccountDetail({acct,errs,onBack}){
         </div>
         {eUrl&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:(ch.color||T.primary)+'22',color:ch.color||T.primary,border:`1px solid ${ch.color||T.primary}33`,textDecoration:'none',display:'flex',alignItems:'center',gap:4}}><Ico.Link/> Explorer</a>}
       </div>
-      {enriched&&acct.ajBalance!=null&&<div style={{marginBottom:14}}>
+      {enriched&&acct.ajBalance!=null&&<div style={{marginBottom:20}}>
         <div className="cv-section-title">Balance</div>
         <div className="cv-bal-card" style={{marginBottom:4}}>
           <span style={{color:T.muted,fontSize:12}}>Balance</span>
@@ -1545,10 +1572,12 @@ function CVAccountDetail({acct,errs,onBack}){
           <span className="mono" style={{fontSize:11}}>{Number(acct.ajBlockHeight).toLocaleString()}</span>
         </div>}
       </div>}
-      <div style={{marginBottom:14}}>
+      <div style={{height:1,background:T.border,margin:'16px 0',opacity:0.5}}/>
+      <div style={{marginBottom:20}}>
         <div className="cv-section-title">Address</div>
         <div className="mono" style={{fontSize:11,color:T.text,wordBreak:'break-all',padding:'8px 12px',background:T.bg,borderRadius:6,border:`1px solid ${T.border}`}}><CVCopyText text={acct.addr} mono={true}/></div>
       </div>
+      <div style={{height:1,background:T.border,margin:'16px 0',opacity:0.5}}/>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
         <div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center',minWidth:80}}>
           <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Operations</div>
@@ -1602,7 +1631,10 @@ function CVAccountDetail({acct,errs,onBack}){
           const amtColor=opType==='IN'?T.success:opType==='OUT'?T.error:T.text;
           const counterparty=opType==='IN'?(op.senders||[])[0]:(op.recipients||[])[0];
           const txUrl=op.hash&&TX_EXPLORERS[acct.cid]?TX_EXPLORERS[acct.cid](op.hash):null;
-          return <div key={oi} className="cv-tx-row">
+          const isFailed=op.hasFailed||op.extra?.failed||(opType.includes('FAILED'));
+          const rowBg=isFailed?'rgba(245,115,117,0.07)':oi%2===0?'transparent':'rgba(0,0,0,0.12)';
+          const rowStyle=isFailed?{background:rowBg,borderLeft:`2px solid ${T.error}`,paddingLeft:6}:{background:rowBg};
+          return <div key={oi} className="cv-tx-row" style={rowStyle}>
             <div style={{minWidth:68,flexShrink:0}}>
               <div style={{fontSize:10,color:T.text}}>{fmtDate(op.date)}</div>
               <div style={{fontSize:9,color:T.muted}}>{fmtTime(op.date)}</div>
@@ -1613,11 +1645,11 @@ function CVAccountDetail({acct,errs,onBack}){
               <div style={{fontWeight:600,color:amtColor,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</div>
               {op.fee&&fmtBal(op.fee,acct.cid,null)&&<div style={{fontSize:9,color:T.muted}}>Fee: {fmtBal(op.fee,acct.cid,null)}</div>}
             </div>
-            {counterparty&&<div style={{minWidth:0,maxWidth:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(counterparty,16)} mono={true}/></div>}
+            {counterparty&&<div style={{minWidth:0,maxWidth:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(counterparty,16)} full={counterparty} mono={true}/></div>}
             {op.hash&&<div style={{flexShrink:0}}>
               {txUrl
                 ?<a href={txUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.primary,fontFamily:MF,textDecoration:'none'}}>{trunc(op.hash,12)}</a>
-                :<span style={{fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(op.hash,12)} mono={true}/></span>
+                :<span style={{fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(op.hash,12)} full={op.hash} mono={true}/></span>
               }
             </div>}
           </div>;
@@ -1635,6 +1667,16 @@ function CustomerView({logData,appJson,onAppJson}){
   const[selectedAcct,setSelectedAcct]=useState(null);
   const[ajDragOver,setAjDragOver]=useState(false);
   const[summCopied,setSummCopied]=useState(false);
+  const[bannerExpanded,setBannerExpanded]=useState(true);
+  const[ajError,setAjError]=React.useState('');
+  const[ajKey,setAjKey]=React.useState(0);
+  useEffect(()=>{
+    if(appJson&&!appJson.encrypted){
+      setBannerExpanded(true);
+      const t=setTimeout(()=>setBannerExpanded(false),3000);
+      return()=>clearTimeout(t);
+    }
+  },[appJson]);
   const appJsonRef=useRef();
   const analytics=logData.analytics||{};
   const as=analytics.appStarts||{};
@@ -1649,6 +1691,13 @@ function CustomerView({logData,appJson,onAppJson}){
       return{...a,displayName:counts[base]>1?`${base} ${running[base]}`:base};
     });
   },[logData.accts]);
+  const appJsonMismatch=React.useMemo(()=>{
+    if(!appJson||appJson.encrypted||!appJson.accounts||!appJson.accounts.length)return false;
+    if(!logData.accts||!logData.accts.length)return false;
+    const logIds=new Set(logData.accts.map(a=>a.id));
+    const matchCount=appJson.accounts.filter(a=>logIds.has(a.id)).length;
+    return matchCount===0;
+  },[appJson,logData]);
   const enrichedAccts=useMemo(()=>{
     // Case 1: Log has accounts — enrich with app.json if available
     if(namedAccts.length>0){
@@ -1747,51 +1796,106 @@ function CustomerView({logData,appJson,onAppJson}){
     e.preventDefault();e.stopPropagation();setAjDragOver(false);
     const file=e.dataTransfer?.files?.[0];
     if(!file)return;
+    setAjError('');
     const reader=new FileReader();
     reader.onload=ev=>{
-      const parsed=parseAppJson(ev.target.result);
-      if(parsed&&(parsed.accounts.length>0||parsed.encrypted))onAppJson(parsed);
+      setAjError('');
+      try{
+        const parsed=parseAppJson(ev.target.result);
+        if(!parsed||(parsed.accounts.length===0&&!parsed.encrypted)){
+          setAjError('Could not read app.json — no account data found. Make sure this is a Ledger Live app.json export.');
+        }else{
+          setAjError('');
+          onAppJson(parsed);
+          setAjKey(k=>k+1);
+        }
+      }catch(err){
+        setAjError('Failed to parse app.json: '+(err.message||'unknown error'));
+      }
     };
+    reader.onerror=()=>setAjError('Failed to read file.');
     reader.readAsText(file);
   },[onAppJson]);
   const handleAppJsonPick=useCallback(ev=>{
     const file=ev.target.files?.[0];
     if(!file)return;
     ev.target.value='';
+    setAjError('');
     const reader=new FileReader();
     reader.onload=e=>{
-      const parsed=parseAppJson(e.target.result);
-      if(parsed&&(parsed.accounts.length>0||parsed.encrypted))onAppJson(parsed);
+      setAjError('');
+      try{
+        const parsed=parseAppJson(e.target.result);
+        if(!parsed||(parsed.accounts.length===0&&!parsed.encrypted)){
+          setAjError('Could not read app.json — no account data found. Make sure this is a Ledger Live app.json export.');
+        }else{
+          setAjError('');
+          onAppJson(parsed);
+          setAjKey(k=>k+1);
+        }
+      }catch(err){
+        setAjError('Failed to parse app.json: '+(err.message||'unknown error'));
+      }
     };
+    reader.onerror=()=>setAjError('Failed to read file.');
     reader.readAsText(file);
   },[onAppJson]);
   const selData=selectedAcct!==null?enrichedAccts[selectedAcct]:null;
   return <div className="cv-layout">
     <CVSidebar accts={enrichedAccts} namedAccts={enrichedAccts} selected={selectedAcct} onSelect={setSelectedAcct} errs={logData.errs} as={logData.analytics&&logData.analytics.appStarts} appJson={appJson}/>
     <div className="cv-main">
-      <input type="file" accept=".json" style={{display:'none'}} ref={appJsonRef} onChange={handleAppJsonPick}/>
+      <input key={ajKey} type="file" accept=".json" style={{display:'none'}} ref={appJsonRef} onChange={handleAppJsonPick}/>
       {appJson
         ?appJson.encrypted
           ?<div className="cv-sim-banner">
               <span>⚠ This app.json uses Ledger Sync encryption — account data cannot be read. Showing device info and {appJson.cryptoTokens.length} token definitions.</span>
               <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
             </div>
-          :<div className="cv-enriched-banner">
-              <span>{logData.accts.length===0
-                ?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`
-                :`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}
-              </span>
-              <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.success,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
-            </div>
-        :<div className={`cv-drop-banner${ajDragOver?' cv-dragover':''}`}
+          :bannerExpanded
+            ?<div className="cv-enriched-banner">
+                <span>{logData.accts.length===0
+                  ?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`
+                  :`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}
+                </span>
+                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.success,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+              </div>
+            :<div className="cv-enriched-banner" style={{padding:'4px 12px',fontSize:11,display:'flex',alignItems:'center',gap:6}}>
+                <span style={{color:'#7AC26C'}}>✓ app.json loaded</span>
+                <span onClick={()=>setBannerExpanded(true)} style={{color:'#949494',cursor:'pointer',fontSize:10}}>details ▸</span>
+                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#949494',cursor:'pointer',fontSize:11,padding:'0 4px'}}>✕</button>
+              </div>
+        :<div className="cv-drop-banner"
             onDrop={handleAppJsonDrop}
             onDragOver={e=>{e.preventDefault();setAjDragOver(true);}}
             onDragLeave={()=>setAjDragOver(false)}
-            onClick={()=>appJsonRef.current?.click()}>
-            <span>⚠ Diagnostic simulation — drop customer's app.json here to enrich with real balances and transactions</span>
-            <button onClick={e=>{e.stopPropagation();appJsonRef.current?.click();}} style={{marginLeft:'auto',flexShrink:0,padding:'2px 8px',borderRadius:4,border:`1px solid ${T.warning}55`,background:'transparent',color:T.warning,fontSize:10,fontWeight:600,cursor:'pointer'}}>Browse</button>
+            style={{
+              border:`2px dashed ${ajDragOver?T.primary:T.warning+'60'}`,
+              borderRadius:10,
+              padding:'14px 20px',
+              display:'flex',
+              alignItems:'center',
+              gap:14,
+              cursor:'pointer',
+              transition:'border-color 150ms,background 150ms',
+              background:ajDragOver?'rgba(187,176,255,0.06)':'rgba(255,189,66,0.04)',
+              marginBottom:14
+            }}
+            onClick={()=>{if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}}>
+            <div style={{width:32,height:32,borderRadius:8,background:'rgba(255,189,66,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico.Upload/></div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:2}}>Load customer's app.json</div>
+              <div style={{fontSize:11,color:T.muted}}>Drop here or click to browse — adds real balances, transaction history, and account names</div>
+            </div>
+            <button onClick={e=>{e.stopPropagation();if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.warning}40`,background:T.warning+'12',color:T.warning,fontSize:11,fontWeight:600,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>Browse</button>
           </div>
       }
+      {ajError&&<div style={{background:'rgba(245,115,117,0.08)',border:'1px solid rgba(245,115,117,0.25)',borderRadius:6,padding:'8px 14px',marginBottom:12,fontSize:12,color:T.error}}>{ajError}</div>}
+      {appJsonMismatch&&(
+        <div style={{background:'rgba(245,115,117,0.08)',border:'1px solid rgba(245,115,117,0.25)',borderRadius:6,padding:'8px 14px',marginBottom:12,fontSize:12,color:T.error,display:'flex',alignItems:'center',gap:8}}>
+          <span>⚠</span>
+          <span>This app.json doesn't match the loaded log file — no matching account IDs found. You may have loaded the wrong customer's app.json.</span>
+        </div>
+      )}
       <button onClick={copyCustomerSummary} style={{padding:'5px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',marginBottom:12}}>
         {summCopied?'Copied!':'Copy Customer Summary'}
       </button>
@@ -1920,51 +2024,397 @@ function JTTree({data}){
   </div>;
 }
 
+function DiagSidebar({ logData, section, setSection }) {
+  const errors = logData ? logData.errs : [];
+  const accounts = logData ? logData.accts : [];
+
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [issuesOpen, setIssuesOpen] = useState(true);
+  const [accountsOpen, setAccountsOpen] = useState(true);
+  const [advOpen, setAdvOpen] = useState(false);
+
+  // Severity computation
+  const diagnosed = errors.map(e => ({ ...e, dg: diagnose(e.raw) }));
+  const critCount = diagnosed.filter(e => e.dg.s === 'high').length;
+  const warnCount = diagnosed.filter(e => e.dg.s === 'medium').length;
+  const sevColor = critCount > 0 ? T.error : warnCount > 0 ? T.warning : T.success;
+  const topErr = diagnosed.find(e => e.dg.s === 'high') || diagnosed.find(e => e.dg.s === 'medium');
+  const sevSentence = critCount > 0
+    ? `${critCount} critical issue${critCount > 1 ? 's' : ''} — ${topErr?.dg?.t || 'review errors'}`
+    : warnCount > 0
+    ? `${warnCount} warning${warnCount > 1 ? 's' : ''} during session`
+    : errors.length === 0 ? 'Clean session — no issues detected' : 'No critical issues found';
+
+  const dropItemStyle = {
+    display: 'block', width: '100%', padding: '8px 12px',
+    background: 'none', border: 'none', borderBottom: '1px solid #3C3C3C',
+    color: '#FFFFFF', cursor: 'pointer', textAlign: 'left', fontSize: 12
+  };
+
+  // Copy text builders (mirrors Overview copy buttons)
+  const buildSummaryText = () => {
+    const d = logData.dev;
+    const accts = logData.accts;
+    const errs = logData.errs;
+    const ses = logData.entries.length > 1
+      ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
+      : 'Unknown';
+    return [
+      '=== Ledger Diagnostic Summary ===',
+      `Session:     ${ses}`,
+      '',
+      'DEVICE',
+      `  Model:      ${d.modelName || d.modelId || 'Unknown'}`,
+      `  Firmware:   ${d.fw || 'Unknown'}`,
+      `  App ver:    ${d.appVer || 'Unknown'}`,
+      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
+      `  Platform:   ${d.platform || 'Unknown'}`,
+      `  User ID:    ${d.userId || 'Unknown'}`,
+      '',
+      `ACCOUNTS (${accts.length})`,
+      ...accts.slice(0, 10).map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return `  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
+      ...(accts.length > 10 ? [`  ... and ${accts.length - 10} more`] : []),
+      '',
+      `ERRORS (${errs.length})`,
+      ...errs.slice(0, 8).map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${e.dg?.a || ''}`),
+      ...(errs.length > 8 ? [`  ... and ${errs.length - 8} more`] : []),
+      '',
+      `APDU exchanges: ${logData.apdu?.length || 0}`,
+      `Log quality: ${logData.quality?.score || 0}/100 (${logData.quality?.label || '?'})`,
+      '',
+      'SESSION ACTIVITY',
+      ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
+      '=================================',
+    ].filter(l => l !== undefined).join('\n');
+  };
+
+  const buildFullText = () => {
+    const d = logData.dev;
+    const accts = logData.accts;
+    const errs = logData.errs;
+    const ses = logData.entries.length > 1
+      ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
+      : 'Unknown';
+    return [
+      '=== Ledger Diagnostic Summary (Full) ===',
+      `Session:     ${ses}`,
+      '',
+      'DEVICE',
+      `  Model:      ${d.modelName || d.modelId || 'Unknown'}`,
+      `  Firmware:   ${d.fw || 'Unknown'}`,
+      `  App ver:    ${d.appVer || 'Unknown'}`,
+      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
+      `  Platform:   ${d.platform || 'Unknown'}`,
+      `  User ID:    ${d.userId || 'Unknown'}`,
+      '',
+      `ACCOUNTS (${accts.length})`,
+      ...accts.map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return `  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
+      '',
+      `ERRORS (${errs.length})`,
+      ...errs.map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${e.dg?.a || ''}`),
+      '',
+      `APDU exchanges: ${logData.apdu?.length || 0}`,
+      `Log quality: ${logData.quality?.score || 0}/100 (${logData.quality?.label || '?'})`,
+      '',
+      'SESSION ACTIVITY',
+      ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
+      '=================================',
+    ].filter(l => l !== undefined).join('\n');
+  };
+
+  const buildCustomerText = () => {
+    const dev = logData.dev;
+    const accts = logData.accts;
+    const errs = logData.errs;
+    const funded = accts.filter(a => a.ops > 0);
+    const empty = accts.filter(a => a.ops <= 0);
+    const lines = [
+      '=== Customer Wallet Summary ===',
+      '',
+      'DEVICE',
+      `  Model:     ${dev.modelName || dev.modelId || 'Unknown'}`,
+      `  Firmware:  ${dev.fw || 'Unknown'}`,
+      `  App:       ${dev.appVer || 'Unknown'}`,
+      `  OS:        ${[dev.os, dev.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
+      `  Platform:  ${dev.platform || 'Unknown'}`,
+      '',
+      `ACCOUNTS (${accts.length})`,
+    ];
+    for (const a of funded) {
+      const addr = a.addr ? (a.addr.length > 30 ? a.addr.slice(0, 16) + '...' + a.addr.slice(-8) : a.addr) : '';
+      lines.push(`  ${a.ch.name}: ${a.ops} ops — ${addr}`);
+    }
+    if (empty.length > 0) lines.push(`  (${empty.length} empty account${empty.length !== 1 ? 's' : ''})`);
+    if (errs.length > 0) {
+      lines.push('');
+      lines.push(`ISSUES (${errs.length})`);
+      const seen = new Set();
+      for (const e of errs) {
+        const t = e.dg?.t || e.msg || 'Unknown';
+        if (seen.has(t)) continue;
+        seen.add(t);
+        lines.push(`  [${(e.dg?.s || '?').toUpperCase()}] ${t}`);
+      }
+    }
+    lines.push('');
+    lines.push('===========================');
+    return lines.join('\n');
+  };
+
+  // Sub-components defined inline
+  const SectionHeader = ({ icon, label, subtitle, count, active, onClick, expandable, expanded }) => (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px',
+        cursor: 'pointer', borderLeft: active ? '3px solid #BBB0FF' : '3px solid transparent',
+        background: active ? 'rgba(187,176,255,0.08)' : 'transparent',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = active ? 'rgba(187,176,255,0.08)' : 'rgba(255,255,255,0.04)'}
+      onMouseLeave={e => e.currentTarget.style.background = active ? 'rgba(187,176,255,0.08)' : 'transparent'}
+    >
+      <span style={{ fontSize: 14, marginTop: 1 }}>{icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: 13, color: '#FFFFFF' }}>{label}</span>
+          {count != null && <span style={{ fontSize: 11, color: '#949494', marginLeft: 'auto', paddingLeft: 8 }}>{count}</span>}
+          {expandable && <span style={{ fontSize: 10, color: '#949494', marginLeft: 4 }}>{expanded ? '▾' : '▸'}</span>}
+        </div>
+        <div style={{ fontSize: 10, color: '#949494', marginTop: 2 }}>{subtitle}</div>
+      </div>
+    </div>
+  );
+
+  // Issues expanded
+  const grouped = diagnosed.reduce((acc, e) => {
+    const title = e.dg?.t || e.msg || 'Unknown error';
+    acc[title] = (acc[title] || 0) + 1;
+    return acc;
+  }, {});
+  const issueEntries = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
+  const shownIssues = issueEntries.slice(0, 5);
+  const extraIssues = issueEntries.length - 5;
+
+  // Accounts split
+  const fundedAccts = accounts.filter(a => a.ops > 0);
+  const emptyAccts = accounts.filter(a => a.ops <= 0);
+  const errorsForAcct = (acct) => errors.filter(e =>
+    e.raw && (
+      (e.raw.message || '').toLowerCase().includes(acct.cid) ||
+      (e.raw.message || '').toLowerCase().includes(acct.ch.name.toLowerCase())
+    )
+  ).length;
+
+  // Advanced counts
+  const networkCount = logData ? logData.entries.filter(e => e.type === 'network').length : 0;
+  const apduCount = logData ? logData.apdu.length : 0;
+
+  const advItems = [
+    { label: 'Network', icon: '🌐', count: networkCount, sec: 'network' },
+    ...(apduCount > 0 ? [{ label: 'APDU', icon: '📡', count: apduCount, sec: 'apdu' }] : []),
+    { label: 'Raw JSON', icon: '{ }', count: null, sec: 'raw' },
+  ];
+
+  return (
+    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: '#1C1D1F', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+
+      {/* Diagnosis block */}
+      <div
+        onClick={() => setSection('overview')}
+        style={{
+          borderLeft: `4px solid ${sevColor}`,
+          background: section === 'overview' ? 'rgba(187,176,255,0.08)' : 'rgba(187,176,255,0.04)',
+          padding: '14px 12px 14px 12px',
+          cursor: 'pointer',
+          position: 'relative',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <span style={{ color: sevColor, fontSize: 10 }}>●</span>
+          <span style={{ fontSize: 12, color: '#FFFFFF', lineHeight: 1.3 }}>{sevSentence}</span>
+        </div>
+        <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+          <button
+            onClick={() => setCopyOpen(o => !o)}
+            style={{ fontSize: 11, background: 'rgba(255,255,255,0.08)', border: '1px solid #3C3C3C', borderRadius: 4, color: '#FFFFFF', padding: '4px 8px', cursor: 'pointer' }}
+          >Copy ▾</button>
+          {copyOpen && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, background: '#1C1D1F', border: '1px solid #3C3C3C', borderRadius: 6, minWidth: 180, boxShadow: '0 4px 16px rgba(0,0,0,0.4)', marginTop: 4 }}>
+              <button onClick={() => { copyText(buildSummaryText()); setCopyOpen(false); }} style={dropItemStyle}>
+                <div style={{ fontWeight: 600 }}>Quick Summary</div>
+                <div style={{ color: '#949494', fontSize: 10 }}>for ticket notes</div>
+              </button>
+              <button onClick={() => { copyText(buildFullText()); setCopyOpen(false); }} style={dropItemStyle}>
+                <div style={{ fontWeight: 600 }}>Full Export</div>
+                <div style={{ color: '#949494', fontSize: 10 }}>for escalation</div>
+              </button>
+              {accounts.length > 0 && (
+                <button onClick={() => { copyText(buildCustomerText()); setCopyOpen(false); }} style={{ ...dropItemStyle, borderBottom: 'none' }}>
+                  <div style={{ fontWeight: 600 }}>Customer Summary</div>
+                  <div style={{ color: '#949494', fontSize: 10 }}>account-focused</div>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Section list */}
+      <div style={{ flex: 1 }}>
+
+        {/* Issues */}
+        <SectionHeader
+          icon={<Ico.Alert />} label="Issues" subtitle="Errors and warnings"
+          count={errors.length} active={section === 'errors'} expandable expanded={issuesOpen}
+          onClick={() => { setIssuesOpen(o => !o); setSection('errors'); }}
+        />
+        {issuesOpen && (
+          <div>
+            {shownIssues.map(([title, count]) => (
+              <div key={title} onClick={() => setSection('errors')}
+                style={{ display: 'flex', alignItems: 'center', padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+                {count > 1 && <span style={{ color: '#949494', fontSize: 11, marginLeft: 6 }}>×{count}</span>}
+              </div>
+            ))}
+            {extraIssues > 0 && (
+              <div onClick={() => setSection('errors')} style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', cursor: 'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                +{extraIssues} more
+              </div>
+            )}
+            {errors.length === 0 && (
+              <div style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic' }}>No issues found</div>
+            )}
+          </div>
+        )}
+
+        {/* Accounts */}
+        <SectionHeader
+          icon={<Ico.Wallet />} label="Accounts" subtitle="Crypto accounts in this log"
+          count={accounts.length} active={section === 'accounts'} expandable expanded={accountsOpen}
+          onClick={() => { setAccountsOpen(o => !o); setSection('accounts'); }}
+        />
+        {accountsOpen && (
+          <div>
+            {fundedAccts.map(acct => {
+              const chainColor = acct.ch?.color || '#949494';
+              const errCount = errorsForAcct(acct);
+              return (
+                <div key={acct.id} onClick={() => setSection('accounts')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: chainColor, flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acct.ch.name}</span>
+                  {errCount > 0 && <span style={{ fontSize: 10, color: '#F57375', background: 'rgba(245,115,117,0.15)', borderRadius: 3, padding: '1px 4px' }}>⚠{errCount}</span>}
+                </div>
+              );
+            })}
+            {emptyAccts.length > 0 && (
+              <div onClick={() => setSection('accounts')}
+                style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic', cursor: 'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                ╶╶ {emptyAccts.length} empty…
+              </div>
+            )}
+            {accounts.length === 0 && (
+              <div style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic' }}>No accounts found</div>
+            )}
+          </div>
+        )}
+
+        {/* Timeline */}
+        <SectionHeader
+          icon={<Ico.Logs />} label="Timeline" subtitle="All events, chronological"
+          count={logData?.entries?.length || 0} active={section === 'timeline'}
+          onClick={() => setSection('timeline')}
+        />
+
+        {/* Advanced */}
+        <SectionHeader
+          icon={<Ico.Chip />} label="Advanced" subtitle="Network · Device · Raw"
+          active={['network', 'apdu', 'raw'].includes(section)} expandable expanded={advOpen}
+          onClick={() => setAdvOpen(o => !o)}
+        />
+        {advOpen && (
+          <div>
+            {advItems.map(item => (
+              <div key={item.sec} onClick={() => setSection(item.sec)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 16px 6px 28px', cursor: 'pointer', fontSize: 12,
+                  color: section === item.sec ? '#BBB0FF' : '#CCCCCC',
+                  background: section === item.sec ? 'rgba(187,176,255,0.08)' : 'transparent',
+                  borderLeft: section === item.sec ? '3px solid #BBB0FF' : '3px solid transparent',
+                }}
+                onMouseEnter={e => { if (section !== item.sec) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = section === item.sec ? 'rgba(187,176,255,0.08)' : 'transparent'; }}>
+                <span style={{ fontSize: 12 }}>{item.icon}</span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.count != null && <span style={{ fontSize: 11, color: '#949494' }}>{item.count}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const[logData,setLogData]=useState(null);
   const[fileName,setFileName]=useState('');
   const[loadErr,setLoadErr]=useState('');
   const[tab,setTab]=useState('Overview');
+  const[section,setSection]=React.useState('overview');
   const[searchTerm,setSearchTerm]=useState('');
   const[typeFilter,setTypeFilter]=useState('all');
   const[expandedRow,setExpandedRow]=useState(null);
   const[dragOver,setDragOver]=useState(false);
   const[acctFilter,setAcctFilter]=useState('');
-  const[hoveredTab,setHoveredTab]=useState(null);
   const[qualityOpen,setQualityOpen]=useState(false);
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
   const[viewMode,setViewMode]=useState('diagnostic');
   const[appJson,setAppJson]=useState(null);
+  const[parsing,setParsing]=useState(false);
+  const[fileKey,setFileKey]=React.useState(0);
+  const[showMore,setShowMore]=useState(false);
+  const[globalSearch,setGlobalSearch]=useState('');
+  const[showGlobalResults,setShowGlobalResults]=useState(false);
   const fileRef=useRef();
 
-  const visibleTabs=useMemo(()=>{
-    const base=['Overview','Timeline','Accounts','Errors','Network','Raw'];
-    if(logData?.apdu?.length>0)base.push('APDU');
-    return base;
-  },[logData]);
-
   const handleFile=useCallback(file=>{
-    if(!file)return;setFileName(file.name);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);
     const reader=new FileReader();
     reader.onload=ev=>{
-      try{
-        const entries=parseLogs(ev.target.result);
-        if(!entries||entries.length===0){setLoadErr('No log entries found. Make sure this is a valid Ledger Live log export (.json or .txt).');setFileName('');return;}
-        const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
-        const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
-        setLoadErr('');
-        setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries),rawText:ev.target.result});
-        setTab('Overview');setSearchTerm('');setTypeFilter('all');
-      }catch(e){console.error(e);setLoadErr('Failed to parse file: '+(e.message||String(e))+'. Make sure this is a valid Ledger Live log export.');setFileName('');}
+      setTimeout(()=>{
+        try{
+          const entries=parseLogs(ev.target.result);
+          if(!entries||entries.length===0){setLoadErr('No log entries found. Make sure this is a valid Ledger Live log export (.json or .txt).');setFileName('');setParsing(false);return;}
+          const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
+          const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
+          setLoadErr('');
+          setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs),activity:extractActivity(entries),analytics:extractAnalytics(entries),rawText:ev.target.result});
+          setFileKey(k=>k+1);
+          setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');
+        }catch(e){console.error(e);setLoadErr('Failed to parse file: '+(e.message||String(e))+'. Make sure this is a valid Ledger Live log export.');setFileName('');}
+        setParsing(false);
+      },10);
     };reader.readAsText(file);
   },[]);
 
-  const clearLog=()=>{setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setViewMode('diagnostic');setAppJson(null);};
-  const openPicker=()=>fileRef.current?.click();
+  const clearLog=()=>{setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setParsing(false);setFileKey(k=>k+1);};
+  const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
-  const jumpTo=li=>{setTab('Timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
+  const jumpTo=li=>{setSection('timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
+  const goToAcct=useCallback(addr=>{setSection('accounts');setAcctFilter(addr.slice(0,12));setTimeout(()=>setAcctFilter(addr.slice(0,12)),50);},[]);
 
   const filtered=useMemo(()=>{
     if(!logData)return[];let f=logData.entries;
@@ -1981,9 +2431,36 @@ function App(){
   },[logData,acctFilter]);
 
   useEffect(()=>{
-    const onKey=e=>{if(!logData)return;const idx=parseInt(e.key)-1;if((e.ctrlKey||e.metaKey)&&idx>=0&&idx<visibleTabs.length){e.preventDefault();setTab(visibleTabs[idx]);}};
-    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);
-  },[logData,visibleTabs]);
+    if(!showMore)return;
+    const handler=e=>setShowMore(false);
+    const t=setTimeout(()=>document.addEventListener('click',handler),0);
+    return()=>{clearTimeout(t);document.removeEventListener('click',handler);};
+  },[showMore]);
+
+  useEffect(()=>{
+    if(!logData||viewMode!=='diagnostic')return;
+    const handler=(e)=>{
+      if(!e.ctrlKey&&!e.metaKey)return;
+      const map={'1':'overview','2':'errors','3':'accounts','4':'timeline','5':'network','6':'apdu','7':'raw'};
+      if(map[e.key]){e.preventDefault();setSection(map[e.key]);}
+    };
+    window.addEventListener('keydown',handler);
+    return()=>window.removeEventListener('keydown',handler);
+  },[logData,viewMode]);
+
+  useEffect(()=>{
+    const handlePageShow=(e)=>{if(e.persisted)clearLog();};
+    window.addEventListener('pageshow',handlePageShow);
+    return()=>window.removeEventListener('pageshow',handlePageShow);
+  },[]);
+
+  const moreAlert=logData&&(
+    (logData.apdu||[]).some(a=>{
+      if(!a.hex||a.dir==='in')return false;
+      const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();
+      return sw==='6985'||sw==='6982';
+    })
+  );
 
   return <div style={{minHeight:'100vh',background:T.bg,color:T.text}}>
     {/* Top bar */}
@@ -1999,20 +2476,23 @@ function App(){
         <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
           <Ico.File/>
           <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
-          <span style={{color:T.muted,marginLeft:4}}>{logData.entries.length} entries · {logData.accts.length} accounts · {logData.errs.length} issue{logData.errs.length!==1?'s':''}</span>
+          <span style={{color:T.muted,marginLeft:4}}>{logData.entries.length} entries · {' '}<span onClick={()=>setSection('accounts')} style={{cursor:'pointer',color:logData.accts.length>0?T.success:T.muted,textDecoration:'underline',textDecorationColor:'transparent',transition:'text-decoration-color 0.15s'}} onMouseEnter={e=>e.target.style.textDecorationColor='currentColor'} onMouseLeave={e=>e.target.style.textDecorationColor='transparent'}>{logData.accts.length} accounts</span> · {' '}<span onClick={()=>setSection('errors')} style={{cursor:'pointer',color:logData.errs.length>0?T.error:T.muted,textDecoration:'underline',textDecorationColor:'transparent',transition:'text-decoration-color 0.15s'}} onMouseEnter={e=>e.target.style.textDecorationColor='currentColor'} onMouseLeave={e=>e.target.style.textDecorationColor='transparent'}>{logData.errs.length} issue{logData.errs.length!==1?'s':''}</span></span>
         </div>
-        <button aria-label="Load a new log file" onClick={openPicker} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
-        <button aria-label="Close current log" onClick={clearLog} style={{padding:'6px 12px',borderRadius:6,border:'1px solid rgba(245,115,117,0.3)',background:'rgba(245,115,117,0.08)',color:T.error,fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.X/> Close</button>
+        <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
       </div>}
     </div>
-    <input ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
+    <input key={fileKey} ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
     {/* Main */}
-    <div style={{padding:24,overflowY:'auto',maxHeight:'calc(100vh - 52px)'}}>
+    <div style={{padding:viewMode==='customer'?0:24,overflowY:'auto',maxHeight:'calc(100vh - 52px)'}}>
       {/* Error state for failed file loads */}
       {loadErr&&!logData&&<div style={{background:'rgba(245,115,117,0.08)',border:'1px solid rgba(245,115,117,0.3)',borderRadius:8,padding:'12px 16px',marginBottom:16,fontSize:13,color:T.error,display:'flex',alignItems:'center',gap:10}}><Ico.Alert/>{loadErr}</div>}
       {/* Drop zone — HUD scanning zone */}
-      {!logData&&<div role="button" tabIndex={0} aria-label="Drop a log file or click to browse" onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openPicker();}}} onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{position:'relative',background:dragOver?T.primary+'08':T.panel,border:`1px solid ${dragOver?T.primary:T.border}`,borderRadius:4,padding:80,textAlign:'center',cursor:'pointer',overflow:'hidden',transition:'border-color 0.2s,background 0.2s'}}>
+      {parsing&&!logData&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:'80px 40px',textAlign:'center'}}>
+        <div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Parsing log file...</div>
+        <div style={{fontSize:13,color:T.muted}}>This may take a few seconds for large files</div>
+      </div>}
+      {!logData&&!parsing&&<div role="button" tabIndex={0} aria-label="Drop a log file or click to browse" onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openPicker();}}} onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{position:'relative',background:dragOver?T.primary+'08':T.panel,border:`1px solid ${dragOver?T.primary:T.border}`,borderRadius:4,padding:80,textAlign:'center',cursor:'pointer',overflow:'hidden',transition:'border-color 0.2s,background 0.2s'}}>
         {/* Corner bracket accents — large 16px */}
         <span style={{position:'absolute',top:12,left:12,width:16,height:16,borderTop:`1px solid ${dragOver?T.primary:T.border}`,borderLeft:`1px solid ${dragOver?T.primary:T.border}`,pointerEvents:'none'}}/>
         <span style={{position:'absolute',top:12,right:12,width:16,height:16,borderTop:`1px solid ${dragOver?T.primary:T.border}`,borderRight:`1px solid ${dragOver?T.primary:T.border}`,pointerEvents:'none'}}/>
@@ -2031,14 +2511,13 @@ function App(){
       </div>}
 
       {/* Log Viewer */}
-      {logData&&viewMode==='diagnostic'&&<div>
-        <div role="tablist" className="ledger-tab-bar" style={{marginBottom:8}}>
-          {visibleTabs.map((t,tidx)=>{const act=tab===t;const ex=t==='Errors'&&logData.errs.length>0?` (${logData.errs.length})`:t==='Accounts'?` (${logData.accts.length})`:'';return <button key={t} role="tab" aria-selected={act} onClick={()=>setTab(t)} onMouseEnter={()=>setHoveredTab(t)} onMouseLeave={()=>setHoveredTab(null)} className={`ledger-tab-btn${act?' active':''}`}>{t}{ex}{hoveredTab===t&&<span className="mono" style={{position:'absolute',top:-8,right:-4,background:'rgba(255,255,255,0.1)',color:'#9c9c9c',fontSize:9,padding:'1px 4px',borderRadius:3,pointerEvents:'none'}}>⌃{tidx+1}</span>}</button>;})}
-        </div>
-        <div className="mono" style={{fontSize:11,color:T.muted,marginBottom:16}}>⌃1–{visibleTabs.length} switch tabs</div>
+      {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden',height:'100%'}}>
+        <DiagSidebar logData={logData} section={section} setSection={setSection} />
+        <div style={{flex:1,overflowY:'auto',padding:'24px'}}>
+        {/* TODO: ENHANCEMENTS — contextual guidance and empty states added in task 3 */}
 
         {/* Overview */}
-        {tab==='Overview'&&<div>
+        {section==='overview'&&<div>
           <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}>
             <button onClick={()=>{
               const d=logData.dev;
@@ -2118,7 +2597,7 @@ function App(){
             </button>
           </div>
           <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:12}}>
-            {[{l:'Entries',v:logData.entries.length,c:T.primary},{l:'Accounts',v:logData.accts.length,c:T.success},{l:'Operations',v:logData.dev.totalOps||'—',c:T.primary},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted}].map(s=><div key={s.l} className="card-bracketed" style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:4,padding:16,textAlign:'center'}}><span className="card-bracket-b"/><div className="stat-value" style={{color:s.c}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4,lineHeight:1.4}}>{s.l}</div></div>)}
+            {[{l:'Entries',v:logData.entries.length,c:T.text},{l:'Accounts',v:logData.accts.length,c:logData.accts.length>0?T.success:T.muted,click:()=>setSection('accounts')},{l:'Operations',v:logData.dev.totalOps||'—',c:(logData.dev.totalOps&&logData.dev.totalOps!=='—')?T.text:T.muted},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted,click:()=>setSection('errors')}].map(s=><div key={s.l} className="card-bracketed" onClick={s.click||undefined} style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:4,padding:16,textAlign:'center',cursor:s.click?'pointer':'default',transition:'border-color 0.15s'}} onMouseEnter={e=>{if(s.click)e.currentTarget.style.borderColor=s.c;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;}}><span className="card-bracket-b"/><div className="stat-value" style={{color:s.c}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4,lineHeight:1.4}}>{s.l}</div></div>)}
           </div>
           {(()=>{
             const act=logData.activity||{};
@@ -2143,7 +2622,18 @@ function App(){
           {logData.errs.length>0&&<div style={{background:'rgba(239,68,68,0.04)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:12,padding:16,marginBottom:16}}>
             <div className="card-header" style={{display:'flex',alignItems:'center',gap:8,color:T.error,marginBottom:16}}><Ico.Alert/> {logData.errs.length} Issue{logData.errs.length!==1?'s':''}</div>
             {logData.errs.slice(0,3).map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
-            {logData.errs.length>3&&<button onClick={()=>setTab('Errors')} style={{marginTop:4,background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:13,cursor:'pointer'}}>View all →</button>}
+            {logData.errs.length>3&&<button onClick={()=>setSection('errors')} style={{marginTop:4,background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:13,cursor:'pointer'}}>View all →</button>}
+            {(()=>{
+              const acctRefs={};
+              logData.errs.forEach(e=>{if(e.dg&&e.dg.r){const a=logData.accts.find(a=>a.addr&&a.addr.length>8&&e.dg.r.includes(a.addr));if(a)acctRefs[a.addr]=(acctRefs[a.addr]||0)+1;}});
+              const topAcct=Object.entries(acctRefs).sort((a,b)=>b[1]-a[1])[0];
+              return(
+                <div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:12,lineHeight:1.5}}>
+                  {topAcct&&`Consider: ${topAcct[1]} error${topAcct[1]>1?'s':''} reference ${topAcct[0].slice(0,16)}… — review that account.`}
+                  {logData.accts.length>0&&" For exact balances, load the customer's app.json in Customer View."}
+                </div>
+              );
+            })()}
           </div>}
           {/* Session banner */}
           {logData.entries.length>1&&(()=>{
@@ -2189,7 +2679,7 @@ function App(){
         </div>}
 
         {/* Timeline */}
-        {tab==='Timeline'&&<div>
+        {section==='timeline'&&<div>
           <div style={{display:'flex',gap:10,marginBottom:16}}>
             <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search logs..." className="mono" style={{flex:1,padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13}}/>
             <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,minWidth:160}}>
@@ -2209,8 +2699,11 @@ function App(){
               const isExp=expandedRow===e.logIndex;
               const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
               const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
+              const lvl=(e.level||'').toLowerCase();
+              const isWarn=lvl==='warning'||lvl==='warn';
+              const dotColor=isErr?T.error:isWarn?T.warning:null;
               return <div key={e.logIndex}>
-                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',background:isErr?'rgba(239,68,68,0.05)':'transparent'}}>
+                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
                   <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
                   <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
                   <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
@@ -2219,18 +2712,24 @@ function App(){
                 {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
               </div>;
             })}
-            {filtered.length===0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>
+            {filtered.length===0&&logData.entries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
+              <div style={{fontSize:32,marginBottom:12}}>📋</div>
+              <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No log entries found</div>
+              <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>The file may be empty or in an unrecognized format.</div>
+            </div>}
+            {filtered.length===0&&logData.entries.length>0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>
               <div style={{fontSize:28,marginBottom:12}}>🔍</div>
               <div style={{fontWeight:600,marginBottom:6}}>No log entries match your filters</div>
               <div style={{fontSize:12,marginBottom:16}}>Try clearing the search or switching to "All" types</div>
-              <button onClick={()=>{setSearchTerm('');setTypeFilter('all');}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filters</button>
+              {searchTerm&&<div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:8}}>Try searching for: error, rejected, sync, timeout, or a specific account address.</div>}
+              <button onClick={()=>{setSearchTerm('');setTypeFilter('all');}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer',marginTop:16}}>Clear filters</button>
             </div>}
             {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {filtered.length}</div>}
           </div>
         </div>}
 
         {/* Accounts */}
-        {tab==='Accounts'&&<div>
+        {section==='accounts'&&<div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <div style={{fontSize:12,color:T.muted}}>{logData.accts.filter(a=>a.ops>0).length} funded · {logData.accts.filter(a=>a.ops===0).length} empty</div>
             <div style={{display:'flex',gap:6}}>
@@ -2240,23 +2739,44 @@ function App(){
           </div>
           {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:16,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>}
           <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:16,boxSizing:'border-box'}}/>
-          {filtAccts.map(a=><AcctCard key={a.id} acct={a}/>)}
+          {(()=>{
+            const acctErrCounts={};
+            for(const e of logData.errs){
+              const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();
+              for(const a of logData.accts){if(a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())){acctErrCounts[a.id]=(acctErrCounts[a.id]||0)+1;}}
+            }
+            return filtAccts.map(a=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0}/>);
+          })()}
           {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
             <div style={{fontSize:28,marginBottom:8}}>👛</div>
             <div style={{fontWeight:600,marginBottom:4}}>No accounts match "{acctFilter}"</div>
             <div style={{fontSize:12,marginBottom:12}}>Try searching by chain name, ticker, or partial address</div>
             <button onClick={()=>setAcctFilter('')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filter</button>
           </div>}
-          {filtAccts.length===0&&!acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>No accounts found in this log</div>}
+          {filtAccts.length===0&&!acctFilter&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
+            <div style={{fontSize:32,marginBottom:12}}>👛</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No accounts in this log</div>
+            <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>Load the customer's app.json in Customer View for account information.</div>
+          </div>}
+          {filtAccts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
+            <div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:12}}>
+              No sync captured in this session. For exact balances, load the customer's app.json in Customer View.
+            </div>
+          )}
         </div>}
 
         {/* Errors */}
-        {tab==='Errors'&&(()=>{
+        {section==='errors'&&(()=>{
           const allErrs=logData.errs;
           // O(N) pass: diagnose each error individually, then count repeating titles separately
           const baseDg=allErrs.map(e=>({...e,dg:diagnose(e.raw)}));
           const titleCounts={};for(const e of baseDg){const t=e.dg.t;titleCounts[t]=(titleCounts[t]||0)+1;}
           const enrichedErrs=baseDg.map(e=>{const c=titleCounts[e.dg.t];return c>1?{...e,dg:{...e.dg,repeatCount:c-1}}:e;});
+          const errAcctMap=new Map();
+          for(const e of enrichedErrs){
+            const haystack=[e.dg?.r||'',e.raw?.message||'',e.raw?.error||'',JSON.stringify(e.raw?.data||'')].join(' ').toLowerCase();
+            for(const a of logData.accts){if(a.addr&&a.addr.length>8&&haystack.includes(a.addr.toLowerCase())){errAcctMap.set(e.li,a);break;}}
+          }
           const highCount=enrichedErrs.filter(e=>e.dg.s==='high').length;
           const medCount=enrichedErrs.filter(e=>e.dg.s==='medium').length;
           const lowCount=enrichedErrs.filter(e=>e.dg.s==='low').length;
@@ -2308,7 +2828,11 @@ function App(){
             </div>}
 
             {/* No errors state */}
-            {enrichedErrs.length===0&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.success,padding:40}}>No issues detected</div>}
+            {enrichedErrs.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
+              <div style={{fontSize:32,marginBottom:12}}>✓</div>
+              <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No errors detected</div>
+              <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>If the customer reports an issue, ask them to reproduce it and export new logs immediately after.</div>
+            </div>}
 
             {/* Category groups */}
             {['hardware','software','server','unknown'].map(cat=>{
@@ -2316,17 +2840,33 @@ function App(){
               const cm=CAT[cat]||CAT.unknown;
               return <div key={cat} style={{marginBottom:24}}>
                 <div className="card-header" style={{color:T.muted,marginBottom:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:16}}>{cm.i}</span> {cm.l} ({g.length})</div>
-                {g.map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
+                {g.map(e=><ErrCard key={e.li} err={e} onJump={jumpTo} linkedAcct={errAcctMap.get(e.li)||null} onGoAcct={goToAcct}/>)}
               </div>;
             })}
           </div>;
         })()}
 
         {/* Network */}
-        {tab==='Network'&&<div>
+        {section==='network'&&<div>
           <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{netEntries.length} requests</div>
-          <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
-            {netEntries.length===0&&<div style={{padding:40,textAlign:'center',color:T.muted}}>None</div>}
+          {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
+            <div style={{fontSize:32,marginBottom:12}}>🌐</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests captured</div>
+          </div>}
+          {netEntries.length>0&&(()=>{
+            const errRequests=netEntries.filter(e=>{
+              const status=e.status||e.statusCode||e.code||(e.data&&(e.data.status||e.data.statusCode||e.data.code));
+              return status&&((Number(status)>=400&&Number(status)<600)||String(status).match(/^[45]/));
+            });
+            const serverErr=errRequests.filter(e=>{const s=Number(e.status||e.statusCode||e.code||(e.data&&(e.data.status||e.data.statusCode||e.data.code)));return s>=500||String(s).startsWith('5');}).length;
+            const clientErr=errRequests.filter(e=>{const s=Number(e.status||e.statusCode||e.code||(e.data&&(e.data.status||e.data.statusCode||e.data.code)));return(s>=400&&s<500)||String(s).startsWith('4');}).length;
+            return errRequests.length>0?(
+              <div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,marginBottom:12,fontSize:13,color:'#FFBD42'}}>
+                {errRequests.length} request{errRequests.length>1?'s':''} returned errors ({serverErr} server, {clientErr} client).
+              </div>
+            ):null;
+          })()}
+          {netEntries.length>0&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
             {netEntries.slice(0,500).map(e=>{
               // Support both new format (data.method + message=url) and old format ("get https://..." in message)
               let method=sGet(e,'data.method','');
@@ -2351,11 +2891,11 @@ function App(){
               </div>;
             })}
             {netEntries.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {netEntries.length}</div>}
-          </div>
+          </div>}
         </div>}
 
         {/* APDU */}
-        {tab==='APDU'&&(()=>{
+        {section==='apdu'&&(()=>{
           function decodeApduStatus(hex,dir){
             if(!hex||dir==='in')return null;
             const sw=hex.replace(/\s/g,'').slice(-4).toLowerCase();
@@ -2372,6 +2912,16 @@ function App(){
             };
             return swMap[sw]||{label:`0x${sw.toUpperCase()}`,color:T.muted};
           }
+          if(logData.apdu.length===0)return<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
+            <div style={{fontSize:32,marginBottom:12}}>📡</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No device communication data</div>
+            <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>The device may not have been connected during this session.</div>
+          </div>;
+          const rejections=logData.apdu.filter(a=>{
+            if(!a.hex||a.dir==='in')return false;
+            const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();
+            return sw&&sw!=='9000';
+          });
           return <div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
               <span style={{fontSize:12,color:T.muted}}>{logData.apdu.length} APDU exchanges</span>
@@ -2383,6 +2933,19 @@ function App(){
                 {apduExportCopied?'Copied!':'Export APDUs'}
               </button>
             </div>
+            {(()=>{
+              if(rejections.length===0)return null;
+              const counts={};
+              rejections.forEach(a=>{const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();counts[sw]=(counts[sw]||0)+1;});
+              const [topCode,topCount]=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+              const codeNames={'6985':'Conditions not satisfied','6982':'Security status not satisfied','6700':'Incorrect length','6e00':'INS not supported','5515':'Device locked','6a82':'File not found','6d00':'Invalid instruction','6f00':'Technical error'};
+              const codeName=codeNames[topCode]||'Unknown condition';
+              return(
+                <div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,marginBottom:12,fontSize:13,color:'#FFBD42'}}>
+                  {rejections.length} device rejection{rejections.length>1?'s':''}. Most common: {topCode} — {codeName}.
+                </div>
+              );
+            })()}
             <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
               {logData.apdu.slice(0,500).map((a,i)=>{
                 const status=decodeApduStatus(a.hex,a.dir);
@@ -2401,7 +2964,7 @@ function App(){
             </div>
           </div>;
         })()}
-        {tab==='Raw'&&(()=>{
+        {section==='raw'&&(()=>{
           let treeData=null;
           if(logData.rawText){
             try{treeData=JSON.parse(logData.rawText);}catch{}
@@ -2420,6 +2983,7 @@ function App(){
             <JTTree data={treeData}/>
           </div>;
         })()}
+      </div>
       </div>}
     </div>
   {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson}/>}

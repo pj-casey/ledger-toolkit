@@ -1,139 +1,91 @@
 # Ledger Diagnostic Toolkit — Claude Code Guide
 
-Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to
-diagnose customer issues from Ledger Wallet log exports.
+Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose customer issues from Ledger Wallet log exports.
 
----
-
-## What the tool does
-
-1. Agent drops a JSON/TXT/LOG file onto the page
-2. App parses entries (handles minified, pretty-printed, and corrupted JSON)
-3. **Two modes** (toggled in top bar):
-
-**Diagnostic Mode** (default):
-- Overview, Accounts, Errors, Timeline, Network, APDU tabs
-- Copy Summary / Copy Full for tickets
-
-**Customer View**:
-- Read-only simulation of customer's Ledger Wallet
-- Sidebar account list with balances, portfolio overview, account detail with transaction history
-- App.json enrichment: drop customer's `app.json` for exact balances, names, tx history
-- Handles encrypted (Ledger Sync) app.json gracefully with warning banner
-- App.json as primary source when logs have 0 accounts
-- Copy Customer Summary, click-to-copy on addresses/hashes, correct tx explorer links
+**Branch:** `experimental` — UI/UX overhaul in progress. See REDESIGN_VISION_V5.md for the full design vision.
 
 ---
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (2,304 lines)
-- React 18.3.1 + Babel standalone 7.26.10 (CDN), bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
+- **ONE file**: `ledger-toolkit.html` (~2,450 lines)
+- React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 
 ---
 
-## Critical rules for Claude Code
+## What the tool does
 
-### DO NOT MODIFY
+1. Agent drops a JSON/TXT/LOG file
+2. 3-tier parser handles minified, pretty-printed, and corrupted JSON
+3. **Two modes:**
 
-**Parsing & extraction:**
-`parseLogs()` (3-tier: JSON.parse → brace scanner → line-by-line), `extractDevice()`, `extractAccounts()`, `extractErrors()`, `extractSync()`, `extractApdu()`, `extractActivity()`, `logQualityScore()`, `extractAnalytics()`, `parseAppJson()`
+**Diagnostic Mode:** Overview, Accounts, Errors, Timeline, Network, APDU, Raw tabs. Copy Summary/Full. Error → Timeline jump. Error → Account linking. Severity accents.
 
-**Error KB:** `ERR_DB` (82 patterns), `diagnose()`, `SEV`, `CAT`
+**Customer View:** Sidebar + main area layout. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links.
 
-**Chain registry:** `CHAINS` (60 entries), `TX_EXPLORERS` (45+ chains), `UTXO_NETS`, `getChain()`, `DC`, `DECIMALS`
-Address derivation: `cardanoCredToStake()`, `stacksPubkeyToAddr()`, `tonHexToAddr()`
-Formatting: `fmtBal()`
+---
 
-**Token resolution:** `TOKEN_CONTRACTS`, `fetchTokenChains()`, `TOKEN_URLS`, `TOKEN_SEARCH`, `EVM_CHAIN_IDS`
+## DO NOT MODIFY (data layer)
 
-**Diagnostic components:** `CopyBtn`, `Tooltip`, `HighlightText`, `ErrCard`, `XpubView`, `AcctCard`
+**Parsing:** `parseLogs()` (3-tier with brace scanner), `parseAppJson()` (encrypted-safe)
+**Extraction:** `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `extractActivity`, `logQualityScore`, `extractAnalytics`
+**Error KB:** `ERR_DB` (82), `diagnose()`, `SEV`, `CAT`
+**Chains:** `CHAINS` (60), `TX_EXPLORERS` (45+), `UTXO_NETS`, `getChain()`, `DC`, `DECIMALS`
+**Address:** `cardanoCredToStake`, `stacksPubkeyToAddr`, `tonHexToAddr`, `fmtBal`
+**Tokens:** `TOKEN_CONTRACTS`, `fetchTokenChains`, `TOKEN_URLS`, `TOKEN_SEARCH`, `EVM_CHAIN_IDS`
 
-**Customer View components:** `ModeToggle`, `CVInfoBar`, `CVSidebar`, `CVPortfolioView`, `CVAccountDetail`, `CustomerView`, `CVCopyText`
+## CAN MODIFY (rendering/styling on experimental branch)
 
-**App infrastructure:** All 16 state variables, `handleFile()`, `clearLog()`, mode toggle, `ErrorBoundary`
-
-**CSS:** All styles including 22 `cv-` prefixed classes, `:root` variables, animations
-
-### SAFE TO ADD
-
-- New state variables, new components, new `cv-` CSS classes
-- New utility functions (don't modify existing ones)
+Rendering and styling of ALL components may be modified for UX improvements. Rule: **change how things LOOK, never how things WORK.** Data flow, parsing, extraction, and diagnosis logic must not change.
 
 ---
 
 ## Design tokens
 
-### CSS `:root` / JS `T` object
 ```
 bg:#131214  panel:#1C1D1F  border:#3C3C3C  text:#FFFFFF
 muted:#949494  primary:#BBB0FF  success:#7AC26C  error:#F57375  warning:#FFBD42
 ```
 
-### Reusable
-`bdg(color)`, `crd`, `Ico.*` (14 icons), `DN` (device names), `MF` (mono font), `fmtBal(raw, currencyId, ticker)`, `copyText(text)`, `TX_EXPLORERS[currencyId](hash)`
+Aligned with Ledger's LDLS design system (bg-base, bg-surface, text-default, text-muted, text-success, accent).
+
+Fonts: Inter (body) + JetBrains Mono (mono).
+Helpers: `bdg(color)`, `crd`, `Ico.*` (14 icons), `DN` (6 devices), `MF`, `fmtBal()`, `copyText()`, `TX_EXPLORERS[]`
 
 ---
 
-## Parser architecture (parseLogs — 3 tiers)
+## State variables (17)
 
-```
-Tier 1: JSON.parse(full text)
-  ↓ fails
-Tier 2: Brace-depth scanner
-  - Character-by-character scan tracking {} depth
-  - String boundary detection with lookahead/lookbehind validation
-    (rejects garbage " bytes not preceded/followed by JSON structural chars)
-  - Escape handling (only inside strings)
-  - Control char stripping before JSON.parse per object
-  - Skips malformed objects, recovers the rest
-  ↓ fails (0 objects)
-Tier 3: Line-by-line fallback
-  - Splits on \n, tries JSON.parse per line
-  - Non-JSON lines become raw entries
-```
-
-The brace scanner handles: pretty-printed JSON, binary garbage in locale strings, raw control characters, malformed escape sequences, and corrupted individual objects while recovering all valid objects.
+`logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `hoveredTab`, `qualityOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`
 
 ---
 
-## Mode architecture
+## Functions (35)
 
-```
-App()
-├── Top bar: logo, ModeToggle, file info, New/Close
-├── Padding wrapper
-│   ├── Drop zone (when !logData)
-│   └── Diagnostic Mode (when viewMode==='diagnostic')
-├── Customer View — outside padding wrapper (when viewMode==='customer')
-│   ├── CVSidebar (240px)
-│   ├── Main: banner + portfolio or account detail + Copy Customer Summary
-│   └── CVInfoBar (210px, hidden <1024px)
-```
-
-### Customer View data sources (priority order)
-1. **App.json (unencrypted)**: exact balances, account names, full tx history, tokens
-2. **App.json (encrypted/Ledger Sync)**: device list, token definitions, settings only
-3. **Log analytics**: accountsWithFunds, device info, totals
-4. **Log accounts**: from exportLogsMeta accountsIds + SyncSuccess events
-
-When log has 0 accounts but app.json has accounts → builds account list from app.json directly.
+Utilities (3): `copyText`, `downloadJSON`, `fmtBal`
+Address (3): `cardanoCredToStake`, `stacksPubkeyToAddr`, `tonHexToAddr`
+Tokens (1): `fetchTokenChains`
+Diagnosis (1): `diagnose`
+Parsing (2): `parseLogs`, `parseAppJson`
+Extraction (8): `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `logQualityScore`, `extractActivity`, `extractAnalytics`
+Diagnostic UI (6): `CopyBtn`, `Tooltip`, `HighlightText`, `ErrCard`, `XpubView`, `AcctCard`
+Customer View (7): `ModeToggle`, `CVInfoBar`, `CVSidebar`, `CVPortfolioView`, `CVAccountDetail`, `CustomerView`, `CVCopyText`
+JSON Tree (2): `JTNode`, `JTTree`
+App (1): `App`
+Scoped: `decodeApduStatus`, `copyCustomerSummary`
 
 ---
 
-## Doc maintenance protocol
+## Implemented UX changes (experimental branch)
 
-After every prompt that changes the codebase: audit HTML → regenerate both docs → install before next prompt.
-
----
-
-## File structure
-
-```
-ledger-toolkit.html    — The app (single file)
-CLAUDE.md              — This file
-TOOLKIT_SNAPSHOT.md    — Detailed codebase reference
-app.json               — Ledger Wallet user data (schema reference)
-*.txt                  — Sample log files
-```
+- ErrCard/Timeline severity left border accents
+- Top bar stats clickable → navigate to relevant tab
+- Overview stat cards contextual colors + clickable
+- Card hover states (err-hover, acct-hover)
+- Error → Timeline jump (`jumpTo`)
+- Error → Account linking (`linkedAcct`, `goToAcct`)
+- Timeline warning accents (yellow)
+- Account error badges (`errCount`)
+- Loading state for large files
+- Raw tab: JSON tree viewer (JTNode, JTTree) with search, expand controls, copy path

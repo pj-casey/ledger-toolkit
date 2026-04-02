@@ -1,165 +1,119 @@
 # Ledger Diagnostic Toolkit — Codebase Snapshot
-*Verified against ledger-toolkit.html — April 2026 (parser hardening + full CV)*
+*Experimental branch — April 2026*
 
 ## File
-- **Path:** `ledger-toolkit.html` (single-file app, no build step)
-- **Line count:** 2,304
-- **Stack:** React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
+- **Line count:** ~2,450
+- **Stack:** React 18.3.1 + Babel 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
+- **No build step** — single HTML file
 
 ---
 
-## Named Functions (33 total)
+## Functions (35)
 
-**Utilities (3):** `copyText`, `downloadJSON`, `fmtBal`
-**Address derivation (3):** `cardanoCredToStake`, `stacksPubkeyToAddr`, `tonHexToAddr`
-**Token resolution (1):** `fetchTokenChains`
-**Error diagnosis (1):** `diagnose`
-**Parsing (2):** `parseLogs` (3-tier), `parseAppJson` (encrypted-safe)
-**Data extraction (8):** `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `logQualityScore`, `extractActivity`, `extractAnalytics`
-**Diagnostic components (6):** `CopyBtn`, `Tooltip`, `HighlightText`, `ErrCard`, `XpubView`, `AcctCard`
-**Customer View components (7):** `ModeToggle`, `CVInfoBar`, `CVSidebar`, `CVPortfolioView`, `CVAccountDetail`, `CustomerView`, `CVCopyText`
-**App (1):** `App`
-**Inline/scoped (1+):** `decodeApduStatus`, `copyCustomerSummary`
+| Category | Functions |
+|---|---|
+| Utilities (3) | `copyText`, `downloadJSON`, `fmtBal` |
+| Address (3) | `cardanoCredToStake`, `stacksPubkeyToAddr`, `tonHexToAddr` |
+| Tokens (1) | `fetchTokenChains` |
+| Diagnosis (1) | `diagnose` |
+| Parsing (2) | `parseLogs` (3-tier), `parseAppJson` (encrypted-safe) |
+| Extraction (8) | `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `logQualityScore`, `extractActivity`, `extractAnalytics` |
+| Diagnostic UI (6) | `CopyBtn`, `Tooltip`, `HighlightText`, `ErrCard`, `XpubView`, `AcctCard` |
+| Customer View (7) | `ModeToggle`, `CVInfoBar`, `CVSidebar`, `CVPortfolioView`, `CVAccountDetail`, `CustomerView`, `CVCopyText` |
+| JSON Tree (2) | `JTNode`, `JTTree` |
+| App (1) | `App` |
+| Scoped (2+) | `decodeApduStatus`, `copyCustomerSummary` |
 
 ---
 
-## App State Variables (16)
+## State (17 in App)
 
-| Variable | Type | Purpose |
-|---|---|---|
-| `logData` | object/null | Parsed log data |
-| `fileName` | string | Loaded file name |
-| `loadErr` | string | Parse error message |
-| `tab` | string | Active diagnostic tab |
-| `searchTerm` | string | Timeline search |
-| `typeFilter` | string | Timeline type filter |
-| `expandedRow` | number/null | Expanded timeline row |
-| `dragOver` | boolean | Drag hover state |
-| `acctFilter` | string | Accounts filter |
-| `hoveredTab` | string/null | Tab keyboard hint |
-| `qualityOpen` | boolean | Quality score expanded |
-| `sumCopied` | boolean | Copy Summary feedback |
-| `fullCopied` | boolean | Copy Full feedback |
-| `apduExportCopied` | boolean | Export APDUs feedback |
-| `viewMode` | string | `'diagnostic'` or `'customer'` |
-| `appJson` | object/null | Parsed app.json data |
+`logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `hoveredTab`, `qualityOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`
 
-**CustomerView internal state:** `selectedAcct`, `summCopied`, `ajDragOver`
+**CustomerView internal:** `selectedAcct`, `summCopied`, `ajDragOver`
 
 ---
 
 ## Constants
 
-| Constant | Entries | Description |
+| Constant | Count | Purpose |
 |---|---|---|
 | `T` | 9 | Theme colors |
-| `MF` | — | Mono font-family string |
-| `TC` | 9 | Log type → badge color |
-| `DN` | 6 | Model ID → display name |
-| `CHAINS` | 60 | Chain registry with address explorer URLs |
-| `TX_EXPLORERS` | 45+ | Chain → tx hash explorer URL builders |
-| `DC` | — | Default chain for unknowns |
-| `DECIMALS` | 60+ | Currency ID → decimal places |
-| `ERR_DB` | 82 | Error diagnosis patterns |
-| `SEV` | 3 | Severity definitions (high/medium/low) |
-| `CAT` | 4 | Category definitions (hardware/software/server/unknown) |
-| `UTXO_NETS` | 4 | BTC/LTC/DOGE/BCH scanner configs |
+| `TC` | 9 | Log type badge colors |
+| `DN` | 6 | Device model names |
+| `CHAINS` | 60 | Chain registry + address explorer URLs |
+| `TX_EXPLORERS` | 45+ | Chain → tx hash explorer URLs |
+| `DECIMALS` | 60+ | Currency → decimal places |
+| `ERR_DB` | 82 | Error diagnosis patterns (39 hw, 31 sw, 12 server) |
 | `EVM_CHAIN_IDS` | 22 | Chain → EVM chain ID |
 | `TOKEN_URLS` | 23 | Token page URL builders |
 | `TOKEN_SEARCH` | 8 | Token search fallbacks |
 
 ---
 
-## parseLogs(text) — 3-tier parser
+## parseLogs — 3-tier parser
 
-### Tier 1: Full JSON.parse
-Tries `JSON.parse` on the entire trimmed text. Works for well-formed minified JSON.
+**Tier 1:** `JSON.parse` on full text.
+**Tier 2:** Brace-depth scanner. Lookahead/lookbehind quote validation (survives Thai/Arabic binary garbage with raw 0x22). Control char stripping. Per-object independent parsing.
+**Tier 3:** Line-by-line fallback.
 
-### Tier 2: Brace-depth scanner (robust recovery)
-Character-by-character scan of raw text:
-- Tracks `{}` depth (ignoring `[]`)
-- **Quote validation:** Does NOT blindly toggle on `"`. Uses lookahead (closing `"` must be followed by `:` `,` `}` `]`) and lookbehind (opening `"` must be preceded by `:` `,` `[` `{`). Rejects garbage `0x22` bytes in binary content.
-- **Escape handling:** `\` only treated as escape inside strings
-- **Control char stripping:** Removes `[\x00-\x08\x0b\x0c\x0e-\x1f]` before `JSON.parse` per object
-- Each complete `{...}` block at depth 0 is independently `JSON.parse`d. Failed objects are silently skipped.
-- Returns all successfully parsed objects with logIndex, mobile field normalization
+## parseAppJson — encrypted-safe
 
-Handles: pretty-printed JSON arrays, binary garbage in locale strings, raw control characters (`\x0f`), malformed escape sequences, unescaped quotes in Arabic/Thai text, corrupted individual objects.
-
-### Tier 3: Line-by-line fallback
-Splits on `\n`, tries `JSON.parse` per line. Non-JSON lines become `{type:'raw', message: lineText}`.
+Detects Ledger Sync encryption. Extracts settings, devices, cryptoTokens, discoverAcctIds from readable sections. Returns `{accounts, byId, encrypted, settings, cryptoTokens, discoverAcctIds}`.
 
 ---
 
-## parseAppJson(text) — encrypted-safe
+## Diagnostic Mode (current: tab-based)
 
-- Detects encrypted files: `data.accounts` is a string (Ledger Sync ciphertext), not array
-- **Unencrypted:** extracts full accounts with operations, subAccounts, balances. Builds `byId` lookup map.
-- **Encrypted:** returns `{encrypted: true, accounts: [], settings, cryptoTokens, discoverAcctIds}`
-- **Settings extracted regardless:** devices, lastDevice, counterValue, language, locale
-- **Token definitions extracted:** from `data.cryptoAssets.tokens`
-- **Account IDs from discover:** `data.discover.currentAccountHist` values starting with `js:2:`
-- Drop handler accepts both encrypted (`parsed.encrypted`) and unencrypted (`parsed.accounts.length > 0`) files
+7 tabs: Overview, Timeline, Accounts, Errors, Network, APDU (conditional), Raw
 
----
+### Overview
+4 stat cards (clickable), activity badges, Device & App card, Environment card, issues preview, session bar, quality score (expandable), Copy Summary/Full
 
-## Customer View Components
+### Timeline
+Search, type filter, export, expandable rows (500 cap), error/warning left border accents
 
-### `CustomerView({ logData, appJson, onAppJson })`
-Top-level. Computes `enrichedAccts` via useMemo with three cases:
-1. Log has accounts → enrich with app.json matches
-2. Log has 0 accounts, app.json has accounts → build entirely from app.json
-3. Neither → empty
+### Accounts
+Filter, funded/empty count, copy IDs, export, AcctCard components (expandable), xpub scanner, error badges
 
-Three-state banner: drop target (yellow dashed) → encrypted warning (orange) → enriched (green with ✕ Remove). Copy Customer Summary button.
+### Errors
+Severity bar, diagnostic summary, repeating patterns, category-grouped ErrCards, severity left borders, linked accounts, jumpTo timeline
 
-### `CVSidebar({ accts, namedAccts, selected, onSelect, errs, as, appJson })`
-Left panel (240px). Shows formatted balances when enriched. Fund count prefers appJson → analytics → log data.
+### Network
+Method badges, clickable URLs, 500 cap
 
-### `CVPortfolioView({ accts, namedAccts, port, as, appJson, onSelectAcct })`
-Stats bar + responsive card grid. Formatted balances, real ops counts when enriched.
+### APDU
+Conditional, 9 status codes, CLA byte, export, 500 cap
 
-### `CVAccountDetail({ acct, errs, onBack })`
-Balance card, transaction history with `TX_EXPLORERS` links, token holdings, related errors. Click-to-copy via `CVCopyText` on addresses, hashes, counterparties.
-
-### `CVInfoBar({ dev, as, port, accts, appJson })`
-Right panel (210px, hidden <1024px). Shows devices from app.json settings when log device data missing.
-
-### `CVCopyText({ text, mono })`
-Click-to-copy with "Copied!" feedback.
-
-### `ModeToggle({ mode, onChange })`
-Segmented control. `role="group"`, `aria-label="View mode"`.
+### Raw
+JSON tree viewer (JTTree/JTNode), collapsible tree, search with match count, expand controls (Collapse/Level 1-3/All), copy path on hover, 500-item cap per node
 
 ---
 
-## Customer View CSS (22 classes, `cv-` prefixed)
+## Customer View
 
-**Layout:** `cv-layout`, `cv-sidebar`, `cv-sidebar-header`, `cv-main`, `cv-infobar`
-**Sidebar:** `cv-acct-row`, `cv-active`, `cv-chain-dot`
-**Portfolio:** `cv-portfolio-grid`, `cv-portfolio-card`
-**Detail:** `cv-detail-card`, `cv-info-row`, `cv-section-title`, `cv-bal-card`
-**Banners:** `cv-sim-banner`, `cv-drop-banner`, `cv-dragover`, `cv-enriched-banner`
-**Transactions:** `cv-tx-row`, `cv-tx-type`
-**Toggle:** `cv-mode-toggle`, `cv-mode-btn`
+Sidebar (240px) + Main area. Three-panel layout:
+- CVSidebar: account list with chain dots, balances, error indicators
+- Main: CVPortfolioView (default) or CVAccountDetail (on click)
+- CVInfoBar: device info, session stats (hidden <1024px)
 
----
-
-## Diagnostic Mode (unchanged throughout all CV work)
-
-Overview (4 stats, activity badges, device/env cards, issues, session, quality score 9 fields, copy buttons), Timeline (search, filter, 500 cap), Accounts (filter, explorer links, xpub scanner, tokens), Errors (severity bar, categories, repeat patterns), Network (method badges, 500 cap), APDU (conditional, 9 status codes, 500 cap)
+App.json enrichment: drop target banner, encrypted handling, balances/tx/tokens when unencrypted. App.json as primary source when log has 0 accounts. Copy Customer Summary.
 
 ---
 
-## Error KB: 82 patterns (39 hardware, 31 software, 12 server)
-## Chains: 60 entries, 3 with convert, 4 with xpub scanner
-## Quality Score: 9 fields, max 100
-## Icons: 14 Ico components
-## Accessibility: 10+ aria-labels, role attributes, keyboard handlers
+## CSS classes
+
+**Diagnostic:** `ledger-tab-bar`, `ledger-tab-btn`, `err-hover`, `acct-hover`
+**JSON Tree:** `jt-row`, `jt-arrow`, `jt-copy-path`
+**Customer View (22):** `cv-layout`, `cv-sidebar`, `cv-sidebar-header`, `cv-main`, `cv-infobar`, `cv-acct-row`, `cv-active`, `cv-chain-dot`, `cv-sim-banner`, `cv-portfolio-grid`, `cv-portfolio-card`, `cv-detail-card`, `cv-info-row`, `cv-section-title`, `cv-mode-toggle`, `cv-mode-btn`, `cv-drop-banner`, `cv-dragover`, `cv-enriched-banner`, `cv-tx-row`, `cv-tx-type`, `cv-bal-card`
 
 ---
 
-## Git / Deployment
-- Repo: `https://github.com/pj-casey/ledger-toolkit`
-- Branch: `main`
-- No build step — single HTML file
+## Error KB: 82 patterns | Chains: 60 | TX Explorers: 45+ | Quality Score: 9 fields/100pts
+## Icons: 14 Ico components | Accessibility: 10+ aria-labels
+
+---
+
+## Git
+- Repo: `github.com/pj-casey/ledger-toolkit`
+- Branch: `experimental`
