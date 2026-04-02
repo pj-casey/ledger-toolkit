@@ -2786,54 +2786,60 @@ function App(){
               {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{badges.map(b=><span key={b.k} style={bdg(b.c)}>{b.l}</span>)}</div>;})()}
             </div>
 
-            {/* Zone 2: Middle content — 2 columns */}
-            <div style={{flex:1,display:'flex',gap:16,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
-
-              {/* Left column: device + environment */}
-              <div style={{width:'40%',flexShrink:0,display:'flex',flexDirection:'column',gap:12,overflow:'hidden'}}>
-                {/* Device summary */}
-                {(()=>{
-                  const parts=[];
-                  if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
-                  else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){parts.push(`FW ${d.fw}${fwOk?' ✓':''}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
-                  return <div onClick={()=>setSection('device')} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:T.panel,border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}`,borderRadius:4,cursor:'pointer',transition:'background 150ms ease',flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background=T.panel}>
-                    <Ico.Chip/>
-                    <span style={{flex:1,fontSize:13}}>{parts.join(' · ')}</span>
-                    <span style={{fontSize:12,color:T.primary,fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>View device →</span>
-                  </div>;
-                })()}
-                {/* Environment card */}
-                <div className="card-bracketed" style={{...crd,borderRadius:4,flexShrink:0}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:12}}>Environment</div>
-                  {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
-                </div>
-              </div>
-
-              {/* Right column: issues preview */}
-              <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-                {logData.errs.length>0?<>
-                  {/* Issues header */}
-                  <div style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:8}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,color:T.error,fontWeight:600,fontSize:13}}><Ico.Alert/> {logData.errs.length} Issue{logData.errs.length!==1?'s':''}</div>
-                    {logData.errs.length>3&&<button onClick={()=>setSection('errors')} style={{background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:12,cursor:'pointer',padding:0}}>View all →</button>}
+            {/* Zone 2: Middle content — adaptive layout */}
+            {(()=>{
+              const deviceSummary=(()=>{
+                const parts=[];
+                if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
+                else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){parts.push(`FW ${d.fw}${fwOk?' ✓':''}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
+                return <div onClick={()=>setSection('device')} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:T.panel,border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}`,borderRadius:4,cursor:'pointer',transition:'background 150ms ease',flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background=T.panel}>
+                  <Ico.Chip/>
+                  <span style={{flex:1,fontSize:13}}>{parts.join(' · ')}</span>
+                  <span style={{fontSize:12,color:T.primary,fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>View device →</span>
+                </div>;
+              })();
+              const environmentCard=<div className="card-bracketed" style={{...crd,borderRadius:4,flexShrink:0}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:12}}>Environment</div>
+                {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
+              </div>;
+              if(logData.errs.length>0){
+                return <div style={{flex:1,display:'flex',gap:16,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
+                  {/* Left column: device + environment */}
+                  <div style={{width:'40%',flexShrink:0,display:'flex',flexDirection:'column',gap:12,overflow:'hidden'}}>
+                    {deviceSummary}
+                    {environmentCard}
                   </div>
-                  {/* Issues scrollable panel */}
-                  <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'12px 0 16px'}}>
-                    {logData.errs.slice(0,3).map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
-                    {logData.errs.length>3&&<button onClick={()=>setSection('errors')} style={{marginTop:4,background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:13,cursor:'pointer',display:'block',paddingLeft:0}}>View all →</button>}
-                    <div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:12,lineHeight:1.5}}>
-                      {topAcct&&`Consider: ${topAcct[1]} error${topAcct[1]>1?'s':''} reference ${topAcct[0].slice(0,16)}… — review that account.`}
-                      {logData.accts.length>0&&" For exact balances, load the customer's app.json in Customer View."}
+                  {/* Right column: issues preview */}
+                  <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+                    {/* Issues header */}
+                    <div style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,color:T.error,fontWeight:600,fontSize:13}}><Ico.Alert/> {logData.errs.length} Issue{logData.errs.length!==1?'s':''}</div>
+                      {logData.errs.length>3&&<button onClick={()=>setSection('errors')} style={{background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:12,cursor:'pointer',padding:0}}>View all →</button>}
+                    </div>
+                    {/* Issues scrollable panel */}
+                    <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'12px 0 16px'}}>
+                      {logData.errs.slice(0,3).map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
+                      {logData.errs.length>3&&<button onClick={()=>setSection('errors')} style={{marginTop:4,background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:13,cursor:'pointer',display:'block',paddingLeft:0}}>View all →</button>}
+                      <div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:12,lineHeight:1.5}}>
+                        {topAcct&&`Consider: ${topAcct[1]} error${topAcct[1]>1?'s':''} reference ${topAcct[0].slice(0,16)}… — review that account.`}
+                        {logData.accts.length>0&&" For exact balances, load the customer's app.json in Customer View."}
+                      </div>
                     </div>
                   </div>
-                </>:<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:T.muted,textAlign:'center',gap:8}}>
-                  <div style={{fontSize:28}}>✓</div>
-                  <div style={{fontSize:14,color:'#CCCCCC',fontWeight:600}}>No errors detected</div>
-                  <div style={{fontSize:12,color:T.muted,maxWidth:260,lineHeight:1.5}}>If the customer reports an issue, ask them to reproduce it and export new logs immediately after.</div>
-                  {logData.accts.length>0&&<div style={{fontSize:12,color:T.muted,maxWidth:260,lineHeight:1.5,marginTop:4}}>For exact balances, load the customer's app.json in Customer View.</div>}
-                </div>}
-              </div>
-
-            </div>
+                </div>;
+              }
+              return <div style={{flex:1,display:'flex',flexDirection:'column',gap:12,padding:'12px 24px',overflow:'auto',minHeight:0}}>
+                {deviceSummary}
+                <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:'rgba(122,194,108,0.08)',border:`1px solid rgba(122,194,108,0.2)`,borderRadius:6}}>
+                  <span style={{color:T.success,fontSize:16,flexShrink:0}}>✓</span>
+                  <div style={{fontSize:13}}>
+                    <span style={{fontWeight:600,color:'#CCCCCC'}}>No issues detected</span>
+                    <span style={{color:T.muted}}> — if the customer reports an issue, ask them to reproduce it and export new logs immediately after.</span>
+                    {logData.accts.length>0&&<span style={{color:T.muted}}> For exact balances, load the customer's app.json in Customer View.</span>}
+                  </div>
+                </div>
+                {environmentCard}
+              </div>;
+            })()}
 
             {/* Zone 3: Bottom bar */}
             <div style={{flexShrink:0,height:56,borderTop:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:T.panel,position:'relative'}}>
@@ -3047,10 +3053,34 @@ function App(){
                 return<div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{syncCell!==null?syncCell:v}{fwBadge}</span></div>;
               })}
             </div>
+            {(req.length > 0 || logData.apdu.length > 0) && (
+              <div style={{display:'flex',gap:8,padding:'10px 0 0',borderTop:`1px solid ${T.border}`,marginTop:12}}>
+                {req.length > 0 && (
+                  <span
+                    onClick={() => document.getElementById('device-apps-section')?.scrollIntoView({behavior:'smooth',block:'start'})}
+                    style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:T.bg,border:`1px solid ${T.border}`,color:T.muted,transition:'border-color 150ms ease,color 150ms ease'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}
+                  >
+                    Apps {req.length}
+                  </span>
+                )}
+                {logData.apdu.length > 0 && (
+                  <span
+                    onClick={() => document.getElementById('apdu-section')?.scrollIntoView({behavior:'smooth',block:'start'})}
+                    style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:T.bg,border:`1px solid ${T.border}`,color:T.muted,transition:'border-color 150ms ease,color 150ms ease'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}
+                  >
+                    📡 APDU {logData.apdu.length}
+                  </span>
+                )}
+              </div>
+            )}
             </div>{/* end fixed header */}
             <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
             {/* Device Apps section */}
-            {req.length>0&&<div className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}>
+            {req.length>0&&<div id="device-apps-section" className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}>
               <span className="card-bracket-b"/>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                 <div className="card-header" style={{display:'flex',alignItems:'center',gap:8}}><Ico.Chip/> Device Apps</div>
