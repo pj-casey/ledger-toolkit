@@ -2665,9 +2665,9 @@ function App(){
     })
   );
 
-  return <div style={{minHeight:'100vh',background:T.bg,color:T.text}}>
+  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:T.bg,color:T.text}}>
     {/* Top bar */}
-    <div style={{height:52,borderBottom:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:T.bg,position:'sticky',top:0,zIndex:10}}>
+    <div style={{height:52,flexShrink:0,borderBottom:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:T.bg,zIndex:10}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <svg width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color:T.text,flexShrink:0}}>
           <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="currentColor"/>
@@ -2687,7 +2687,7 @@ function App(){
     <input key={fileKey} ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
     {/* Main */}
-    <div style={{padding:viewMode==='customer'?0:24,overflowY:'auto',maxHeight:'calc(100vh - 52px)'}}>
+    <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',padding:logData?0:24}}>
       {/* Error state for failed file loads */}
       {loadErr&&!logData&&<div style={{background:'rgba(245,115,117,0.08)',border:'1px solid rgba(245,115,117,0.3)',borderRadius:8,padding:'12px 16px',marginBottom:16,fontSize:13,color:T.error,display:'flex',alignItems:'center',gap:10}}><Ico.Alert/>{loadErr}</div>}
       {/* Drop zone — HUD scanning zone */}
@@ -2714,13 +2714,14 @@ function App(){
       </div>}
 
       {/* Log Viewer */}
-      {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden',height:'100%'}}>
+      {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden'}}>
         <DiagSidebar logData={logData} section={section} setSection={setSection} />
-        <div style={{flex:1,overflowY:'auto',padding:'24px'}}>
+        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
         {/* TODO: ENHANCEMENTS — contextual guidance and empty states added in task 3 */}
 
         {/* Overview */}
-        {section==='overview'&&<div>
+        {section==='overview'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+          <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
           <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}>
             <button onClick={()=>{
               const d=logData.dev;
@@ -2815,6 +2816,8 @@ function App(){
               {badges.map(b=><span key={b.k} style={bdg(b.c)}>{b.l}</span>)}
             </div>;
           })()}
+          </div>{/* end fixed header */}
+          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
           {/* Compact device summary */}
           {(()=>{
             const d=logData.dev;const da=logData.deviceApps;const req=logData.requiredApps||[];
@@ -2899,10 +2902,12 @@ function App(){
               </div>}
             </div>;
           })()}
+          </div>{/* end scrollable */}
         </div>}
 
         {/* Timeline */}
-        {section==='timeline'&&<div>
+        {section==='timeline'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+          <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
           <div style={{display:'flex',gap:10,marginBottom:16}}>
             <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search logs..." className="mono" style={{flex:1,padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13}}/>
             <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,minWidth:160}}>
@@ -2914,7 +2919,9 @@ function App(){
             <div style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</div>
             <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
           </div>
-          <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'65vh',overflowY:'auto'}}>
+          </div>{/* end fixed header */}
+          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
+          <div style={{background:T.panel,overflow:'hidden'}}>
             <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
               {['#','Time','Type','Message'].map(h=><div key={h} className="label" style={{padding:'10px 12px',color:T.muted,background:T.panel}}>{h}</div>)}
             </div>
@@ -2949,10 +2956,12 @@ function App(){
             </div>}
             {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {filtered.length}</div>}
           </div>
+          </div>{/* end scrollable */}
         </div>}
 
         {/* Accounts */}
-        {section==='accounts'&&<div>
+        {section==='accounts'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+          <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <div style={{fontSize:12,color:T.muted}}>{logData.accts.filter(a=>a.ops>0).length} funded · {logData.accts.filter(a=>a.ops===0).length} empty</div>
             <div style={{display:'flex',gap:6}}>
@@ -2961,7 +2970,9 @@ function App(){
             </div>
           </div>
           {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:16,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>}
-          <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:16,boxSizing:'border-box'}}/>
+          <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
+          </div>{/* end fixed header */}
+          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
           {(()=>{
             const acctErrCounts={};
             for(const e of logData.errs){
@@ -2986,6 +2997,7 @@ function App(){
               No sync captured in this session. For exact balances, load the customer's app.json in Customer View.
             </div>
           )}
+          </div>{/* end scrollable */}
         </div>}
 
         {/* Device */}
@@ -3015,9 +3027,10 @@ function App(){
             ?'Open My Ledger with the device connected and re-export logs for full app version data.'
             :'Device was not connected during this session. Connect the device, open My Ledger, and re-export logs to see installed app versions.';
           const rejections=logData.apdu.filter(a=>{if(!a.hex||a.dir==='in')return false;const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();return sw&&sw!=='9000';});
-          return <div>
+          return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+            <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
             {/* Device & App card */}
-            <div className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
+            <div className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:0}}><span className="card-bracket-b"/><div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
               {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model. This can happen with older Ledger Wallet versions.':'No device was connected during this session. Device model and firmware are not available. This is expected if the customer exported logs without their device plugged in.'}</div>}
               {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Ledger Live',logData.dev.appVer||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=>{
                 const fwLatest=k==='Firmware'&&logData.deviceApps?.source==='manager-result'?logData.deviceApps.firmware:null;
@@ -3033,6 +3046,8 @@ function App(){
                 return<div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{syncCell!==null?syncCell:v}{fwBadge}</span></div>;
               })}
             </div>
+            </div>{/* end fixed header */}
+            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
             {/* Device Apps section */}
             {req.length>0&&<div className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}>
               <span className="card-bracket-b"/>
@@ -3096,7 +3111,7 @@ function App(){
                     const codeName=codeNames[topCode]||'Unknown condition';
                     return<div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,marginBottom:12,fontSize:13,color:'#FFBD42'}}>{rejections.length} device rejection{rejections.length>1?'s':''}. Most common: {topCode} — {codeName}.</div>;
                   })()}
-                  <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'55vh',overflowY:'auto'}}>
+                  <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
                     {logData.apdu.slice(0,500).map((a,i)=>{
                       const status=decodeApduStatus(a.hex,a.dir);
                       const claLabel=a.dir==='in'&&a.hex?`CLA:${a.hex.replace(/\s/g,'').slice(0,2).toUpperCase()}`:null;
@@ -3112,6 +3127,7 @@ function App(){
                   </div>
                 </div>}
             </div>
+            </div>{/* end scrollable */}
           </div>;
         })()}
 
@@ -3148,7 +3164,8 @@ function App(){
             }
           }
 
-          return <div>
+          return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+            <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
             {/* Severity summary bar */}
             {enrichedErrs.length>0&&<div style={{display:'flex',gap:16,marginBottom:16,padding:'12px 16px',background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,flexWrap:'wrap'}}>
               {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].map(item=>(
@@ -3176,7 +3193,8 @@ function App(){
                 </div>
               ))}
             </div>}
-
+            </div>{/* end fixed header */}
+            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
             {/* No errors state */}
             {enrichedErrs.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
               <div style={{fontSize:32,marginBottom:12}}>✓</div>
@@ -3193,16 +3211,14 @@ function App(){
                 {g.map(e=><ErrCard key={e.li} err={e} onJump={jumpTo} linkedAcct={errAcctMap.get(e.li)||null} onGoAcct={goToAcct}/>)}
               </div>;
             })}
+            </div>{/* end scrollable */}
           </div>;
         })()}
 
         {/* Network */}
-        {section==='network'&&<div>
+        {section==='network'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+          <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
           <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{netEntries.length} requests</div>
-          {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
-            <div style={{fontSize:32,marginBottom:12}}>🌐</div>
-            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests captured in this session. This is normal for short sessions or logs exported before a sync completed.</div>
-          </div>}
           {netEntries.length>0&&(()=>{
             const errRequests=netEntries.filter(e=>{
               const status=e.status||e.statusCode||e.code||(e.data&&(e.data.status||e.data.statusCode||e.data.code));
@@ -3211,12 +3227,18 @@ function App(){
             const serverErr=errRequests.filter(e=>{const s=Number(e.status||e.statusCode||e.code||(e.data&&(e.data.status||e.data.statusCode||e.data.code)));return s>=500||String(s).startsWith('5');}).length;
             const clientErr=errRequests.filter(e=>{const s=Number(e.status||e.statusCode||e.code||(e.data&&(e.data.status||e.data.statusCode||e.data.code)));return(s>=400&&s<500)||String(s).startsWith('4');}).length;
             return errRequests.length>0?(
-              <div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,marginBottom:12,fontSize:13,color:'#FFBD42'}}>
+              <div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,marginBottom:0,fontSize:13,color:'#FFBD42'}}>
                 {errRequests.length} request{errRequests.length>1?'s':''} returned errors ({serverErr} server, {clientErr} client).
               </div>
             ):null;
           })()}
-          {netEntries.length>0&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden',maxHeight:'70vh',overflowY:'auto'}}>
+          </div>{/* end fixed header */}
+          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
+          {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
+            <div style={{fontSize:32,marginBottom:12}}>🌐</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests captured in this session. This is normal for short sessions or logs exported before a sync completed.</div>
+          </div>}
+          {netEntries.length>0&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
             {netEntries.slice(0,500).map(e=>{
               // Support both new format (data.method + message=url) and old format ("get https://..." in message)
               let method=sGet(e,'data.method','');
@@ -3242,6 +3264,7 @@ function App(){
             })}
             {netEntries.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {netEntries.length}</div>}
           </div>}
+          </div>{/* end scrollable */}
         </div>}
 
         {/* APDU */}
@@ -3320,9 +3343,10 @@ function App(){
             try{treeData=JSON.parse(logData.rawText);}catch{}
             if(!treeData)treeData=logData.entries;
           }
-          if(!treeData)return<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>No file data available</div>;
-          return<div>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          if(!treeData)return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}><div style={{flexShrink:0,padding:'20px 24px 12px'}}></div><div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',textAlign:'center',color:T.muted}}>No file data available</div></div>;
+          return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+            <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div style={{fontSize:12,color:T.muted}}>
                 {Array.isArray(treeData)?`${treeData.length.toLocaleString()} entries`:'Object'}
               </div>
@@ -3330,7 +3354,10 @@ function App(){
                 <Ico.Copy/> Copy raw text
               </button>
             </div>
+            </div>{/* end fixed header */}
+            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
             <JTTree data={treeData}/>
+            </div>{/* end scrollable */}
           </div>;
         })()}
       </div>
