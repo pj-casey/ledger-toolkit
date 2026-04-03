@@ -2517,7 +2517,7 @@ function DiagSidebar({ logData, section, setSection }) {
 
         {/* Advanced */}
         <SectionHeader
-          icon={<span>⚙</span>} label="Advanced" subtitle="Network · APDU · Raw"
+          icon={<span>⚙</span>} label="Advanced" subtitle={apduCount>0?'Network · APDU · Raw':'Network · Raw data'}
           active={['network', 'apdu', 'raw'].includes(section)} expandable expanded={advOpen}
           onClick={() => setAdvOpen(o => !o)}
         />
@@ -2771,7 +2771,7 @@ function App(){
             {(()=>{
               const parts=[];
               if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
-              else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){parts.push(`FW ${d.fw}${fwOk?' ✓':''}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
+              else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){if(fwOk)parts.push(`FW ${d.fw} ✓`);else if(fwLatest)parts.push(`FW ${d.fw} ⚠ ${fwLatest.version} available`);else parts.push(`FW ${d.fw}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
               const deviceSummary=<>
                 <div onClick={()=>setDeviceExpanded(o=>!o)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:T.panel,border:`1px solid ${T.border}`,borderLeft:`3px solid ${deviceExpanded?T.primary:'transparent'}`,borderRadius:deviceExpanded?'4px 4px 0 0':4,cursor:'pointer',transition:'background 150ms ease',flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background=T.panel}>
                   <Ico.Chip/>
@@ -2827,16 +2827,18 @@ function App(){
                     {devDetailOpen?'Hide details':'Details'} {devDetailOpen?'▾':'▸'}
                   </div>
                   {devDetailOpen&&<div style={{marginTop:8}}>
-                    {[['Language',logData.dev.lang||'—'],['Paired',logData.dev.paired?'Yes':'No'],['Commit',logData.dev.commit?logData.dev.commit.slice(0,8):'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}><span style={{color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
-                    {(()=>{
-                      const ws=logData.dev.walletSync;
-                      let syncCell;
-                      if(!ws){syncCell=<span style={{color:T.muted}}>—</span>;}
-                      else if(ws.status==='enabled'){syncCell=<span style={{color:T.success,fontSize:12,fontWeight:600}}>✓ Active</span>;}
-                      else if(ws.status==='disabled'){syncCell=<span style={{color:T.muted,fontSize:12}}>Off</span>;}
-                      else{syncCell=<span style={{color:T.muted,fontSize:12}}>{ws.status||'—'}</span>;}
-                      return<div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:12}}><span style={{color:T.muted}}>Sync</span><span>{syncCell}</span></div>;
-                    })()}
+                    {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}><span style={{color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
+                    <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:12}}>
+                      <span style={{color:T.muted}}>Sync</span>
+                      <span className="mono">{(()=>{
+                        if(!logData.dev.ledgerSync)return<span style={{color:T.muted}}>—</span>;
+                        const wsErr=logData.entries.filter(e=>e.type==='walletsync'&&/error|failed|rejected|timeout/i.test(e.message||'')).length;
+                        const errBit=wsErr>0?<span style={{color:T.warning,marginLeft:4}}>⚠ {wsErr} sync error{wsErr!==1?'s':''}</span>:null;
+                        if(!appJson)return<span>Active{errBit}</span>;
+                        if(!appJson.encrypted)return<span style={{color:T.success}}>Active ✓{errBit}</span>;
+                        return<span style={{color:T.warning}}>Active (encrypted){errBit}</span>;
+                      })()}</span>
+                    </div>
                   </div>}
                 </div>}
               </>;
