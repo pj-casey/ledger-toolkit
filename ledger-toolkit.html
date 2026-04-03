@@ -2625,6 +2625,7 @@ function App(){
   const[appsListOpen,setAppsListOpen]=useState(false);
   const[devDetailOpen,setDevDetailOpen]=useState(false);
   const[deviceExpanded,setDeviceExpanded]=useState(true);
+  const[selectedErr,setSelectedErr]=useState(null);
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
@@ -2703,11 +2704,10 @@ function App(){
   useEffect(()=>{
     if(!logData||!logData.requiredApps||!logData.deviceApps)return;
     const da=logData.deviceApps;
-    if(da.source!=='manager-result'){setAppsListOpen(false);setDeviceExpanded(false);return;}
+    if(da.source!=='manager-result'){setAppsListOpen(false);return;}
     const req=logData.requiredApps;
     const hasProblems=req.some(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return !inst||!inst.updated;});
     setAppsListOpen(hasProblems);
-    if(hasProblems)setDeviceExpanded(true);
   },[logData]);
 
   useEffect(()=>{
@@ -3184,134 +3184,153 @@ function App(){
           const seenTitles=new Set();
           const repeatingUniq=repeating.filter(e=>{if(seenTitles.has(e.dg.t))return false;seenTitles.add(e.dg.t);return true;});
 
+          const sorted=enrichedErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0);});
+          const effectiveSel=selectedErr!=null?selectedErr:(sorted[0]?.li??null);
+          const detailErr=enrichedErrs.find(e=>e.li===effectiveSel)||null;
+          const sevColor=s=>s==='high'?T.error:s==='medium'?T.warning:'#8A9EF5';
+
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-            <div style={{flexShrink:0,padding:'16px 24px 8px'}}>
-            {/* Element 1: Severity counts + copy button */}
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-              <div style={{display:'flex',alignItems:'center',gap:16,fontSize:12}}>
-                {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].filter(item=>item.count>0).map(item=>(
-                  <div key={item.label} style={{display:'flex',alignItems:'center',gap:5}}>
-                    <span style={{width:7,height:7,borderRadius:'50%',background:item.color,flexShrink:0}}/>
-                    <span className="mono" style={{fontWeight:700,color:item.color}}>{item.count}</span>
-                    <span style={{color:T.muted}}>{item.label}</span>
-                  </div>
-                ))}
+            {/* Fixed header */}
+            <div style={{flexShrink:0,padding:'12px 24px 8px',borderBottom:`1px solid ${T.border}`}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                <div style={{display:'flex',alignItems:'center',gap:16,fontSize:12}}>
+                  {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].filter(item=>item.count>0).map(item=>(
+                    <div key={item.label} style={{display:'flex',alignItems:'center',gap:5}}>
+                      <span style={{width:7,height:7,borderRadius:'50%',background:item.color,flexShrink:0}}/>
+                      <span className="mono" style={{fontWeight:700,color:item.color}}>{item.count}</span>
+                      <span style={{color:T.muted}}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={()=>{
+                  const lines=['=== Error Summary ===',''];
+                  for(const e of enrichedErrs){
+                    lines.push(`[${(e.dg.s||'?').toUpperCase()}] ${e.dg.t}`);
+                    lines.push(`  Action: ${e.dg.a}`);
+                    lines.push(`  Category: ${e.dg.c} · Entry #${e.li} · ${fmtTime(e.ts)}`);
+                    if(e.dg.causes&&e.dg.causes.length>0)lines.push(`  Causes: ${e.dg.causes.join(', ')}`);
+                    lines.push('');
+                  }
+                  lines.push('===================');
+                  copyText(lines.join('\n'));
+                }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:'1px solid '+T.primary+'4D',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>
+                  <Ico.Copy/> Copy Errors
+                </button>
               </div>
-              <button onClick={()=>{
-                const lines=['=== Error Summary ===',''];
-                for(const e of enrichedErrs){
-                  lines.push(`[${(e.dg.s||'?').toUpperCase()}] ${e.dg.t}`);
-                  lines.push(`  Action: ${e.dg.a}`);
-                  lines.push(`  Category: ${e.dg.c} · Entry #${e.li} · ${fmtTime(e.ts)}`);
-                  if(e.dg.causes&&e.dg.causes.length>0)lines.push(`  Causes: ${e.dg.causes.join(', ')}`);
-                  lines.push('');
+              {/* Error timeline strip */}
+              {(()=>{
+                const ents=logData.entries;
+                if(ents.length<2||enrichedErrs.length===0)return null;
+                const t0=new Date(ents[0].timestamp).getTime();
+                const t1=new Date(ents[ents.length-1].timestamp).getTime();
+                const span=t1-t0;
+                if(span<=0)return null;
+                const durSec=(span/1000).toFixed(1);
+                const errTimes=enrichedErrs.map(e=>new Date(e.ts).getTime()).sort((a,b)=>a-b);
+                const errSpan=errTimes[errTimes.length-1]-errTimes[0];
+                const errSpanSec=(errSpan/1000).toFixed(1);
+                let interpretation='';
+                if(enrichedErrs.length===1){
+                  const pct=((errTimes[0]-t0)/span*100).toFixed(0);
+                  interpretation=`Single error at ${fmtTime(enrichedErrs[0].ts)}, ${pct}% into the session.`;
+                } else if(errSpan<2000){
+                  interpretation=`All ${enrichedErrs.length} errors within ${errSpanSec}s — likely a single cascade event.`;
+                } else if(errSpan<span*0.3){
+                  interpretation=`Errors clustered within ${errSpanSec}s of a ${durSec}s session — likely related.`;
+                } else {
+                  interpretation=`Errors spread across ${errSpanSec}s of a ${durSec}s session — likely independent issues.`;
                 }
-                lines.push('===================');
-                copyText(lines.join('\n'));
-              }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:'1px solid '+T.primary+'4D',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>
-                <Ico.Copy/> Copy Errors
-              </button>
-            </div>
-            {/* Element 2: Error timeline with clustering interpretation */}
-            {(()=>{
-              const ents=logData.entries;
-              if(ents.length<2||enrichedErrs.length===0)return null;
-              const t0=new Date(ents[0].timestamp).getTime();
-              const t1=new Date(ents[ents.length-1].timestamp).getTime();
-              const span=t1-t0;
-              if(span<=0)return null;
-              const durSec=(span/1000).toFixed(1);
-              const errTimes=enrichedErrs.map(e=>new Date(e.ts).getTime()).sort((a,b)=>a-b);
-              const errSpan=errTimes[errTimes.length-1]-errTimes[0];
-              const errSpanSec=(errSpan/1000).toFixed(1);
-              let interpretation='';
-              if(enrichedErrs.length===1){
-                const pct=((errTimes[0]-t0)/span*100).toFixed(0);
-                interpretation=`Single error at ${fmtTime(enrichedErrs[0].ts)}, ${pct}% into the session.`;
-              } else if(errSpan<2000){
-                interpretation=`All ${enrichedErrs.length} errors within ${errSpanSec}s — likely a single cascade event.`;
-              } else if(errSpan<span*0.3){
-                interpretation=`Errors clustered within ${errSpanSec}s of a ${durSec}s session — likely related.`;
-              } else {
-                interpretation=`Errors spread across ${errSpanSec}s of a ${durSec}s session — likely independent issues.`;
-              }
-              const byTime=[...enrichedErrs].sort((a,b)=>new Date(a.ts).getTime()-new Date(b.ts).getTime());
-              return <div style={{marginBottom:12}}>
-                <div style={{position:'relative',height:32,background:'rgba(255,255,255,0.03)',borderRadius:6,padding:'0 12px'}}>
-                  <div style={{position:'absolute',top:15,left:12,right:12,height:2,background:'rgba(255,255,255,0.08)',borderRadius:1}}/>
-                  <div style={{position:'absolute',top:20,left:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[0].timestamp)}</div>
-                  <div style={{position:'absolute',top:20,right:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[ents.length-1].timestamp)}</div>
-                  {byTime.map((e,i)=>{
-                    const et=new Date(e.ts).getTime();
-                    const pct=((et-t0)/span)*100;
-                    const sv=SEV[e.dg.s]||SEV.low;
-                    return <div key={i}
-                      onClick={()=>{const el=document.getElementById('errcard-'+e.li);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}}
-                      title={`${e.dg.t} — ${fmtTime(e.ts)}`}
-                      style={{
-                        position:'absolute',
-                        left:`calc(12px + ${pct}% * (100% - 24px) / 100%)`,
-                        top:8,width:14,height:14,borderRadius:'50%',
-                        background:sv.c,border:`2px solid ${T.bg}`,
-                        cursor:'pointer',transform:'translateX(-7px)',zIndex:1,
-                        display:'flex',alignItems:'center',justifyContent:'center',
-                      }}>
-                      <span style={{fontSize:7,fontWeight:800,color:'#000',userSelect:'none'}}>{i+1}</span>
-                    </div>;
-                  })}
-                </div>
-                <div style={{fontSize:11,color:T.muted,marginTop:10,lineHeight:1.4}}>{interpretation}</div>
-              </div>;
-            })()}
-            {/* Element 3: Affected accounts (conditional) */}
-            {(()=>{
-              if(errAcctMap.size===0)return null;
-              const acctCounts=new Map();
-              for(const [li,acct] of errAcctMap){
-                const key=acct.addr;
-                if(!acctCounts.has(key))acctCounts.set(key,{acct,count:0});
-                acctCounts.get(key).count++;
-              }
-              return <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap',fontSize:12}}>
-                <span style={{color:T.muted,fontWeight:600}}>Affected:</span>
-                {[...acctCounts.values()].map(({acct,count})=>(
-                  <span key={acct.addr} onClick={()=>goToAcct(acct.addr)}
-                    style={{display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.08)',color:T.primary,transition:'background 0.15s'}}
-                    onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.15)'}
-                    onMouseLeave={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'}
-                  >
-                    <span style={{width:7,height:7,borderRadius:'50%',background:acct.ch.color||T.muted,flexShrink:0}}/>
-                    {acct.ch.name}
-                    {count>1&&<span style={{opacity:0.7}}>×{count}</span>}
-                  </span>
-                ))}
-              </div>;
-            })()}
-            {/* Element 4: Repeating patterns (only when >5 errors) */}
-            {repeatingUniq.length>0&&enrichedErrs.length>5&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'12px 16px',marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:600,color:T.warning,marginBottom:8}}>&#x27F3; Repeating Patterns</div>
-              {repeatingUniq.map(e=>(
-                <div key={e.li} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0',fontSize:12}}>
-                  <span style={{color:T.text}}>{e.dg.t}</span>
-                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning}}>{e.dg.repeatCount+1}×</span>
-                </div>
-              ))}
-            </div>}
+                const byTime=[...enrichedErrs].sort((a,b)=>new Date(a.ts).getTime()-new Date(b.ts).getTime());
+                return <div style={{marginBottom:6}}>
+                  <div style={{position:'relative',height:28,background:'rgba(255,255,255,0.03)',borderRadius:6,padding:'0 12px'}}>
+                    <div style={{position:'absolute',top:13,left:12,right:12,height:2,background:'rgba(255,255,255,0.08)',borderRadius:1}}/>
+                    <div style={{position:'absolute',top:18,left:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[0].timestamp)}</div>
+                    <div style={{position:'absolute',top:18,right:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[ents.length-1].timestamp)}</div>
+                    {byTime.map((e,i)=>{
+                      const et=new Date(e.ts).getTime();
+                      const pct=((et-t0)/span)*100;
+                      const sc=sevColor(e.dg.s);
+                      const isSelected=e.li===effectiveSel;
+                      return <div key={i}
+                        onClick={()=>setSelectedErr(e.li)}
+                        title={`${e.dg.t} — ${fmtTime(e.ts)}`}
+                        style={{
+                          position:'absolute',
+                          left:`calc(12px + ${pct}% * (100% - 24px) / 100%)`,
+                          top:isSelected?4:6,width:isSelected?16:12,height:isSelected?16:12,borderRadius:'50%',
+                          background:sc,border:`2px solid ${isSelected?T.bg+'00':T.bg}`,
+                          cursor:'pointer',transform:'translateX(-50%)',zIndex:1,
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          transition:'all 0.1s',
+                        }}>
+                        <span style={{fontSize:7,fontWeight:800,color:'#000',userSelect:'none'}}>{i+1}</span>
+                      </div>;
+                    })}
+                  </div>
+                  <div style={{fontSize:11,color:T.muted,marginTop:6,lineHeight:1.4}}>{interpretation}</div>
+                </div>;
+              })()}
+              {/* Affected accounts */}
+              {(()=>{
+                if(errAcctMap.size===0)return null;
+                const acctCounts=new Map();
+                for(const [li,acct] of errAcctMap){
+                  const key=acct.addr;
+                  if(!acctCounts.has(key))acctCounts.set(key,{acct,count:0});
+                  acctCounts.get(key).count++;
+                }
+                return <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4,flexWrap:'wrap',fontSize:12}}>
+                  <span style={{color:T.muted,fontWeight:600}}>Affected:</span>
+                  {[...acctCounts.values()].map(({acct,count})=>(
+                    <span key={acct.addr} onClick={()=>goToAcct(acct.addr)}
+                      style={{display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.08)',color:T.primary,transition:'background 0.15s'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.15)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'}>
+                      <span style={{width:7,height:7,borderRadius:'50%',background:acct.ch.color||T.muted,flexShrink:0}}/>
+                      {acct.ch.name}
+                      {count>1&&<span style={{opacity:0.7}}>×{count}</span>}
+                    </span>
+                  ))}
+                </div>;
+              })()}
             </div>{/* end fixed header */}
-            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
-            {/* No errors state */}
-            {enrichedErrs.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
-              <div style={{fontSize:32,marginBottom:12}}>✓</div>
-              <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No errors detected</div>
-              <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>If the customer reports an issue, ask them to reproduce it and export new logs immediately after.</div>
-            </div>}
-            {/* Flat list sorted by severity, each wrapped for scroll targeting */}
-            {enrichedErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0);}).map((e,i)=>(
-              <div key={e.li} id={'errcard-'+e.li}>
-                <ErrCard err={e} onJump={jumpTo} linkedAcct={errAcctMap.get(e.li)||null} onGoAcct={goToAcct}/>
+            {/* Master-detail body */}
+            <div style={{flex:1,overflow:'hidden',display:'flex',minHeight:0}}>
+              {/* Left panel: compact error list */}
+              <div style={{width:'45%',borderRight:`1px solid ${T.border}`,overflowY:'auto',flexShrink:0}}>
+                {enrichedErrs.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:T.muted}}>
+                  <div style={{fontSize:32,marginBottom:12}}>✓</div>
+                  <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No errors detected</div>
+                  <div style={{fontSize:13,maxWidth:260,margin:'0 auto',lineHeight:1.5}}>If the customer reports an issue, ask them to reproduce it and export new logs immediately after.</div>
+                </div>}
+                {sorted.map((e,i)=>{
+                  const dg=e.dg||{};
+                  const sc=sevColor(dg.s);
+                  const isSelected=e.li===effectiveSel;
+                  return <div key={e.li}
+                    onClick={()=>setSelectedErr(e.li)}
+                    style={{padding:'8px 16px',borderBottom:`1px solid rgba(255,255,255,0.04)`,cursor:'pointer',
+                      background:isSelected?`${sc}12`:'transparent',
+                      borderLeft:isSelected?`3px solid ${sc}`:'3px solid transparent',
+                      transition:'background 0.1s'}}
+                    onMouseEnter={ev=>{if(!isSelected)ev.currentTarget.style.background='rgba(255,255,255,0.03)';}}
+                    onMouseLeave={ev=>{if(!isSelected)ev.currentTarget.style.background='transparent';}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{width:7,height:7,borderRadius:'50%',background:sc,flexShrink:0}}/>
+                      <span style={{flex:1,fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.t||'Unknown error'}</span>
+                      <span className="mono" style={{fontSize:10,color:T.muted,flexShrink:0}}>{fmtTime(e.ts)}</span>
+                    </div>
+                    <div style={{fontSize:11,color:T.muted,marginTop:2,paddingLeft:15,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.a}</div>
+                  </div>;
+                })}
               </div>
-            ))}
-            </div>{/* end scrollable */}
+              {/* Right panel: ErrCard detail */}
+              <div style={{flex:1,overflowY:'auto',padding:'16px 20px',boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
+                {detailErr?<ErrCard err={detailErr} onJump={jumpTo} linkedAcct={errAcctMap.get(detailErr.li)||null} onGoAcct={goToAcct}/>:
+                  <div style={{textAlign:'center',padding:40,color:T.muted,fontSize:13}}>Select an error to see details</div>
+                }
+              </div>
+            </div>
           </div>;
         })()}
 

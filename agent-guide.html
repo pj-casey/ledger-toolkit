@@ -6,38 +6,58 @@
 <title>Ledger Diagnostic Toolkit — Agent Guide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#131214;--panel:#1C1D1F;--border:#3C3C3C;--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--success:#7AC26C;--error:#F57375;--warning:#FFBD42}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:14px;padding:0}
+:root{--bg:#131214;--panel:#1C1D1F;--card:#242528;--border:#3C3C3C;--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--success:#7AC26C;--error:#F57375;--warning:#FFBD42}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:14px;padding:0;-webkit-font-smoothing:antialiased}
 .mono{font-family:'JetBrains Mono','SF Mono',Consolas,monospace}
+::selection{background:rgba(187,176,255,0.3);color:#fff}
+
+/* Top bar */
+.top-bar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:10px;position:sticky;top:0;z-index:100;background:rgba(19,18,20,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.top-bar svg{flex-shrink:0}
+.top-bar-label{font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)}
+.top-bar-ver{font-size:10px;font-weight:600;color:var(--primary);background:rgba(187,176,255,0.12);padding:2px 8px;border-radius:4px;margin-left:auto}
+
+/* Hero */
+.hero{position:relative;padding:72px 32px 56px;text-align:center;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(187,176,255,0.08) 0%,transparent 70%);pointer-events:none}
+.hero-logo{margin-bottom:24px;opacity:0.12}
+.hero h1{font-size:36px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;background:linear-gradient(135deg,#fff 0%,#BBB0FF 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .subtitle{font-size:16px;color:var(--muted);margin-bottom:0;font-weight:400}
 
 /* Layout */
-.page{max-width:860px;margin:0 auto;padding:40px 32px 80px}
-.top-bar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)}
-.top-bar svg{flex-shrink:0}
-.top-bar span{font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)}
+.page{max-width:840px;margin:0 auto;padding:0 32px 80px}
 
-/* Typography */
-h1{font-size:28px;font-weight:700;margin-bottom:8px;letter-spacing:-0.01em}
-h2{font-size:20px;font-weight:700;margin-top:48px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);color:var(--primary)}
+/* Section headings */
+h2{font-size:20px;font-weight:700;margin-top:56px;margin-bottom:20px;padding-left:16px;border-left:4px solid var(--primary);color:var(--text);letter-spacing:-0.01em}
 h3{font-size:15px;font-weight:600;margin-top:28px;margin-bottom:10px;color:var(--text)}
-p{margin-bottom:14px;color:#d0d0d0}
-.subtitle{font-size:15px;color:var(--muted);margin-bottom:32px}
+p{margin-bottom:14px;color:#c8c8c8}
 
-/* Cards */
-.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;position:relative}
-.card-bracketed{position:relative}
-.card-bracketed::before,.card-bracketed::after{content:'';position:absolute;width:10px;height:10px;pointer-events:none}
-.card-bracketed::before{top:4px;left:4px;border-top:1px solid var(--border);border-left:1px solid var(--border)}
-.card-bracketed::after{top:4px;right:4px;border-top:1px solid var(--border);border-right:1px solid var(--border)}
+/* Cards — elevation based, no borders */
+.card{background:var(--card);border-radius:8px;padding:20px 24px;margin-bottom:16px;transition:box-shadow 200ms ease,transform 200ms ease}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.35)}
+.card h3{margin-top:0}
+
+/* Table of contents */
+.toc{background:var(--card);border-radius:8px;padding:24px 28px;margin:40px 0 32px}
+.toc-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:14px}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px}
+.toc a{display:flex;align-items:center;gap:8px;color:var(--muted);text-decoration:none;font-size:13px;padding:6px 0;transition:color 200ms ease,padding-left 200ms ease;border-radius:4px}
+.toc a:hover{color:var(--primary);padding-left:4px}
+.toc a .toc-icon{font-size:14px;flex-shrink:0;width:20px;text-align:center}
+.toc a.indent{padding-left:28px;font-size:12px}
+.toc a.indent:hover{padding-left:32px}
 
 /* Steps */
-.step{display:flex;gap:14px;margin-bottom:20px}
-.step-num{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;margin-top:2px}
+.step{display:flex;gap:16px;margin-bottom:24px;padding:16px 20px;background:var(--card);border-radius:8px;transition:transform 200ms ease}
+.step:hover{transform:translateX(4px)}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;box-shadow:0 0 16px rgba(187,176,255,0.25)}
 .step-content{flex:1}
-.step-content p{margin-bottom:6px}
+.step-content p{margin-bottom:4px}
+.step-content p:last-child{margin-bottom:0}
 
 /* Badges */
 .badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:12px;font-weight:700;margin-right:4px}
@@ -48,48 +68,61 @@ p{margin-bottom:14px;color:#d0d0d0}
 .badge-muted{background:rgba(148,148,148,0.15);color:var(--muted)}
 
 /* Key combo */
-kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);display:inline-block;line-height:1.3}
 
-/* Table of contents */
-.toc{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:32px}
-.toc-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:12px}
-.toc a{display:block;color:var(--primary);text-decoration:none;font-size:13px;padding:4px 0;transition:color 0.15s}
-.toc a:hover{color:var(--text)}
-.toc a.indent{padding-left:16px;color:var(--muted);font-size:12px}
-.toc a.indent:hover{color:var(--primary)}
-
-/* Tips */
-.tip{background:rgba(187,176,255,0.06);border:1px solid rgba(187,176,255,0.2);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:13px;color:#d0d0d0}
-.tip::before{content:'💡';margin-right:8px}
-.warn{background:rgba(255,189,66,0.06);border:1px solid rgba(255,189,66,0.2);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:13px;color:#d0d0d0}
-.warn::before{content:'⚠️';margin-right:8px}
+/* Tips & warnings — match the tool's hint pattern */
+.tip{background:rgba(187,176,255,0.06);border:1px solid rgba(187,176,255,0.15);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:13px;color:#c8c8c8;display:flex;align-items:flex-start;gap:10px;line-height:1.6}
+.tip::before{content:'💡';flex-shrink:0;font-size:14px}
+.warn{background:rgba(255,189,66,0.06);border:1px solid rgba(255,189,66,0.2);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:13px;color:#c8c8c8;display:flex;align-items:flex-start;gap:10px;line-height:1.6}
+.warn::before{content:'⚠️';flex-shrink:0;font-size:14px}
 
 /* Feature grid */
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
-.feat-item{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
-.feat-item .icon{font-size:20px;margin-bottom:6px}
-.feat-item .label{font-size:13px;font-weight:600;margin-bottom:4px}
-.feat-item .desc{font-size:12px;color:var(--muted);line-height:1.5}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.feat-item{background:var(--card);border-radius:8px;padding:16px 20px;transition:transform 200ms ease,box-shadow 200ms ease;cursor:default}
+.feat-item:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.35)}
+.feat-item .icon{font-size:22px;margin-bottom:8px}
+.feat-item .label{font-size:14px;font-weight:600;margin-bottom:4px}
+.feat-item .desc{font-size:12px;color:var(--muted);line-height:1.6}
 
-/* Shortcuts table */
-.shortcut-table{width:100%;border-collapse:collapse;margin:12px 0}
-.shortcut-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px}
-.shortcut-table td:first-child{color:var(--muted);width:140px}
+/* Shortcuts grid */
+.shortcut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:16px 0}
+.shortcut-card{background:var(--card);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;transition:transform 150ms ease}
+.shortcut-card:hover{transform:scale(1.02)}
+.shortcut-card kbd{flex-shrink:0}
+.shortcut-card span{font-size:13px;color:#c8c8c8}
 
-/* Watermark */
-.watermark{position:fixed;bottom:16px;right:20px;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);opacity:0.28;font-weight:500;pointer-events:none}
+/* New: section divider */
+.section-divider{height:1px;background:linear-gradient(90deg,transparent 0%,var(--border) 20%,var(--border) 80%,transparent 100%);margin:48px 0 0}
 
-@media (max-width:768px){
-  .page{padding:24px 16px 60px}
-  h1{font-size:22px}
+/* New: what's new banner */
+.new-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;background:rgba(122,194,108,0.15);color:var(--success);margin-left:6px;vertical-align:middle}
+
+/* Fade-in animation */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero h1,.hero .subtitle,.toc,.step,.feat-item,.card{animation:fadeUp 0.5s ease both}
+.hero .subtitle{animation-delay:0.1s}
+.toc{animation-delay:0.15s}
+.step:nth-child(2){animation-delay:0.05s}
+.step:nth-child(3){animation-delay:0.1s}
+.step:nth-child(4){animation-delay:0.15s}
+
+@media(max-width:768px){
+  .page{padding:0 16px 60px}
+  .hero{padding:48px 16px 40px}
+  .hero h1{font-size:26px}
   .feat-grid{grid-template-columns:1fr}
+  .toc-grid{grid-template-columns:1fr}
+  .shortcut-grid{grid-template-columns:1fr}
 }
 @media print{
   body{background:#fff;color:#000}
-  .card,.toc,.tip,.warn,.feat-item{border-color:#ccc}
+  .card,.toc,.tip,.warn,.feat-item,.step{background:#f5f5f5;box-shadow:none;border:1px solid #ddd}
   .top-bar{display:none}
-  .watermark{display:none}
+  .hero::before{display:none}
+  .hero h1{-webkit-text-fill-color:#000;background:none}
   p,.desc,.step-content p{color:#333}
+  h2{border-left-color:#333}
+  .badge{border:1px solid #ccc}
 }
 </style>
 </head>
@@ -99,31 +132,46 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <svg width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
   </svg>
-  <span>Diagnostic Toolkit — Agent Guide</span>
+  <span class="top-bar-label">Diagnostic Toolkit — Agent Guide</span>
+  <span class="top-bar-ver">v3.0</span>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
+  </svg>
+  <h1>Ledger Diagnostic Toolkit</h1>
+  <p class="subtitle">Investigation guide for CS agents</p>
 </div>
 
 <div class="page">
 
-<h1>Ledger Diagnostic Toolkit</h1>
-<p class="subtitle">Investigation guide for CS agents. v2.1</p>
-
 <!-- Table of Contents -->
 <div class="toc">
   <div class="toc-title">Contents</div>
-  <a href="#quick-start">Quick Start</a>
-  <a href="#playbook">Investigation Playbook</a>
-  <a class="indent" href="#s-balance">"My balance is wrong"</a>
-  <a class="indent" href="#s-tx">"My transaction failed"</a>
-  <a class="indent" href="#s-device">"My device won't connect"</a>
-  <a class="indent" href="#s-crash">"The app crashes"</a>
-  <a class="indent" href="#s-verify">Verify what the customer sees</a>
-  <a class="indent" href="#s-general">General investigation</a>
-  <a href="#interface">The Interface</a>
-  <a class="indent" href="#xpub-scanner">Xpub Scanner (UTXO chains)</a>
-  <a class="indent" href="#derived-addresses">Derived Addresses &amp; Token Links</a>
-  <a href="#copy">Copy &amp; Export</a>
-  <a href="#shortcuts">Keyboard Shortcuts</a>
-  <a href="#troubleshooting">Tips &amp; Troubleshooting</a>
+  <div class="toc-grid">
+    <div>
+      <a href="#quick-start"><span class="toc-icon">⚡</span> Quick Start</a>
+      <a href="#playbook"><span class="toc-icon">🎯</span> Investigation Playbook</a>
+      <a class="indent" href="#s-balance">"My balance is wrong"</a>
+      <a class="indent" href="#s-tx">"My transaction failed"</a>
+      <a class="indent" href="#s-device">"My device won't connect"</a>
+      <a class="indent" href="#s-crash">"The app crashes"</a>
+      <a class="indent" href="#s-verify">Verify what the customer sees</a>
+      <a class="indent" href="#s-general">General investigation</a>
+    </div>
+    <div>
+      <a href="#interface"><span class="toc-icon">🖥</span> The Interface</a>
+      <a class="indent" href="#xpub-scanner">Xpub Scanner</a>
+      <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
+      <a class="indent" href="#error-timeline">Error Timeline</a>
+      <a class="indent" href="#raw-json-search">Raw JSON Search</a>
+      <a href="#copy"><span class="toc-icon">📋</span> Copy &amp; Export</a>
+      <a href="#shortcuts"><span class="toc-icon">⌨</span> Keyboard Shortcuts</a>
+      <a href="#troubleshooting"><span class="toc-icon">🔧</span> Tips &amp; Troubleshooting</a>
+    </div>
+  </div>
 </div>
 
 
@@ -135,30 +183,32 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <div class="step">
   <div class="step-num">1</div>
   <div class="step-content">
-    <p><strong>Load the log.</strong> Drag the customer's log file onto the tool, or click Browse. Accepts <kbd>.json</kbd> <kbd>.txt</kbd> <kbd>.log</kbd></p>
+    <p><strong>Load the log.</strong> Drag the customer's log file onto the tool, or click to browse. Accepts <kbd>.json</kbd> <kbd>.txt</kbd> <kbd>.log</kbd></p>
   </div>
 </div>
 <div class="step">
   <div class="step-num">2</div>
   <div class="step-content">
-    <p><strong>Read the Diagnosis block</strong> at the top of the sidebar. <span class="badge badge-green">green</span> = clean session. <span class="badge badge-yellow">yellow</span> = warnings. <span class="badge badge-red">red</span> = critical issues.</p>
+    <p><strong>Read the Diagnosis block</strong> under the <strong>OVERVIEW</strong> label at the top of the sidebar. <span class="badge badge-green">green</span> = clean session. <span class="badge badge-yellow">yellow</span> = warnings. <span class="badge badge-red">red</span> = critical issues.</p>
   </div>
 </div>
 <div class="step">
   <div class="step-num">3</div>
   <div class="step-content">
-    <p><strong>Click the relevant section</strong> in the sidebar: Issues, Accounts, Timeline, or Advanced.</p>
+    <p><strong>Click the relevant section</strong> in the sidebar — Issues, Accounts, Timeline, or Advanced. Each is a single click.</p>
   </div>
 </div>
 <div class="step">
   <div class="step-num">4</div>
   <div class="step-content">
-    <p><strong>For richer data</strong>, switch to Customer View and load the customer's <kbd>app.json</kbd>.</p>
+    <p><strong>For richer data</strong>, switch to <span class="badge badge-purple">Customer View</span> using the top bar toggle and load the customer's <kbd>app.json</kbd>.</p>
   </div>
 </div>
 
-<div class="tip">The tool analyzes the log automatically. The Diagnosis block tells you what it found — you don't need to search for problems.</div>
+<div class="tip">The tool analyzes the log automatically. The Diagnosis block tells you what it found — you don't need to search for problems. Device info, firmware status, and app versions are all visible on the Overview as soon as you load a file.</div>
 
+
+<div class="section-divider"></div>
 
 <!-- ═══════════════ PLAYBOOK ═══════════════ -->
 <h2 id="playbook">Investigation Playbook</h2>
@@ -169,7 +219,7 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <div class="card">
   <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for exact balances.</p>
   <p><strong>Look for:</strong> Compare displayed balance with expected. Check if tokens are showing. Look for pending operations.</p>
-  <p><strong>Next:</strong> If no app.json available, check <strong>Accounts</strong> in Diagnostic mode for sync status. Search <strong>Timeline</strong> for <kbd>sync</kbd> to see if synchronization completed.</p>
+  <p><strong>Next:</strong> If no app.json available, check <strong>Accounts</strong> in Diagnostic mode for sync status. Search <strong>Timeline</strong> for <kbd>sync</kbd> to see if synchronization completed. Check the <strong>Issues</strong> error timeline — sync errors clustered together suggest a failed sync cycle.</p>
   <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
   <div class="warn">If app.json shows a different balance than Ledger Wallet, the local cache may be stale. Ask the customer to clear cache and resync.</div>
@@ -177,102 +227,115 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Click <strong>Issues</strong> in the sidebar. Look for error cards mentioning rejected, failed, or insufficient funds.</p>
-  <p><strong>Look for:</strong> Severity borders on error cards — red is critical. Click "Affected account" to see which account. Click "Jump to timeline" for the exact event sequence.</p>
+  <p><strong>Start here:</strong> Click <strong>Issues</strong> in the sidebar. Errors are sorted by severity — critical issues appear first.</p>
+  <p><strong>Look for:</strong> Error cards with red "CRITICAL" badges. Click the <strong>Affected account</strong> chip to see which account is involved. Click the <strong>#entry</strong> link to jump to the exact event in the Timeline.</p>
+  <p><strong>Check the error timeline</strong> at the top of Issues — if errors are clustered within seconds, it's likely one event that triggered multiple failures. The tool tells you: "All 3 errors within 0.3s — likely a single cascade event."</p>
   <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for failed API calls (4xx/5xx status codes). If the error mentions device rejection, check <strong>Advanced → APDU</strong>.</p>
   <div class="tip">APDU rejection codes <span class="mono">6985</span> or <span class="mono">6982</span> mean the device itself rejected the transaction — the user didn't approve on-screen or conditions weren't met.</div>
 </div>
 
 <h3 id="s-device">"My device won't connect / isn't recognized"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Check <strong>Issues</strong> for hardware/USB errors. Look for "Manager connection" failures.</p>
-  <p><strong>Look for:</strong> Device model and firmware version in the Overview. If the model says "—", the device never identified itself during this session.</p>
-  <p><strong>Next:</strong> Check <strong>Advanced → APDU</strong> for device communication. If there's zero APDU data, the device never established a connection at all.</p>
+  <p><strong>Start here:</strong> Look at the <strong>Overview</strong>. The health pills at the top show device status at a glance. If the device pill says "Device —", the device never identified itself.</p>
+  <p><strong>Look for:</strong> Device model and firmware version in the device disclosure widget (the expandable panel below the health pills). Check if firmware is outdated — the tool shows "FW 2.6.1 ⚠ 2.7.0 avail." when an update is needed.</p>
+  <p><strong>Next:</strong> Check <strong>Issues</strong> for hardware/USB errors. Check <strong>Advanced → APDU</strong> for device communication. If there's zero APDU data, the device never established a connection at all.</p>
   <div class="warn">No APDU data = no device communication during this session. Check USB cable, port, or Bluetooth before investigating software.</div>
 </div>
 
 <h3 id="s-crash">"The app crashes / won't open / is slow"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong>. The severity and issue count tell you how bad this session was.</p>
-  <p><strong>Look for:</strong> Critical errors (red). Repeated patterns — the same error appearing many times suggests a loop. Check <strong>Timeline</strong> for the event sequence leading up to the problem.</p>
-  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app.</p>
+  <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> in the sidebar. The severity and issue count tell you how bad this session was.</p>
+  <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating patterns — the same error appearing many times suggests a loop. The error timeline shows whether problems happened all at once or throughout the session.</p>
+  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> environment card for OS and platform — some issues are platform-specific.</p>
   <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
 </div>
 
 <h3 id="s-verify">I need to verify what the customer sees</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> using the top bar toggle.</p>
+  <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> using the prominent toggle in the top bar.</p>
   <p><strong>Look for:</strong> Portfolio overview with all accounts. Click any account for full detail — address, tokens, transaction history.</p>
-  <p><strong>Next:</strong> Load the customer's <kbd>app.json</kbd> via the upload banner. Adds real balances, tx history, and account names.</p>
+  <p><strong>Next:</strong> Load the customer's <kbd>app.json</kbd> via the upload banner. Adds real balances, tx history, and account names. This shows exactly what the customer's Ledger Wallet was displaying.</p>
 </div>
 
 <h3 id="s-general">General investigation (no specific complaint)</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> for the overall picture.</p>
+  <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> for the overall picture. The Overview shows everything at a glance — device status, health pills, stat cards, and a log quality score.</p>
   <p><strong>Recommended flow:</strong></p>
-  <p><strong>Issues</strong> → what went wrong<br>
+  <p><strong>Overview</strong> → device health + big picture<br>
+     <strong>Issues</strong> → what went wrong and when<br>
      <strong>Accounts</strong> → what exists<br>
-     <strong>Timeline</strong> → what happened when<br>
+     <strong>Timeline</strong> → what happened in sequence<br>
      <strong>Advanced</strong> → deeper data if needed</p>
-  <p>Problems first, context second, sequence third.</p>
+  <p>Big picture first, problems second, context third.</p>
 </div>
 
+
+<div class="section-divider"></div>
 
 <!-- ═══════════════ INTERFACE ═══════════════ -->
 <h2 id="interface">The Interface</h2>
 
-<p>Two modes, switchable from the top bar toggle.</p>
+<p>Two modes, switchable from the top bar toggle. <span class="badge badge-purple">Diagnostic</span> for technical investigation. <span class="badge badge-purple">Customer View</span> to see the customer's wallet.</p>
 
-<h3>Diagnostic Mode — "Technical investigation"</h3>
-<p>Sidebar on the left for navigation. Main area on the right for detail. The sidebar is always visible — you never lose your place.</p>
+<h3>Diagnostic Mode</h3>
+<p>Sidebar on the left for navigation. Main area on the right for detail. The sidebar is always visible — you never lose your place. Everything fits in one screen — no page scrolling.</p>
 
 <div class="feat-grid">
   <div class="feat-item">
-    <div class="icon">🔍</div>
-    <div class="label">Diagnosis Block</div>
-    <div class="desc">Severity dot, summary sentence, Copy dropdown. Always at the top. Click to return to Overview.</div>
+    <div class="icon">📊</div>
+    <div class="label">Overview</div>
+    <div class="desc">Default landing. Health pills (device, firmware, apps, sync, errors) at the top. Stat cards with key numbers. Device info in an expandable panel — firmware status, installed apps with version checks, sync status. Environment info below. Session timeline and quality score at the bottom.</div>
   </div>
   <div class="feat-item">
     <div class="icon">⚠️</div>
-    <div class="label">Issues</div>
-    <div class="desc">Errors and warnings from 82 known patterns. Severity borders, affected account links, jump-to-timeline. Expandable details on each card with common causes and suggested actions. Repeated errors show a count badge.</div>
+    <div class="label">Issues<span class="new-badge">Updated</span></div>
+    <div class="desc">Errors sorted by severity — critical first. Error timeline shows when each error occurred in the session and whether they're clustered or independent. Affected account links. Copy Errors button for ticket notes. Each card has expandable technical details and common causes.</div>
   </div>
   <div class="feat-item">
     <div class="icon">👛</div>
     <div class="label">Accounts</div>
-    <div class="desc">Crypto accounts with chain color dots, operation counts, explorer links for 60+ chains. Token badges link to block explorers. Error badges show which accounts have problems. Bitcoin-family accounts with xpubs have a built-in scanner.</div>
+    <div class="desc">Crypto accounts with chain color dots, operation counts, and explorer links for 60+ chains. Token badges link to block explorers. Error badges show which accounts have problems. Bitcoin-family accounts with xpubs have a built-in scanner.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📋</div>
     <div class="label">Timeline</div>
-    <div class="desc">Every event, chronological. Use the search box to find keywords and the type filter dropdown to narrow by event category (network, bridge, analytics, etc.). Error/warning rows have colored left borders. Click any row to expand.</div>
+    <div class="desc">Every event, chronological. Density strip at the top shows activity hotspots. Search box and type filter to narrow results. Error/warning rows have colored left borders. Click any row to expand raw data.</div>
   </div>
   <div class="feat-item">
     <div class="icon">🌐</div>
     <div class="label">Network</div>
-    <div class="desc">HTTP requests to Ledger and third-party APIs. Status codes, error summary.</div>
+    <div class="desc">HTTP requests to Ledger and third-party APIs. Error summary at the top when requests failed. Status codes on each row.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📡</div>
     <div class="label">APDU</div>
-    <div class="desc">Device communication commands. Status codes, rejection summaries. Only when APDU data exists.</div>
+    <div class="desc">Device communication commands under Advanced. Status codes (OK, Rejected, Locked), rejection summaries. Only appears when APDU data exists in the log.</div>
   </div>
   <div class="feat-item">
     <div class="icon">{ }</div>
-    <div class="label">Raw JSON</div>
-    <div class="desc">Interactive tree viewer. Search keys and values, expand/collapse levels, copy any JSON path.</div>
+    <div class="label">Raw JSON<span class="new-badge">Updated</span></div>
+    <div class="desc">Interactive tree viewer under Advanced. Progressive search — type to find, tree auto-expands to show matches and scrolls to the first one. Navigate between matches with ▲▼ buttons or Enter key.</div>
   </div>
   <div class="feat-item">
-    <div class="icon">📊</div>
-    <div class="label">Overview</div>
-    <div class="desc">Default view. Stat cards (entries, accounts, operations, issues), device info, environment, and a log quality score (0–100) that rates how complete the log data is. Activity badges show if Manager was opened, a swap was browsed, or a device scan ran during the session.</div>
+    <div class="icon">👤</div>
+    <div class="label">Customer View</div>
+    <div class="desc">Separate mode (top bar toggle). Shows the customer's wallet as they see it. Account list, portfolio, transaction history. Load app.json for exact balances. Use this when you need to confirm what the customer is experiencing.</div>
   </div>
+</div>
+
+<h3 id="error-timeline">Error Timeline<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>At the top of the <strong>Issues</strong> section, numbered dots on a timeline show exactly when each error occurred during the session. The dots are colored by severity and show actual timestamps.</p>
+  <p><strong>Why it matters:</strong> If all errors happened within the same second, you're looking at one event that triggered a cascade — fix the root cause. If they're spread across the session, they're likely independent issues.</p>
+  <p>The tool does the analysis for you and shows a plain-English interpretation below the timeline: <em>"All 3 errors within 0.3s — likely a single cascade event"</em> or <em>"Errors spread across 30s of a 45s session — likely independent issues."</em></p>
+  <p><strong>Click any dot</strong> to scroll down to that error's card. The dots are numbered to match the card order.</p>
+  <div class="tip">If the Issues section also shows an "Affected" row with account names, click them to jump straight to that account in the Accounts section.</div>
 </div>
 
 <h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
 <div class="card">
   <p>When you expand an account that stores an extended public key (xpub, ypub, or zpub), the tool shows a <strong>Scan</strong> button. Clicking it derives individual addresses from the key, queries the blockchain for each one, and shows the balance and transaction count per address.</p>
-  <p>This is your most powerful tool for "my balance is wrong" on UTXO chains. It shows exactly which addresses hold funds — even addresses Ledger Wallet's sync may have missed.</p>
+  <p>This is your most powerful tool for "my balance is wrong" on UTXO chains. It shows exactly which addresses hold funds — even addresses the app's sync may have missed.</p>
   <p>The scanner walks the derivation path (receive and change chains), stopping when it hits a gap of unused addresses. Each address gets an explorer link so you can verify on-chain.</p>
   <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin and Dogecoin are slower due to rate limiting — the tool handles retries automatically.</div>
 </div>
@@ -289,38 +352,55 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
   <p><strong>Token explorer links:</strong> Token badges on account cards are clickable. The tool resolves contract addresses for 45+ chains and links directly to the token on the correct block explorer. If you're investigating "my tokens are missing," click the token badge to verify it exists on-chain.</p>
 </div>
 
+<h3 id="raw-json-search">Raw JSON Progressive Search<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The Raw JSON viewer (under <strong>Advanced</strong>) has a search that works like Chrome DevTools. As you type, the tree automatically expands to reveal matching nodes and scrolls to the first one.</p>
+  <p><strong>Navigation:</strong> The counter shows <span class="mono" style="color:var(--success)">1/47</span> — your position in the results. Use the <strong>▲▼</strong> buttons or press <kbd>Enter</kbd> to jump to the next match. <kbd>Shift</kbd>+<kbd>Enter</kbd> goes backward. The current match is highlighted with a purple left border; other matches have a subtle tint.</p>
+  <p>The expand/collapse buttons (Collapse, Level 1/2/3, All) still work independently. Clearing the search collapses the tree back to its previous state.</p>
+  <div class="tip">Use this when you need to find a specific error code, account ID, or data field in the raw log. It's much faster than scrolling through the Timeline for technical data.</div>
+</div>
+
 <h3>Customer View — "See the customer's wallet"</h3>
-<p>Read-only wallet simulation. Account list on the left, portfolio or account detail in the center, device info on the right. Load <kbd>app.json</kbd> via the upload banner for exact balances and transaction history.</p>
+<div class="card">
+  <p>Read-only wallet simulation. Account list on the left, portfolio or account detail in the center, device info on the right. Load <kbd>app.json</kbd> via the upload banner for exact balances and transaction history.</p>
+  <p>Switch between Diagnostic and Customer View using the toggle in the top bar. The active mode is highlighted with a purple glow.</p>
+  <div class="warn">Red "mismatch" warning after loading app.json? You loaded the wrong customer's file. Click ✕ to remove and upload the correct one.</div>
+</div>
 
-<div class="warn">Red "mismatch" warning after loading app.json? You loaded the wrong customer's file. Click ✕ to remove and upload the correct one.</div>
 
+<div class="section-divider"></div>
 
 <!-- ═══════════════ COPY ═══════════════ -->
 <h2 id="copy">Copy &amp; Export</h2>
 
 <div class="card">
-  <h3 style="margin-top:0">Three formats</h3>
+  <h3>Four formats</h3>
   <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts, top errors. Paste into your support ticket.</p>
   <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts, all errors. For escalation to Tier 2 or engineering.</p>
   <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Balances and transaction counts. For describing what the wallet looks like. Available in the sidebar Copy dropdown and as a button in Customer View.</p>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All three formats are in the <strong>Copy ▾</strong> dropdown in the sidebar's Diagnosis block. Quick Summary and Full Export also appear as buttons at the top of the Overview.</p>
+  <p><span class="badge badge-red">Copy Errors</span><span class="new-badge">New</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">Quick Summary, Full Export, and Customer Summary are all in the <strong>Copy ▾</strong> dropdown in the sidebar's Diagnosis block. Summary and Full also appear as buttons at the top of the Overview. Copy Errors is in the Issues section header.</p>
 </div>
 
+
+<div class="section-divider"></div>
 
 <!-- ═══════════════ SHORTCUTS ═══════════════ -->
 <h2 id="shortcuts">Keyboard Shortcuts</h2>
 
-<table class="shortcut-table">
-  <tr><td><kbd>Ctrl+1</kbd></td><td>Overview</td></tr>
-  <tr><td><kbd>Ctrl+2</kbd></td><td>Issues</td></tr>
-  <tr><td><kbd>Ctrl+3</kbd></td><td>Accounts</td></tr>
-  <tr><td><kbd>Ctrl+4</kbd></td><td>Timeline</td></tr>
-  <tr><td><kbd>Ctrl+5</kbd></td><td>Network</td></tr>
-  <tr><td><kbd>Ctrl+6</kbd></td><td>APDU</td></tr>
-  <tr><td><kbd>Ctrl+7</kbd></td><td>Raw JSON</td></tr>
-</table>
-<p style="font-size:13px;color:var(--muted)">On Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd>.</p>
+<div class="shortcut-grid">
+  <div class="shortcut-card"><kbd>Ctrl+1</kbd> <span>Overview</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+2</kbd> <span>Issues</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+3</kbd> <span>Accounts</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+4</kbd> <span>Timeline</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+5</kbd> <span>Network</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+6</kbd> <span>APDU</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+7</kbd> <span>Raw JSON</span></div>
+</div>
+<p style="font-size:13px;color:var(--muted);margin-top:12px">On Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd>.</p>
 
+
+<div class="section-divider"></div>
 
 <!-- ═══════════════ TROUBLESHOOTING ═══════════════ -->
 <h2 id="troubleshooting">Tips &amp; Troubleshooting</h2>
@@ -329,13 +409,13 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <p>Accepts <kbd>.json</kbd>, <kbd>.txt</kbd>, and <kbd>.log</kbd> files. Must be a Ledger Wallet log export. Large log files show a "Parsing log file..." indicator — give it a moment.</p>
 
 <h3>I see 0 accounts</h3>
-<p>Some logs don't include account data. Load the customer's <kbd>app.json</kbd> in Customer View for full account information.</p>
+<p>Some logs don't include account data. Switch to <strong>Customer View</strong> and load the customer's <kbd>app.json</kbd> for full account information. The Accounts section will show a hint pointing you there.</p>
 
 <h3>All errors say "Unexpected error"</h3>
-<p>The error isn't in the tool's knowledge base. Expand the error card's "Details" section for the raw data, or search in Timeline or Raw JSON.</p>
+<p>The error isn't in the tool's knowledge base (82 known patterns). Expand the error card's "Details" section for the raw data. Use <strong>Raw JSON</strong> search to find the error in the full log — the progressive search will take you right to it.</p>
 
 <h3>Customer View is empty</h3>
-<p>Make sure you've switched modes using the top bar toggle. If no accounts appear, load the customer's <kbd>app.json</kbd>.</p>
+<p>Make sure you've switched modes using the top bar toggle — the active mode glows purple. If no accounts appear, load the customer's <kbd>app.json</kbd>.</p>
 
 <h3>App.json says "Ledger Sync encryption"</h3>
 <p>The file is encrypted by Ledger Sync. The tool extracts what it can (settings, paired devices, token preferences) but can't read balances or transaction history.</p>
@@ -347,14 +427,14 @@ kbd{background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radi
 <p>Click ✕ on the green banner to remove it, then upload the correct file.</p>
 
 <h3>The xpub scanner is slow</h3>
-<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. A scan across 20+ addresses is normal for accounts with long transaction histories. You can stop a running scan at any time.</p>
+<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
 
-<h3>App.json is taking a long time to load</h3>
-<p>Large app.json files (10MB+) may take several seconds to parse. The tool doesn't show a loading indicator for app.json — the page may appear to freeze briefly. Wait a few seconds. If it fails, you'll see a red error message with instructions.</p>
+<h3>Device apps show "Not installed"</h3>
+<p>This means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall.</p>
+
+<h3>The error timeline says "likely cascade"</h3>
+<p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Focus on the first (highest severity) error — fixing that typically resolves the rest.</p>
 
 </div>
-
-<div class="watermark">LEDGER DIAGNOSTIC</div>
-
 </body>
 </html>
