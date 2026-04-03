@@ -280,6 +280,90 @@ const CHAINS={
 const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
 const DECIMALS={ethereum:18,bitcoin:8,tezos:6,cosmos:6,tron:6,near:24,solana:9,ripple:6,polkadot:10,assethub_polkadot:10,ton:9,cardano:6,bsc:18,polygon:18,avalanche_c_chain:18,optimism:18,arbitrum:18,base:18,linea:18,scroll:18,blast:18,zksync:18,mantle:18,fantom:18,cronos:18,moonbeam:18,moonriver:18,celo:18,neon_evm:18,lukso:18,sonic:18,stellar:7,hedera:8,elrond:18,filecoin:18,vechain:18,algorand:6,klaytn:18,mina:9,kaspa:8,stacks:6,dogecoin:8,litecoin:8,bitcoin_cash:8,aptos:8,sui:9,dydx:18,injective:18,flare:18,hyperevm:18,osmo:6,osmosis:6,internet_computer:8,icp:8,mantra:6,persistence:6,axelar:6,quicksilver:6,zenrock:6};
+
+/* Live Balance — CoinGecko IDs for fiat conversion */
+const COINGECKO_IDS={
+  ethereum:'ethereum',bitcoin:'bitcoin',tezos:'tezos',cosmos:'cosmos',solana:'solana',
+  ripple:'ripple',polkadot:'polkadot',ton:'the-open-network',cardano:'cardano',
+  near:'near',stellar:'stellar',tron:'tron',litecoin:'litecoin',dogecoin:'dogecoin',
+  bitcoin_cash:'bitcoin-cash',bsc:'binancecoin',polygon:'matic-network',
+  avalanche_c_chain:'avalanche-2',optimism:'ethereum',arbitrum:'ethereum',
+  base:'ethereum',linea:'ethereum',scroll:'ethereum',blast:'ethereum',
+  zksync:'ethereum',mantle:'mantle',fantom:'fantom',cronos:'crypto-com-chain',
+  moonbeam:'moonbeam',moonriver:'moonriver',celo:'celo',neon_evm:'neon',
+  lukso:'lukso',sonic:'sonic-3',flare:'flare-networks',hyperevm:'hyperliquid',
+  aptos:'aptos',sui:'sui',hedera:'hedera-hashgraph',elrond:'elrond-erd-2',
+  kaspa:'kaspa',stacks:'blockstack',mina:'mina-protocol',algorand:'algorand',
+  vechain:'vechain',filecoin:'filecoin',klaytn:'klay-token',
+  internet_computer:'internet-computer',icp:'internet-computer',
+  osmo:'osmosis',osmosis:'osmosis',injective:'injective-protocol',
+  dydx:'dydx',axelar:'axelar',
+};
+
+/* Live Balance — EVM public RPC endpoints */
+const EVM_RPCS={
+  ethereum:'https://ethereum-rpc.publicnode.com',
+  bsc:'https://bsc-rpc.publicnode.com',
+  polygon:'https://polygon-bor-rpc.publicnode.com',
+  avalanche_c_chain:'https://avalanche-c-chain-rpc.publicnode.com',
+  optimism:'https://optimism-rpc.publicnode.com',
+  arbitrum:'https://arbitrum-one-rpc.publicnode.com',
+  base:'https://base-rpc.publicnode.com',
+  linea:'https://linea-rpc.publicnode.com',
+  scroll:'https://scroll-rpc.publicnode.com',
+  blast:'https://blast-rpc.publicnode.com',
+  zksync:'https://zksync-era-rpc.publicnode.com',
+  fantom:'https://fantom-rpc.publicnode.com',
+  cronos:'https://cronos-evm-rpc.publicnode.com',
+  moonbeam:'https://moonbeam-rpc.publicnode.com',
+  moonriver:'https://moonriver-rpc.publicnode.com',
+  celo:'https://celo-rpc.publicnode.com',
+  mantle:'https://mantle-rpc.publicnode.com',
+  neon_evm:'https://neon-evm-rpc.publicnode.com',
+  flare:'https://flare-api.flare.network/ext/C/rpc',
+  sonic:'https://rpc.soniclabs.com',
+  lukso:'https://rpc.lukso.gateway.fm',
+  hyperevm:'https://rpc.hyperliquid.xyz/evm',
+};
+
+async function fetchEvmBalance(rpc,addr){
+  const res=await fetch(rpc,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'eth_getBalance',params:[addr,'latest'],id:1})});
+  const j=await res.json();
+  if(j.error)throw new Error(j.error.message);
+  return parseInt(j.result,16)/1e18;
+}
+
+/* Live Balance — per-chain fetch functions (non-EVM). UTXO_NETS callback: cb(err, {bal, txs}) */
+const BALANCE_APIS={
+  bitcoin:addr=>new Promise((res,rej)=>UTXO_NETS.BTC.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
+  litecoin:addr=>new Promise((res,rej)=>UTXO_NETS.LTC.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
+  dogecoin:addr=>new Promise((res,rej)=>UTXO_NETS.DOGE.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
+  bitcoin_cash:addr=>new Promise((res,rej)=>UTXO_NETS.BCH.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
+  solana:async addr=>{const r=await fetch('https://api.mainnet-beta.solana.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'getBalance',params:[addr],id:1})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result.value/1e9;},
+  tezos:async addr=>{const r=await fetch(`https://api.tzkt.io/v1/accounts/${addr}/balance`);const t=await r.text();return Number(t)/1e6;},
+  ripple:async addr=>{const r=await fetch('https://xrplcluster.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'account_info',params:[{account:addr,ledger_index:'validated'}]})});const j=await r.json();return Number(j.result.account_data.Balance)/1e6;},
+  stellar:async addr=>{const r=await fetch(`https://horizon.stellar.org/accounts/${addr}`);const j=await r.json();const n=j.balances?.find(b=>b.asset_type==='native');return n?Number(n.balance):0;},
+  cardano:async addr=>{const r=await fetch('https://api.koios.rest/api/v1/address_info',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({_addresses:[addr]})});const j=await r.json();return j[0]?Number(j[0].balance)/1e6:0;},
+  near:async addr=>{const r=await fetch('https://rpc.mainnet.near.org',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'query',params:{request_type:'view_account',finality:'final',account_id:addr},id:1})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return Number(j.result.amount)/1e24;},
+  tron:async addr=>{const r=await fetch('https://api.trongrid.io/wallet/getaccount',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:addr,visible:true})});const j=await r.json();return(j.balance||0)/1e6;},
+  ton:async addr=>{const a=(typeof tonHexToAddr==='function'?tonHexToAddr(addr):null)||addr;const r=await fetch(`https://toncenter.com/api/v3/account?address=${encodeURIComponent(a)}`);const j=await r.json();return Number(j.balance||0)/1e9;},
+  aptos:async addr=>{const r=await fetch(`https://fullnode.mainnet.aptoslabs.com/v1/accounts/${addr}/resource/0x1::coin::CoinStore%3C0x1::aptos_coin::AptosCoin%3E`);const j=await r.json();return Number(j.data?.coin?.value||0)/1e8;},
+  sui:async addr=>{const r=await fetch('https://fullnode.mainnet.sui.io',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'suix_getBalance',params:[addr,'0x2::sui::SUI'],id:1})});const j=await r.json();return Number(j.result?.totalBalance||0)/1e9;},
+  stacks:async addr=>{const a=(typeof stacksPubkeyToAddr==='function'?stacksPubkeyToAddr(addr):null)||addr;const r=await fetch(`https://stacks-node-api.mainnet.stacks.co/v2/accounts/${encodeURIComponent(a)}`);const j=await r.json();return parseInt(j.balance||'0x0',16)/1e6;},
+  hedera:async addr=>{const r=await fetch(`https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${addr}`);const j=await r.json();return(j.balance?.balance||0)/1e8;},
+  elrond:async addr=>{const r=await fetch(`https://api.multiversx.com/accounts/${addr}`);const j=await r.json();return Number(j.balance||0)/1e18;},
+  kaspa:async addr=>{const r=await fetch(`https://api.kaspa.org/addresses/${addr}/balance`);const j=await r.json();return Number(j.balance||0)/1e8;},
+  cosmos:async addr=>{const r=await fetch(`https://cosmos-rest.publicnode.com/cosmos/bank/v1beta1/balances/${addr}`);const j=await r.json();const u=j.balances?.find(b=>b.denom==='uatom');return u?Number(u.amount)/1e6:0;},
+  algorand:async addr=>{const r=await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${addr}`);const j=await r.json();return(j.amount||0)/1e6;},
+  filecoin:async addr=>{const r=await fetch('https://api.node.glif.io/rpc/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'Filecoin.WalletBalance',params:[addr],id:1})});const j=await r.json();return Number(j.result||0)/1e18;},
+};
+
+async function fetchPrices(cgIds){
+  if(!cgIds.length)return{};
+  const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd`);
+  return r.json();
+}
+
 const CURRENCY_TO_APP={
   ethereum:'Ethereum',bitcoin:'Bitcoin',tezos:'Tezos Wallet',cosmos:'Cosmos',
   solana:'Solana',tron:'Tron',ripple:'XRP',polkadot:'Polkadot',
@@ -1393,7 +1477,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount,deviceApps}){
+function AcctCard({acct,errCount,deviceApps,liveBalance}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -1428,11 +1512,13 @@ function AcctCard({acct,errCount,deviceApps}){
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
           {acct.toks.length>0&&<span style={bdg(T.primary)}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
-          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>empty</span>}
+          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>{acct.dur!=null||acct.bal!=null?'empty':'no data'}</span>}
           {errCount>0&&<span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,115,117,0.15)',color:T.error}}>⚠ {errCount} issue{errCount!==1?'s':''}</span>}
           {appBadge}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
+          {liveBalance?.status==='loading'&&<span className="mono" style={{fontSize:11,color:T.muted,opacity:0.6}}>live ···</span>}
+          {liveBalance?.status==='ok'&&liveBalance.bal!=null&&<span className="mono" style={{fontSize:11,color:T.success,fontWeight:600}}>{liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}{liveBalance.fiat!=null?' · $'+liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):''}</span>}
         </div>
         <div className="mono" style={{color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
       </div>
@@ -1466,9 +1552,15 @@ function AcctCard({acct,errCount,deviceApps}){
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
           {[{l:'Derivation',v:acct.dm||'default'},{l:'Address Path',v:acct.fp||'—'},{l:'Operations',v:String(acct.ops)},{l:'Sync',v:acct.dur?acct.dur.toFixed(2)+'s':'—'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono">{x.v}</div></div>)}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
-          {[{l:'Balance',v:acct.bal!=null?Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log — see explorer)'},{l:'Spendable Balance',v:acct.spendBal!=null?Number(acct.spendBal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log)'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono" style={{color:acct.bal!=null?T.success:T.muted}}>{x.v}</div></div>)}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:liveBalance&&liveBalance.status!=='unsupported'?8:16}}>
+          {[{l:'Balance (log)',v:acct.bal!=null?Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log — see explorer)'},{l:'Spendable Balance',v:acct.spendBal!=null?Number(acct.spendBal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log)'}].map(x=><div key={x.l} style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono" style={{color:acct.bal!=null?T.success:T.muted}}>{x.v}</div></div>)}
         </div>
+        {liveBalance&&liveBalance.status!=='unsupported'&&<div style={{background:'rgba(0,0,0,0.2)',padding:10,borderRadius:8,marginBottom:16}}>
+          <div className="label" style={{color:T.muted,marginBottom:4}}>Live Balance</div>
+          {liveBalance.status==='loading'&&<div className="mono" style={{color:T.muted,opacity:0.7}}>··· fetching</div>}
+          {liveBalance.status==='ok'&&<div className="mono" style={{color:T.success}}>{liveBalance.bal!=null?liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'0 '+ch.ticker}{liveBalance.fiat!=null&&<span style={{color:T.muted,fontWeight:400,marginLeft:10}}>${liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2})} USD</span>}</div>}
+          {liveBalance.status==='error'&&<div className="mono" style={{color:T.muted}}>— (API unavailable)</div>}
+        </div>}
         <div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,wordBreak:'break-all'}}><span className="mono" style={{color:T.muted}}>{acct.id}</span><CopyBtn text={acct.id}/></div></div>
         {acct.toks.length>0&&<div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:6}}>Tokens</div><div data-tv={tokV} style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
           const lb=tk.tokenTicker||tk.tokenId||'token';
@@ -2557,14 +2649,20 @@ function DiagSidebar({ logData, section, setSection }) {
                 +{fundedAccts.length - 4} more funded
               </div>
             )}
-            {emptyAccts.length > 0 && (
-              <div onClick={() => setSection('accounts')}
+            {emptyAccts.length > 0 && (()=>{
+              const confirmed=emptyAccts.filter(a=>a.dur!=null||a.bal!=null);
+              const noData=emptyAccts.filter(a=>a.dur==null&&a.bal==null);
+              return <div onClick={() => setSection('accounts')}
                 style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic', cursor: 'pointer' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                ╶╶ {emptyAccts.length} empty…
-              </div>
-            )}
+                {confirmed.length>0&&noData.length>0
+                  ?`╶╶ ${confirmed.length} empty · ${noData.length} no data`
+                  :confirmed.length>0
+                    ?`╶╶ ${confirmed.length} empty…`
+                    :`╶╶ ${noData.length} no balance data`}
+              </div>;
+            })()}
             {accounts.length === 0 && (
               <div style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic' }}>No accounts found</div>
             )}
@@ -2636,6 +2734,7 @@ function App(){
   const[showMore,setShowMore]=useState(false);
   const[globalSearch,setGlobalSearch]=useState('');
   const[showGlobalResults,setShowGlobalResults]=useState(false);
+  const[liveBalances,setLiveBalances]=useState({});
   const fileRef=useRef();
 
   const handleFile=useCallback(file=>{
@@ -2660,6 +2759,64 @@ function App(){
       },10);
     };reader.readAsText(file);
   },[]);
+
+  useEffect(()=>{
+    if(!logData?.accts?.length){setLiveBalances({});return;}
+    const accts=logData.accts;
+    const init={};
+    accts.forEach(a=>{init[a.id]={bal:null,fiat:null,status:'loading',err:null,ts:null};});
+    setLiveBalances(init);
+    let cancelled=false;
+    const fetched={};
+    (async()=>{
+      for(let i=0;i<accts.length;i++){
+        if(cancelled)break;
+        const a=accts[i];
+        const cid=a.cid||'';
+        const addr=a.isXpub?null:a.addr;
+        let fetchFn=BALANCE_APIS[cid];
+        if(!fetchFn&&EVM_RPCS[cid])fetchFn=ad=>fetchEvmBalance(EVM_RPCS[cid],ad);
+        if(!fetchFn||!addr){
+          if(!cancelled)setLiveBalances(p=>({...p,[a.id]:{...p[a.id],status:'unsupported'}}));
+          continue;
+        }
+        try{
+          const bal=await fetchFn(addr);
+          fetched[a.id]={cid,bal};
+          if(!cancelled)setLiveBalances(p=>({...p,[a.id]:{...p[a.id],bal,status:'ok',ts:Date.now()}}));
+        }catch(err){
+          if(!cancelled)setLiveBalances(p=>({...p,[a.id]:{...p[a.id],status:'error',err:err.message}}));
+        }
+        if(i<accts.length-1)await new Promise(r=>setTimeout(r,150));
+      }
+      if(cancelled)return;
+      const cgIds=[...new Set(Object.values(fetched).map(x=>COINGECKO_IDS[x.cid]).filter(Boolean))];
+      if(!cgIds.length)return;
+      try{
+        const prices=await fetchPrices(cgIds);
+        if(cancelled)return;
+        setLiveBalances(p=>{
+          const next={...p};
+          for(const[id,{cid,bal}] of Object.entries(fetched)){
+            const cgId=COINGECKO_IDS[cid];
+            const usd=cgId&&prices[cgId]?.usd;
+            if(usd!=null)next[id]={...next[id],fiat:bal*usd};
+          }
+          return next;
+        });
+      }catch{}
+    })();
+    return()=>{cancelled=true;};
+  },[logData]);
+
+  useEffect(()=>{
+    if(!logData)return;
+    if(!logData.dev.modelId&&!logData.dev.modelName&&!logData.dev.fw){
+      setDeviceExpanded(false);
+    }else{
+      setDeviceExpanded(true);
+    }
+  },[logData]);
 
   const clearLog=()=>{
     setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setParsing(false);setFileKey(k=>k+1);
@@ -2862,7 +3019,7 @@ function App(){
                 </div>
                 {deviceExpanded&&<div style={{background:T.panel,border:'1px solid rgba(255,255,255,0.04)',borderTop:'none',borderRadius:'0 0 4px 4px',padding:'12px 16px'}}>
                   {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model.':'No device was connected during this session. Device model and firmware are not available.'}</div>}
-                  {req.length>0&&(()=>{
+                  {req.length>0&&da&&da.source==='manager-result'&&(()=>{
                     const rows=req.map(r=>{
                       const n=r.appName;const chains=r.chains||[];
                       if(!da||da.source!=='manager-result')return{n,status:'unknown',ver:'—',avail:'—',chains};
@@ -3116,7 +3273,7 @@ function App(){
         {section==='accounts'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
           <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-            <div style={{fontSize:12,color:T.muted}}>{logData.accts.filter(a=>a.ops>0).length} funded · {logData.accts.filter(a=>a.ops===0).length} empty</div>
+            <div style={{fontSize:12,color:T.muted}}>{(()=>{const funded=logData.accts.filter(a=>a.ops>0).length;const withSync=logData.accts.filter(a=>a.ops===0&&(a.dur!=null||a.bal!=null)).length;const noData=logData.accts.filter(a=>a.ops===0&&a.dur==null&&a.bal==null).length;const parts=[];if(funded)parts.push(`${funded} funded`);if(withSync)parts.push(`${withSync} empty`);if(noData)parts.push(`${noData} no data`);return parts.join(' · ')||'0 accounts';})()}</div>
             <div style={{display:'flex',gap:6}}>
               {logData.dev.accountIds&&logData.dev.accountIds.length>0&&<button onClick={()=>copyText(logData.dev.accountIds.join('\n'))} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.Copy/> Copy all IDs ({logData.dev.accountIds.length})</button>}
               <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export</button>
@@ -3129,7 +3286,7 @@ function App(){
           )}
           {logData.accts.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
             {logData.accts.map(a=>(
-              <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${a.ops>0?` · ${a.ops} ops`:' · empty'}`} style={{width:20,height:20,borderRadius:3,background:a.ops>0?a.ch.color:T.border,opacity:a.ops>0?1:0.4,cursor:'pointer',flexShrink:0}}/>
+              <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${a.ops>0?` · ${a.ops} ops`:(a.dur!=null||a.bal!=null)?' · empty':' · no data'}`} style={{width:20,height:20,borderRadius:3,background:a.ops>0?a.ch.color:T.border,opacity:a.ops>0?1:0.4,cursor:'pointer',flexShrink:0}}/>
             ))}
           </div>}
           <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
@@ -3141,7 +3298,7 @@ function App(){
               const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();
               for(const a of logData.accts){if(a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())){acctErrCounts[a.id]=(acctErrCounts[a.id]||0)+1;}}
             }
-            return filtAccts.map(a=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps}/>);
+            return filtAccts.map(a=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null}/>);
           })()}
           {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
             <div style={{fontSize:28,marginBottom:8}}>👛</div>
