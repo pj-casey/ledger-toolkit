@@ -609,9 +609,10 @@ function parseLogs(text){
       return arr.filter(e=>e!==null&&typeof e==='object'&&!Array.isArray(e)).map((e,i)=>{
         const out=Object.assign({},e);
         if(out.logIndex==null)out.logIndex=i;
-        // Mobile: logLevel -> level, tag -> type
+        // Mobile: logLevel -> level, tag -> type, date -> timestamp
         if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
         if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
+        if(out.timestamp==null&&out.date!=null){out.timestamp=out.date;}
         return out;
       });
     }catch{}
@@ -666,6 +667,7 @@ function parseLogs(text){
           if(out.logIndex==null)out.logIndex=i;
           if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
           if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
+          if(out.timestamp==null&&out.date!=null){out.timestamp=out.date;}
           return out;
         });
       }
@@ -681,9 +683,54 @@ function parseLogs(text){
       if(out.logIndex==null)out.logIndex=i;
       if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
       if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
+      if(out.timestamp==null&&out.date!=null){out.timestamp=out.date;}
       return out;
     }catch{return{logIndex:i,timestamp:'',type:'raw',level:'info',message:lt};}
   }).filter(Boolean);
+}
+
+function synthesizeMobileMeta(entries, fileName) {
+  // Detect mobile: entries have `date` field but no exportLogsMeta (desktop marker)
+  const hasMeta = entries.some(e => e.message === 'exportLogsMeta');
+  const hasMobileDate = entries.length > 0 && entries.some(e => e.date != null);
+  if (hasMeta || !hasMobileDate) return entries;
+
+  // Mobile logs are newest-first — reverse to chronological
+  const sorted = entries.slice().reverse();
+  sorted.forEach((e, i) => { e.logIndex = i; });
+
+  // Extract account IDs from bridge schedule message
+  const bridgeSchedule = sorted.find(e =>
+    e.type === 'bridge' && typeof e.message === 'string' && e.message.startsWith('schedule ')
+  );
+  const ids = bridgeSchedule
+    ? bridgeSchedule.message.slice(9).split(', ').map(s => s.trim()).filter(Boolean)
+    : [];
+
+  // Parse app version and platform from filename
+  let appVersion = null, platform = null;
+  const fnMatch = (fileName || '').match(/ledgerwallet-mob-([\d_.]+)-[_(](\d+)[_)]-/i);
+  if (fnMatch) {
+    appVersion = fnMatch[1].replace(/_/g, '.');
+    const osCode = fnMatch[2];
+    platform = osCode === '2' ? 'ios' : osCode === '1' ? 'android' : 'mobile';
+  }
+
+  // Inject synthetic exportLogsMeta so extractAccounts and extractDevice work
+  const metaEntry = {
+    logIndex: -1,
+    timestamp: sorted[0]?.timestamp || '',
+    type: 'synthetic',
+    message: 'exportLogsMeta',
+    accountsIds: ids,
+    platform: platform || 'mobile',
+    appVersion: appVersion,
+    _isMobile: true
+  };
+  sorted.unshift(metaEntry);
+  sorted.forEach((e, i) => { e.logIndex = i; });
+
+  return sorted;
 }
 
 function extractDevice(entries){
@@ -1864,7 +1911,7 @@ function CustomerView({logData,appJson,onAppJson}){
       `  Model:     ${dev.modelName||DN[as.modelId]||as.modelId||'Unknown'}`,
       `  Firmware:  ${(()=>{const fw=dev.fw||as.deviceVersion||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===(dev.fw||as.deviceVersion)?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
       `  Ledger Live: ${dev.appVer||as.appVersion||'Unknown'}`,
-      `  OS:        ${[dev.os||as.osType,dev.osVer||as.osVersion].filter(Boolean).join(' ')||'Unknown'}`,
+      `  OS:        ${[dev.os||as.osType,dev.osVer||as.osVersion].filter(Boolean).join(' ')||(logData.isMobile?(dev.platform==='ios'?'iOS':dev.platform==='android'?'Android':'Unknown'):'Unknown')}`,
       `  Platform:  ${dev.platform||as.platform||'Unknown'}`,
       '',
       `ACCOUNTS (${enrichedAccts.length})`,
@@ -2274,20 +2321,20 @@ function DiagSidebar({ logData, section, setSection }) {
       ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
       : 'Unknown';
     return [
-      '=== Ledger Diagnostic Summary ===',
+      logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',
       `Session:     ${ses}`,
       '',
       'DEVICE',
       `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
       `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
-      `  Ledger Live: ${d.appVer || 'Unknown'}`,
-      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
+      `  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer || 'Unknown'}`,
+      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || (logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
       `  Platform:   ${d.platform || 'Unknown'}`,
       `  User ID:    ${d.userId || 'Unknown'}`,
       '',
       ...buildDeviceAppsLines(logData, false),
       `ACCOUNTS (${accts.length})`,
-      ...accts.slice(0, 10).map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return `  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
+      ...accts.slice(0, 10).map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
       ...(accts.length > 10 ? [`  ... and ${accts.length - 10} more`] : []),
       '',
       `ERRORS (${errs.length})`,
@@ -2311,20 +2358,20 @@ function DiagSidebar({ logData, section, setSection }) {
       ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
       : 'Unknown';
     return [
-      '=== Ledger Diagnostic Summary (Full) ===',
+      logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',
       `Session:     ${ses}`,
       '',
       'DEVICE',
       `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
       `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
-      `  Ledger Live: ${d.appVer || 'Unknown'}`,
-      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
+      `  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer || 'Unknown'}`,
+      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || (logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
       `  Platform:   ${d.platform || 'Unknown'}`,
       `  User ID:    ${d.userId || 'Unknown'}`,
       '',
       ...buildDeviceAppsLines(logData, true),
       `ACCOUNTS (${accts.length})`,
-      ...accts.map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return `  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
+      ...accts.map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
       '',
       `ERRORS (${errs.length})`,
       ...errs.map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${e.dg?.a || ''}`),
@@ -2351,7 +2398,7 @@ function DiagSidebar({ logData, section, setSection }) {
       `  Model:     ${dev.modelName || dev.modelId || 'Unknown'}`,
       `  Firmware:  ${(()=>{const fw=dev.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===dev.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
       `  Ledger Live: ${dev.appVer || 'Unknown'}`,
-      `  OS:        ${[dev.os, dev.osVer].filter(Boolean).join(' ') || 'Unknown'}`,
+      `  OS:        ${[dev.os, dev.osVer].filter(Boolean).join(' ') || (logData.isMobile?(dev.platform==='ios'?'iOS':dev.platform==='android'?'Android':'Unknown'):'Unknown')}`,
       `  Platform:  ${dev.platform || 'Unknown'}`,
       '',
       ...buildDeviceAppsLines(logData, false),
@@ -2596,13 +2643,15 @@ function App(){
     reader.onload=ev=>{
       setTimeout(()=>{
         try{
-          const entries=parseLogs(ev.target.result);
+          const entries=synthesizeMobileMeta(parseLogs(ev.target.result), file.name);
           if(!entries||entries.length===0){setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');setParsing(false);return;}
           const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
           const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
           const deviceApps=extractDeviceApps(entries);const requiredApps=inferRequiredApps(accts);
+          // Backfill device info from deviceApps when extractDevice missed it (mobile logs)
+          if(deviceApps){if(!dev.modelId&&deviceApps.deviceModelId){dev.modelId=deviceApps.deviceModelId;dev.modelName=DN[deviceApps.deviceModelId]||deviceApps.deviceModelId;}if(!dev.fw&&deviceApps.deviceInfo?.seVersion)dev.fw=deviceApps.deviceInfo.seVersion;if(!dev.fw&&deviceApps.firmware?.version)dev.fw=deviceApps.firmware.version;}
           setLoadErr('');
-          setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result});
+          setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
           setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
@@ -2689,6 +2738,7 @@ function App(){
         <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
           <Ico.File/>
           <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
+          {logData.isMobile&&<span style={{fontSize:10,fontWeight:700,letterSpacing:'0.05em',padding:'2px 6px',borderRadius:4,background:T.primary+'1A',color:T.primary,marginLeft:2}}>MOBILE</span>}
           <span style={{color:T.muted,marginLeft:4}}>{logData.entries.length} entries · {' '}<span onClick={()=>setSection('accounts')} style={{cursor:'pointer',color:logData.accts.length>0?T.success:T.muted,textDecoration:'underline',textDecorationColor:'transparent',transition:'text-decoration-color 0.15s'}} onMouseEnter={e=>e.target.style.textDecorationColor='currentColor'} onMouseLeave={e=>e.target.style.textDecorationColor='transparent'}>{logData.accts.length} accounts</span> · {' '}<span onClick={()=>setSection('errors')} style={{cursor:'pointer',color:logData.errs.length>0?T.error:T.muted,textDecoration:'underline',textDecorationColor:'transparent',transition:'text-decoration-color 0.15s'}} onMouseEnter={e=>e.target.style.textDecorationColor='currentColor'} onMouseLeave={e=>e.target.style.textDecorationColor='transparent'}>{logData.errs.length} issue{logData.errs.length!==1?'s':''}</span></span>
         </div>
         <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}}>New file</button>
@@ -2768,10 +2818,10 @@ function App(){
                   </span>
                 ))}
                 <div style={{flex:1}}/>
-                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=['=== Ledger Diagnostic Summary ===',`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  Ledger Live: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,...accts.slice(0,10).map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}), ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),'',`ERRORS (${errs.length})`,...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),'',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setSumCopied(true);setTimeout(()=>setSumCopied(false),2000);}} aria-label="Copy diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',flexShrink:0}}>
+                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=[logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,...accts.slice(0,10).map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}), ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),'',`ERRORS (${errs.length})`,...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),'',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setSumCopied(true);setTimeout(()=>setSumCopied(false),2000);}} aria-label="Copy diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',flexShrink:0}}>
                   {sumCopied?'Copied!':'Copy Summary'}
                 </button>
-                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=['=== Ledger Diagnostic Summary (Full) ===',`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  Ledger Live: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||'Unknown'}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,true),`ACCOUNTS (${accts.length})`,...accts.map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}), '','',`ERRORS (${errs.length})`,...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), '','',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setFullCopied(true);setTimeout(()=>setFullCopied(false),2000);}} aria-label="Copy full diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'0F',color:T.primary,border:`1px solid ${T.primary}33`,cursor:'pointer',opacity:0.75,flexShrink:0}}>
+                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=[logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,true),`ACCOUNTS (${accts.length})`,...accts.map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}), '','',`ERRORS (${errs.length})`,...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), '','',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setFullCopied(true);setTimeout(()=>setFullCopied(false),2000);}} aria-label="Copy full diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'0F',color:T.primary,border:`1px solid ${T.primary}33`,cursor:'pointer',opacity:0.75,flexShrink:0}}>
                   {fullCopied?'Copied!':'Copy Full'}
                 </button>
               </div>
@@ -2801,6 +2851,7 @@ function App(){
             {/* Zone 2: Middle content — adaptive layout */}
             {(()=>{
               const parts=[];
+              if(logData.isMobile)parts.push('Mobile');
               if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
               else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){if(fwOk)parts.push(`FW ${d.fw} ✓`);else if(fwLatest)parts.push(`FW ${d.fw} ⚠ ${fwLatest.version} available`);else parts.push(`FW ${d.fw}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
               const deviceSummary=<>
@@ -2887,7 +2938,7 @@ function App(){
               const environmentCard=(
                 <div style={{background:T.card,borderRadius:8,padding:16,flexShrink:0}}>
                   <div className="card-header" style={{marginBottom:12}}>Environment</div>
-                  {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync duration',logData.sync?logData.sync+'s':'—']].map(([k,v])=>(
+                  {[['OS',logData.dev.os?`${logData.dev.os} ${logData.dev.osVer||''}`:logData.isMobile?(logData.dev.platform==='ios'?'iOS':logData.dev.platform==='android'?'Android':'—'):'—'],['Platform',logData.isMobile?(()=>{const p=logData.dev.platform;const label=p==='ios'?'iOS':p==='android'?'Android':p?p.charAt(0).toUpperCase()+p.slice(1):'';return`Ledger Wallet Mobile${label?' ('+label+')':''}`})():logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync duration',logData.sync?logData.sync+'s':'—']].map(([k,v])=>(
                     <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',lineHeight:1.6}}>
                       <span style={{color:T.muted,fontSize:13}}>{k}</span>
                       <span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span>
@@ -2976,6 +3027,7 @@ function App(){
                         <span className="mono" style={{color:T.muted}}>{det.note}</span>
                       </div>
                     ))}
+                    {logData.isMobile&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${T.border}`,fontSize:11,color:T.muted,lineHeight:1.5}}>Mobile logs typically score 50–65 due to reduced metadata. This is expected — mobile exports don't include analytics, OS details, or user IDs.</div>}
                   </div>}
                 </div>;
               })()}
@@ -3070,7 +3122,11 @@ function App(){
               <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export</button>
             </div>
           </div>
-          {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>}
+          {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
+            logData.isMobile
+              ? <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0}}>💡</span><span>Mobile logs don't include operation counts or balances. Accounts show chains and addresses only. Switch to <span onClick={()=>setViewMode('customer')} style={{color:T.primary,fontWeight:600,cursor:'pointer'}}>Customer View</span> and load the customer's app.json for full account details.</span></div>
+              : <div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>
+          )}
           {logData.accts.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
             {logData.accts.map(a=>(
               <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${a.ops>0?` · ${a.ops} ops`:' · empty'}`} style={{width:20,height:20,borderRadius:3,background:a.ops>0?a.ch.color:T.border,opacity:a.ops>0?1:0.4,cursor:'pointer',flexShrink:0}}/>
