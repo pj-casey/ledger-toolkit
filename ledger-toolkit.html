@@ -23,7 +23,7 @@ body,#root{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-
 .stat-value{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif !important;font-size:24px !important;font-weight:700 !important;line-height:1.2 !important;letter-spacing:-0.01em;}
 h1,h2,.section-title{font-size:16px;font-weight:600;line-height:1.4;}
 .card-header,h3{font-size:14px;font-weight:600;line-height:1.4;}
-.label,.tab-label,.ledger-watermark{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;}
+.label,.tab-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;}
 .mono,code,pre{font-family:'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace;font-size:12px;line-height:1.5;}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
@@ -37,24 +37,9 @@ button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
   .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
 }
 
-/* ── Brand: corner bracket accents (Ledger brand motif — "visual representation of protection") ── */
-.card-bracketed{position:relative;}
-.card-bracketed::before,.card-bracketed::after{content:'';position:absolute;width:10px;height:10px;pointer-events:none;z-index:1;}
-.card-bracketed::before{top:4px;left:4px;border-top:1px solid var(--border);border-left:1px solid var(--border);}
-.card-bracketed::after{top:4px;right:4px;border-top:1px solid var(--border);border-right:1px solid var(--border);}
-/* bottom corners via a pseudo on a child — we use a wrapper span .card-bracket-b */
-.card-bracket-b{position:absolute;inset:0;pointer-events:none;z-index:1;}
-.card-bracket-b::before,.card-bracket-b::after{content:'';position:absolute;width:10px;height:10px;}
-.card-bracket-b::before{bottom:4px;left:4px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);}
-.card-bracket-b::after{bottom:4px;right:4px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
 
-/* ── Brand: watermark ── */
-.ledger-watermark{position:fixed;bottom:16px;right:20px;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);opacity:0.28;font-weight:500;pointer-events:none;user-select:none;z-index:1;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
 
 /* ── Micro-interactions ── */
-/* Card hover transitions */
-.card-bracketed{transition:border-color 150ms ease,box-shadow 150ms ease;}
-.card-bracketed:hover{box-shadow:0 2px 12px rgba(0,0,0,0.3);}
 /* Global button transitions */
 button{transition:opacity 150ms ease,transform 150ms ease,background-color 150ms ease,border-color 150ms ease;}
 button:active{transform:scale(0.98);}
@@ -89,9 +74,10 @@ button:active{transform:scale(0.98);}
 .cv-info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:12px;}
 .cv-info-row:last-child{border-bottom:none;}
 .cv-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;}
-.cv-mode-toggle{display:flex;align-items:center;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-.cv-mode-btn{padding:5px 13px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:0.04em;cursor:pointer;transition:background 150ms ease,color 150ms ease;}
-.cv-mode-btn.cv-active{background:var(--primary);color:#000;}
+.cv-mode-toggle{display:flex;align-items:stretch;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;overflow:hidden;gap:0;}
+.cv-mode-btn{padding:8px 20px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:0.03em;cursor:pointer;transition:background 150ms ease,color 150ms ease,box-shadow 150ms ease;position:relative;}
+.cv-mode-btn:not(.cv-active):hover{background:rgba(255,255,255,0.06);color:#CCCCCC;}
+.cv-mode-btn.cv-active{background:var(--primary);color:#000;box-shadow:0 0 12px rgba(187,176,255,0.25);}
 @media (max-width:1024px){.cv-infobar{display:none;}}
 @media (max-width:768px){.cv-sidebar{width:180px;}.cv-portfolio-grid{grid-template-columns:1fr;}}
 .cv-drop-banner{}
@@ -118,7 +104,6 @@ button:active{transform:scale(0.98);}
 </head>
 <body>
 <div id="root"></div>
-<div class="ledger-watermark">LEDGER DIAGNOSTIC</div>
 <script type="text/babel">
 const {useState,useMemo,useCallback,useRef,useEffect}=React;
 
@@ -141,9 +126,9 @@ const Ico={
 };
 
 /* Theme & helpers */
-const T={bg:'#131214',panel:'#1C1D1F',border:'#3C3C3C',text:'#FFFFFF',muted:'#949494',primary:'#BBB0FF',success:'#7AC26C',error:'#F57375',warning:'#FFBD42'};
+const T={bg:'#131214',panel:'#1C1D1F',card:'#242528',border:'#3C3C3C',text:'#FFFFFF',muted:'#949494',primary:'#BBB0FF',success:'#7AC26C',error:'#F57375',warning:'#FFBD42'};
 const MF="'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace";
-const crd={background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,padding:20,marginBottom:16};
+const crd={background:T.card,borderRadius:8,padding:16,marginBottom:16};
 const bdg=c=>({display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:700,background:c+'22',color:c,fontFamily:MF});
 const sGet=(o,p,fb)=>{try{let c=o;for(const k of p.split('.')){if(c==null)return fb;c=c[k];}return c??fb;}catch{return fb;}};
 const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',{hour12:false})+'.'+String(d.getMilliseconds()).padStart(3,'0');}catch{return '';}};
@@ -1478,12 +1463,13 @@ function AcctCard({acct,errCount,deviceApps}){
 function ModeToggle({mode,onChange}){
   return <div className="cv-mode-toggle" role="group" aria-label="View mode">
     <button className={`cv-mode-btn${mode==='diagnostic'?' cv-active':''}`} onClick={()=>onChange('diagnostic')} aria-pressed={mode==='diagnostic'}>
-      <div>Diagnostic</div>
-      <div style={{fontSize:10,color:mode==='diagnostic'?'rgba(0,0,0,0.6)':'#949494',marginTop:1}}>Technical investigation</div>
+      <div style={{fontWeight:700}}>Diagnostic</div>
+      <div style={{fontSize:10,color:mode==='diagnostic'?'rgba(0,0,0,0.5)':'#666666',marginTop:2}}>Technical investigation</div>
     </button>
+    <div style={{width:1,background:'var(--border)',alignSelf:'stretch',flexShrink:0}}/>
     <button className={`cv-mode-btn${mode==='customer'?' cv-active':''}`} onClick={()=>onChange('customer')} aria-pressed={mode==='customer'}>
-      <div>Customer View</div>
-      <div style={{fontSize:10,color:mode==='customer'?'rgba(0,0,0,0.6)':'#949494',marginTop:1}}>See the customer's wallet</div>
+      <div style={{fontWeight:700}}>Customer View</div>
+      <div style={{fontSize:10,color:mode==='customer'?'rgba(0,0,0,0.5)':'#666666',marginTop:2}}>See the customer's wallet</div>
     </button>
   </div>;
 }
@@ -2044,7 +2030,7 @@ function CustomerView({logData,appJson,onAppJson}){
 /* ═══ MAIN APP ═══ */
 const TABS=['Overview','Timeline','Accounts','Errors','Network'];
 
-function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPath}){
+function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPath,matchPaths,currentMatchIndex}){
   const type=value===null?'null':Array.isArray(value)?'array':typeof value;
   const isExpandable=type==='object'||type==='array';
   const isExpanded=isExpandable&&expanded.has(path);
@@ -2053,6 +2039,8 @@ function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPat
     (keyName&&String(keyName).toLowerCase().includes(searchTerm))||
     (!isExpandable&&String(value).toLowerCase().includes(searchTerm))
   );
+  const matchIndex=matchPaths?matchPaths.indexOf(path):-1;
+  const isCurrentMatch=matchIndex>=0&&matchIndex===currentMatchIndex;
   const renderValue=()=>{
     if(value===null)return<span style={{color:T.muted,fontStyle:'italic'}}>null</span>;
     if(type==='boolean')return<span style={{color:T.error}}>{String(value)}</span>;
@@ -2065,7 +2053,9 @@ function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPat
   const closeBracket=isExpandable&&isExpanded?<div style={{paddingLeft:depth>0?20:0}}><span style={{color:T.muted}}>{type==='array'?']':'}'}</span></div>:null;
   const[hovered,setHovered]=useState(false);
   return<div>
-    <div className="jt-row" style={{paddingLeft:depth*20,background:matchesSearch?'rgba(187,176,255,0.1)':'transparent'}} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}>
+    <div className="jt-row" id={matchIndex>=0?'jt-match-'+matchIndex:undefined}
+      style={{paddingLeft:depth*20,background:isCurrentMatch?'rgba(187,176,255,0.25)':matchesSearch?'rgba(187,176,255,0.08)':'transparent',borderLeft:isCurrentMatch?'2px solid #BBB0FF':'2px solid transparent',transition:'background 150ms ease'}}
+      onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}>
       {isExpandable
         ?<span className="jt-arrow" onClick={()=>onToggle(path)} style={{cursor:'pointer',userSelect:'none',color:T.muted,display:'inline-block',width:16,textAlign:'center',transition:'transform 0.15s',transform:isExpanded?'rotate(90deg)':'none'}}>▶</span>
         :<span style={{display:'inline-block',width:16}}/>
@@ -2082,7 +2072,8 @@ function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPat
           <JTNode key={k+i} keyName={k} value={v}
             path={type==='array'?`${path}[${k}]`:`${path}.${k}`}
             depth={depth+1} expanded={expanded} onToggle={onToggle}
-            searchTerm={searchTerm} onCopyPath={onCopyPath}/>
+            searchTerm={searchTerm} onCopyPath={onCopyPath}
+            matchPaths={matchPaths} currentMatchIndex={currentMatchIndex}/>
         ))}
         {capped&&<div style={{paddingLeft:(depth+1)*20+16,color:T.muted,fontSize:11,fontStyle:'italic',padding:'4px 12px 4px '+(((depth+1)*20)+16)+'px'}}>… and {entries.length-500} more items</div>}
       </>;
@@ -2095,6 +2086,9 @@ function JTTree({data}){
   const[expanded,setExpanded]=useState(()=>new Set());
   const[search,setSearch]=useState('');
   const[copiedPath,setCopiedPath]=useState('');
+  const[matchPaths,setMatchPaths]=useState([]);
+  const[currentMatch,setCurrentMatch]=useState(0);
+  const scrollContainerRef=useRef(null);
   const searchLower=search.toLowerCase();
   const toggle=useCallback(path=>{
     setExpanded(prev=>{const next=new Set(prev);if(next.has(path))next.delete(path);else next.add(path);return next;});
@@ -2119,24 +2113,70 @@ function JTTree({data}){
     setCopiedPath(path);
     setTimeout(()=>setCopiedPath(''),1500);
   },[]);
-  const matchCount=useMemo(()=>{
-    if(!searchLower)return 0;
-    let count=0;
-    const walk=(val,key)=>{
-      if(key&&String(key).toLowerCase().includes(searchLower))count++;
-      if(val===null||typeof val!=='object'){if(String(val).toLowerCase().includes(searchLower))count++;return;}
-      if(Array.isArray(val))val.forEach((v,i)=>walk(v,String(i)));
-      else Object.entries(val).forEach(([k,v])=>walk(v,k));
+  const goNextMatch=useCallback(()=>{
+    if(matchPaths.length===0)return;
+    setCurrentMatch(i=>(i+1)%matchPaths.length);
+  },[matchPaths]);
+  const goPrevMatch=useCallback(()=>{
+    if(matchPaths.length===0)return;
+    setCurrentMatch(i=>(i-1+matchPaths.length)%matchPaths.length);
+  },[matchPaths]);
+  useEffect(()=>{
+    if(!searchLower){setMatchPaths([]);setCurrentMatch(0);return;}
+    const paths=[];
+    const walk=(val,key,path)=>{
+      if(paths.length>=200)return;
+      const keyMatch=key&&String(key).toLowerCase().includes(searchLower);
+      const valMatch=(val===null||typeof val!=='object')&&String(val).toLowerCase().includes(searchLower);
+      if(keyMatch||valMatch)paths.push(path);
+      if(val!==null&&typeof val==='object'){
+        if(Array.isArray(val)){val.forEach((v,i)=>walk(v,String(i),`${path}[${i}]`));}
+        else{Object.entries(val).forEach(([k,v])=>walk(v,k,`${path}.${k}`));}
+      }
     };
-    walk(data,null);
-    return count;
-  },[data,searchLower]);
+    walk(data,null,'$');
+    setMatchPaths(paths);
+    setCurrentMatch(0);
+    if(paths.length>0){
+      const toExpand=new Set();
+      for(const p of paths){
+        let current='';
+        const parts=p.match(/[^.\[\]]+|\[\d+\]/g)||[];
+        for(let i=0;i<parts.length-1;i++){
+          const part=parts[i];
+          if(part.startsWith('[')){current=current+part;}
+          else{current=current?current+'.'+part:'$';}
+          toExpand.add(current);
+        }
+        toExpand.add('$');
+      }
+      setExpanded(toExpand);
+    }
+  },[searchLower,data]);
+  useEffect(()=>{
+    if(matchPaths.length===0)return;
+    const timer=setTimeout(()=>{
+      const el=document.getElementById('jt-match-'+currentMatch);
+      if(el&&scrollContainerRef.current){el.scrollIntoView({behavior:'smooth',block:'center'});}
+    },50);
+    return()=>clearTimeout(timer);
+  },[currentMatch,matchPaths]);
   return<div>
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
       <div style={{position:'relative',flex:'1 1 200px',maxWidth:320}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search keys and values..." className="mono"
-          style={{width:'100%',padding:'8px 12px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,color:T.text,fontSize:12,boxSizing:'border-box'}}/>
-        {search&&<span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:10,color:matchCount>0?T.success:T.muted}}>{matchCount} match{matchCount!==1?'es':''}</span>}
+          style={{width:'100%',padding:'8px 12px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,color:T.text,fontSize:12,boxSizing:'border-box',paddingRight:matchPaths.length>0?100:search?80:12}}
+          onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(e.shiftKey)goPrevMatch();else goNextMatch();}}}/>
+        {search&&matchPaths.length>0&&(
+          <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:10,color:T.success}}>{currentMatch+1}/{matchPaths.length}{matchPaths.length>=200?'+':''}</span>
+            <button onClick={e=>{e.preventDefault();goPrevMatch();}} style={{background:'transparent',border:'none',color:T.muted,cursor:'pointer',padding:'0 2px',fontSize:12,lineHeight:1}}>▲</button>
+            <button onClick={e=>{e.preventDefault();goNextMatch();}} style={{background:'transparent',border:'none',color:T.muted,cursor:'pointer',padding:'0 2px',fontSize:12,lineHeight:1}}>▼</button>
+          </span>
+        )}
+        {search&&matchPaths.length===0&&(
+          <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',fontSize:10,color:T.muted}}>0 matches</span>
+        )}
       </div>
       <div style={{display:'flex',gap:4}}>
         <button onClick={collapseAll} style={{padding:'6px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}}>Collapse</button>
@@ -2148,9 +2188,9 @@ function JTTree({data}){
       {copiedPath&&<span style={{fontSize:10,color:T.success,fontWeight:600}}>Path copied!</span>}
     </div>
     <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
-      <div style={{maxHeight:'75vh',overflowY:'auto',overflowX:'auto',padding:'12px 0'}}>
+      <div ref={scrollContainerRef} style={{maxHeight:'75vh',overflowY:'auto',overflowX:'auto',padding:'12px 0'}}>
         <div className="mono" style={{fontSize:12,lineHeight:1.7}}>
-          <JTNode keyName={null} value={data} path="$" depth={0} expanded={expanded} onToggle={toggle} searchTerm={searchLower} onCopyPath={handleCopyPath}/>
+          <JTNode keyName={null} value={data} path="$" depth={0} expanded={expanded} onToggle={toggle} searchTerm={searchLower} onCopyPath={handleCopyPath} matchPaths={matchPaths} currentMatchIndex={currentMatch}/>
         </div>
       </div>
     </div>
@@ -2204,7 +2244,6 @@ function DiagSidebar({ logData, section, setSection }) {
   const accounts = logData ? logData.accts : [];
 
   const [copyOpen, setCopyOpen] = useState(false);
-  const [issuesOpen, setIssuesOpen] = useState(true);
   const [accountsOpen, setAccountsOpen] = useState(true);
   const [advOpen, setAdvOpen] = useState(false);
 
@@ -2346,6 +2385,7 @@ function DiagSidebar({ logData, section, setSection }) {
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px',
         cursor: 'pointer', borderLeft: active ? '3px solid #BBB0FF' : '3px solid transparent',
+        borderTop: '1px solid #3C3C3C',
         background: active ? 'rgba(187,176,255,0.08)' : 'transparent',
       }}
       onMouseEnter={e => e.currentTarget.style.background = active ? 'rgba(187,176,255,0.08)' : 'rgba(255,255,255,0.04)'}
@@ -2354,25 +2394,15 @@ function DiagSidebar({ logData, section, setSection }) {
       <span style={{ fontSize: 14, marginTop: 1 }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#FFFFFF' }}>{label}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FFFFFF' }}>{label}</span>
           {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, marginLeft: 6, display: 'inline-block' }}/>}
           {count != null && <span style={{ fontSize: 11, color: '#949494', marginLeft: 'auto', paddingLeft: 8 }}>{count}</span>}
           {expandable && <span style={{ fontSize: 10, color: '#949494', marginLeft: 4 }}>{expanded ? '▾' : '▸'}</span>}
         </div>
-        <div style={{ fontSize: 10, color: '#949494', marginTop: 2 }}>{subtitle}</div>
+        <div style={{ fontSize: 10, color: '#666666', marginTop: 2 }}>{subtitle}</div>
       </div>
     </div>
   );
-
-  // Issues expanded
-  const grouped = diagnosed.reduce((acc, e) => {
-    const title = e.dg?.t || e.msg || 'Unknown error';
-    acc[title] = (acc[title] || 0) + 1;
-    return acc;
-  }, {});
-  const issueEntries = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
-  const shownIssues = issueEntries.slice(0, 5);
-  const extraIssues = issueEntries.length - 5;
 
   // Accounts split
   const fundedAccts = accounts.filter(a => a.ops > 0);
@@ -2404,11 +2434,12 @@ function DiagSidebar({ logData, section, setSection }) {
         style={{
           borderLeft: `4px solid ${sevColor}`,
           background: section === 'overview' ? 'rgba(187,176,255,0.08)' : 'rgba(187,176,255,0.04)',
-          padding: '14px 12px 14px 12px',
+          padding: '12px',
           cursor: 'pointer',
           position: 'relative',
         }}
       >
+        <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#949494', marginBottom: 4 }}>Overview</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{ color: sevColor, fontSize: 10 }}>●</span>
           <span style={{ fontSize: 12, color: '#FFFFFF', lineHeight: 1.3 }}>{sevSentence}</span>
@@ -2445,32 +2476,9 @@ function DiagSidebar({ logData, section, setSection }) {
         {/* Issues */}
         <SectionHeader
           icon={<Ico.Alert />} label="Issues" subtitle="Errors and warnings"
-          count={errors.length} active={section === 'errors'} expandable expanded={issuesOpen}
-          onClick={() => { setIssuesOpen(o => !o); setSection('errors'); }}
+          count={errors.length} active={section === 'errors'}
+          onClick={() => setSection('errors')}
         />
-        {issuesOpen && (
-          <div>
-            {shownIssues.map(([title, count]) => (
-              <div key={title} onClick={() => setSection('errors')}
-                style={{ display: 'flex', alignItems: 'center', padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-                {count > 1 && <span style={{ color: '#949494', fontSize: 11, marginLeft: 6 }}>×{count}</span>}
-              </div>
-            ))}
-            {extraIssues > 0 && (
-              <div onClick={() => setSection('errors')} style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', cursor: 'pointer' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                +{extraIssues} more
-              </div>
-            )}
-            {errors.length === 0 && (
-              <div style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic' }}>No issues found</div>
-            )}
-          </div>
-        )}
 
         {/* Accounts */}
         <SectionHeader
@@ -2480,7 +2488,7 @@ function DiagSidebar({ logData, section, setSection }) {
         />
         {accountsOpen && (
           <div>
-            {fundedAccts.map(acct => {
+            {fundedAccts.slice(0, 4).map(acct => {
               const chainColor = acct.ch?.color || '#949494';
               const errCount = errorsForAcct(acct);
               return (
@@ -2494,6 +2502,14 @@ function DiagSidebar({ logData, section, setSection }) {
                 </div>
               );
             })}
+            {fundedAccts.length > 4 && (
+              <div onClick={() => setSection('accounts')}
+                style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', cursor: 'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                +{fundedAccts.length - 4} more funded
+              </div>
+            )}
             {emptyAccts.length > 0 && (
               <div onClick={() => setSection('accounts')}
                 style={{ padding: '5px 16px 5px 32px', fontSize: 11, color: '#949494', fontStyle: 'italic', cursor: 'pointer' }}
@@ -2743,7 +2759,7 @@ function App(){
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
 
             {/* Zone 1: Top strip */}
-            <div style={{flexShrink:0,padding:'12px 24px 10px',borderBottom:`1px solid ${T.border}`}}>
+            <div style={{flexShrink:0,padding:'12px 24px',borderBottom:`1px solid ${T.border}`}}>
               {/* Health pills + copy buttons */}
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
                 {pills.map((p,i)=>(
@@ -2761,7 +2777,22 @@ function App(){
               </div>
               {/* Stat cards */}
               <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:10}}>
-                {[{l:'Entries',v:logData.entries.length,c:T.text},{l:'Accounts',v:logData.accts.length,c:logData.accts.length>0?T.success:T.muted,click:()=>setSection('accounts')},{l:'Operations',v:logData.dev.totalOps||'—',c:(logData.dev.totalOps&&logData.dev.totalOps!=='—')?T.text:T.muted},{l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted,click:()=>setSection('errors')}].map(s=><div key={s.l} className="card-bracketed" onClick={s.click||undefined} style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:4,padding:12,textAlign:'center',cursor:s.click?'pointer':'default',transition:'border-color 0.15s'}} onMouseEnter={e=>{if(s.click)e.currentTarget.style.borderColor=s.c;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;}}><span className="card-bracket-b"/><div className="stat-value" style={{color:s.c}}>{s.v}</div><div style={{fontSize:12,color:T.muted,marginTop:4,lineHeight:1.4}}>{s.l}</div></div>)}
+                {[
+                  {l:'Entries',v:logData.entries.length,c:T.text},
+                  {l:'Accounts',v:logData.accts.length,c:logData.accts.length>0?T.success:T.muted,click:()=>setSection('accounts')},
+                  {l:'Operations',v:logData.dev.totalOps||'—',c:(logData.dev.totalOps&&logData.dev.totalOps!=='—')?T.text:T.muted},
+                  {l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted,click:()=>setSection('errors')}
+                ].map(s=>(
+                  <div key={s.l}
+                    onClick={s.click||undefined}
+                    style={{background:T.card,borderRadius:8,padding:16,textAlign:'center',cursor:s.click?'pointer':'default',transition:'background 150ms ease'}}
+                    onMouseEnter={e=>{if(s.click)e.currentTarget.style.background=s.c+'12';}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=T.card;}}
+                  >
+                    <div className="stat-value" style={{color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:12,color:T.muted,marginTop:4,lineHeight:1.4}}>{s.l}</div>
+                  </div>
+                ))}
               </div>
               {/* Activity badges */}
               {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{badges.map(b=><span key={b.k} style={bdg(b.c)}>{b.l}</span>)}</div>;})()}
@@ -2778,7 +2809,7 @@ function App(){
                   <span style={{flex:1,fontSize:13}}>{parts.join(' · ')}</span>
                   <span style={{color:T.muted,fontSize:11}}>{deviceExpanded?'▾':'▸'}</span>
                 </div>
-                {deviceExpanded&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderTop:'none',borderRadius:'0 0 4px 4px',padding:'12px 16px'}}>
+                {deviceExpanded&&<div style={{background:T.panel,border:'1px solid rgba(255,255,255,0.04)',borderTop:'none',borderRadius:'0 0 4px 4px',padding:'12px 16px'}}>
                   {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model.':'No device was connected during this session. Device model and firmware are not available.'}</div>}
                   {req.length>0&&(()=>{
                     const rows=req.map(r=>{
@@ -2797,17 +2828,22 @@ function App(){
                     const hasProbs=rows.some(r=>r.status!=='ok');
                     const guidance=hasProbs?'Some required apps are outdated or missing. Ask the customer to open Ledger Live and update their device apps.':null;
                     return<div style={{marginBottom:12}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-                        <span style={{fontSize:12,color:T.muted,fontWeight:600}}>Device Apps</span>
-                        <span style={{fontSize:12,color:T.muted}}>{summary}</span>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}>
+                        <span style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',color:T.muted}}>Device Apps</span>
                         <button onClick={()=>setAppsListOpen(o=>!o)} style={{background:'transparent',border:`1px solid ${T.border}`,borderRadius:4,color:T.muted,fontSize:11,cursor:'pointer',padding:'2px 8px'}}>{appsListOpen?'Collapse':'Expand'}</button>
                       </div>
+                      <div style={{fontSize:11,color:T.muted,marginBottom:6}}>{summary}</div>
                       {appsListOpen&&<div style={{background:T.bg,borderRadius:6,padding:'4px 0',marginBottom:4}}>
+                        <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderBottom:`1px solid ${T.border}`}}>
+                          <span style={{width:12}}/>
+                          <span style={{flex:1,fontSize:10,fontWeight:600,color:'#666666',textTransform:'uppercase',letterSpacing:'0.04em'}}>App</span>
+                          <span style={{fontSize:10,fontWeight:600,color:'#666666',textTransform:'uppercase',letterSpacing:'0.04em',textAlign:'right'}}>Version</span>
+                        </div>
                         {rows.map((r,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
                           <span style={{fontWeight:700,fontSize:12,color:statusColor(r.status),width:12,textAlign:'center'}}>{statusIcon(r.status)}</span>
                           <span style={{flex:1}}>{r.n}</span>
                           {r.chains&&r.chains.length>1&&<span style={{fontSize:10,color:T.muted}}>{r.chains.map(c=>c.ticker).join(', ')}</span>}
-                          <span className="mono" style={{fontSize:11,color:T.muted}}>{r.ver}{r.status==='outdated'&&<span style={{color:T.warning}}> → {r.avail}</span>}</span>
+                          <span className="mono" style={{fontSize:11,color:T.muted}}>{r.status==='missing'?<span style={{fontStyle:'italic'}}>Not installed</span>:<>{r.ver!=='—'?'v'+r.ver:'—'}{r.status==='outdated'&&<span style={{color:T.warning}}> → v{r.avail}</span>}</>}</span>
                         </div>)}
                       </div>}
                       {others.length>0&&<div>
@@ -2816,11 +2852,16 @@ function App(){
                           {others.map((app,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',fontSize:12,borderBottom:`1px solid ${T.border}`}}>
                             <span style={{color:T.muted,fontSize:12}}>○</span>
                             <span style={{flex:1}}>{app.name}</span>
-                            <span className="mono" style={{fontSize:11,color:T.muted}}>{app.version||'—'}</span>
+                            <span className="mono" style={{fontSize:11,color:T.muted}}>{app.version?'v'+app.version:'—'}</span>
                           </div>)}
                         </div>}
                       </div>}
-                      {!appsListOpen&&guidance&&<div style={{fontSize:12,color:T.muted,fontStyle:'italic'}}>{guidance}</div>}
+                      {!appsListOpen&&guidance&&(
+                        <div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:6,padding:'8px 12px',fontSize:12,color:T.muted,lineHeight:1.5,display:'flex',alignItems:'flex-start',gap:8}}>
+                          <span style={{flexShrink:0}}>⚠</span>
+                          <span>Some required apps are outdated or missing. Ask the customer to open <strong style={{color:'#CCCCCC'}}>Ledger Live → My Ledger</strong> and update.</span>
+                        </div>
+                      )}
                     </div>;
                   })()}
                   <div onClick={()=>setDevDetailOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'4px 0',cursor:'pointer',fontSize:11,fontWeight:600,color:T.muted,borderTop:`1px solid ${T.border}`}}>
@@ -2828,7 +2869,7 @@ function App(){
                   </div>
                   {devDetailOpen&&<div style={{marginTop:8}}>
                     <div style={{fontSize:10,fontWeight:600,color:T.muted,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6}}>Device Reference</div>
-                    {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}><span style={{color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
+                    {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:12}}><span style={{color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
                     <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:12}}>
                       <span style={{color:T.muted}}>Wallet Sync</span>
                       <span className="mono">{(()=>{
@@ -2843,9 +2884,17 @@ function App(){
                   </div>}
                 </div>}
               </>;
-              const environmentCard=<div className="card-bracketed" style={{...crd,borderRadius:4,flexShrink:0}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:12}}>Environment</div>
-                {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync duration',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
-              </div>;
+              const environmentCard=(
+                <div style={{background:T.card,borderRadius:8,padding:16,flexShrink:0}}>
+                  <div className="card-header" style={{marginBottom:12}}>Environment</div>
+                  {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync duration',logData.sync?logData.sync+'s':'—']].map(([k,v])=>(
+                    <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',lineHeight:1.6}}>
+                      <span style={{color:T.muted,fontSize:13}}>{k}</span>
+                      <span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span>
+                    </div>
+                  ))}
+                </div>
+              );
               if(logData.errs.length>0){
                 return <div style={{flex:1,display:'flex',gap:16,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
                   {/* Left column: device + environment */}
@@ -2864,10 +2913,15 @@ function App(){
                     <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'12px 0 16px'}}>
                       {logData.errs.slice(0,3).map(e=><ErrCard key={e.li} err={e} onJump={jumpTo}/>)}
                       {logData.errs.length>3&&<button onClick={()=>setSection('errors')} style={{marginTop:4,background:'transparent',border:'none',color:T.primary,fontWeight:600,fontSize:13,cursor:'pointer',display:'block',paddingLeft:0}}>View all →</button>}
-                      <div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:12,lineHeight:1.5}}>
-                        {topAcct&&`Consider: ${topAcct[1]} error${topAcct[1]>1?'s':''} reference ${topAcct[0].slice(0,16)}… — review that account.`}
-                        {logData.accts.length>0&&" For exact balances, load the customer's app.json in Customer View."}
-                      </div>
+                      {(topAcct||logData.accts.length>0)&&(
+                        <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,padding:'8px 12px',fontSize:12,color:'#949494',lineHeight:1.5,display:'flex',alignItems:'flex-start',gap:8,marginTop:12}}>
+                          <span style={{fontSize:13,flexShrink:0}}>💡</span>
+                          <span>
+                            {topAcct&&<>{topAcct[1]} error{topAcct[1]>1?'s':''} reference account {topAcct[0].slice(0,16)}… — open <span style={{color:T.primary,cursor:'pointer',fontWeight:600}} onClick={()=>setSection('accounts')}>Accounts</span> to review.{logData.accts.length>0?' ':''}</>}
+                            {logData.accts.length>0&&<>For exact balances, switch to <span style={{color:T.primary,fontWeight:600}}>Customer View</span>.</>}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>;
@@ -2879,7 +2933,7 @@ function App(){
                   <div style={{fontSize:13}}>
                     <span style={{fontWeight:600,color:'#CCCCCC'}}>No issues detected</span>
                     <span style={{color:T.muted}}> — if the customer reports an issue, ask them to reproduce it and export new logs immediately after.</span>
-                    {logData.accts.length>0&&<span style={{color:T.muted}}> For exact balances, load the customer's app.json in Customer View.</span>}
+                    {logData.accts.length>0&&<span style={{color:T.muted}}> For exact balances, switch to Customer View and load the customer's app.json.</span>}
                   </div>
                 </div>
                 {environmentCard}
@@ -3042,11 +3096,12 @@ function App(){
           {filtAccts.length===0&&!acctFilter&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
             <div style={{fontSize:32,marginBottom:12}}>👛</div>
             <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No accounts in this log</div>
-            <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>Load the customer's app.json in Customer View for account information.</div>
+            <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Account data wasn't captured in this export. Switch to Customer View and load the customer's app.json for accounts and balances.</div>
           </div>}
           {filtAccts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
-            <div style={{fontSize:13,color:'#949494',fontStyle:'italic',marginTop:12}}>
-              No sync captured in this session. For exact balances, load the customer's app.json in Customer View.
+            <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,padding:'8px 12px',fontSize:12,color:'#949494',lineHeight:1.5,display:'flex',alignItems:'flex-start',gap:8,marginTop:12}}>
+              <span style={{fontSize:13,flexShrink:0}}>💡</span>
+              <span>No sync captured — balances may be incomplete. Switch to <span style={{color:T.primary,fontWeight:600}}>Customer View</span> for exact figures.</span>
             </div>
           )}
           </div>{/* end scrollable */}
@@ -3059,6 +3114,7 @@ function App(){
           const baseDg=allErrs.map(e=>({...e,dg:diagnose(e.raw)}));
           const titleCounts={};for(const e of baseDg){const t=e.dg.t;titleCounts[t]=(titleCounts[t]||0)+1;}
           const enrichedErrs=baseDg.map(e=>{const c=titleCounts[e.dg.t];return c>1?{...e,dg:{...e.dg,repeatCount:c-1}}:e;});
+          const errRefs={};
           const errAcctMap=new Map();
           for(const e of enrichedErrs){
             const haystack=[e.dg?.r||'',e.raw?.message||'',e.raw?.error||'',JSON.stringify(e.raw?.data||'')].join(' ').toLowerCase();
@@ -3067,63 +3123,121 @@ function App(){
           const highCount=enrichedErrs.filter(e=>e.dg.s==='high').length;
           const medCount=enrichedErrs.filter(e=>e.dg.s==='medium').length;
           const lowCount=enrichedErrs.filter(e=>e.dg.s==='low').length;
-          const topHigh=enrichedErrs.find(e=>e.dg.s==='high');
-          const topMed=enrichedErrs.find(e=>e.dg.s==='medium');
           const repeating=enrichedErrs.filter(e=>e.dg.repeatCount>0);
           // Deduplicate repeating by title
           const seenTitles=new Set();
           const repeatingUniq=repeating.filter(e=>{if(seenTitles.has(e.dg.t))return false;seenTitles.add(e.dg.t);return true;});
 
-          let summaryText='No issues detected — log appears healthy.';
-          if(enrichedErrs.length>0){
-            if(highCount>0){
-              summaryText=`Log contains ${highCount} critical issue${highCount>1?'s':''} — ${topHigh.dg.t}. Immediate attention may be needed.`;
-            } else if(medCount>0){
-              summaryText=`Log shows ${medCount} warning${medCount>1?'s':''} including ${topMed.dg.t}. Review recommended.`;
-            } else {
-              summaryText='Log shows minor informational events only. No action required.';
-            }
-          }
-
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-            <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
-            {/* Severity summary bar */}
-            {enrichedErrs.length>0&&<div style={{display:'flex',gap:16,marginBottom:16,padding:'12px 16px',background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,flexWrap:'wrap'}}>
-              {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].map(item=>(
-                <div key={item.label} style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
-                  <span style={{width:8,height:8,borderRadius:'50%',background:item.color,display:'inline-block',flexShrink:0}}></span>
-                  <span className="mono" style={{fontWeight:700,color:item.color}}>{item.count}</span>
-                  <span style={{color:T.muted}}>{item.label}</span>
+            <div style={{flexShrink:0,padding:'16px 24px 8px'}}>
+            {/* Element 1: Severity counts + copy button */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:16,fontSize:12}}>
+                {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].filter(item=>item.count>0).map(item=>(
+                  <div key={item.label} style={{display:'flex',alignItems:'center',gap:5}}>
+                    <span style={{width:7,height:7,borderRadius:'50%',background:item.color,flexShrink:0}}/>
+                    <span className="mono" style={{fontWeight:700,color:item.color}}>{item.count}</span>
+                    <span style={{color:T.muted}}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>{
+                const lines=['=== Error Summary ===',''];
+                for(const e of enrichedErrs){
+                  lines.push(`[${(e.dg.s||'?').toUpperCase()}] ${e.dg.t}`);
+                  lines.push(`  Action: ${e.dg.a}`);
+                  lines.push(`  Category: ${e.dg.c} · Entry #${e.li} · ${fmtTime(e.ts)}`);
+                  if(e.dg.causes&&e.dg.causes.length>0)lines.push(`  Causes: ${e.dg.causes.join(', ')}`);
+                  lines.push('');
+                }
+                lines.push('===================');
+                copyText(lines.join('\n'));
+              }} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:'1px solid '+T.primary+'4D',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>
+                <Ico.Copy/> Copy Errors
+              </button>
+            </div>
+            {/* Element 2: Error timeline with clustering interpretation */}
+            {(()=>{
+              const ents=logData.entries;
+              if(ents.length<2||enrichedErrs.length===0)return null;
+              const t0=new Date(ents[0].timestamp).getTime();
+              const t1=new Date(ents[ents.length-1].timestamp).getTime();
+              const span=t1-t0;
+              if(span<=0)return null;
+              const durSec=(span/1000).toFixed(1);
+              const errTimes=enrichedErrs.map(e=>new Date(e.ts).getTime()).sort((a,b)=>a-b);
+              const errSpan=errTimes[errTimes.length-1]-errTimes[0];
+              const errSpanSec=(errSpan/1000).toFixed(1);
+              let interpretation='';
+              if(enrichedErrs.length===1){
+                const pct=((errTimes[0]-t0)/span*100).toFixed(0);
+                interpretation=`Single error at ${fmtTime(enrichedErrs[0].ts)}, ${pct}% into the session.`;
+              } else if(errSpan<2000){
+                interpretation=`All ${enrichedErrs.length} errors within ${errSpanSec}s — likely a single cascade event.`;
+              } else if(errSpan<span*0.3){
+                interpretation=`Errors clustered within ${errSpanSec}s of a ${durSec}s session — likely related.`;
+              } else {
+                interpretation=`Errors spread across ${errSpanSec}s of a ${durSec}s session — likely independent issues.`;
+              }
+              const byTime=[...enrichedErrs].sort((a,b)=>new Date(a.ts).getTime()-new Date(b.ts).getTime());
+              return <div style={{marginBottom:12}}>
+                <div style={{position:'relative',height:32,background:'rgba(255,255,255,0.03)',borderRadius:6,padding:'0 12px'}}>
+                  <div style={{position:'absolute',top:15,left:12,right:12,height:2,background:'rgba(255,255,255,0.08)',borderRadius:1}}/>
+                  <div style={{position:'absolute',top:20,left:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[0].timestamp)}</div>
+                  <div style={{position:'absolute',top:20,right:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[ents.length-1].timestamp)}</div>
+                  {byTime.map((e,i)=>{
+                    const et=new Date(e.ts).getTime();
+                    const pct=((et-t0)/span)*100;
+                    const sv=SEV[e.dg.s]||SEV.low;
+                    return <div key={i}
+                      onClick={()=>{const el=document.getElementById('errcard-'+e.li);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}}
+                      title={`${e.dg.t} — ${fmtTime(e.ts)}`}
+                      style={{
+                        position:'absolute',
+                        left:`calc(12px + ${pct}% * (100% - 24px) / 100%)`,
+                        top:8,width:14,height:14,borderRadius:'50%',
+                        background:sv.c,border:`2px solid ${T.bg}`,
+                        cursor:'pointer',transform:'translateX(-7px)',zIndex:1,
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                      }}>
+                      <span style={{fontSize:7,fontWeight:800,color:'#000',userSelect:'none'}}>{i+1}</span>
+                    </div>;
+                  })}
                 </div>
-              ))}
-            </div>}
-
-            {/* Error distribution bar */}
-            {enrichedErrs.length>0&&(()=>{
-              const cats=[{k:'hardware',c:T.error},{k:'software',c:T.warning},{k:'server',c:T.primary},{k:'unknown',c:T.muted}];
-              const counts=cats.map(({k,c})=>({k,c,n:enrichedErrs.filter(e=>e.dg.c===k).length})).filter(x=>x.n>0);
-              const total=counts.reduce((s,x)=>s+x.n,0);
-              if(!total)return null;
-              return <div style={{marginBottom:16}}>
-                <div style={{display:'flex',height:8,borderRadius:4,overflow:'hidden',background:T.border}}>
-                  {counts.map(x=><div key={x.k} style={{width:`${(x.n/total)*100}%`,background:x.c}}/>)}
-                </div>
-                <div style={{fontSize:11,color:T.muted,marginTop:5}}>{counts.map(x=>`${x.n} ${x.k}`).join(' · ')}</div>
+                <div style={{fontSize:11,color:T.muted,marginTop:10,lineHeight:1.4}}>{interpretation}</div>
               </div>;
             })()}
-            {/* Diagnostic summary card */}
-            <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:10,padding:'14px 16px',marginBottom:16,display:'flex',alignItems:'flex-start',gap:10}}>
-              <span style={{fontSize:16,flexShrink:0}}>📋</span>
-              <div style={{fontSize:13,color:T.text,lineHeight:1.6}}>{summaryText}</div>
-            </div>
-
-            {/* Repeating patterns */}
-            {repeatingUniq.length>0&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:10,padding:'14px 16px',marginBottom:16}}>
-              <div className="card-header" style={{color:T.warning,marginBottom:10}}>&#x27F3; Repeating Patterns</div>
+            {/* Element 3: Affected accounts (conditional) */}
+            {(()=>{
+              if(errAcctMap.size===0)return null;
+              const acctCounts=new Map();
+              for(const [li,acct] of errAcctMap){
+                const key=acct.addr;
+                if(!acctCounts.has(key))acctCounts.set(key,{acct,count:0});
+                acctCounts.get(key).count++;
+              }
+              return <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap',fontSize:12}}>
+                <span style={{color:T.muted,fontWeight:600}}>Affected:</span>
+                {[...acctCounts.values()].map(({acct,count})=>(
+                  <span key={acct.addr} onClick={()=>goToAcct(acct.addr)}
+                    style={{display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.08)',color:T.primary,transition:'background 0.15s'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.15)'}
+                    onMouseLeave={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'}
+                  >
+                    <span style={{width:7,height:7,borderRadius:'50%',background:acct.ch.color||T.muted,flexShrink:0}}/>
+                    {acct.ch.name}
+                    {count>1&&<span style={{opacity:0.7}}>×{count}</span>}
+                  </span>
+                ))}
+              </div>;
+            })()}
+            {/* Element 4: Repeating patterns (only when >5 errors) */}
+            {repeatingUniq.length>0&&enrichedErrs.length>5&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'12px 16px',marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.warning,marginBottom:8}}>&#x27F3; Repeating Patterns</div>
               {repeatingUniq.map(e=>(
-                <div key={e.li} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid rgba(255,189,66,0.1)',fontSize:13}}>
+                <div key={e.li} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0',fontSize:12}}>
                   <span style={{color:T.text}}>{e.dg.t}</span>
-                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning}}>{e.dg.repeatCount+1}× repeated</span>
+                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning}}>{e.dg.repeatCount+1}×</span>
                 </div>
               ))}
             </div>}
@@ -3135,16 +3249,12 @@ function App(){
               <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No errors detected</div>
               <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>If the customer reports an issue, ask them to reproduce it and export new logs immediately after.</div>
             </div>}
-
-            {/* Category groups */}
-            {['hardware','software','server','unknown'].map(cat=>{
-              const g=enrichedErrs.filter(e=>e.dg.c===cat);if(!g.length)return null;
-              const cm=CAT[cat]||CAT.unknown;
-              return <div key={cat} style={{marginBottom:24}}>
-                <div className="card-header" style={{color:T.muted,marginBottom:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:16}}>{cm.i}</span> {cm.l} ({g.length})</div>
-                {g.map(e=><ErrCard key={e.li} err={e} onJump={jumpTo} linkedAcct={errAcctMap.get(e.li)||null} onGoAcct={goToAcct}/>)}
-              </div>;
-            })}
+            {/* Flat list sorted by severity, each wrapped for scroll targeting */}
+            {enrichedErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0);}).map((e,i)=>(
+              <div key={e.li} id={'errcard-'+e.li}>
+                <ErrCard err={e} onJump={jumpTo} linkedAcct={errAcctMap.get(e.li)||null} onGoAcct={goToAcct}/>
+              </div>
+            ))}
             </div>{/* end scrollable */}
           </div>;
         })()}
@@ -3170,7 +3280,9 @@ function App(){
           <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
           {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
             <div style={{fontSize:32,marginBottom:12}}>🌐</div>
-            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests captured in this session. This is normal for short sessions or logs exported before a sync completed.</div>
+            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests in this session</div>
+            <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>This is normal for short sessions or logs exported before a sync completed.</div>
+            <button onClick={()=>setSection('timeline')} style={{padding:'6px 14px',borderRadius:6,border:'1px solid '+T.border,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>View Timeline →</button>
           </div>}
           {netEntries.length>0&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,overflow:'hidden'}}>
             {netEntries.slice(0,500).map(e=>{
@@ -3214,8 +3326,9 @@ function App(){
             <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',textAlign:'center',color:'#949494'}}>
               <div style={{paddingTop:48}}>
                 <div style={{fontSize:32,marginBottom:12}}>📡</div>
-                <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No device communication data found</div>
-                <div style={{fontSize:13,color:'#949494',maxWidth:320,margin:'0 auto',lineHeight:1.5}}>The customer's device was not connected during this session — this is expected if they exported logs without their device plugged in.</div>
+                <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No device communication data</div>
+                <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Device was not connected during this session. Ask the customer to connect, reproduce the issue, and export new logs.</div>
+                <button onClick={()=>setSection('overview')} style={{padding:'6px 14px',borderRadius:6,border:'1px solid '+T.border,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Back to Overview →</button>
               </div>
             </div>
           </div>;
@@ -3254,7 +3367,7 @@ function App(){
             try{treeData=JSON.parse(logData.rawText);}catch{}
             if(!treeData)treeData=logData.entries;
           }
-          if(!treeData)return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}><div style={{flexShrink:0,padding:'20px 24px 12px'}}></div><div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',textAlign:'center',color:T.muted}}>No file data available</div></div>;
+          if(!treeData)return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}><div style={{flexShrink:0,padding:'20px 24px 12px'}}></div><div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',textAlign:'center',color:T.muted}}><div style={{textAlign:'center',paddingTop:48}}><div style={{fontSize:32,marginBottom:12}}>{'{}'}</div><div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No raw data available</div><div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5}}>The uploaded file could not be parsed as JSON. Try re-exporting from Ledger Live → Settings → Help → Export logs.</div></div></div></div>;
           return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
             <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
