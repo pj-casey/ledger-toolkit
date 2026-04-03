@@ -2827,9 +2827,10 @@ function App(){
                     {devDetailOpen?'Hide details':'Details'} {devDetailOpen?'▾':'▸'}
                   </div>
                   {devDetailOpen&&<div style={{marginTop:8}}>
+                    <div style={{fontSize:10,fontWeight:600,color:T.muted,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6}}>Device Reference</div>
                     {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}><span style={{color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
                     <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:12}}>
-                      <span style={{color:T.muted}}>Sync</span>
+                      <span style={{color:T.muted}}>Wallet Sync</span>
                       <span className="mono">{(()=>{
                         if(!logData.dev.ledgerSync)return<span style={{color:T.muted}}>—</span>;
                         const wsErr=logData.entries.filter(e=>e.type==='walletsync'&&/error|failed|rejected|timeout/i.test(e.message||'')).length;
@@ -2843,7 +2844,7 @@ function App(){
                 </div>}
               </>;
               const environmentCard=<div className="card-bracketed" style={{...crd,borderRadius:4,flexShrink:0}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:12}}>Environment</div>
-                {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
+                {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync duration',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
               </div>;
               if(logData.errs.length>0){
                 return <div style={{flex:1,display:'flex',gap:16,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
