@@ -2394,21 +2394,6 @@ function DiagSidebar({ logData, section, setSection }) {
     { label: 'Raw JSON', icon: '{ }', count: null, sec: 'raw' },
   ];
 
-  const deviceSubtitle = logData?.dev?.modelName
-    ? `${logData.dev.modelName}${logData.dev.fw ? ' · FW ' + logData.dev.fw : ''}`
-    : logData?.dev?.fw
-    ? `FW ${logData.dev.fw}`
-    : 'Device info & apps';
-  const deviceDotColor=(()=>{
-    const da=logData?.deviceApps;const req=logData?.requiredApps||[];
-    if(!da||da.source!=='manager-result')return null;
-    const missingAny=req.some(r=>!da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase()));
-    if(missingAny)return T.error;
-    const outdatedAny=req.some(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&!inst.updated;});
-    const fwOutdated=da.firmware&&logData.dev?.fw&&da.firmware.version!==logData.dev.fw;
-    if(outdatedAny||fwOutdated)return T.warning;
-    return T.success;
-  })();
 
   return (
     <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: '#1C1D1F', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
@@ -2523,14 +2508,6 @@ function DiagSidebar({ logData, section, setSection }) {
           </div>
         )}
 
-        {/* Device */}
-        <SectionHeader
-          icon={<Ico.Chip />} label="Device" subtitle={deviceSubtitle}
-          active={section === 'device'}
-          onClick={() => setSection('device')}
-          dot={deviceDotColor}
-        />
-
         {/* Timeline */}
         <SectionHeader
           icon={<Ico.Logs />} label="Timeline" subtitle="All events, chronological"
@@ -2584,6 +2561,7 @@ function App(){
   const[otherAppsOpen,setOtherAppsOpen]=useState(false);
   const[appsListOpen,setAppsListOpen]=useState(false);
   const[devDetailOpen,setDevDetailOpen]=useState(false);
+  const[deviceExpanded,setDeviceExpanded]=useState(false);
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
@@ -2650,8 +2628,7 @@ function App(){
     if(!logData||viewMode!=='diagnostic')return;
     const handler=(e)=>{
       if(!e.ctrlKey&&!e.metaKey)return;
-      const map={'1':'overview','2':'errors','3':'accounts','4':'device','5':'timeline','6':'network','7':'raw'};
-      if(e.key==='8'){e.preventDefault();setSection('apdu');return;}
+      const map={'1':'overview','2':'errors','3':'accounts','4':'timeline','5':'network','6':'apdu','7':'raw'};
       if(map[e.key]){e.preventDefault();setSection(map[e.key]);}
     };
     window.addEventListener('keydown',handler);
@@ -2661,10 +2638,11 @@ function App(){
   useEffect(()=>{
     if(!logData||!logData.requiredApps||!logData.deviceApps)return;
     const da=logData.deviceApps;
-    if(da.source!=='manager-result'){setAppsListOpen(false);return;}
+    if(da.source!=='manager-result'){setAppsListOpen(false);setDeviceExpanded(false);return;}
     const req=logData.requiredApps;
     const hasProblems=req.some(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return !inst||!inst.updated;});
     setAppsListOpen(hasProblems);
+    if(hasProblems)setDeviceExpanded(true);
   },[logData]);
 
   useEffect(()=>{
@@ -2754,7 +2732,7 @@ function App(){
           const medCount=logData.errs.filter(e=>e.dg?.s==='medium').length;
           const errLabel=logData.errs.length===0?'0 errors':highCount>0?`${highCount} critical`:medCount>0?`${medCount} warning`:`${logData.errs.length} info`;
           const errColor=logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#8A9EF5';
-          const pills=[{label:devLabel,color:devColor,go:'device'},{label:fwLabel,color:fwColor,go:'device'},{label:appsLabel,color:appsColor,go:'device'},{label:syncLabel,color:syncColor,go:'device'},{label:errLabel,color:errColor,go:'errors'}];
+          const pills=[{label:devLabel,color:devColor,action:()=>setDeviceExpanded(true)},{label:fwLabel,color:fwColor,action:()=>setDeviceExpanded(true)},{label:appsLabel,color:appsColor,action:()=>setDeviceExpanded(true)},{label:syncLabel,color:syncColor,action:()=>setDeviceExpanded(true)},{label:errLabel,color:errColor,action:()=>setSection('errors')}];
           // Session data
           const hasSession=logData.entries.length>1;
           const chainCounts={};logData.accts.forEach(a=>{const key=a.ch.name;if(!chainCounts[key]){chainCounts[key]={count:0,color:a.ch.color};}chainCounts[key].count++;});
@@ -2769,7 +2747,7 @@ function App(){
               {/* Health pills + copy buttons */}
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
                 {pills.map((p,i)=>(
-                  <span key={i} onClick={()=>setSection(p.go)} style={{display:'inline-flex',alignItems:'center',padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',border:`1px solid ${p.color}40`,background:`${p.color}18`,color:p.color,whiteSpace:'nowrap',userSelect:'none'}}>
+                  <span key={i} onClick={p.action} style={{display:'inline-flex',alignItems:'center',padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',border:`1px solid ${p.color}40`,background:`${p.color}18`,color:p.color,whiteSpace:'nowrap',userSelect:'none'}}>
                     {p.label}
                   </span>
                 ))}
@@ -2791,23 +2769,84 @@ function App(){
 
             {/* Zone 2: Middle content — adaptive layout */}
             {(()=>{
-              const deviceSummary=(()=>{
-                const parts=[];
-                if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
-                else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){parts.push(`FW ${d.fw}${fwOk?' ✓':''}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
-                return <div onClick={()=>setSection('device')} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:T.panel,border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}`,borderRadius:4,cursor:'pointer',transition:'background 150ms ease',flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background=T.panel}>
+              const parts=[];
+              if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
+              else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){parts.push(`FW ${d.fw}${fwOk?' ✓':''}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`Ledger Live ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
+              const deviceSummary=<>
+                <div onClick={()=>setDeviceExpanded(o=>!o)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:T.panel,border:`1px solid ${T.border}`,borderLeft:`3px solid ${deviceExpanded?T.primary:'transparent'}`,borderRadius:deviceExpanded?'4px 4px 0 0':4,cursor:'pointer',transition:'background 150ms ease',flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background=T.panel}>
                   <Ico.Chip/>
                   <span style={{flex:1,fontSize:13}}>{parts.join(' · ')}</span>
-                  <span style={{fontSize:12,color:T.primary,fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>View device →</span>
-                </div>;
-              })();
+                  <span style={{color:T.muted,fontSize:11}}>{deviceExpanded?'▾':'▸'}</span>
+                </div>
+                {deviceExpanded&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderTop:'none',borderRadius:'0 0 4px 4px',padding:'12px 16px'}}>
+                  {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model.':'No device was connected during this session. Device model and firmware are not available.'}</div>}
+                  {req.length>0&&(()=>{
+                    const rows=req.map(r=>{
+                      const n=r.appName;const chains=r.chains||[];
+                      if(!da||da.source!=='manager-result')return{n,status:'unknown',ver:'—',avail:'—',chains};
+                      const inst=da.installed.find(i=>i.name.toLowerCase()===n.toLowerCase());
+                      if(!inst)return{n,status:'missing',ver:'—',avail:'—',chains};
+                      return{n,status:inst.updated?'ok':'outdated',ver:inst.version||'—',avail:inst.availableVersion||'—',chains};
+                    });
+                    const statusIcon=s=>s==='ok'?'✓':s==='outdated'?'⚠':s==='missing'?'✕':'?';
+                    const statusColor=s=>s==='ok'?T.success:s==='outdated'?T.warning:s==='missing'?T.error:T.muted;
+                    const okCount=rows.filter(r=>r.status==='ok').length;
+                    const instCount=rows.filter(r=>r.status!=='missing').length;
+                    const summary=da?.source==='manager-result'?`${req.length} app${req.length!==1?'s':''} required · ${instCount} installed · ${okCount} up to date`:`${req.length} app${req.length!==1?'s':''} required`;
+                    const others=da?.source==='manager-result'?da.installed.filter(i=>!req.find(r=>r.appName.toLowerCase()===i.name.toLowerCase())):[];
+                    const hasProbs=rows.some(r=>r.status!=='ok');
+                    const guidance=hasProbs?'Some required apps are outdated or missing. Ask the customer to open Ledger Live and update their device apps.':null;
+                    return<div style={{marginBottom:12}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                        <span style={{fontSize:12,color:T.muted,fontWeight:600}}>Device Apps</span>
+                        <span style={{fontSize:12,color:T.muted}}>{summary}</span>
+                        <button onClick={()=>setAppsListOpen(o=>!o)} style={{background:'transparent',border:`1px solid ${T.border}`,borderRadius:4,color:T.muted,fontSize:11,cursor:'pointer',padding:'2px 8px'}}>{appsListOpen?'Collapse':'Expand'}</button>
+                      </div>
+                      {appsListOpen&&<div style={{background:T.bg,borderRadius:6,padding:'4px 0',marginBottom:4}}>
+                        {rows.map((r,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
+                          <span style={{fontWeight:700,fontSize:12,color:statusColor(r.status),width:12,textAlign:'center'}}>{statusIcon(r.status)}</span>
+                          <span style={{flex:1}}>{r.n}</span>
+                          {r.chains&&r.chains.length>1&&<span style={{fontSize:10,color:T.muted}}>{r.chains.map(c=>c.ticker).join(', ')}</span>}
+                          <span className="mono" style={{fontSize:11,color:T.muted}}>{r.ver}{r.status==='outdated'&&<span style={{color:T.warning}}> → {r.avail}</span>}</span>
+                        </div>)}
+                      </div>}
+                      {others.length>0&&<div>
+                        <button onClick={()=>setOtherAppsOpen(o=>!o)} style={{background:'transparent',border:'none',color:T.muted,fontSize:11,cursor:'pointer',padding:'2px 0'}}>{otherAppsOpen?'▾':'▸'} {others.length} other installed app{others.length!==1?'s':''}</button>
+                        {otherAppsOpen&&<div style={{background:T.bg,borderRadius:6,padding:'4px 0',marginTop:4}}>
+                          {others.map((app,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',fontSize:12,borderBottom:`1px solid ${T.border}`}}>
+                            <span style={{color:T.muted,fontSize:12}}>○</span>
+                            <span style={{flex:1}}>{app.name}</span>
+                            <span className="mono" style={{fontSize:11,color:T.muted}}>{app.version||'—'}</span>
+                          </div>)}
+                        </div>}
+                      </div>}
+                      {!appsListOpen&&guidance&&<div style={{fontSize:12,color:T.muted,fontStyle:'italic'}}>{guidance}</div>}
+                    </div>;
+                  })()}
+                  <div onClick={()=>setDevDetailOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'4px 0',cursor:'pointer',fontSize:11,fontWeight:600,color:T.muted,borderTop:`1px solid ${T.border}`}}>
+                    {devDetailOpen?'Hide details':'Details'} {devDetailOpen?'▾':'▸'}
+                  </div>
+                  {devDetailOpen&&<div style={{marginTop:8}}>
+                    {[['Language',logData.dev.lang||'—'],['Paired',logData.dev.paired?'Yes':'No'],['Commit',logData.dev.commit?logData.dev.commit.slice(0,8):'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}><span style={{color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
+                    {(()=>{
+                      const ws=logData.dev.walletSync;
+                      let syncCell;
+                      if(!ws){syncCell=<span style={{color:T.muted}}>—</span>;}
+                      else if(ws.status==='enabled'){syncCell=<span style={{color:T.success,fontSize:12,fontWeight:600}}>✓ Active</span>;}
+                      else if(ws.status==='disabled'){syncCell=<span style={{color:T.muted,fontSize:12}}>Off</span>;}
+                      else{syncCell=<span style={{color:T.muted,fontSize:12}}>{ws.status||'—'}</span>;}
+                      return<div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:12}}><span style={{color:T.muted}}>Sync</span><span>{syncCell}</span></div>;
+                    })()}
+                  </div>}
+                </div>}
+              </>;
               const environmentCard=<div className="card-bracketed" style={{...crd,borderRadius:4,flexShrink:0}}><span className="card-bracket-b"/><div className="card-header" style={{marginBottom:12}}>Environment</div>
                 {[['OS',`${logData.dev.os||'—'} ${logData.dev.osVer||''}`],['Platform',logData.dev.platform||'—'],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?logData.sync+'s':'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
               </div>;
               if(logData.errs.length>0){
                 return <div style={{flex:1,display:'flex',gap:16,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
                   {/* Left column: device + environment */}
-                  <div style={{width:'40%',flexShrink:0,display:'flex',flexDirection:'column',gap:12,overflow:'hidden'}}>
+                  <div style={{width:'40%',flexShrink:0,display:'flex',flexDirection:'column',gap:12,overflowY:'auto'}}>
                     {deviceSummary}
                     {environmentCard}
                   </div>
@@ -3009,115 +3048,6 @@ function App(){
           )}
           </div>{/* end scrollable */}
         </div>}
-
-        {/* Device */}
-        {section==='device'&&(()=>{
-          const da=logData.deviceApps;const req=logData.requiredApps||[];
-          const rows=req.map(r=>{
-            const n=r.appName;
-            if(da?.source==='manager-result'){const inst=da.installed.find(i=>i.name.toLowerCase()===n.toLowerCase());if(!inst)return{n,status:'missing',chains:r.chains||[]};return inst.updated?{n,status:'ok',ver:inst.version,chains:r.chains||[]}:{n,status:'outdated',ver:inst.version,avail:inst.availableVersion,chains:r.chains||[]};}
-            else if(da?.source==='apdu-only'){const found=da.openedApps.find(a=>a.name.toLowerCase()===n.toLowerCase());return found?{n,status:'detected',ver:found.version,chains:r.chains||[]}:{n,status:'undetected',chains:r.chains||[]};}
-            return{n,status:'undetected',chains:r.chains||[]};
-          });
-          const statusIcon=s=>({ok:'✓',detected:'✓',outdated:'⚠',missing:'✕',undetected:'?'}[s]);
-          const statusColor=s=>({ok:T.success,detected:T.success,outdated:T.warning,missing:T.error,undetected:T.muted}[s]);
-          const okCount=rows.filter(r=>r.status==='ok'||r.status==='detected').length;
-          const instCount=rows.filter(r=>r.status==='ok'||r.status==='outdated').length;
-          const others=da?.source==='manager-result'?(()=>{const rn=new Set(req.map(r=>r.appName.toLowerCase()));return da.installed.filter(i=>!rn.has(i.name.toLowerCase()));})():[];
-          const summary=da?.source==='manager-result'
-            ?`${req.length} app${req.length!==1?'s':''} required · ${instCount} installed · ${okCount} up to date`
-            :`${req.length} app${req.length!==1?'s':''} required · ${okCount} detected during session`;
-          const guidance=da?.source==='manager-result'?null:da?.source==='apdu-only'
-            ?'Open My Ledger with the device connected and re-export logs for full app version data.'
-            :'Device was not connected during this session. Connect the device, open My Ledger, and re-export logs to see installed app versions.';
-          return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-            <div style={{flexShrink:0,padding:'14px 24px 10px'}}>
-              {/* One-line device summary */}
-              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                <Ico.Chip/>
-                <span style={{fontSize:13,fontWeight:600,color:T.text}}>{logData.dev.modelName||logData.dev.modelId||'Unknown device'}</span>
-                {logData.dev.fw&&<span className="mono" style={{fontSize:12,color:T.muted}}>FW {logData.dev.fw}{(()=>{const dfw=logData.deviceApps?.firmware;if(!dfw)return null;return dfw.updateAvailable?<span style={{color:T.warning,marginLeft:4,fontSize:11}}>⚠ update available</span>:<span style={{color:T.success,marginLeft:4,fontSize:11}}>✓</span>;})()}</span>}
-                {logData.dev.appVer&&<span className="mono" style={{fontSize:12,color:T.muted}}>· Ledger Live {logData.dev.appVer}</span>}
-              </div>
-              {/* Jump link pills — 3 targets */}
-              <div style={{display:'flex',gap:8}}>
-                <span onClick={()=>document.getElementById('device-info-section')?.scrollIntoView({behavior:'smooth',block:'start'})} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:T.bg,border:`1px solid ${T.border}`,color:T.muted,transition:'border-color 150ms ease,color 150ms ease'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>Info</span>
-                {req.length>0&&<span onClick={()=>document.getElementById('device-apps-section')?.scrollIntoView({behavior:'smooth',block:'start'})} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:T.bg,border:`1px solid ${T.border}`,color:T.muted,transition:'border-color 150ms ease,color 150ms ease'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>Apps {req.length}</span>}
-              </div>
-            </div>{/* end fixed header */}
-            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
-            {/* Device Info card */}
-            <div id="device-info-section" className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}><span className="card-bracket-b"/>
-              <div className="card-header" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}><Ico.Chip/> Device &amp; App</div>
-              {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model. This can happen with older Ledger Wallet versions.':'No device was connected during this session. Device model and firmware are not available. This is expected if the customer exported logs without their device plugged in.'}</div>}
-              {/* Primary rows: Device, Firmware, Ledger Live */}
-              {[['Device',logData.dev.modelName||'—'],['Firmware',logData.dev.fw||'—'],['Ledger Live',logData.dev.appVer||'—']].map(([k,v])=>{
-                const fwLatest=k==='Firmware'&&logData.deviceApps?.source==='manager-result'?logData.deviceApps.firmware:null;
-                const fwBadge=fwLatest?(fwLatest.version===v?<span style={{color:T.success,marginLeft:4}}>✓</span>:<span style={{color:T.warning,marginLeft:4}}>⚠ {fwLatest.version} available</span>):null;
-                return<div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{v}{fwBadge}</span></div>;
-              })}
-              {/* Details toggle */}
-              <div onClick={()=>setDevDetailOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'6px 0',cursor:'pointer',fontSize:11,fontWeight:600,color:T.muted,borderBottom:`1px solid ${T.border}`}}>
-                {devDetailOpen?'Hide details':'Details'} {devDetailOpen?'▾':'▸'}
-              </div>
-              {/* Reference rows: Language, Paired, Commit, Sync, MEV */}
-              {devDetailOpen&&<>
-                {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['Sync',logData.dev.ledgerSync?'Active':'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=>{
-                  const syncCell=(()=>{
-                    if(k!=='Sync'||!logData.dev.ledgerSync)return null;
-                    const wsErr=logData.entries.filter(e=>e.type==='walletsync'&&/error|failed|rejected|timeout/i.test(e.message||'')).length;
-                    const errBit=wsErr>0?<span style={{color:T.warning,marginLeft:4}}>⚠ {wsErr} sync error{wsErr!==1?'s':''}</span>:null;
-                    if(!appJson)return<span>Active{errBit}</span>;
-                    if(!appJson.encrypted)return<span style={{color:T.success}}>Active ✓{errBit}</span>;
-                    return<span style={{color:T.warning}}>Active (encrypted){errBit}</span>;
-                  })();
-                  return<div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}><span style={{color:T.muted,fontSize:13}}>{k}</span><span className="mono">{syncCell!==null?syncCell:v}</span></div>;
-                })}
-              </>}
-            </div>
-            {/* Device Apps section */}
-            {req.length>0&&<div id="device-apps-section" className="card-bracketed" style={{...crd,borderRadius:4,marginBottom:16}}>
-              <span className="card-bracket-b"/>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                <div className="card-header" style={{display:'flex',alignItems:'center',gap:8}}><Ico.Chip/> Device Apps</div>
-                <button onClick={()=>setAppsListOpen(o=>!o)} style={{background:'transparent',border:'none',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:4}}>
-                  {appsListOpen?'Collapse':'Expand'} {appsListOpen?<Ico.ChevD/>:<Ico.ChevR/>}
-                </button>
-              </div>
-              <div style={{fontSize:12,color:T.muted,marginBottom:appsListOpen?12:0}}>{summary}</div>
-              {appsListOpen&&<div>
-                {rows.map(r=>(
-                  <div key={r.n} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${T.border}`,lineHeight:1.6}}>
-                    <span style={{display:'flex',alignItems:'center',gap:6}}>
-                      <span style={{fontWeight:700,fontSize:12,color:statusColor(r.status),width:12,textAlign:'center'}}>{statusIcon(r.status)}</span>
-                      <span style={{fontSize:13}}>{r.n}</span>
-                      {r.chains&&r.chains.length>1&&<span style={{fontSize:10,color:T.muted,fontWeight:400}}>{r.chains.map(c=>c.ticker).join(', ')}</span>}
-                    </span>
-                    <span className="mono" style={{fontSize:12,color:r.status==='missing'||r.status==='undetected'?T.muted:T.text}}>
-                      {r.status==='ok'?r.ver:r.status==='outdated'?`${r.ver} → ${r.avail} available`:r.status==='detected'?`${r.ver} (detected)`:r.status==='missing'?'not installed':'not detected'}
-                    </span>
-                  </div>
-                ))}
-                {da?.source==='manager-result'&&da.installed.length>0&&<div style={{marginTop:8,fontSize:12,color:T.muted}}>{da.installed.length} apps installed</div>}
-                {guidance&&<div style={{marginTop:6,fontSize:12,color:T.muted,fontStyle:'italic'}}>{guidance}</div>}
-                {others.length>0&&<div style={{marginTop:10}}>
-                  <button onClick={()=>setOtherAppsOpen(o=>!o)} style={{background:'transparent',border:'none',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:4}}>
-                    Other installed apps ({others.length}) {otherAppsOpen?<Ico.ChevD/>:<Ico.ChevR/>}
-                  </button>
-                  {otherAppsOpen&&<div style={{marginTop:6}}>
-                    {others.map(a=>(
-                      <div key={a.name} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:`1px solid ${T.border}`,fontSize:12,color:T.muted}}>
-                        <span>{a.name}</span><span className="mono">{a.version}</span>
-                      </div>
-                    ))}
-                  </div>}
-                </div>}
-              </div>}
-              {!appsListOpen&&guidance&&<div style={{marginTop:6,fontSize:12,color:T.muted,fontStyle:'italic'}}>{guidance}</div>}
-            </div>}
-            </div>{/* end scrollable */}
-          </div>;
-        })()}
 
         {/* Errors */}
         {section==='errors'&&(()=>{
