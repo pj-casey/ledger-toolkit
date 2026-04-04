@@ -76,7 +76,27 @@ To revert: `git checkout experimental && git reset --hard <tag-name> && git push
 6. **No-device UX** — DEVICE APPS hidden when no Manager data. Auto-collapse.
 7. **Overview redesign** — Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview, 3-zone layout, Quality Details popover.
 
-### What was built THIS session (LLv4 compatibility + device identification overhaul)
+### What was built THIS session (Accounts tab overhaul + LLv4 compatibility)
+
+**Accounts tab overhaul (2026-04-04):**
+
+1. **Enhanced health tiles** — 30px tiles with 3-letter ticker labels. Corner dots: red (errors), purple (xpub/scannable), `?` (unsupported). Click toggles chain filter; active filter shows border highlight. Replaces old 20px plain squares.
+
+2. **Hover popover** — opens below hovered tile (`top: tile+38px`). Shows chain, address, live balance + fiat, status, derivation mode, error count, xpub/explorer flags. Clamped to container width. `pointerEvents:none`.
+
+3. **Portfolio overlay** — "Portfolio ▸" button. Absolute panel below tiles. Tiles sized proportionally by fiat (36–80px range). Click filters + closes.
+
+4. **EVM address grouping** — accounts sharing same `0x` address wrapped in container: "SHARED ADDRESS" header, truncated address + CopyBtn, chain count + group fiat. ETH sorts first inside group.
+
+5. **Account → Issues navigation** — `onErrClick` prop on AcctCard. Error badge click sets `errAcctFilter` + navigates to Issues. Filter banner in Issues with "Show all". Severity counts use full `enrichedErrs`; list uses `displayErrs`.
+
+6. **Xpub scan button** — `canX&&!open` — chain-colored button on collapsed UTXO cards. Clicking expands card.
+
+7. **No-sync hint consolidated** — removed purple hint, appended Customer View tip to amber banner.
+
+**New state variables:** `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`
+
+### What was built in the PREVIOUS session (LLv4 compatibility + device identification overhaul)
 
 **Context:** Ledger Live was renamed to Ledger Wallet on Oct 23, 2025. Ledger Wallet 4.0 (user-facing version "4.0.0") launched March 2026. LLv4 changed the log format significantly: bridge-based sync events replaced analytics SyncSuccess, DMK replaced old transport, APDU payloads stripped, device identification moved to target IDs and API responses.
 
@@ -108,17 +128,21 @@ To revert: `git checkout experimental && git reset --hard <tag-name> && git push
 
 ## What's planned / next
 
-### Live balances remaining phases
-- **Phase 3:** App.json balance comparison (show delta between live and app.json — diagnostic gold for "my balance is wrong")
+### Priority for next session
+- **Detail work on individual tabs** — Peter's explicit request, specifics TBD
+- **Phase 3 live balances rethink** — Peter got feedback from a real CS agent and wants to rethink approach before building app.json balance comparison. Do NOT assume the original roadmap spec is still correct.
+
+### Live balances remaining phases (pending rethink)
+- **Phase 3:** App.json balance comparison (delta between live and app.json — diagnostic gold for "my balance is wrong")
 - **Phase 4:** Polish (caching, "Refresh balances" button, staleness display, Ledger node endpoints as primary)
 
 ### Ongoing: Log format compatibility
 - Monitor LLv4/Ledger Wallet updates for further log format changes
-- Clone ledger-live repo for source code review of log export and parsing modules
-- Compare tool extraction against Ledger's own logsviewer
+- Compare tool extraction against Ledger's own logsviewer at `live.ledger.tools/logsviewer`
 
-### Customer View redesign (backburner)
-Deferred. The Diagnostic side is the priority.
+### Backburner
+- `agent-guide.html` — needs updating for mobile logs, live balances, Overview redesign, LLv4 changes, Accounts tab overhaul
+- Customer View redesign — deferred, Diagnostic side is priority
 
 ---
 
