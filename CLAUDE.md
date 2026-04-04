@@ -172,7 +172,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen` (Device Reference popover), `section`, `liveBalances`, `selectedErr`, `globalSearch`, `showGlobalResults`
+**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen` (Device Reference popover), `section`, `liveBalances`, `selectedErr`, `globalSearch`, `showGlobalResults`, `errAcctFilter` (Issues section account filter), `hoveredAcct` (tile hover id), `hoveredRef` (tile hover DOM ref), `acctMapOpen` (portfolio overlay)
 **DiagSidebar:** `accountsOpen`, `advOpen`, `copyOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
@@ -201,7 +201,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ---
 
-## Helper functions (new this session)
+## Helper functions
 
 | Function | Purpose |
 |---|---|
@@ -223,6 +223,33 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ---
 
+## Accounts tab — current architecture
+
+**Fixed header zone (flexShrink:0):**
+- Title bar: funded/empty/no-data counts + Copy IDs + Export buttons
+- No-sync banners (mobile purple hint OR amber re-export warning with Customer View tip)
+- Enhanced health tiles (`position:relative` wrapper):
+  - Inline total fiat + account count + "Portfolio ▸" button
+  - 30px tiles per account: ticker label, chain color, opacity by status, corner dots (red=errors, purple=xpub, ?=unsupported)
+  - Click toggles `acctFilter` for that chain (click again to clear); active tile shows border
+  - Hover sets `hoveredAcct`/`hoveredRef` → absolute popover below tile (chain, address, balance, status, flags)
+  - `acctMapOpen` → absolute portfolio overlay (proportional fiat-sized tiles, click filters+closes)
+- Filter input (`acctFilter`)
+
+**Scrollable panel (flex:1, overflowY:auto):**
+- EVM grouping: accounts sharing same address (≥20 chars) grouped in container, ETH first. Groups have "SHARED ADDRESS" header + CopyBtn + chain count + group fiat.
+- `AcctCard` props: `acct, errCount, deviceApps, liveBalance, onErrClick`
+- Error badge on AcctCard: clickable → sets `errAcctFilter(a.addr)` + `setSection('errors')`
+- Xpub scan button on collapsed cards when `canX && !open`
+
+**Issues section account filter:**
+- `errAcctFilter` state — set from AcctCard error badge click
+- `displayErrs` = `enrichedErrs` filtered by address string match when `errAcctFilter` set
+- Filter banner in Issues fixed header with "Show all" button
+- Severity counts always use full `enrichedErrs` (not filtered)
+
+---
+
 ## Git tags
 
 | Tag | Commit | What's included |
@@ -231,5 +258,6 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `post-live-balances` | `9081d1c` | Live balance fetching + fiat values + no-device UX clarity. |
 | `pre-device-card` | — | Checkpoint before unified Device card session. |
 | `post-overview-redesign` | `01f89d4` | Unified Device card, app chips, adaptive error grid, viewport scaling. |
-| `pre-llv4-compat` | — | Tag before LLv4 compatibility session (this session). |
-| `post-llv4-compat` | — | LLv4 device ID, sync detection, app catalog, branding rename. |
+| `pre-llv4-compat` | — | Tag before LLv4 compatibility session. |
+| `post-llv4-compat` | `bf6b0e1` | LLv4 device ID, sync detection, app catalog, branding rename. |
+| `post-accounts-overhaul` | `9eeee24` | Enhanced tiles, hover popover, portfolio overlay, EVM grouping, error nav. |
