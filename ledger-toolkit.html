@@ -1583,7 +1583,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick}){
+function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick,onTimelineClick}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -1632,6 +1632,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick}){
       <div style={{display:'flex',alignItems:'center',gap:8}}>
         {hasExp&&!acct.isXpub&&<a href={eUrl} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()} aria-label={`View ${ch.name} on explorer`} style={{color:T.muted,display:'inline-flex',alignItems:'center',padding:4,borderRadius:4,opacity:0.6}} title="View on explorer"><Ico.Link/></a>}
 
+        {onTimelineClick&&!open&&<button onClick={ev=>{ev.stopPropagation();onTimelineClick();}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}} title={`Filter timeline to ${ch.name} events`}><Ico.Logs/> Timeline</button>}
         {canX&&!open&&<button onClick={ev=>{ev.stopPropagation();setOpen(true);}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,border:`1px solid ${ch.color}40`,background:ch.color+'12',color:ch.color,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}} title={`Derive and scan ${ch.name} addresses from xpub`}><Ico.Scan/> Scan</button>}
         {acct.dm&&<span className="mono label" style={{color:T.muted,background:'rgba(255,255,255,0.04)',padding:'3px 8px',borderRadius:4,textTransform:'none',letterSpacing:'normal'}}>{acct.dm}</span>}
         <span style={{color:T.muted,transform:open?'rotate(90deg)':'none',transition:'transform 0.2s',display:'inline-block'}}><Ico.ChevR/></span>
@@ -2878,6 +2879,11 @@ function App(){
   const[hoveredAcct,setHoveredAcct]=useState(null);
   const[hoveredRef,setHoveredRef]=useState(null);
   const[acctMapOpen,setAcctMapOpen]=useState(false);
+  const[tlHoveredBucket,setTlHoveredBucket]=useState(null);
+  const[tlHighlightType,setTlHighlightType]=useState(null);
+  const[tlAcctFilter,setTlAcctFilter]=useState(null);
+  const[tlGrouping,setTlGrouping]=useState(true);
+  const[expandedGroups,setExpandedGroups]=useState({});
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
@@ -2890,9 +2896,10 @@ function App(){
   const[showGlobalResults,setShowGlobalResults]=useState(false);
   const[liveBalances,setLiveBalances]=useState({});
   const fileRef=useRef();
+  const timelineScrollRef=useRef(null);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -2907,7 +2914,7 @@ function App(){
           setLoadErr('');
           setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
-          setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');
+          setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
         setParsing(false);
       },10);
@@ -2973,7 +2980,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setParsing(false);
+    setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -2984,8 +2991,53 @@ function App(){
     if(!logData)return[];let f=logData.entries;
     if(typeFilter!=='all')f=f.filter(e=>e.type===typeFilter);
     if(searchTerm){const s=searchTerm.toLowerCase();f=f.filter(e=>(e.message||'').toLowerCase().includes(s)||(e.type||'').toLowerCase().includes(s));}
+    if(tlAcctFilter){
+      const addr=tlAcctFilter.addr?.toLowerCase();
+      const cid=tlAcctFilter.cid?.toLowerCase();
+      const ticker=tlAcctFilter.ticker?.toLowerCase();
+      const name=tlAcctFilter.name?.toLowerCase();
+      f=f.filter(e=>{
+        const hay=[(e.message||''),(e.type||''),JSON.stringify(e.data||''),JSON.stringify(e.queryArg||''),JSON.stringify(e.payload||'')].join(' ').toLowerCase();
+        if(addr&&addr.length>8&&hay.includes(addr))return true;
+        if(cid&&hay.includes(cid))return true;
+        if(ticker&&hay.includes(ticker))return true;
+        if(name&&hay.includes(name))return true;
+        return false;
+      });
+    }
     return f;
-  },[logData,typeFilter,searchTerm]);
+  },[logData,typeFilter,searchTerm,tlAcctFilter]);
+  useEffect(()=>{setExpandedGroups({});},[typeFilter,searchTerm,tlAcctFilter]);
+
+  const groupedTimeline=useMemo(()=>{
+    if(!tlGrouping||filtered.length===0)return filtered.map(e=>({type:'single',entry:e}));
+    const GAP=1500;
+    const MIN_GROUP=3;
+    const result=[];
+    let i=0;
+    while(i<filtered.length){
+      const e=filtered[i];
+      const eType=e.type||'';
+      const isErr=e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0)||(e.message||'').toLowerCase().includes('rejected');
+      if(isErr||!eType){result.push({type:'single',entry:e});i++;continue;}
+      let j=i+1;
+      while(j<filtered.length){
+        const next=filtered[j];
+        const nextType=next.type||'';
+        const nextTime=new Date(next.timestamp).getTime();
+        const nextIsErr=next.level==='error'||next.type==='error'||(next.error&&typeof next.error==='object'&&Object.keys(next.error).length>0)||(next.message||'').toLowerCase().includes('rejected');
+        if(nextType!==eType||(nextTime-new Date(filtered[j-1].timestamp).getTime())>GAP||nextIsErr)break;
+        j++;
+      }
+      const groupSize=j-i;
+      if(groupSize>=MIN_GROUP){
+        const groupEntries=filtered.slice(i,j);
+        result.push({type:'group',eventType:eType,count:groupSize,firstTs:groupEntries[0].timestamp,lastTs:groupEntries[groupEntries.length-1].timestamp,firstIndex:groupEntries[0].logIndex,entries:groupEntries});
+        i=j;
+      }else{result.push({type:'single',entry:e});i++;}
+    }
+    return result;
+  },[filtered,tlGrouping]);
 
   const netEntries=useMemo(()=>logData?logData.entries.filter(e=>e.type==='network'):[],[logData]);
   const filtAccts=useMemo(()=>{
@@ -3389,21 +3441,133 @@ function App(){
             if(ents.length<2)return null;
             const t0=new Date(ents[0].timestamp).getTime();
             const t1=new Date(ents[ents.length-1].timestamp).getTime();
-            const span=t1-t0||1;
+            const span=t1-t0;
+            if(span<=0)return null;
+            const durSec=span/1000;
+            const durLabel=durSec<60?durSec.toFixed(1)+'s':(durSec<3600?(durSec/60).toFixed(1)+'m':(durSec/3600).toFixed(1)+'h');
             const N=80;
-            const buckets=Array.from({length:N},()=>({total:0,errors:0,device:0}));
-            const devTypes=new Set(['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager']);
+            const buckets=Array.from({length:N},()=>({types:{},total:0,samples:[]}));
+            const typeTotals={};
             for(const e of ents){
               const idx=Math.min(Math.floor(((new Date(e.timestamp).getTime()-t0)/span)*N),N-1);
-              buckets[idx].total++;
-              if(e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0))buckets[idx].errors++;
-              if(devTypes.has(e.type))buckets[idx].device++;
+              const b=buckets[idx];
+              const tp=e.type||'unknown';
+              b.types[tp]=(b.types[tp]||0)+1;
+              b.total++;
+              typeTotals[tp]=(typeTotals[tp]||0)+1;
+              if(b.samples.length<2)b.samples.push(e);
             }
             const maxTotal=Math.max(...buckets.map(b=>b.total),1);
-            return <div style={{display:'flex',alignItems:'flex-end',height:24,gap:1,marginBottom:12,borderRadius:3,overflow:'hidden',background:T.bg}}>
-              {buckets.map((b,i)=>(
-                <div key={i} style={{flex:1,height:Math.max(2,(b.total/maxTotal)*24),borderRadius:'1px 1px 0 0',background:b.errors>0?T.error:b.device>0?T.primary:'rgba(255,255,255,0.15)',alignSelf:'flex-end'}}/>
-              ))}
+            const sortedTypes=Object.keys(typeTotals).sort((a,b)=>{
+              if(a==='error')return -1;if(b==='error')return 1;
+              return typeTotals[b]-typeTotals[a];
+            });
+            const errDots=[];
+            for(const e of ents){
+              const isErr=e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0)||((e.message||'').toLowerCase().includes('rejected'));
+              if(isErr){
+                const pct=((new Date(e.timestamp).getTime()-t0)/span)*100;
+                const isCrit=(e.level==='error'||e.type==='error');
+                errDots.push({pct,li:e.logIndex,ts:e.timestamp,msg:trunc(e.message||'Error',50),crit:isCrit});
+              }
+            }
+            const scrollToTime=(ev)=>{
+              const rect=ev.currentTarget.getBoundingClientRect();
+              const pct=(ev.clientX-rect.left)/rect.width;
+              const targetTime=t0+pct*span;
+              let closest=ents[0],closestD=Infinity;
+              for(const e of ents){const d=Math.abs(new Date(e.timestamp).getTime()-targetTime);if(d<closestD){closestD=d;closest=e;}}
+              setExpandedRow(closest.logIndex);
+              setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${closest.logIndex}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},50);
+            };
+            const scrollToEntry=(li)=>{
+              setExpandedRow(li);
+              setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${li}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},50);
+            };
+            const handleBarHover=(ev)=>{
+              const rect=ev.currentTarget.getBoundingClientRect();
+              const idx=Math.min(Math.floor(((ev.clientX-rect.left)/rect.width)*N),N-1);
+              setTlHoveredBucket(idx>=0?{idx,x:ev.clientX-rect.left,cw:rect.width}:null);
+            };
+            return <div style={{marginBottom:10}}>
+              <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,overflow:'hidden'}}>
+                <div style={{height:120,display:'flex',alignItems:'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:'0 1px'}}
+                  onClick={scrollToTime}
+                  onMouseMove={handleBarHover}
+                  onMouseLeave={()=>setTlHoveredBucket(null)}>
+                  {buckets.map((b,i)=>{
+                    const h=Math.max(2,(b.total/maxTotal)*114);
+                    const isHov=tlHoveredBucket?.idx===i;
+                    const segs=[];
+                    for(const tp of sortedTypes){
+                      if(b.types[tp]){segs.push({type:tp,count:b.types[tp],pct:(b.types[tp]/b.total)*100});}
+                    }
+                    return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',opacity:isHov?1:(tlHighlightType&&!b.types[tlHighlightType])?0.15:0.85,transition:'opacity 0.1s'}}>
+                      {segs.map((s,si)=>{
+                        const color=TC[s.type.toLowerCase()]||'#717070';
+                        const dimmed=tlHighlightType&&s.type!==tlHighlightType;
+                        return <div key={si} style={{flex:s.pct,background:color,opacity:dimmed?0.15:1,minHeight:1,transition:'opacity 0.1s'}}/>;
+                      })}
+                    </div>;
+                  })}
+                  {tlHoveredBucket&&(()=>{
+                    const b=buckets[tlHoveredBucket.idx];
+                    if(!b||b.total===0)return null;
+                    const bTime=t0+(tlHoveredBucket.idx/N)*span;
+                    const topTypes=Object.entries(b.types).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                    const sample=b.samples[0];
+                    const tipW=220;
+                    const left=tlHoveredBucket.x+tipW>tlHoveredBucket.cw?Math.max(0,tlHoveredBucket.x-tipW):tlHoveredBucket.x;
+                    return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
+                      <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(bTime).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
+                      <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                        {topTypes.map(([tp,ct])=>(
+                          <div key={tp} style={{display:'flex',alignItems:'center',gap:5}}>
+                            <div style={{width:6,height:6,borderRadius:1,background:TC[tp.toLowerCase()]||'#717070',flexShrink:0}}/>
+                            <span style={{color:T.text}}>{tp}</span>
+                            <span style={{color:T.muted,marginLeft:'auto'}}>{ct}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {sample&&<div className="mono" style={{color:T.muted,marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',borderTop:`1px solid ${T.border}`,paddingTop:4}}>{trunc(sample.message,40)}</div>}
+                    </div>;
+                  })()}
+                </div>
+                <div style={{height:24,position:'relative',borderTop:`1px solid ${T.border}`,background:'rgba(255,255,255,0.015)',cursor:'pointer'}}
+                  onClick={e=>e.stopPropagation()}>
+                  <div style={{position:'absolute',top:'50%',left:0,right:0,height:1,background:'rgba(255,255,255,0.04)'}}/>
+                  {errDots.length>0&&<div style={{position:'absolute',top:3,left:8,fontSize:9,color:T.error,fontWeight:700,opacity:0.6}}>{errDots.length} error{errDots.length!==1?'s':''}</div>}
+                  {errDots.map((d,i)=>(
+                    <div key={i} onClick={()=>scrollToEntry(d.li)} title={`${fmtTime(d.ts)} — ${d.msg}`}
+                      style={{position:'absolute',left:`${d.pct}%`,top:'50%',width:d.crit?11:8,height:d.crit?11:8,borderRadius:'50%',background:d.crit?T.error:T.warning,opacity:d.crit?0.95:0.75,transform:'translate(-50%,-50%)',cursor:'pointer',zIndex:2,border:`2px solid ${T.bg}`,transition:'transform 0.1s'}}
+                      onMouseEnter={e=>e.currentTarget.style.transform='translate(-50%,-50%) scale(1.3)'}
+                      onMouseLeave={e=>e.currentTarget.style.transform='translate(-50%,-50%) scale(1)'}
+                    />
+                  ))}
+                  {errDots.length===0&&<div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',fontSize:10,color:T.muted,opacity:0.3}}>No errors</div>}
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
+                <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[0].timestamp)}</span>
+                <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[ents.length-1].timestamp)} <span style={{fontWeight:600,fontFamily:'Inter,sans-serif'}}>{durLabel}</span></span>
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:6}}>
+                {sortedTypes.map(tp=>{
+                  const color=TC[tp.toLowerCase()]||'#717070';
+                  const count=typeTotals[tp];
+                  const isActive=typeFilter===tp;
+                  return <div key={tp}
+                    onClick={()=>setTypeFilter(isActive?'all':tp)}
+                    onMouseEnter={()=>setTlHighlightType(tp)}
+                    onMouseLeave={()=>setTlHighlightType(null)}
+                    style={{display:'flex',alignItems:'center',gap:5,padding:'3px 8px',borderRadius:4,cursor:'pointer',background:isActive?color+'25':'rgba(255,255,255,0.03)',border:`1px solid ${isActive?color+'60':T.border}`,transition:'all 0.1s'}}>
+                    <div style={{width:7,height:7,borderRadius:2,background:color,flexShrink:0}}/>
+                    <span style={{fontSize:10,color:isActive?color:T.muted,fontWeight:isActive?700:400}}>{tp}</span>
+                    <span className="mono" style={{fontSize:9,color:T.muted,opacity:0.7}}>{count}</span>
+                  </div>;
+                })}
+              </div>
+              <div style={{textAlign:'center',marginTop:4,fontSize:10,color:T.muted,opacity:0.35}}>Click bars to jump · Click a type to filter · Hover to highlight</div>
             </div>;
           })()}
           <div style={{display:'flex',gap:10,marginBottom:16}}>
@@ -3413,34 +3577,89 @@ function App(){
               {logData.types.map(t=><option key={t} value={t}>{t} ({logData.entries.filter(e=>e.type===t).length})</option>)}
             </select>
           </div>
+          {tlAcctFilter&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,marginBottom:8,fontSize:12,flexShrink:0}}>
+            <span style={{color:T.muted}}>Filtered to <span style={{fontWeight:700,color:tlAcctFilter.color||T.primary}}>{tlAcctFilter.name}</span>{tlAcctFilter.addr?<span className="mono" style={{color:T.primary,marginLeft:6}}>{tlAcctFilter.addr.slice(0,12)}...{tlAcctFilter.addr.slice(-6)}</span>:''}</span>
+            <button onClick={()=>setTlAcctFilter(null)} style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:11,fontWeight:600,cursor:'pointer'}}>Show all</button>
+          </div>}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <div style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</span>
+              <button onClick={()=>{setTlGrouping(g=>!g);setExpandedGroups({});}} style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${T.border}`,background:tlGrouping?T.primary+'1A':'transparent',color:tlGrouping?T.primary:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}} title={tlGrouping?'Show all rows flat':'Group repeated events'}>{tlGrouping?'Grouped':'Flat'}</button>
+            </div>
             <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
           </div>
           </div>{/* end fixed header */}
-          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
+          <div ref={timelineScrollRef} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
           <div style={{background:T.panel,overflow:'hidden'}}>
             <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
               {['#','Time','Type','Message'].map(h=><div key={h} className="label" style={{padding:'10px 12px',color:T.muted,background:T.panel}}>{h}</div>)}
             </div>
-            {filtered.slice(0,500).map(e=>{
-              const isExp=expandedRow===e.logIndex;
-              const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
-              const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
-              const lvl=(e.level||'').toLowerCase();
-              const isWarn=lvl==='warning'||lvl==='warn';
-              const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
-              const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
-              return <div key={e.logIndex}>
-                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
-                  <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
-                  <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
-                  <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
-                  <div className="mono" style={{padding:'8px 12px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
-                </div>
-                {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
-              </div>;
-            })}
+            {(()=>{
+              let rowCount=0;
+              const MAX_ROWS=500;
+              return groupedTimeline.map((item,gi)=>{
+                if(rowCount>=MAX_ROWS)return null;
+                if(item.type==='single'){
+                  rowCount++;
+                  const e=item.entry;
+                  const isExp=expandedRow===e.logIndex;
+                  const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
+                  const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
+                  const lvl=(e.level||'').toLowerCase();
+                  const isWarn=lvl==='warning'||lvl==='warn';
+                  const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
+                  const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
+                  return <div key={e.logIndex} data-li={e.logIndex}>
+                    <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
+                      <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
+                      <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
+                      <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
+                      <div className="mono" style={{padding:'8px 12px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
+                    </div>
+                    {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
+                  </div>;
+                }
+                const g=item;
+                const gKey='g-'+g.firstIndex;
+                const isOpen=expandedGroups[gKey];
+                const typeColor=gtc(g.eventType);
+                const durMs=new Date(g.lastTs).getTime()-new Date(g.firstTs).getTime();
+                const durLabel=durMs<1000?durMs+'ms':(durMs/1000).toFixed(1)+'s';
+                rowCount+=isOpen?g.count+1:1;
+                return <div key={gKey}>
+                  <div role="button" tabIndex={0}
+                    onClick={()=>setExpandedGroups(prev=>({...prev,[gKey]:!prev[gKey]}))}
+                    onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedGroups(prev=>({...prev,[gKey]:!prev[gKey]}));}}}
+                    style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:'pointer',borderLeft:`3px solid ${typeColor}40`,background:`${typeColor}08`}}>
+                    <div className="mono" style={{padding:'8px 12px',color:typeColor,fontWeight:700,fontSize:11}}>{g.count}×</div>
+                    <div className="mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(g.firstTs)}</div>
+                    <div style={{padding:'8px 12px'}}><span style={bdg(typeColor)}>{g.eventType}</span></div>
+                    <div style={{padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{color:T.muted,fontSize:12}}>{g.count} events · {durLabel}</span>
+                      <span style={{color:typeColor,marginLeft:'auto',fontSize:10,fontWeight:600}}>{isOpen?'▼ collapse':'▶ expand'}</span>
+                    </div>
+                  </div>
+                  {isOpen&&g.entries.map(e=>{
+                    const isExp=expandedRow===e.logIndex;
+                    const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
+                    const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
+                    const lvl=(e.level||'').toLowerCase();
+                    const isWarn=lvl==='warning'||lvl==='warn';
+                    const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
+                    const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
+                    return <div key={e.logIndex} data-li={e.logIndex}>
+                      <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
+                        <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
+                        <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
+                        <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
+                        <div className="mono" style={{padding:'8px 12px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
+                      </div>
+                      {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
+                    </div>;
+                  })}
+                </div>;
+              }).filter(Boolean);
+            })()}
             {filtered.length===0&&logData.entries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
               <div style={{fontSize:32,marginBottom:12}}>📋</div>
               <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No log entries found</div>
@@ -3452,7 +3671,7 @@ function App(){
               <div style={{fontSize:12,marginBottom:16}}>Try clearing the search or switching to "All" types</div>
               <button onClick={()=>{setSearchTerm('');setTypeFilter('all');}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer',marginTop:16}}>Clear filters</button>
             </div>}
-            {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {filtered.length}</div>}
+            {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing first 500 entries of {filtered.length}{tlGrouping?' (grouping may show more)':''}</div>}
           </div>
           </div>{/* end scrollable */}
         </div>}
@@ -3495,7 +3714,7 @@ function App(){
                 const op=hasFunds?1:noData?0.5:0.4;
                 const canX=a.isXpub&&a.ch.xc;
                 return <div key={a.id}
-                  onClick={()=>setAcctFilter(acctFilter===a.ch.name?'':a.ch.name)}
+                  onClick={(ev)=>{if(ev.shiftKey){setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}else{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);}}}
                   onMouseEnter={e=>{setHoveredAcct(a.id);setHoveredRef(e.currentTarget);}}
                   onMouseLeave={()=>{setHoveredAcct(null);setHoveredRef(null);}}
                   style={{
@@ -3608,7 +3827,7 @@ function App(){
                 used.add(a.id);
               }
             }
-            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}}/>;
+            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
             return groups.map((g,i)=>{
               if(g.type==='single')return renderCard(g.acct);
               const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
