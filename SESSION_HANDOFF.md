@@ -40,7 +40,7 @@ You are picking up an ongoing collaboration. Read this entire document before re
 
 ## The tool
 
-`ledger-toolkit.html` — a single-file React/Babel app (~3,850 lines) for CS agents to diagnose customer issues from Ledger Wallet log exports. No build step, opens directly in browser. React 18.3.1 + Babel standalone.
+`ledger-toolkit.html` — a single-file React/Babel app (~4,400 lines, will grow after guide embed) for CS agents to diagnose customer issues from Ledger Wallet log exports. No build step, opens directly in browser. React 18.3.1 + Babel standalone.
 
 **The data layer is FROZEN** — but may be EXTENDED to support new log formats (LLv4) as long as existing parsing for older logs is not broken.
 
@@ -59,90 +59,132 @@ You are picking up an ongoing collaboration. Read this entire document before re
 | `post-overview-redesign` | Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview. |
 | `pre-llv4-compat` | Before LLv4 compatibility changes. |
 | `post-llv4-compat` | All LLv4 changes: device ID, sync, app catalog, branding. |
+| `post-accounts-overhaul` | Enhanced tiles, hover popover, portfolio overlay, EVM grouping, error nav. |
+| `post-timeline-issues` | **Tag after this session.** Timeline strip, Issues interactive filters, breadcrumbs, guide overlays. |
 
 To revert: `git checkout experimental && git reset --hard <tag-name> && git push origin experimental --force`
 
 ---
 
-## Current state of the tool
+## Current state of the tool (after v4.1 session — Apr 4, 2026)
 
-### What was built in PREVIOUS sessions (already on main)
+### What exists across ALL previous sessions
 
 1. **Mobile log support** — `synthesizeMobileMeta()` normalizes mobile logs. `logData.isMobile` flag. MOBILE badge in header.
 2. **Issues master-detail layout** — Left 45% compact list, right 55% ErrCard detail panel. `selectedErr` state.
-3. **Live on-chain balance fetching** — `COINGECKO_IDS`, `EVM_RPCS`, `fetchEvmBalance`, `BALANCE_APIS` (40+ chains), `fetchPrices`. AcctCard shows "live ···" → "X.XXXX TICKER · $Y.YY".
-4. **Portfolio stat card** — Shows total fiat from live balances.
-5. **No-sync visibility** — Comprehensive amber treatment across all surfaces.
-6. **No-device UX** — DEVICE APPS hidden when no Manager data. Auto-collapse.
-7. **Overview redesign** — Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview, 3-zone layout, Quality Details popover.
+3. **Live on-chain balance fetching** — 40+ chains, fiat via CoinGecko. AcctCard shows live balance + fiat.
+4. **Portfolio stat card** — Total fiat from live balances on Overview.
+5. **No-sync visibility** — Amber treatment across all surfaces.
+6. **Overview redesign** — Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll.
+7. **LLv4 compatibility** — Target ID masking, Manager API response, firmware path prefix, bridge sync fallback, catalog-only app detection, Ledger Live → Ledger Wallet rename.
+8. **Accounts tab overhaul** — Enhanced 30px health tiles with ticker labels/corner dots/hover popovers, portfolio overlay, EVM address grouping, Account → Issues navigation, Xpub scan buttons.
 
-### What was built THIS session (Accounts tab overhaul + LLv4 compatibility)
+### What was built THIS session (Timeline + Issues + Docs — Apr 4, 2026)
 
-**Accounts tab overhaul (2026-04-04):**
+**Timeline session strip:**
+- True-color stacked bars using TC[type] colors. 80 buckets across session duration.
+- Interactive legend chips: hover highlights bar segments, click filters row list (shares state with type dropdown).
+- Error dots on dedicated 24px baseline below bars. Clickable → scrolls to entry.
+- Click-to-navigate on bars → scroll to nearest entry.
+- Hover tooltip: timestamp, event count, per-type breakdown.
+- `tlHoveredBucket`, `tlHighlightType` states.
 
-1. **Enhanced health tiles** — 30px tiles with 3-letter ticker labels. Corner dots: red (errors), purple (xpub/scannable), `?` (unsupported). Click toggles chain filter; active filter shows border highlight. Replaces old 20px plain squares.
+**Timeline event grouping:**
+- `groupedTimeline` useMemo: consecutive same-type within 1.5s → group headers.
+- Min group size: 3. Errors never group. Grouped/Flat toggle button.
+- `tlGrouping` (default true), `expandedGroups` states.
 
-2. **Hover popover** — opens below hovered tile (`top: tile+38px`). Shows chain, address, live balance + fiat, status, derivation mode, error count, xpub/explorer flags. Clamped to container width. `pointerEvents:none`.
+**Timeline account filtering:**
+- `tlAcctFilter` state: {addr, cid, ticker, name, color}.
+- Shift+click health tile → sets filter + navigates to Timeline.
+- "Timeline" button on AcctCard → same.
+- Filter banner with "Show all" to clear.
+- `filtered` useMemo scans message, type, data, queryArg for addr/cid/ticker/name.
 
-3. **Portfolio overlay** — "Portfolio ▸" button. Absolute panel below tiles. Tiles sized proportionally by fiat (36–80px range). Click filters + closes.
+**Issues interactive filters:**
+- Severity chips (Critical/Warning/Info): click to filter, hover to highlight strip.
+- Category chips (Hardware/Software/Server): same behavior.
+- Pattern badges ("↻ title ×N"): click to filter by diagnostic title.
+- `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat` states.
+- `filteredErrs` computed from `displayErrs` with all three filters (AND logic).
+- Filter banner with "Clear filters" when any active.
 
-4. **EVM address grouping** — accounts sharing same `0x` address wrapped in container: "SHARED ADDRESS" header, truncated address + CopyBtn, chain count + group fiat. ETH sorts first inside group.
+**Issues error strip:**
+- Single-zone, 80px. TC-colored stacked bars with error segments at full opacity, context at 25%.
+- Hover: bar brightens, tooltip shows errors in that time bucket.
+- Click: selects error in master-detail panel (or nearest error).
+- Severity/category chip hover dims non-matching error segments.
+- `errStripHover` state.
 
-5. **Account → Issues navigation** — `onErrClick` prop on AcctCard. Error badge click sets `errAcctFilter` + navigates to Issues. Filter banner in Issues with "Show all". Severity counts use full `enrichedErrs`; list uses `displayErrs`.
+**Issues breadcrumbs (ErrCard):**
+- `entries` prop added to ErrCard. Passed as `logData.entries` at call site.
+- "What happened before": 5 preceding log entries with relative timestamps, TC-colored type badges, truncated messages.
+- `ctxOpen` internal state (collapsed by default).
+- "View in Timeline" button: calls `jumpTo(err.li)`.
 
-6. **Xpub scan button** — `canX&&!open` — chain-colored button on collapsed UTXO cards. Clicking expands card.
+**jumpTo enhanced:**
+- Now clears `tlAcctFilter`, `tlHighlightType`, disables `tlGrouping`, expands row, AND scrolls to entry via `timelineScrollRef`.
 
-7. **No-sync hint consolidated** — removed purple hint, appended Customer View tip to amber banner.
+**Dead code removed:**
+- `tab`/`setTab` — declared but never read (from old tab bar architecture).
 
-**New state variables:** `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`
+**Landing page guide overlays:**
+- Two buttons below drag/drop: "📖 Agent Guide" and "🔬 Technical Reference".
+- Full-screen overlay with search bar, close button, click-outside dismiss, Escape key.
+- Content embedded as `GUIDE_AGENT` and `GUIDE_TECHNICAL` JS string constants (not fetched — `file://` protocol blocks fetch).
+- `.guide-embed` CSS scopes guide styling within overlay.
+- `guideOpen`, `guideSearch` states.
 
-### What was built in the PREVIOUS session (LLv4 compatibility + device identification overhaul)
-
-**Context:** Ledger Live was renamed to Ledger Wallet on Oct 23, 2025. Ledger Wallet 4.0 (user-facing version "4.0.0") launched March 2026. LLv4 changed the log format significantly: bridge-based sync events replaced analytics SyncSuccess, DMK replaced old transport, APDU payloads stripped, device identification moved to target IDs and API responses.
-
-1. **LLv4 bridge sync detection** — `extractAccounts` fallback: when no `SyncSuccess` analytics events exist, checks for `type: "bridge"` + `"SyncSession finished"` entry, sets `dur` on all accounts from session duration. Prevents false "no sync" alerts.
-
-2. **Target ID masking (D-7)** — `TARGET_MASKS` constant with 6 device masks from `@ledgerhq/devices`. `identifyTargetId()` function uses `(targetId & 0xFFFF0000) >>> 0` — same algorithm as Ledger's own code. Scans `data.targetId`, `data.data.target_id`, and URL params. Primary device identification for LLv4 logs.
-
-3. **Manager API response detection (D-5)** — Reads `get_device_version` response `data.data.name` for device model. Covers LLv4 sync/portfolio sessions.
-
-4. **Firmware path prefix detection (D-6)** — Parses `nanos+/1.5.1/...` style paths from Manager install data. Now includes `apex_p`/`apex` for Nano Gen5. Covers LLv4 Manager/DMK sessions.
-
-5. **Catalog-only device app detection** — New `source: 'catalog-only'` in `extractDeviceApps`. Scans `type: "hw"` install events for session installs + `apps-by-target` API response for latest available versions. Paired with `inferRequiredApps`, shows app chips with catalog versions instead of hiding the section entirely.
-
-6. **"Ledger Live" → "Ledger Wallet" rename** — `userAgent` parsed from `exportLogsMeta` for brand detection. `appBrand` field on `dev` ('wallet' or 'live'). Version fallback: `parseFloat(appVer) >= 2.132`. `llLabel(dev, isMobile)` and `llText(text, dev)` helpers. All 21+ UI references updated. ERR_DB advice replaced at render time without modifying frozen constants.
-
-7. **Dead code cleanup** — Removed unused `appsListOpen` state and its useEffect. Fixed redundant `v>=4||v>=2.132` to `v>=2.132`. Fixed hardcoded "Ledger Wallet Mobile" to use `llLabel`.
+**Documentation created:**
+- `agent-guide.html` — update prompt written (agent-guide-update.md). Covers Timeline strip, Issues filters/breadcrumbs, Account tiles. Playbook updates.
+- `technical-reference.html` — creation prompt written (technical-reference-prompt.md). 9 sections covering all capabilities.
+- `release-notes-full.md` — v4.1 entry added to complete version history (v1.0–v4.1).
 
 ---
 
 ## Known issues / things to watch
 
-- **`SyncSuccessAllAccounts` analytics event** — PR #11917 in ledger-live monorepo added this as a new aggregate sync event. May carry richer data than our bridge "SyncSession finished" detection. Not yet implemented.
-- **Mobile Ledger Wallet logs** — `synthesizeMobileMeta` hasn't been tested against recent mobile exports from the renamed app. Same class of risk as desktop LLv4.
-- **app.json format** — `parseAppJson` was written for older exports. LLv4 may have changed structure. Not verified.
-- **Ledger's own log viewer** at `live.ledger.tools/logsviewer` — source in monorepo under `apps/web-tools`. Should compare extraction against ours.
-- **agent-guide.html** — Still needs updating for mobile logs, live balances, Overview redesign, and LLv4 changes.
+- **Guide embed** — The fix-guide-embed.md prompt needs to run to embed guide content. Until then, the overlay shows "File not found." After running, the technical-reference.html also needs to be created first (run technical-reference-prompt.md), THEN run the embed prompt.
+- **Agent guide update** — agent-guide-update.md prompt needs to run against agent-guide.html before embedding.
+- **`SyncSuccessAllAccounts` analytics event** — PR #11917 in ledger-live monorepo. Not yet implemented.
+- **Mobile Ledger Wallet logs** — `synthesizeMobileMeta` not tested against recent mobile exports from renamed app.
+- **app.json format** — `parseAppJson` written for older exports. LLv4 may have changed structure.
+- **Ledger's own log viewer** at `live.ledger.tools/logsviewer` — should compare extraction against ours.
 
 ---
 
 ## What's planned / next
 
-### Priority for next session
-- **Detail work on individual tabs** — Peter's explicit request, specifics TBD
-- **Phase 3 live balances rethink** — Peter got feedback from a real CS agent and wants to rethink approach before building app.json balance comparison. Do NOT assume the original roadmap spec is still correct.
+### Prompts ready to run (in order)
+1. **cleanup-final-audit.md** — 3 bug fixes (entries prop, jumpTo filter clearing, dead tab state)
+2. **agent-guide-update.md** — update agent-guide.html content
+3. **technical-reference-prompt.md** — create technical-reference.html
+4. **fix-guide-embed.md** — embed both guides into the toolkit as JS constants
 
-### Live balances remaining phases (pending rethink)
-- **Phase 3:** App.json balance comparison (delta between live and app.json — diagnostic gold for "my balance is wrong")
-- **Phase 4:** Polish (caching, "Refresh balances" button, staleness display, Ledger node endpoints as primary)
+### Pending features
+- **Customer View redesign** — to match Ledger Wallet UI. Deferred, Diagnostic side is priority.
+- **Live balances Phase 3** — app.json balance comparison. Peter wants to rethink approach before building.
+- **Forensics tab** — backburner/roadmap only.
 
-### Ongoing: Log format compatibility
+### Ongoing
 - Monitor LLv4/Ledger Wallet updates for further log format changes
-- Compare tool extraction against Ledger's own logsviewer at `live.ledger.tools/logsviewer`
+- Compare tool extraction against Ledger's own logsviewer
 
-### Backburner
-- `agent-guide.html` — needs updating for mobile logs, live balances, Overview redesign, LLv4 changes, Accounts tab overhaul
-- Customer View redesign — deferred, Diagnostic side is priority
+---
+
+## Design lessons learned (Apr 4 session)
+
+These are hard-won insights from iterating on Timeline and Issues tonight. Apply them to future visualization work:
+
+1. **Don't stack visual layers in tight space.** One element doing one job well beats four overlapping.
+2. **Use real data colors consistently.** TC type colors appear on bars, badges, chips, breadcrumbs — learn once, read everywhere.
+3. **Interactive chips teach through doing.** Hover to highlight, click to filter. Agents learn the color system by using it.
+4. **Give visualizations vertical space.** 28px strips fail. 80–120px strips tell a story.
+5. **Dots on bars don't work.** When elements cluster temporally, dots overlap. Give them their own lane or kill them.
+6. **Error segments should be prominent, not overlaid.** Full opacity for errors, muted for context. The bars ARE the indicators.
+7. **Research professional tools before iterating.** Chrome DevTools, Sentry, Datadog, Splunk — study how they solve the same problem.
+8. **Each element does one job.** Strip = temporal context. Chips = filtering. List = navigation. Don't overload.
+9. **The "first agent" test.** Every element must be self-explanatory to a new agent. Labels, consistent colors, and interaction affordances.
 
 ---
 
@@ -186,9 +228,9 @@ To revert: `git checkout experimental && git reset --hard <tag-name> && git push
 ## Starting the next session
 
 1. Ask Peter what he wants to focus on
-2. Live balances Phase 3 (app.json comparison) is the highest-value remaining feature
+2. Check if the 4 pending prompts above have been run
 3. The data layer is FROZEN but may be EXTENDED for new log formats
 4. Every prompt needs a verification checklist and a "What NOT to change" section
 5. Tag before big changes
 6. Overview no-scroll is a hard rule
-7. LLv4 compatibility work from this session should be tested with more diverse logs
+7. The consistent color system (TC colors across all visualizations) is a design principle — maintain it

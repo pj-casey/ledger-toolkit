@@ -9,7 +9,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~3,980 lines)
+- **ONE file**: `ledger-toolkit.html` (~4,400 lines, grows after guide embed)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
@@ -25,9 +25,9 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 4. **Live balance fetching:** Auto-fetches on-chain balances for all accounts (40+ chains), then batch-fetches fiat prices from CoinGecko
 5. **Two modes:**
 
-**Diagnostic Mode:** Fixed-viewport dashboard. Sidebar navigation + main content area. Health status pills (clickable). Unified Device card on Overview (app chips, merged environment + reference popover). Firmware update status. Live balances + fiat values on AcctCards. Portfolio stat card. Timeline density visualization. Error distribution. APDU device communication (under Advanced). Copy Summary/Full/Customer with balances.
+**Diagnostic Mode:** Fixed-viewport dashboard. Sidebar navigation + main content area. Health status pills (clickable). Unified Device card on Overview (app chips, merged environment + reference popover). Firmware update status. Live balances + fiat values on AcctCards. Portfolio stat card. Timeline session strip with stacked color-coded bars and interactive legend chips. Issues with interactive severity/category chips, error-prominent strip, and breadcrumbs. Copy Summary/Full/Customer with balances.
 
-**Customer View:** Sidebar + main area + info bar. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links. dApp usage history.
+**Customer View:** Sidebar + main area + info bar. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer URLs. dApp usage history.
 
 ---
 
@@ -40,6 +40,8 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 3. **Every visual element must answer exactly one question.** If it answers two questions, split it. If it answers zero questions, remove it.
 
 4. **No theatre. No dead space.** Every pixel should earn its place. But don't sacrifice information density for tidiness — "maximally informative" is the goal.
+
+5. **Consistent color system.** TC type colors appear on Timeline bars, legend chips, row badges, Issues error strip, breadcrumb type badges. The same color for "bridge" everywhere. Agents learn it once.
 
 ---
 
@@ -54,7 +56,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## MAY EXTEND (for new log format support)
 
-These were extended this session to support LLv4 (Ledger Wallet 4.0) logs. Extensions are additive only — old log formats still parse correctly.
+These were extended to support LLv4 (Ledger Wallet 4.0) logs. Extensions are additive only — old log formats still parse correctly.
 
 **`extractDevice`** — added D-7 (target ID masking), D-5 (Manager API name), D-6 (Gen5 firmware prefix). Added `userAgent` extraction and `appBrand` derivation.
 **`extractAccounts`** — added LLv4 bridge sync fallback (sets `dur` from `SyncSession finished` when no SyncSuccess analytics events exist).
@@ -125,6 +127,80 @@ Source: `@ledgerhq/devices` package in LedgerHQ/ledger-live monorepo.
 
 ---
 
+## Timeline tab — current architecture
+
+**Fixed header zone (flexShrink:0):**
+- Session strip container:
+  - Stacked bars (80 buckets, TC colors, height by event density). Error dots on 24px baseline below.
+  - Hover: `tlHoveredBucket` state → tooltip with timestamp, event count, per-type breakdown.
+  - Click bars → scroll to nearest entry. Click error dot → scroll to that error entry.
+- Interactive legend chips: `sortedTypes` array, each chip shows TC color + type name + count. Hover sets `tlHighlightType` → dims non-matching bar segments. Click sets `typeFilter` (shares state with dropdown).
+- Type filter dropdown + search bar + entry count + Grouped/Flat toggle.
+- `tlAcctFilter` banner (when filtering by account): shows account name + chain color, "Show all" to clear.
+
+**Scrollable panel (flex:1, overflowY:auto, ref=timelineScrollRef):**
+- `groupedTimeline` useMemo: consecutive same-type within 1.5s → group headers. Errors exempt.
+- Group headers: "N× type · duration · ▶ expand". Click toggles `expandedGroups[key]`.
+- Individual rows: `data-li={logIndex}` attribute for scroll targeting. Click expands raw data.
+
+**Key state:** `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`
+
+---
+
+## Issues tab — current architecture
+
+**Fixed header zone (flexShrink:0):**
+- Row 1: Severity chips (Critical/Warning/Info — click `errSevFilter`, hover `errHoveredSev`) + Category chips (computed from enrichedErrs — click `errCatFilter`, hover `errHoveredCat`) + Copy Errors button.
+- Row 2: Repeating pattern badges ("↻ title ×N" — click `errPatternFilter`). Only shows when patterns exist.
+- Row 3: Error-prominent session strip (80px). TC-colored stacked bars, error segments at full opacity, context at 25%. Hover: `errStripHover` state → tooltip with time, event count, error titles. Click: selects error in master-detail. Severity/category chip hover dims non-matching error segments.
+- Row 4: Affected accounts chips (from `errAcctMap`). Clickable → navigates to Accounts.
+- Filter banners: `errAcctFilter` banner (from Accounts section), `errSevFilter/errCatFilter/errPatternFilter` banner with "Clear filters".
+
+**Master-detail body (flex:1, overflow:hidden, display:flex):**
+- Left 45%: `sorted` error list (severity-ranked). `filteredErrs` applies sev/cat/pattern filters to `displayErrs`.
+- Right 55%: `ErrCard` detail panel for `effectiveSel` error.
+
+**ErrCard component props:** `{err, onJump, linkedAcct, onGoAcct, dev, entries}`
+- Breadcrumbs: "What happened before" — 5 preceding entries with relative timestamps, TC-colored type badges. `ctxOpen` internal state.
+- "View in Timeline" button: calls `onJump(err.li)` → `jumpTo` which clears all Timeline filters + scrolls.
+
+**Key state:** `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`
+
+---
+
+## Accounts tab — current architecture
+
+**Fixed header zone (flexShrink:0):**
+- Title bar: funded/empty/no-data counts + Copy IDs + Export buttons
+- No-sync banners
+- Enhanced health tiles (`position:relative` wrapper):
+  - Inline total fiat + account count + "Portfolio ▸" button
+  - 30px tiles per account: ticker label, chain color, opacity by status, corner dots (red=errors, purple=xpub, ?=unsupported)
+  - Click toggles `acctFilter` for that chain; Shift+click sets `tlAcctFilter` + navigates to Timeline
+  - Hover: `hoveredAcct`/`hoveredRef` → absolute popover below tile
+  - `acctMapOpen` → absolute portfolio overlay (proportional fiat-sized tiles)
+- Filter input (`acctFilter`)
+
+**Scrollable panel (flex:1, overflowY:auto):**
+- EVM grouping: same-address accounts grouped, ETH first. "SHARED ADDRESS" header + CopyBtn + chain count + group fiat.
+- `AcctCard` props: `acct, errCount, deviceApps, liveBalance, onErrClick, onTimelineClick`
+- Error badge → sets `errAcctFilter` + navigates to Issues
+- "Timeline" button → sets `tlAcctFilter` + navigates to Timeline
+- Xpub scan button on collapsed UTXO cards
+
+---
+
+## Landing page — guide overlays
+
+**Buttons:** "📖 Agent Guide" and "🔬 Technical Reference" below drag/drop zone.
+**Content:** Embedded as `GUIDE_AGENT` and `GUIDE_TECHNICAL` JS string constants (NOT fetched — `file://` blocks fetch).
+**Overlay:** Full-screen backdrop, 900px card, header with title + search + close button. Click-outside and Escape dismiss.
+**Search:** Text input highlights matches with `<mark>` replacement.
+**CSS:** `.guide-embed` class scopes all guide styling within the overlay.
+**State:** `guideOpen` ('agent'|'technical'|null), `guideSearch`
+
+---
+
 ## Fixed Viewport Layout
 
 Root: `height:100vh, overflow:hidden, display:flex, flexDirection:column`
@@ -172,10 +248,11 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen` (Device Reference popover), `section`, `liveBalances`, `selectedErr`, `globalSearch`, `showGlobalResults`, `errAcctFilter` (Issues section account filter), `hoveredAcct` (tile hover id), `hoveredRef` (tile hover DOM ref), `acctMapOpen` (portfolio overlay)
+**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`
 **DiagSidebar:** `accountsOpen`, `advOpen`, `copyOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
+**ErrCard:** `detOpen`, `ctxOpen`
 
 ---
 
@@ -184,7 +261,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | Constant | Count | Purpose |
 |---|---|---|
 | `T` | 10 | Theme colors (includes `card` elevation) |
-| `TC` | 9 | Log type badge colors |
+| `TC` | 9 | Log type badge colors — used on Timeline bars, legend chips, Issues strip, breadcrumbs |
 | `DN` | 6 | Device model names (nanoS, nanoSP, nanoX, stax, europa→Flex, apex→Nano Gen5) |
 | `TARGET_MASKS` | 6 | Target ID → device model mapping (same as @ledgerhq/devices) |
 | `CHAINS` | 60 | Chain registry + explorer URLs |
@@ -198,6 +275,8 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `COINGECKO_IDS` | 40+ | Chain currency ID → CoinGecko coin slug |
 | `EVM_RPCS` | 23 | Chain → publicnode.com RPC URL |
 | `BALANCE_APIS` | 17 | Chain → custom balance fetch function (non-EVM) |
+| `GUIDE_AGENT` | 1 | Embedded agent guide HTML content |
+| `GUIDE_TECHNICAL` | 1 | Embedded technical reference HTML content |
 
 ---
 
@@ -208,6 +287,10 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `identifyTargetId(tid)` | Maps numeric target ID to device model ID via bitmask |
 | `llLabel(dev, isMobile)` | Returns "Ledger Wallet" or "Ledger Live" based on `dev.appBrand` |
 | `llText(text, dev)` | Runtime "Ledger Live" → "Ledger Wallet" replacement for ERR_DB strings |
+| `jumpTo(li)` | Navigate to Timeline, clear all filters/grouping, expand entry, scroll to it |
+| `goToAcct(addr)` | Navigate to Accounts with filter applied |
+| `openGuide(type)` | Open guide overlay ('agent' or 'technical') |
+| `sevColor(s)` | Returns severity color for high/medium/low |
 
 ---
 
@@ -216,37 +299,12 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | File | Status | Purpose |
 |---|---|---|
 | `CLAUDE.md` | **Active — primary reference** | This file. Claude Code reads this before every task. |
-| `ROADMAP_LIVE_BALANCES.md` | **Implemented (Phase 1+2)** | Phase 3 (app.json comparison) and Phase 4 (polish) pending. |
 | `SESSION_HANDOFF.md` | **Active — session memory** | Context for new Claude instances picking up the project. |
+| `ROADMAP_LIVE_BALANCES.md` | **Implemented (Phase 1+2)** | Phase 3 (app.json comparison) and Phase 4 (polish) pending rethink. |
 | `REDESIGN_VISION_V5.md` | Historical reference | Core principles still apply. |
 | `VIEWPORT_REDESIGN_SCOPE.md` | Historical reference | Foundation implemented, layouts evolved. |
-
----
-
-## Accounts tab — current architecture
-
-**Fixed header zone (flexShrink:0):**
-- Title bar: funded/empty/no-data counts + Copy IDs + Export buttons
-- No-sync banners (mobile purple hint OR amber re-export warning with Customer View tip)
-- Enhanced health tiles (`position:relative` wrapper):
-  - Inline total fiat + account count + "Portfolio ▸" button
-  - 30px tiles per account: ticker label, chain color, opacity by status, corner dots (red=errors, purple=xpub, ?=unsupported)
-  - Click toggles `acctFilter` for that chain (click again to clear); active tile shows border
-  - Hover sets `hoveredAcct`/`hoveredRef` → absolute popover below tile (chain, address, balance, status, flags)
-  - `acctMapOpen` → absolute portfolio overlay (proportional fiat-sized tiles, click filters+closes)
-- Filter input (`acctFilter`)
-
-**Scrollable panel (flex:1, overflowY:auto):**
-- EVM grouping: accounts sharing same address (≥20 chars) grouped in container, ETH first. Groups have "SHARED ADDRESS" header + CopyBtn + chain count + group fiat.
-- `AcctCard` props: `acct, errCount, deviceApps, liveBalance, onErrClick`
-- Error badge on AcctCard: clickable → sets `errAcctFilter(a.addr)` + `setSection('errors')`
-- Xpub scan button on collapsed cards when `canX && !open`
-
-**Issues section account filter:**
-- `errAcctFilter` state — set from AcctCard error badge click
-- `displayErrs` = `enrichedErrs` filtered by address string match when `errAcctFilter` set
-- Filter banner in Issues fixed header with "Show all" button
-- Severity counts always use full `enrichedErrs` (not filtered)
+| `agent-guide.html` | **Active** | Agent-facing investigation guide. Updated to v4.1. |
+| `technical-reference.html` | **Active** | Technical capabilities reference. New in v4.1. |
 
 ---
 
@@ -261,3 +319,4 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `pre-llv4-compat` | — | Tag before LLv4 compatibility session. |
 | `post-llv4-compat` | `bf6b0e1` | LLv4 device ID, sync detection, app catalog, branding rename. |
 | `post-accounts-overhaul` | `9eeee24` | Enhanced tiles, hover popover, portfolio overlay, EVM grouping, error nav. |
+| `post-timeline-issues` | — | **Tag after this session.** Timeline strip, Issues interactive filters, breadcrumbs, guide overlays. |
