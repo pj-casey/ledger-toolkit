@@ -100,6 +100,54 @@ button:active{transform:scale(0.98);}
 .jt-arrow{font-size:8px;transition:transform 0.15s ease;}
 .jt-copy-path{margin-left:6px;cursor:pointer;font-size:10px;opacity:0.5;transition:opacity 100ms ease;}
 .jt-copy-path:hover{opacity:1;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.guide-embed{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#FFFFFF;line-height:1.7;font-size:14px;padding:0 0 60px}
+.guide-embed .hero{padding:40px 32px 32px;text-align:center}
+.guide-embed .hero h1{font-size:28px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;color:#fff}
+.guide-embed .hero .subtitle{font-size:14px;color:#949494}
+.guide-embed .page{max-width:780px;margin:0 auto;padding:0 32px}
+.guide-embed h2{font-size:18px;font-weight:700;margin-top:40px;margin-bottom:16px;padding-left:14px;border-left:4px solid #BBB0FF;color:#fff}
+.guide-embed h3{font-size:14px;font-weight:600;margin-top:24px;margin-bottom:8px;color:#fff}
+.guide-embed p{margin-bottom:12px;color:#c8c8c8}
+.guide-embed .card{background:#242528;border-radius:8px;padding:18px 22px;margin-bottom:14px}
+.guide-embed .toc{background:#242528;border-radius:8px;padding:20px 24px;margin:28px 0 24px}
+.guide-embed .toc-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#949494;margin-bottom:12px}
+.guide-embed .toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+.guide-embed .toc a{color:#949494;text-decoration:none;font-size:12px;padding:4px 0;display:block}
+.guide-embed .toc a:hover{color:#BBB0FF}
+.guide-embed .toc a.indent{padding-left:24px;font-size:11px}
+.guide-embed .step{display:flex;gap:14px;margin-bottom:16px;padding:14px 18px;background:#242528;border-radius:8px}
+.guide-embed .step-num{width:28px;height:28px;border-radius:50%;background:#BBB0FF;color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.guide-embed .step-content p{margin-bottom:4px}
+.guide-embed .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:3px}
+.guide-embed .badge-purple{background:rgba(187,176,255,0.15);color:#BBB0FF}
+.guide-embed .badge-green{background:rgba(122,194,108,0.15);color:#7AC26C}
+.guide-embed .badge-red{background:rgba(245,115,117,0.15);color:#F57375}
+.guide-embed .badge-yellow{background:rgba(255,189,66,0.15);color:#FFBD42}
+.guide-embed .badge-muted{background:rgba(148,148,148,0.15);color:#949494}
+.guide-embed .tip{background:rgba(187,176,255,0.06);border:1px solid rgba(187,176,255,0.15);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:12px;color:#c8c8c8;line-height:1.6}
+.guide-embed .tip::before{content:'💡 ';font-size:13px}
+.guide-embed .warn{background:rgba(255,189,66,0.06);border:1px solid rgba(255,189,66,0.2);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:12px;color:#c8c8c8;line-height:1.6}
+.guide-embed .warn::before{content:'⚠️ ';font-size:13px}
+.guide-embed .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.guide-embed .feat-item{background:#242528;border-radius:8px;padding:14px 18px}
+.guide-embed .feat-item .icon{font-size:18px;margin-bottom:6px}
+.guide-embed .feat-item .label{font-size:13px;font-weight:600;margin-bottom:3px}
+.guide-embed .feat-item .desc{font-size:11px;color:#949494;line-height:1.5}
+.guide-embed .new-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;text-transform:uppercase;background:rgba(122,194,108,0.15);color:#7AC26C;margin-left:5px;vertical-align:middle}
+.guide-embed .shortcut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:12px 0}
+.guide-embed .shortcut-card{background:#242528;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#c8c8c8}
+.guide-embed kbd{background:#242528;border:1px solid #3C3C3C;border-bottom:2px solid #3C3C3C;border-radius:4px;padding:2px 6px;font-size:10px;font-family:'JetBrains Mono',monospace;color:#949494}
+.guide-embed .section-divider{height:1px;background:linear-gradient(90deg,transparent 0%,#3C3C3C 20%,#3C3C3C 80%,transparent 100%);margin:36px 0 0}
+.guide-embed .mono{font-family:'JetBrains Mono','SF Mono',Consolas,monospace}
+.guide-embed .hero-logo{display:none}
+.guide-embed .top-bar{display:none}
+.guide-embed .def-list{margin:10px 0 12px;padding-left:0;list-style:none}
+.guide-embed .def-list li{padding:4px 0 4px 14px;border-left:2px solid #3C3C3C;margin-bottom:3px;font-size:13px;color:#c8c8c8;line-height:1.5}
+.guide-embed .def-list li strong{color:#fff}
+.guide-embed ol.tech-list{margin:10px 0 12px;padding-left:18px}
+.guide-embed ol.tech-list li{padding:3px 0;font-size:13px;color:#c8c8c8;line-height:1.5}
+.guide-embed ol.tech-list li strong{color:#fff}
 </style>
 </head>
 <body>
@@ -2939,6 +2987,9 @@ function App(){
   const[globalSearch,setGlobalSearch]=useState('');
   const[showGlobalResults,setShowGlobalResults]=useState(false);
   const[liveBalances,setLiveBalances]=useState({});
+  const[guideOpen,setGuideOpen]=useState(null);
+  const[guideContent,setGuideContent]=useState({});
+  const[guideSearch,setGuideSearch]=useState('');
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
 
@@ -3115,6 +3166,34 @@ function App(){
     return()=>window.removeEventListener('pageshow',handlePageShow);
   },[]);
 
+  const openGuide=useCallback((type)=>{
+    setGuideOpen(type);
+    setGuideSearch('');
+    const file=type==='agent'?'agent-guide.html':'technical-reference.html';
+    if(!guideContent[type]){
+      fetch(file).then(r=>{
+        if(!r.ok)throw new Error('Not found');
+        return r.text();
+      }).then(html=>{
+        const parser=new DOMParser();
+        const doc=parser.parseFromString(html,'text/html');
+        const topBar=doc.querySelector('.top-bar');
+        if(topBar)topBar.remove();
+        const body=doc.body?.innerHTML||html;
+        setGuideContent(prev=>({...prev,[type]:body}));
+      }).catch(()=>{
+        setGuideContent(prev=>({...prev,[type]:'<div style="text-align:center;padding:60px 24px;color:#949494"><div style="font-size:32px;margin-bottom:16px">📄</div><div style="font-size:16px;color:#CCCCCC;margin-bottom:8px">File not found</div><div style="font-size:13px;line-height:1.6">Place <strong>'+file+'</strong> in the same folder as the toolkit to view it here.<br>Or open the file directly in your browser.</div></div>'}));
+      });
+    }
+  },[guideContent]);
+
+  useEffect(()=>{
+    if(!guideOpen)return;
+    const handler=e=>{if(e.key==='Escape')setGuideOpen(null);};
+    document.addEventListener('keydown',handler);
+    return()=>document.removeEventListener('keydown',handler);
+  },[guideOpen]);
+
   const moreAlert=logData&&(
     (logData.apdu||[]).some(a=>{
       if(!a.hex||a.dir==='in')return false;
@@ -3170,6 +3249,10 @@ function App(){
         <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:T.muted,position:'relative'}}>
           <span>Device info</span><span>Accounts</span><span>Error diagnosis</span><span>On-chain links</span><span>Network</span>
         </div>
+      </div>}
+      {!logData&&!parsing&&<div style={{display:'flex',gap:12,marginTop:16,justifyContent:'center'}}>
+        <button onClick={e=>{e.stopPropagation();openGuide('agent');}} style={{padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>📖</span> Agent Guide</button>
+        <button onClick={e=>{e.stopPropagation();openGuide('technical');}} style={{padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>🔬</span> Technical Reference</button>
       </div>}
 
       {/* Log Viewer */}
@@ -4378,6 +4461,26 @@ function App(){
       </div>}
     </div>
   {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson}/>}
+  {guideOpen&&<div onClick={()=>setGuideOpen(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 0.15s ease'}}>
+    <div onClick={e=>e.stopPropagation()} style={{width:'min(900px, 90vw)',height:'85vh',background:T.bg,border:`1px solid ${T.border}`,borderRadius:12,display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.6)'}}>
+      <div style={{display:'flex',alignItems:'center',padding:'12px 20px',borderBottom:`1px solid ${T.border}`,flexShrink:0,gap:12}}>
+        <span style={{fontSize:14,fontWeight:700,color:T.text,flex:1}}>{guideOpen==='agent'?'Agent Guide':'Technical Reference'}</span>
+        <input value={guideSearch} onChange={e=>setGuideSearch(e.target.value)} placeholder="Search..." style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:T.panel,color:T.text,fontSize:12,width:200,fontFamily:'Inter,sans-serif'}}/>
+        <button onClick={()=>setGuideOpen(null)} style={{width:28,height:28,borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(245,115,117,0.15)';e.currentTarget.style.color=T.error;}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color=T.muted;}}>✕</button>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'0'}}>
+        {guideContent[guideOpen]?(
+          <div className="guide-embed" dangerouslySetInnerHTML={{__html:(()=>{
+            let html=guideContent[guideOpen];
+            if(guideSearch.length>=2){const esc=guideSearch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const re=new RegExp(`(${esc})`,'gi');html=html.replace(re,'<mark style="background:rgba(187,176,255,0.35);color:#fff;padding:1px 2px;border-radius:2px">$1</mark>');}
+            return html;
+          })()}}/>
+        ):(
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:T.muted}}>Loading...</div>
+        )}
+      </div>
+    </div>
+  </div>}
   </div>
 
 }
