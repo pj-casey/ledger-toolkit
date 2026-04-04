@@ -119,7 +119,3 @@ This tool is built using an AI-assisted workflow:
 - **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — implementation from `.md` spec prompts
 - **Branch model:** `experimental` → `main` on release
 - **Core rule:** *Change how things look, never how things work.* Data layer is frozen.
-
-## License
-
-Internal tool — Ledger CS team.
