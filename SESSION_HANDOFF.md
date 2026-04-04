@@ -39,11 +39,11 @@ You are picking up an ongoing collaboration. Read this entire document before re
 
 ## The tool
 
-`ledger-toolkit.html` — a single-file React/Babel app (~3,650 lines) for CS agents to diagnose customer issues from Ledger Wallet log exports. No build step, opens directly in browser. React 18.3.1 + Babel standalone.
+`ledger-toolkit.html` — a single-file React/Babel app (~3,700 lines) for CS agents to diagnose customer issues from Ledger Wallet log exports. No build step, opens directly in browser. React 18.3.1 + Babel standalone.
 
 **The data layer is FROZEN.** Never modify parsing, extraction, or diagnosis functions. Only rendering and styling can change. Rule: change how things LOOK, never how things WORK.
 
-**Repo:** `github.com/pj-casey/ledger-toolkit`, branch `experimental`
+**Repo:** `github.com/pj-casey/ledger-toolkit`, branch `experimental` (merged to `main` at end of this session)
 **Primary reference:** `CLAUDE.md` in the repo (updated at end of this session to match current state)
 
 ---
@@ -54,6 +54,8 @@ You are picking up an ongoing collaboration. Read this entire document before re
 |---|---|
 | `pre-live-balances` | Mobile support + UX refinements + Issues master-detail. Before any balance work. |
 | `post-live-balances` | Live balance fetching + fiat values + no-device UX clarity. |
+| `pre-device-card` | Checkpoint before Overview redesign session. |
+| `post-overview-redesign` | Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview. |
 
 To revert: `git checkout experimental && git reset --hard <tag-name> && git push origin experimental --force`
 
@@ -61,21 +63,45 @@ To revert: `git checkout experimental && git reset --hard <tag-name> && git push
 
 ## Current state of the tool (after this session)
 
-### What was built THIS session (chronological)
+### What was built in the PREVIOUS session (already on main before this)
 
-1. **Mobile log support** — `synthesizeMobileMeta()` normalizes mobile logs (date→timestamp, reverse order, filename parsing for app version + platform, account IDs from bridge schedule, device info backfill). `logData.isMobile` flag. MOBILE badge in header.
-2. **Mobile UX refinements** — Device summary bar "Mobile" prefix, Environment card "Ledger Wallet Mobile (iOS/Android)", copy summaries with "LW Mobile:" label, purple 💡 mobile hint in Accounts, OS derivation from platform in all 6 copy paths.
-3. **Issues master-detail layout** — Left 45% compact error list, right 55% ErrCard detail panel. `selectedErr` state. First highest-severity error auto-selected. Error timeline dots update selection. Zero-errors state: single centered message with session context.
-4. **Zero-scrollbar Overview attempt** — Tried pill popovers + full-width error table. Reverted after multiple failed attempts. Original two-column layout restored.
-5. **Live on-chain balance fetching** — `COINGECKO_IDS`, `EVM_RPCS`, `fetchEvmBalance`, `BALANCE_APIS` (40+ chains), `fetchPrices`. Auto-fires on log load with 150ms stagger. AcctCard shows "live ···" → "X.XXXX TICKER · $Y.YY".
-6. **Portfolio stat card** — Replaces Operations. Shows total fiat from live balances. "···" while loading, "$X,XXX" when done.
-7. **Copy summaries with balances** — `fmtAcctLine()` helper used by all 5 copy paths. Account lines include balance + fiat. PORTFOLIO total appended.
-8. **Sidebar fiat hints** — Right-aligned green dollar values next to funded accounts.
-9. **No-device UX clarity** — DEVICE APPS hidden when no Manager data. Device disclosure auto-collapses. "no data" vs "empty" badges. Sidebar "no balance data" label.
-10. **No-sync visibility** — Comprehensive amber treatment: persistent banner, sidebar indicators, stat card labels, AcctCard borders, health square colors, copy summary warnings.
+1. **Mobile log support** — `synthesizeMobileMeta()` normalizes mobile logs. `logData.isMobile` flag. MOBILE badge in header.
+2. **Issues master-detail layout** — Left 45% compact list, right 55% ErrCard detail panel. `selectedErr` state. Auto-selects highest-severity error. Zero-errors: single centered message with session context.
+3. **Live on-chain balance fetching** — `COINGECKO_IDS`, `EVM_RPCS`, `fetchEvmBalance`, `BALANCE_APIS` (40+ chains), `fetchPrices`. AcctCard shows "live ···" → "X.XXXX TICKER · $Y.YY".
+4. **Portfolio stat card** — Shows total fiat from live balances.
+5. **No-sync visibility** — Comprehensive amber treatment across all surfaces.
+6. **No-device UX** — DEVICE APPS hidden when no Manager data. Auto-collapse.
+
+### What was built THIS session (the Overview redesign)
+
+1. **Issues zero-errors fix** — When `enrichedErrs.length === 0`, shows full-width centered "✓ No errors detected" message instead of awkward split layout with empty right panel.
+
+2. **"New file" button fix** — Removed `setFileKey(k=>k+1)` from `clearLog()`. The key increment was racing with `openPicker()` causing first file selection to be silently dropped. Fixed — loads on first try every time.
+
+3. **Unified Device card** — Replaced the separate Device disclosure widget + Environment card with a single `unifiedDeviceCard` block:
+   - Summary bar (unchanged)
+   - **B2: App chips** — wrapping inline tags instead of table rows. Sort: missing → outdated → ok. Green/amber/red per status. Chain enrichment in tiny text. `+ N others ✓` chip toggles `otherAppsOpen`.
+   - **B3: Environment rows** — OS, Platform, Ledger Live, User ID (with CopyBtn), Sync. Compact key-value rows.
+   - **B4: Device Reference popover** — `devDetailOpen` toggle at bottom of card. Opens as absolutely-positioned popover ABOVE the toggle (`bottom:calc(100%+4px)`). Zero layout height impact. Shows Language, Paired, Commit, MEV, Wallet Sync.
+   - No `overflowY:auto` anywhere in the card body.
+
+4. **Quality Details popover** — Restored to Zone 3 bottom bar after being briefly moved to Device card. Always lives in Zone 3, upward popover (`bottom:calc(100%+8px)`).
+
+5. **Issues preview redesign** — Overview right column no longer shows full ErrCards:
+   - "N Issues" header + "View all →" link always visible at top
+   - 💡 Hint banner showing top account referenced by errors
+   - **Adaptive error grid** — `display:grid, gridTemplateColumns:repeat(auto-fit, minmax(min(200px,100%),1fr)), alignContent:start`. Up to 12 tiles. Reflows: 1 column for few errors, 2-3 for many. `overflow:hidden`, no scrollbar.
+   - Each tile: CRIT/WARN/INFO badge + timestamp | title | category
+   - Click navigates to Issues section with error pre-selected
+
+6. **No-scroll Overview** — Hard rule enforced. Left column `overflow:hidden`. Right column `overflow:hidden`. No `overflowY:auto` anywhere in Zone 2. Content clips cleanly.
+
+7. **CSS viewport scaling** — 10 `--ov-*` CSS custom properties in `:root` using `clamp()` + `vh`. Applied to all Overview elements: stat cards, health pills, Device card, environment rows, chips, error tiles, Zone 3. Other sections untouched.
+
+8. **CopyBtn restored on User ID** — Environment rows now render `CopyBtn` conditionally on the User ID row.
 
 ### Architecture
-Fixed-viewport dashboard. `height:100vh, overflow:hidden`. Page never scrolls. Each view has a fixed header + scrollable panel. 240px sidebar + main content area. Live balance fetching on log load.
+Fixed-viewport dashboard. `height:100vh, overflow:hidden`. Page never scrolls. 240px sidebar + main content area. Live balance fetching on log load.
 
 ### Design tokens
 ```
@@ -83,60 +109,48 @@ bg:#131214  panel:#1C1D1F  card:#242528  border:#3C3C3C  text:#FFFFFF
 muted:#949494  primary:#BBB0FF  success:#7AC26C  error:#F57375  warning:#FFBD42
 ```
 
-### Overview — 3-zone layout
-**Zone 1 (fixed):** Health pills + Copy Summary/Full + 4 stat cards (Entries/Accounts/Portfolio/Issues) + activity badges + no-sync amber banner (conditional).
-**Zone 2 (adaptive):**
-- WITH errors: Two columns. Left 40%: device disclosure + environment card. Right 60%: issues preview + hint banners.
-- WITHOUT errors: Single column. Device disclosure + green banner + environment card.
-**Zone 3 (fixed bottom, 56px):** Session info left. Quality score ring + Details popover right.
+### Overview — 3-zone layout (current)
+**Zone 1 (fixed):** Health pills + Copy Summary/Full + 4 stat cards + activity badges + no-sync amber banner.
+**Zone 2 (adaptive, NO SCROLL):**
+- WITH errors: Left 40% (`overflow:hidden`) — Unified Device card. Right 60% (`overflow:hidden`) — issues preview with hint banner + adaptive grid tiles.
+- WITHOUT errors: Single column — Unified Device card + green banner.
+**Zone 3 (clamp(44px,5.5vh,56px)):** Session info left. Quality ring + score + Details popover right.
 
 ### Issues — Master-Detail
-**Header:** Severity counts, error timeline strip, affected accounts, repeating patterns.
-**With errors:** Left 45% compact list + Right 55% ErrCard detail. `selectedErr` state.
-**No errors:** Single centered message with session context line.
+Header: severity counts, error timeline strip, affected accounts, repeating patterns.
+With errors: Left 45% compact list + Right 55% ErrCard detail. `selectedErr` state.
+No errors: Single centered "✓ No errors detected" message with session context line.
 
 ### Accounts
-Health squares (live-balance-aware coloring), filter, funded/empty/no-data counts, Copy IDs, Export. AcctCards with live balances, app badges, amber borders for no-sync.
-
-### Live Balance System
-`BALANCE_APIS` covers: 4 UTXO (wrapping existing), 23 EVM (one pattern), 17 individual L1s. `fetchPrices` batch call to CoinGecko. `liveBalances` state. `fmtAcctLine()` for copy output. Portfolio stat card. Sidebar fiat hints.
+Health squares, filter, funded/empty/no-data counts, Copy IDs, Export. AcctCards with live balances, app badges, amber borders for no-sync.
 
 ### Customer View
-Three-panel layout. NOT modified this session. Marked for future dedicated redesign.
+Three-panel layout. NOT modified. Marked for future dedicated redesign.
 
 ---
 
-## Mistakes made this session
+## Known issues / things to watch
 
-### Zero-scrollbar Overview disaster
-Attempted to eliminate scrolling on Overview via pill popovers and full-width error table. Three iterations failed — left column stretched with blank space, quality details overlapping, hint banners clipped. **Reverted to original two-column layout.** Lesson: the two-column layout with scrollable left panel was the right design. Scrolling within a panel is fine — it's page-level scrolling that's banned.
-
-### Live balances initial break
-First implementation of live balances caused a break (unclear what exactly). Reverted to `pre-live-balances` tag. Second attempt with both live balances AND no-device UX changes together succeeded. Lesson: always tag before big changes. The tagging practice saved us.
-
-### Context window fog
-By end of session, the conversation was very long and context compression caused missed details and repeated questions. Lesson: for long sessions, handoff to a fresh instance sooner. Don't push past the point where quality degrades.
+- **`appsListOpen` state** is declared but effectively unused — the old expand/collapse table button was removed when chips replaced the table. Harmless, but clean-up candidate.
+- **Zone 3 height** uses `clamp(44px, 5.5vh, 56px)` — at very small viewports this may feel tight. Acceptable given the tool is for desktop CS agents.
+- **Left column clips** if Device card has many chip rows + all Environment rows + Device Reference toggle. The popover pattern for Device Reference prevents the worst clipping. If this is still an issue on some logs, consider making ENVIRONMENT rows collapsible too.
 
 ---
 
 ## What's planned / next
-
-### Immediate pending prompts (drafted but may not be applied yet)
-- **no-sync-visibility.md** — 8-change comprehensive amber treatment for no-sync logs
-- **issues-zero-errors-fix.md** — Single centered message for zero-errors instead of awkward split layout
 
 ### Live balances remaining phases
 - **Phase 3:** App.json balance comparison (show delta between live and app.json — diagnostic gold for "my balance is wrong")
 - **Phase 4:** Polish (caching, "Refresh balances" button, staleness display, Ledger node endpoints as primary)
 
 ### Ledger internal API optimization
-Research found Ledger runs `{chain}.coin.ledger.com` blockchain node proxies (visible in mobile logs). Could be tried as primary balance endpoints with public RPCs as fallback. CoinGecko confirmed as safe bet for prices. Not yet implemented.
+Ledger runs `{chain}.coin.ledger.com` blockchain node proxies (visible in mobile logs). Could be tried as primary balance endpoints with public RPCs as fallback. Not yet implemented.
 
 ### Customer View redesign (backburner)
-Deferred as dedicated project. The Diagnostic side is the priority.
+Deferred. The Diagnostic side is the priority.
 
-### CLAUDE.md and agent-guide.html updates
-CLAUDE.md updated this session. agent-guide.html still needs updating for mobile log support and live balances feature.
+### agent-guide.html
+Still needs updating for mobile log support, live balances, and Overview redesign.
 
 ---
 
@@ -161,6 +175,7 @@ CLAUDE.md updated this session. agent-guide.html still needs updating for mobile
 - List what NOT to change (longer than the changes — prevents regressions)
 - Specify exact state variable names, CSS values, string labels
 - Start every prompt with "Read `CLAUDE.md` first"
+- Tag before risky changes: `git tag <name>` (ask Peter to push)
 
 **DON'T:**
 - Use pseudocode for critical logic
@@ -189,9 +204,8 @@ CLAUDE.md updated this session. agent-guide.html still needs updating for mobile
 ## Starting the next session
 
 1. Ask Peter what he wants to focus on
-2. Check if the no-sync-visibility and issues-zero-errors-fix prompts have been applied yet
-3. If live balances polish: Phase 3 (app.json comparison) is the next big win
-4. If UX work: the Overview zero-scrollbar problem is unsolved but deprioritized
-5. The data layer is FROZEN — never touch parsing, extraction, or diagnosis logic
-6. Every prompt needs a verification checklist and a "What NOT to change" section
-7. Tag before big changes: `git tag <name> && git push origin <name>`
+2. Live balances Phase 3 (app.json comparison) is the highest-value remaining feature
+3. The data layer is FROZEN — never touch parsing, extraction, or diagnosis logic
+4. Every prompt needs a verification checklist and a "What NOT to change" section
+5. Tag before big changes: `git tag <name>` (ask Peter to `! git push origin <name>`)
+6. Overview no-scroll is a hard rule — if adding anything to Zone 2, it must not cause overflow

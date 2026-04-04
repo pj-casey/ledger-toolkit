@@ -9,7 +9,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~3,650 lines)
+- **ONE file**: `ledger-toolkit.html` (~3,700 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
@@ -25,7 +25,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 4. **Live balance fetching:** Auto-fetches on-chain balances for all accounts (40+ chains), then batch-fetches fiat prices from CoinGecko
 5. **Two modes:**
 
-**Diagnostic Mode:** Fixed-viewport dashboard. Sidebar navigation + main content area. Health status pills (clickable, expand device disclosure). Device info + apps as inline disclosure on Overview. Firmware update status. Live balances + fiat values on AcctCards. Portfolio stat card. Timeline density visualization. Error distribution. APDU device communication (under Advanced). Copy Summary/Full/Customer with balances.
+**Diagnostic Mode:** Fixed-viewport dashboard. Sidebar navigation + main content area. Health status pills (clickable). Unified Device card on Overview (app chips, merged environment + reference popover). Firmware update status. Live balances + fiat values on AcctCards. Portfolio stat card. Timeline density visualization. Error distribution. APDU device communication (under Advanced). Copy Summary/Full/Customer with balances.
 
 **Customer View:** Sidebar + main area + info bar. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links. dApp usage history.
 
@@ -142,7 +142,7 @@ Mobile logs (from Ledger Wallet iOS/Android) differ from desktop:
 - No SyncSuccess analytics — accounts have 0 ops, no balance/duration data
 - `logData.isMobile` flag set, MOBILE badge shown in header bar
 
-**Mobile-aware rendering:** Device summary bar prefixed with "Mobile". Environment card shows "Ledger Wallet Mobile (iOS/Android)" for Platform. Copy summaries use "LW Mobile:" label. Accounts hint banner explains mobile limitations.
+**Mobile-aware rendering:** Device summary bar prefixed with "Mobile". Environment section in Device card shows "Ledger Wallet Mobile (iOS/Android)" for Platform. Copy summaries use "LW Mobile:" label. Accounts hint banner explains mobile limitations.
 
 ---
 
@@ -150,38 +150,57 @@ Mobile logs (from Ledger Wallet iOS/Android) differ from desktop:
 
 ### Overview (Diagnosis Detail) — 3-zone dashboard
 
-**Zone 1 (top, fixed):** Health summary pills (clickable — first 4 expand device disclosure inline, errors pill navigates to Issues) + Copy Summary/Full buttons + stat cards (Entries/Accounts/Portfolio/Issues) + activity badges. **No-sync amber banner** appears below pills when applicable.
+**HARD RULE: The Overview never scrolls.** No `overflowY:auto` on any column or container in Zone 2. Content must fit; use popovers for overflow.
 
-**Stat cards:** Entries, Accounts (amber when no-sync), **Portfolio** (replaces Operations — shows total fiat from live balances, "···" while loading, "$X,XXX" when done, "(live)" label when no-sync), Issues.
+**Zone 1 (top, fixed):** Health summary pills (clickable — first 4 expand device card, errors pill navigates to Issues) + Copy Summary/Full buttons + stat cards (Entries/Accounts/Portfolio/Issues) + activity badges. **No-sync amber banner** appears below pills when applicable.
+
+**Stat cards:** Entries, Accounts (amber when no-sync), **Portfolio** (replaces Operations — shows total fiat from live balances, "···" while loading, "$X,XXX" when done, "(live)" label when no-sync), Issues. All font sizes use `var(--ov-stat-num)` / `var(--ov-stat-label)` CSS variables.
 
 **Zone 2 (middle, flex:1, adaptive layout):**
 
 *When errors > 0 — two columns:*
-Left 40% (overflowY:auto): Device disclosure widget + Environment card. Right 60%: issues preview with internal scroll panel + hint banners.
+Left 40% (`overflow:hidden`): Unified Device card. Right 60%: issues preview — "N Issues / View all →" header + 💡 hint banner + adaptive error grid tiles (no scroll, clips at bottom).
 
 *When errors = 0 — single column:*
-Device disclosure widget + "No issues detected" green banner + Environment card.
+Unified Device card + "No issues detected" green banner.
 
-**Zone 3 (bottom bar, 56px):** Session info (date/time/duration/active/chain pills) left. Quality score with SVG ring + expandable details (popover upward) right.
+**Zone 3 (bottom bar, `clamp(44px, 5.5vh, 56px)`):** Session info (date/time/duration/active/chain pills) left. Quality score SVG ring + score + label + "Details" button right. Details opens a popover **upward** (`position:absolute, bottom:calc(100%+8px)`).
 
-#### Device Disclosure Widget
+#### Unified Device Card
 
-Lives in the Overview left column, replaces the former Device tab.
+Lives in the Overview left column. Replaces the former Device disclosure widget + separate Environment card.
 
-**Collapsed (summary bar):** "Nano X · FW 2.6.1 ✓ · 8 apps (all up to date) · Sync active" with chevron. Click to expand. Purple left border when expanded.
+**Collapsed (summary bar):** "Nano X · FW 2.6.1 ✓ · 8 apps (all up to date) · Sync active" with chevron. Click to expand (`deviceExpanded` state). Purple left border when expanded. Same text-building logic as before.
 
-**Expanded:** Opens inline below the summary bar. Contains:
-- No-device warning (when applicable)
-- Device Apps section (ONLY when `deviceApps.source==='manager-result'`): "DEVICE APPS" uppercase label + summary stats + expand/collapse app list + column headers + version rows + "Other installed apps" toggle
-- ⚠ warning banner when apps are outdated/missing
-- "Details" toggle → "DEVICE REFERENCE" label + reference rows
+**Expanded body** (when `deviceExpanded` is true — `overflow:hidden`, no scroll):
 
-**Auto-collapse:** When no device was connected (`!modelId && !modelName && !fw`), disclosure collapses by default via useEffect.
+**B1 — No-device warning** (conditional): amber banner when `!modelId && !modelName`.
 
-**DEVICE APPS hidden when no Manager data:** The section is gated by `req.length>0 && da && da.source==='manager-result'`. No misleading "20 apps missing" for no-device logs.
+**B2 — DEVICE APPS** (gated: `req.length>0 && da && da.source==='manager-result'`):
+- "DEVICE APPS" uppercase label + `"N/N up to date"` / `"all up to date"` right-aligned
+- **App chips** (NOT a table): `display:flex, flexWrap:wrap, gap:var(--ov-gap-chips)`. Sort order: missing → outdated → ok.
+  - OK: green chip `✓ AppName v1.2.3`
+  - Outdated: amber chip `⚠ AppName v1.2.3`
+  - Missing: red chip `✕ AppName`
+  - Chain enrichment: `· ETH POL BSC` appended in tiny text when 2+ chains share an app
+  - `+ N others ✓` chip toggles `otherAppsOpen` for non-required installed apps
+- Amber warning banner below chips when any apps are outdated/missing
 
-#### Environment Card
-Elevated card (T.card background, no border). Shows: OS, Platform, User ID, Sync duration. Mobile-aware: "Ledger Wallet Mobile (iOS)" for Platform, derived OS from platform.
+**B3 — ENVIRONMENT** (always visible): compact key-value rows — OS, Platform, Ledger Live, User ID (with CopyBtn), Sync. Mobile-aware Platform/OS derivation.
+
+**B4 — Device Reference** (popover on click): `devDetailOpen` state. Toggle row at bottom of card body with `▸`/`▾`. When open, renders an **absolutely-positioned popover** (`bottom:calc(100%+4px), zIndex:20`) showing Language, Paired, Commit, MEV, Wallet Sync rows. **Does NOT push content down** — zero layout height impact.
+
+**Auto-collapse:** When no device was connected (`!modelId && !modelName && !fw`), `deviceExpanded` auto-collapses via useEffect.
+
+**DEVICE APPS hidden when no Manager data:** Gated by `req.length>0 && da && da.source==='manager-result'`. No misleading missing-app warnings for no-device logs.
+
+#### Issues Preview (right column, Overview only)
+
+NOT the full Issues section. This is the Overview's compact preview:
+- Fixed header: "N Issues" (color `T.error`) + "View all →" link right-aligned (always visible)
+- 💡 Hint banner: shows top account referenced by errors + link to Accounts section
+- **Adaptive error grid:** `display:grid, gridTemplateColumns:repeat(auto-fit, minmax(min(200px,100%),1fr)), alignContent:start`. Up to 12 errors. Each tile: severity badge (CRIT/WARN/INFO) + timestamp on top row, title below, category below. Tiles reflow — 1 column for few errors, 2-3 columns for many.
+- `overflow:hidden` — tiles clip cleanly at bottom, no scrollbar. Agent clicks "View all →" for the rest.
 
 ### Issues — Master-Detail Layout
 
@@ -246,10 +265,31 @@ Scrollable: JTTree with highlighted matches.
 
 ---
 
+## CSS Viewport Scaling (Overview only)
+
+The Overview uses CSS custom properties defined in `:root` for fluid scaling with viewport height via `clamp()`. Apply these **only inside the Overview section** — other sections use fixed pixel values.
+
+```css
+--ov-fs-xs: clamp(9px, 1.1vh, 11px)   /* labels, badges, timestamps */
+--ov-fs-sm: clamp(10px, 1.3vh, 12px)  /* row text, banners */
+--ov-fs-md: clamp(11px, 1.4vh, 13px)  /* summary bar, error titles */
+--ov-fs-lg: clamp(13px, 1.6vh, 16px)  /* section headers */
+--ov-pad-row: clamp(2px, 0.4vh, 4px)  /* row padding */
+--ov-pad-section: clamp(6px, 1vh, 12px) /* section margin-top */
+--ov-gap-chips: clamp(4px, 0.5vh, 6px) /* chip/tile gap */
+--ov-gap-rows: clamp(4px, 0.6vh, 8px)  /* row gap */
+--ov-stat-num: clamp(20px, 3vh, 32px)  /* stat card big number */
+--ov-stat-label: clamp(10px, 1.2vh, 13px) /* stat card label */
+```
+
+Zone 3 height uses `clamp(44px, 5.5vh, 56px)`.
+
+---
+
 ## No-Device UX
 
 When a log has no device connection data:
-- Device disclosure auto-collapses (useEffect sets `deviceExpanded=false`)
+- Device card auto-collapses (useEffect sets `deviceExpanded=false`)
 - DEVICE APPS section hidden (gated by `da.source==='manager-result'`)
 - Summary bar shows "No device connected during this session"
 
@@ -297,7 +337,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `appsListOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `section`, `liveBalances`, `selectedErr`, `globalSearch`, `showGlobalResults`
+**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `appsListOpen` (declared, unused), `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen` (Device Reference popover), `section`, `liveBalances`, `selectedErr`, `globalSearch`, `showGlobalResults`
 **DiagSidebar:** `accountsOpen`, `advOpen`, `copyOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
@@ -343,3 +383,5 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 |---|---|---|
 | `pre-live-balances` | `20e7760` | Mobile support + UX refinements + Issues master-detail. Before any balance/fiat work. |
 | `post-live-balances` | `9081d1c` | Live balance fetching + fiat values + no-device UX clarity. |
+| `pre-device-card` | before Overview redesign | Checkpoint before unified Device card session. |
+| `post-overview-redesign` | `01f89d4` | Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview. |
