@@ -133,7 +133,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
     <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
   </svg>
   <span class="top-bar-label">Diagnostic Toolkit — Agent Guide</span>
-  <span class="top-bar-ver">v3.0</span>
+  <span class="top-bar-ver">v4.0</span>
 </div>
 
 <!-- Hero -->
@@ -167,6 +167,9 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
       <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
       <a class="indent" href="#error-timeline">Error Timeline</a>
       <a class="indent" href="#raw-json-search">Raw JSON Search</a>
+      <a class="indent" href="#live-balances">Live On-Chain Balances</a>
+      <a class="indent" href="#mobile-logs">Mobile Log Support</a>
+      <a class="indent" href="#no-sync">No-Sync Visibility</a>
       <a href="#copy"><span class="toc-icon">📋</span> Copy &amp; Export</a>
       <a href="#shortcuts"><span class="toc-icon">⌨</span> Keyboard Shortcuts</a>
       <a href="#troubleshooting"><span class="toc-icon">🔧</span> Tips &amp; Troubleshooting</a>
@@ -205,7 +208,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </div>
 </div>
 
-<div class="tip">The tool analyzes the log automatically. The Diagnosis block tells you what it found — you don't need to search for problems. Device info, firmware status, and app versions are all visible on the Overview as soon as you load a file.</div>
+<div class="tip">The tool analyzes the log automatically. The Diagnosis block tells you what it found — you don't need to search for problems. Device info, firmware status, app versions, and live blockchain balances are all visible on the Overview as soon as you load a file. Mobile logs (from Ledger Wallet iOS/Android) are supported — a MOBILE badge appears in the top bar.</div>
 
 
 <div class="section-divider"></div>
@@ -217,12 +220,12 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <h3 id="s-balance">"My balance is wrong / I'm missing funds"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for exact balances.</p>
-  <p><strong>Look for:</strong> Compare displayed balance with expected. Check if tokens are showing. Look for pending operations.</p>
-  <p><strong>Next:</strong> If no app.json available, check <strong>Accounts</strong> in Diagnostic mode for sync status. Search <strong>Timeline</strong> for <kbd>sync</kbd> to see if synchronization completed. Check the <strong>Issues</strong> error timeline — sync errors clustered together suggest a failed sync cycle.</p>
+  <p><strong>Start here:</strong> Check the <strong>Overview</strong>. The Portfolio stat card shows the total USD value of all accounts from live blockchain data. In <strong>Accounts</strong>, each account card shows its live on-chain balance and fiat value — compare these with what the customer reports.</p>
+  <p><strong>Look for:</strong> Mismatches between live balance and what the customer sees. If the log has no sync data, accounts show an amber "no data" badge — the live balance is your only reference. The sidebar also shows fiat values next to funded accounts for a quick scan.</p>
+  <p><strong>For deeper investigation:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for the balances their app was displaying. Compare app.json balances with the live balances shown in Diagnostic mode.</p>
   <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
-  <div class="warn">If app.json shows a different balance than Ledger Wallet, the local cache may be stale. Ask the customer to clear cache and resync.</div>
+  <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
 </div>
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
@@ -246,7 +249,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <div class="card">
   <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> in the sidebar. The severity and issue count tell you how bad this session was.</p>
   <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating patterns — the same error appearing many times suggests a loop. The error timeline shows whether problems happened all at once or throughout the session.</p>
-  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> environment card for OS and platform — some issues are platform-specific.</p>
+  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> device card's Environment section for OS and platform — some issues are platform-specific.</p>
   <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
 </div>
 
@@ -283,8 +286,8 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <div class="feat-grid">
   <div class="feat-item">
     <div class="icon">📊</div>
-    <div class="label">Overview</div>
-    <div class="desc">Default landing. Health pills (device, firmware, apps, sync, errors) at the top. Stat cards with key numbers. Device info in an expandable panel — firmware status, installed apps with version checks, sync status. Environment info below. Session timeline and quality score at the bottom.</div>
+    <div class="label">Overview<span class="new-badge">Updated</span></div>
+    <div class="desc">Default landing. Health pills (device, firmware, apps, sync, errors) at the top. Stat cards: Entries, Accounts, Portfolio (live USD total), Issues. Unified Device card with app status as color-coded chips (red = missing, amber = outdated, green = OK), environment info, and a Device Reference popover. Issues preview as adaptive tiles on the right. Session info and quality score at the bottom. No scrolling — everything fits in one screen.</div>
   </div>
   <div class="feat-item">
     <div class="icon">⚠️</div>
@@ -293,8 +296,8 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </div>
   <div class="feat-item">
     <div class="icon">👛</div>
-    <div class="label">Accounts</div>
-    <div class="desc">Crypto accounts with chain color dots, operation counts, and explorer links for 60+ chains. Token badges link to block explorers. Error badges show which accounts have problems. Bitcoin-family accounts with xpubs have a built-in scanner.</div>
+    <div class="label">Accounts<span class="new-badge">Updated</span></div>
+    <div class="desc">Crypto accounts with chain color dots, live on-chain balances with fiat USD values, and explorer links for 60+ chains. Health squares at the top show account status at a glance. Token badges link to block explorers. Error badges show which accounts have problems. Amber borders flag accounts with no sync data. Bitcoin-family accounts with xpubs have a built-in scanner.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📋</div>
@@ -352,7 +355,33 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><strong>Token explorer links:</strong> Token badges on account cards are clickable. The tool resolves contract addresses for 45+ chains and links directly to the token on the correct block explorer. If you're investigating "my tokens are missing," click the token badge to verify it exists on-chain.</p>
 </div>
 
-<h3 id="raw-json-search">Raw JSON Progressive Search<span class="new-badge">New</span></h3>
+<h3 id="raw-json-search">Raw JSON Progressive Search</h3>
+
+<h3 id="live-balances">Live On-Chain Balances<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The tool automatically fetches live blockchain balances for every account in the log — no app.json needed. As soon as you load a file, balances start appearing on each account card in the Accounts section with a green dollar value.</p>
+  <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
+  <p><strong>Portfolio total:</strong> The Overview stat card labeled "Portfolio" shows the total USD value across all accounts. The sidebar shows fiat values next to funded accounts for a quick scan.</p>
+  <p><strong>Copy exports:</strong> All copy formats (Summary, Full, Customer) now include live balances and fiat values per account, plus a PORTFOLIO total line.</p>
+  <p>Balances are fetched from public blockchain APIs and priced via CoinGecko. No API keys required. Accounts that show "live ···" are still loading. Xpub accounts (Bitcoin-family) use the existing Xpub Scanner for balance — live fetch doesn't apply to those.</p>
+  <div class="tip">This is your fastest way to answer "is this a high-value customer?" — check the Portfolio stat card on the Overview. No app.json needed.</div>
+</div>
+
+<h3 id="mobile-logs">Mobile Log Support<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The tool supports logs from <strong>Ledger Wallet Mobile</strong> (iOS and Android). When a mobile log is loaded, a purple <strong>MOBILE</strong> badge appears in the top bar.</p>
+  <p><strong>What's different about mobile logs:</strong> They don't include sync data (operation counts, log balances, or sync duration). All accounts show "no data" badges instead of operation counts. The tool compensates by showing live blockchain balances for every account.</p>
+  <p><strong>What works the same:</strong> Error detection, device info (when available), timeline, network requests, copy exports. The Diagnosis block and Issues section work identically.</p>
+  <div class="warn">Mobile logs typically score 50–65 on log quality due to reduced metadata. This is expected — don't treat a low quality score as a problem on mobile.</div>
+</div>
+
+<h3 id="no-sync">No-Sync Visibility<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>When a log has accounts but no sync data (common with mobile logs and some short sessions), the tool shows <strong>amber warnings everywhere</strong> so you don't mistake "no data" for "empty account."</p>
+  <p><strong>What you'll see:</strong> An amber banner on the Overview, amber ⚠ next to the Accounts count in the sidebar, amber borders on account cards, and "no data" badges instead of "empty." The Portfolio stat card shows "(live)" to indicate balances come from live blockchain data, not the log.</p>
+  <p>Copy exports include a "⚠ NO SYNC DATA" warning at the top so recipients know the data source.</p>
+  <div class="tip">When you see amber everywhere, it means the log didn't capture sync. The accounts are real — they just have no operation history in this log. Live balances tell you what's actually on-chain.</div>
+</div>
 <div class="card">
   <p>The Raw JSON viewer (under <strong>Advanced</strong>) has a search that works like Chrome DevTools. As you type, the tree automatically expands to reveal matching nodes and scrolls to the first one.</p>
   <p><strong>Navigation:</strong> The counter shows <span class="mono" style="color:var(--success)">1/47</span> — your position in the results. Use the <strong>▲▼</strong> buttons or press <kbd>Enter</kbd> to jump to the next match. <kbd>Shift</kbd>+<kbd>Enter</kbd> goes backward. The current match is highlighted with a purple left border; other matches have a subtle tint.</p>
@@ -375,11 +404,11 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <div class="card">
   <h3>Four formats</h3>
-  <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts, top errors. Paste into your support ticket.</p>
-  <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts, all errors. For escalation to Tier 2 or engineering.</p>
-  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Balances and transaction counts. For describing what the wallet looks like. Available in the sidebar Copy dropdown and as a button in Customer View.</p>
-  <p><span class="badge badge-red">Copy Errors</span><span class="new-badge">New</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:0">Quick Summary, Full Export, and Customer Summary are all in the <strong>Copy ▾</strong> dropdown in the sidebar's Diagnosis block. Summary and Full also appear as buttons at the top of the Overview. Copy Errors is in the Issues section header.</p>
+  <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts with live balances, top errors, portfolio total. Paste into your support ticket.</p>
+  <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts with live balances and fiat values, all errors, device apps. For escalation to Tier 2 or engineering.</p>
+  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Live balances, fiat values, and portfolio total. For describing what the wallet looks like. Available in the sidebar Copy dropdown and as a button in Customer View.</p>
+  <p><span class="badge badge-red">Copy Errors</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">Quick Summary, Full Export, and Customer Summary are all in the <strong>Copy ▾</strong> dropdown in the sidebar's Diagnosis block. Summary and Full also appear as buttons at the top of the Overview. Copy Errors is in the Issues section header. All copy formats include live blockchain balances when available.</p>
 </div>
 
 
@@ -430,10 +459,16 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
 
 <h3>Device apps show "Not installed"</h3>
-<p>This means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall.</p>
+<p>A red chip marked <strong>✕ AppName</strong> on the Overview means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall. Amber chips marked <strong>⚠</strong> mean the app is installed but outdated.</p>
 
 <h3>The error timeline says "likely cascade"</h3>
 <p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Focus on the first (highest severity) error — fixing that typically resolves the rest.</p>
+
+<h3>Live balances show "unsupported" or stay loading</h3>
+<p>"Unsupported" means the chain doesn't have a public API the tool can query — this affects a few uncommon chains. If balances stay on "live ···" for more than 10 seconds, the blockchain API may be rate-limited or down. This doesn't affect the rest of the tool. Xpub accounts (Bitcoin-family) don't use live fetch — use the Xpub Scanner instead.</p>
+
+<h3>Everything is amber / "no sync data"</h3>
+<p>The log didn't capture sync information. This is normal for mobile logs and very short desktop sessions. The accounts are real — they just have no operation history in this log. Live blockchain balances are your primary reference. See the <a href="#no-sync" style="color:var(--primary)">No-Sync Visibility</a> section for details.</p>
 
 </div>
 </body>
