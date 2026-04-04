@@ -133,7 +133,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
     <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
   </svg>
   <span class="top-bar-label">Diagnostic Toolkit — Agent Guide</span>
-  <span class="top-bar-ver">v4.0</span>
+  <span class="top-bar-ver">v4.1</span>
 </div>
 
 <!-- Hero -->
@@ -165,7 +165,9 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
       <a href="#interface"><span class="toc-icon">🖥</span> The Interface</a>
       <a class="indent" href="#xpub-scanner">Xpub Scanner</a>
       <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
-      <a class="indent" href="#error-timeline">Error Timeline</a>
+      <a class="indent" href="#timeline-strip">Timeline Session Strip</a>
+      <a class="indent" href="#issues-interactive">Issues Interactive Filters</a>
+      <a class="indent" href="#account-tiles">Account Health Tiles</a>
       <a class="indent" href="#raw-json-search">Raw JSON Search</a>
       <a class="indent" href="#live-balances">Live On-Chain Balances</a>
       <a class="indent" href="#mobile-logs">Mobile Log Support</a>
@@ -230,11 +232,11 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Click <strong>Issues</strong> in the sidebar. Errors are sorted by severity — critical issues appear first.</p>
-  <p><strong>Look for:</strong> Error cards with red "CRITICAL" badges. Click the <strong>Affected account</strong> chip to see which account is involved. Click the <strong>#entry</strong> link to jump to the exact event in the Timeline.</p>
-  <p><strong>Check the error timeline</strong> at the top of Issues — if errors are clustered within seconds, it's likely one event that triggered multiple failures. The tool tells you: "All 3 errors within 0.3s — likely a single cascade event."</p>
-  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for failed API calls (4xx/5xx status codes). If the error mentions device rejection, check <strong>Advanced → APDU</strong>.</p>
-  <div class="tip">APDU rejection codes <span class="mono">6985</span> or <span class="mono">6982</span> mean the device itself rejected the transaction — the user didn't approve on-screen or conditions weren't met.</div>
+  <p><strong>Start here:</strong> Click <strong>Issues</strong> in the sidebar. Use the severity chips at the top to focus — click <span class="badge badge-red">Critical</span> to filter to critical errors only. Click a category chip (<span class="badge badge-muted">Hardware</span> / <span class="badge badge-muted">Software</span>) to narrow further.</p>
+  <p><strong>Look for:</strong> The error strip shows where errors occurred in the session — red segments stand out against muted session context. Hover any bar for details. Click to select that error in the detail panel.</p>
+  <p><strong>Dig deeper:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 log entries leading up to the error. This shows you what triggered it. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
+  <p><strong>Next:</strong> Check <strong>Affected account</strong> on the error card. Check <strong>Advanced → Network</strong> for failed API calls. If the error mentions device rejection, check <strong>Advanced → APDU</strong>.</p>
+  <div class="tip">Repeating pattern badges at the top of Issues (like "↻ Price data unavailable ×4") flag cascade events. Click one to filter to just that pattern. APDU codes <span class="mono">6985</span> or <span class="mono">6982</span> mean the device rejected the transaction — the user didn't approve on-screen.</div>
 </div>
 
 <h3 id="s-device">"My device won't connect / isn't recognized"</h3>
@@ -248,7 +250,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <h3 id="s-crash">"The app crashes / won't open / is slow"</h3>
 <div class="card">
   <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> in the sidebar. The severity and issue count tell you how bad this session was.</p>
-  <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating patterns — the same error appearing many times suggests a loop. The error timeline shows whether problems happened all at once or throughout the session.</p>
+  <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating pattern badges at the top — "↻ Unexpected error ×6" means the same error is looping. The error strip shows whether problems are clustered (cascade) or spread across the session.</p>
   <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> device card's Environment section for OS and platform — some issues are platform-specific.</p>
   <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
 </div>
@@ -292,17 +294,17 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="feat-item">
     <div class="icon">⚠️</div>
     <div class="label">Issues<span class="new-badge">Updated</span></div>
-    <div class="desc">Errors sorted by severity — critical first. Error timeline shows when each error occurred in the session and whether they're clustered or independent. Affected account links. Copy Errors button for ticket notes. Each card has expandable technical details and common causes.</div>
+    <div class="desc">Interactive severity and category filter chips. Error strip shows session context with error segments highlighted. Repeating pattern badges surface cascades. Error detail panel includes breadcrumbs ("What happened before") and "View in Timeline" for one-click context. Affected account links. Copy Errors for tickets.</div>
   </div>
   <div class="feat-item">
     <div class="icon">👛</div>
     <div class="label">Accounts<span class="new-badge">Updated</span></div>
-    <div class="desc">Crypto accounts with chain color dots, live on-chain balances with fiat USD values, and explorer links for 60+ chains. Health squares at the top show account status at a glance. Token badges link to block explorers. Error badges show which accounts have problems. Amber borders flag accounts with no sync data. Bitcoin-family accounts with xpubs have a built-in scanner.</div>
+    <div class="desc">Health tiles with ticker labels — hover for account details, click to filter, Shift+click to filter Timeline. Portfolio overlay shows proportional fiat distribution. EVM chains sharing an address are auto-grouped. Error badges link to Issues. Timeline buttons filter the session to that account. Live on-chain balances with fiat values for 40+ chains.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📋</div>
-    <div class="label">Timeline</div>
-    <div class="desc">Every event, chronological. Density strip at the top shows activity hotspots. Search box and type filter to narrow results. Error/warning rows have colored left borders. Click any row to expand raw data.</div>
+    <div class="label">Timeline<span class="new-badge">Updated</span></div>
+    <div class="desc">Session visualizer with color-coded stacked bars — same colors as the type badges on each row. Interactive legend chips: hover to highlight segments, click to filter the list. Error dots below for one-click navigation. Smart grouping collapses repeated events. Account filtering with Shift+click from Accounts.</div>
   </div>
   <div class="feat-item">
     <div class="icon">🌐</div>
@@ -326,13 +328,34 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </div>
 </div>
 
-<h3 id="error-timeline">Error Timeline<span class="new-badge">New</span></h3>
+<h3 id="timeline-strip">Timeline: Session Strip &amp; Legend<span class="new-badge">New</span></h3>
 <div class="card">
-  <p>At the top of the <strong>Issues</strong> section, numbered dots on a timeline show exactly when each error occurred during the session. The dots are colored by severity and show actual timestamps.</p>
-  <p><strong>Why it matters:</strong> If all errors happened within the same second, you're looking at one event that triggered a cascade — fix the root cause. If they're spread across the session, they're likely independent issues.</p>
-  <p>The tool does the analysis for you and shows a plain-English interpretation below the timeline: <em>"All 3 errors within 0.3s — likely a single cascade event"</em> or <em>"Errors spread across 30s of a 45s session — likely independent issues."</em></p>
-  <p><strong>Click any dot</strong> to scroll down to that error's card. The dots are numbered to match the card order.</p>
-  <div class="tip">If the Issues section also shows an "Affected" row with account names, click them to jump straight to that account in the Accounts section.</div>
+  <p>The <strong>Timeline</strong> header shows a stacked bar chart of the entire session. Bar height = event density. Bar color = event type, using the same colors as the type badges on every row. You read the session left to right: "gray startup, yellow sync burst, blue network calls, red errors at the end."</p>
+  <p><strong>Legend chips</strong> below the strip show every event type with its color and count. Hover a chip to highlight matching segments — everything else dims. Click to filter the row list. Click again to clear. The type dropdown and chips share state.</p>
+  <p><strong>Error dots</strong> sit on a baseline below the bars — click any dot to scroll to that error entry.</p>
+  <p><strong>Smart grouping:</strong> Bursts of same-type events (40 bridge events during sync) collapse into expandable group headers. Toggle with the Grouped/Flat button. Errors never collapse.</p>
+  <p><strong>Account filtering:</strong> On the Accounts tab, <strong>Shift+click</strong> a health tile or click the <strong>Timeline</strong> button on any account card. The Timeline filters to that account's events with a "Show all" banner to clear.</p>
+  <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch yellow light up — next time you see yellow, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
+</div>
+
+<h3 id="issues-interactive">Issues: Interactive Filters &amp; Breadcrumbs<span class="new-badge">New</span></h3>
+<div class="card">
+  <p><strong>Filter chips:</strong> Severity chips (<span class="badge badge-red">Critical</span> <span class="badge badge-yellow">Warning</span> <span class="badge badge-purple">Info</span>) and category chips (Hardware, Software, Server) at the top of Issues. Click to filter. Hover to highlight matching errors on the strip. Combine them: Critical + Hardware = only critical hardware errors.</p>
+  <p><strong>Error strip:</strong> Same color-coded session bars as the Timeline, but error segments are prominent (full opacity) while context is muted. Hover any bar for a tooltip showing what errors occurred at that moment. Click to select that error.</p>
+  <p><strong>Pattern badges:</strong> "↻ Price data unavailable ×4" — click to filter to just that repeating pattern. Cascades become obvious.</p>
+  <p><strong>Breadcrumbs:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 entries leading up to the error — type badges, messages, and relative timestamps. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
+  <div class="tip">The error strip and Timeline strip share the same visual language. Colors you learned in Timeline work here — yellow bars during errors means the error happened during sync.</div>
+</div>
+
+<h3 id="account-tiles">Account Health Tiles<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>At the top of <strong>Accounts</strong>, colored tiles give you a quick visual map. Each tile = one account, colored by chain, with a 3-letter ticker label.</p>
+  <p><strong>Corner dots:</strong> Red (top-right) = errors for this account. Purple (bottom-right) = xpub/scannable. <strong>?</strong> = unsupported for live balance.</p>
+  <p><strong>Hover</strong> any tile for a popover: chain name, address, live balance + fiat, status, error count, and xpub/explorer flags.</p>
+  <p><strong>Click</strong> to filter the account list to that chain. <strong>Shift+click</strong> to jump to Timeline filtered to that account.</p>
+  <p><strong>Portfolio ▸</strong> button opens a proportional overlay — bigger tile = more value. Click any tile to filter and close.</p>
+  <p><strong>EVM grouping:</strong> Accounts sharing the same 0x address (Ethereum + L2 chains) are grouped with a shared header, combined fiat, and a copy button.</p>
+  <div class="tip">Health tiles are the fastest way to answer "what does this customer have?" One glance shows funded chains, problem accounts (red dots), and portfolio shape.</div>
 </div>
 
 <h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
@@ -356,6 +379,12 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 </div>
 
 <h3 id="raw-json-search">Raw JSON Progressive Search</h3>
+<div class="card">
+  <p>The Raw JSON viewer (under <strong>Advanced</strong>) has a search that works like Chrome DevTools. As you type, the tree automatically expands to reveal matching nodes and scrolls to the first one.</p>
+  <p><strong>Navigation:</strong> The counter shows <span class="mono" style="color:var(--success)">1/47</span> — your position in the results. Use the <strong>▲▼</strong> buttons or press <kbd>Enter</kbd> to jump to the next match. <kbd>Shift</kbd>+<kbd>Enter</kbd> goes backward. The current match is highlighted with a purple left border; other matches have a subtle tint.</p>
+  <p>The expand/collapse buttons (Collapse, Level 1/2/3, All) still work independently. Clearing the search collapses the tree back to its previous state.</p>
+  <div class="tip">Use this when you need to find a specific error code, account ID, or data field in the raw log. It's much faster than scrolling through the Timeline for technical data.</div>
+</div>
 
 <h3 id="live-balances">Live On-Chain Balances<span class="new-badge">New</span></h3>
 <div class="card">
@@ -381,12 +410,6 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><strong>What you'll see:</strong> An amber banner on the Overview, amber ⚠ next to the Accounts count in the sidebar, amber borders on account cards, and "no data" badges instead of "empty." The Portfolio stat card shows "(live)" to indicate balances come from live blockchain data, not the log.</p>
   <p>Copy exports include a "⚠ NO SYNC DATA" warning at the top so recipients know the data source.</p>
   <div class="tip">When you see amber everywhere, it means the log didn't capture sync. The accounts are real — they just have no operation history in this log. Live balances tell you what's actually on-chain.</div>
-</div>
-<div class="card">
-  <p>The Raw JSON viewer (under <strong>Advanced</strong>) has a search that works like Chrome DevTools. As you type, the tree automatically expands to reveal matching nodes and scrolls to the first one.</p>
-  <p><strong>Navigation:</strong> The counter shows <span class="mono" style="color:var(--success)">1/47</span> — your position in the results. Use the <strong>▲▼</strong> buttons or press <kbd>Enter</kbd> to jump to the next match. <kbd>Shift</kbd>+<kbd>Enter</kbd> goes backward. The current match is highlighted with a purple left border; other matches have a subtle tint.</p>
-  <p>The expand/collapse buttons (Collapse, Level 1/2/3, All) still work independently. Clearing the search collapses the tree back to its previous state.</p>
-  <div class="tip">Use this when you need to find a specific error code, account ID, or data field in the raw log. It's much faster than scrolling through the Timeline for technical data.</div>
 </div>
 
 <h3>Customer View — "See the customer's wallet"</h3>
@@ -461,8 +484,8 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <h3>Device apps show "Not installed"</h3>
 <p>A red chip marked <strong>✕ AppName</strong> on the Overview means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall. Amber chips marked <strong>⚠</strong> mean the app is installed but outdated.</p>
 
-<h3>The error timeline says "likely cascade"</h3>
-<p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Focus on the first (highest severity) error — fixing that typically resolves the rest.</p>
+<h3>The error strip says "likely cascade"</h3>
+<p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Click the first error, then expand <strong>"What happened before"</strong> to see what triggered it. Use the <span class="badge badge-red">Critical</span> chip to isolate the root cause — the rest are typically consequences.</p>
 
 <h3>Live balances show "unsupported" or stay loading</h3>
 <p>"Unsupported" means the chain doesn't have a public API the tool can query — this affects a few uncommon chains. If balances stay on "live ···" for more than 10 seconds, the blockchain API may be rate-limited or down. This doesn't affect the rest of the tool. Xpub accounts (Bitcoin-family) don't use live fetch — use the Xpub Scanner instead.</p>

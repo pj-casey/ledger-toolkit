@@ -1319,9 +1319,10 @@ function HighlightText({text,term}){
   </span>;
 }
 
-function ErrCard({err,onJump,linkedAcct,onGoAcct,dev}){
+function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries}){
   const d=err.dg,sv=SEV[d.s]||SEV.low,ct=CAT[d.c]||CAT.unknown;
   const[detOpen,setDetOpen]=useState(false);
+  const[ctxOpen,setCtxOpen]=useState(false);
   return <div className="err-hover" style={{background:sv.bg,border:`1px solid ${sv.bd}`,borderLeft:`3px solid ${sv.c}`,borderRadius:12,padding:18,marginBottom:12,transition:'border-color 0.15s ease'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -1340,6 +1341,13 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev}){
       <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:sv.bg,color:sv.c,border:`1px solid ${sv.bd}`}}>{sv.l.toUpperCase()}</span>
       {d.repeatCount>0&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning,border:'1px solid rgba(255,189,66,0.3)'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
     </div>
+    {onJump&&<div style={{paddingLeft:34,marginTop:8}}>
+      <span onClick={()=>onJump(err.li)} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,transition:'background 0.15s'}}
+        onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.08)'}
+        onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.04)'}>
+        <Ico.Logs/> View in Timeline
+      </span>
+    </div>}
     {linkedAcct&&onGoAcct&&<div style={{paddingLeft:34,marginTop:8}}>
       <span onClick={()=>onGoAcct(linkedAcct.addr)} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'3px 10px',borderRadius:5,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.1)',border:'1px solid rgba(187,176,255,0.2)',color:T.primary,transition:'background 0.15s'}}>
         <span style={{width:8,height:8,borderRadius:'50%',background:linkedAcct.ch.color||T.muted,flexShrink:0}}/>
@@ -1347,6 +1355,37 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev}){
         <span style={{opacity:0.6,fontFamily:MF,fontSize:10}}>{linkedAcct.addr.slice(0,10)}…</span>
       </span>
     </div>}
+    {entries&&entries.length>0&&(()=>{
+      const errIdx=entries.findIndex(e=>e.logIndex===err.li);
+      if(errIdx<1)return null;
+      const start=Math.max(0,errIdx-5);
+      const crumbs=entries.slice(start,errIdx);
+      if(crumbs.length===0)return null;
+      const errTime=new Date(err.ts).getTime();
+      return <div style={{paddingLeft:34,marginTop:12}}>
+        <div onClick={()=>setCtxOpen(o=>!o)} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:6,marginBottom:ctxOpen?8:0}}>
+          <span className="label" style={{color:T.muted}}>What happened before</span>
+          <span style={{color:T.muted,fontSize:10}}>{ctxOpen?'▼':'▶'}</span>
+        </div>
+        {ctxOpen&&<div style={{borderLeft:`2px solid ${T.border}`,paddingLeft:10}}>
+          {crumbs.map((c,i)=>{
+            const delta=((errTime-new Date(c.timestamp).getTime())/1000);
+            const deltaLabel=delta<1?`−${(delta*1000).toFixed(0)}ms`:`−${delta.toFixed(1)}s`;
+            const typeColor=TC[c.type?.toLowerCase()]||'#717070';
+            return <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:11}}>
+              <span className="mono" style={{fontSize:9,color:T.muted,minWidth:40,textAlign:'right',flexShrink:0}}>{deltaLabel}</span>
+              <span style={{display:'inline-block',padding:'1px 6px',borderRadius:3,fontSize:9,fontWeight:700,background:typeColor+'22',color:typeColor,fontFamily:MF,flexShrink:0}}>{c.type||'—'}</span>
+              <span className="mono" style={{color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{trunc(c.message,60)}</span>
+            </div>;
+          })}
+          <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:11,marginTop:2}}>
+            <span className="mono" style={{fontSize:9,color:sv.c,minWidth:40,textAlign:'right',flexShrink:0,fontWeight:700}}>→ ERR</span>
+            <span style={{display:'inline-block',padding:'1px 6px',borderRadius:3,fontSize:9,fontWeight:700,background:sv.c+'22',color:sv.c,fontFamily:MF,flexShrink:0}}>{err.raw?.type||'error'}</span>
+            <span className="mono" style={{color:sv.c,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,fontWeight:600}}>{trunc(err.msg||err.dg.t,60)}</span>
+          </div>
+        </div>}
+      </div>;
+    })()}
     {d.causes&&d.causes.length>0&&<div style={{paddingLeft:34,marginTop:10}}>
       <span className="label" style={{color:T.muted,marginRight:6}}>Common causes:</span>
       {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,background:'rgba(255,255,255,0.06)',color:T.muted,marginRight:4,marginBottom:4}}>{llText(cause,dev)}</span>)}
@@ -1583,7 +1622,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick}){
+function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick,onTimelineClick}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -1632,6 +1671,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick}){
       <div style={{display:'flex',alignItems:'center',gap:8}}>
         {hasExp&&!acct.isXpub&&<a href={eUrl} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()} aria-label={`View ${ch.name} on explorer`} style={{color:T.muted,display:'inline-flex',alignItems:'center',padding:4,borderRadius:4,opacity:0.6}} title="View on explorer"><Ico.Link/></a>}
 
+        {onTimelineClick&&!open&&<button onClick={ev=>{ev.stopPropagation();onTimelineClick();}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}} title={`Filter timeline to ${ch.name} events`}><Ico.Logs/> Timeline</button>}
         {canX&&!open&&<button onClick={ev=>{ev.stopPropagation();setOpen(true);}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,border:`1px solid ${ch.color}40`,background:ch.color+'12',color:ch.color,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}} title={`Derive and scan ${ch.name} addresses from xpub`}><Ico.Scan/> Scan</button>}
         {acct.dm&&<span className="mono label" style={{color:T.muted,background:'rgba(255,255,255,0.04)',padding:'3px 8px',borderRadius:4,textTransform:'none',letterSpacing:'normal'}}>{acct.dm}</span>}
         <span style={{color:T.muted,transform:open?'rotate(90deg)':'none',transition:'transform 0.2s',display:'inline-block'}}><Ico.ChevR/></span>
@@ -2862,7 +2902,6 @@ function App(){
   const[logData,setLogData]=useState(null);
   const[fileName,setFileName]=useState('');
   const[loadErr,setLoadErr]=useState('');
-  const[tab,setTab]=useState('Overview');
   const[section,setSection]=React.useState('overview');
   const[searchTerm,setSearchTerm]=useState('');
   const[typeFilter,setTypeFilter]=useState('all');
@@ -2874,10 +2913,21 @@ function App(){
   const[devDetailOpen,setDevDetailOpen]=useState(false);
   const[deviceExpanded,setDeviceExpanded]=useState(true);
   const[selectedErr,setSelectedErr]=useState(null);
+  const[errSevFilter,setErrSevFilter]=useState(null);
+  const[errCatFilter,setErrCatFilter]=useState(null);
+  const[errPatternFilter,setErrPatternFilter]=useState(null);
+  const[errHoveredSev,setErrHoveredSev]=useState(null);
+  const[errHoveredCat,setErrHoveredCat]=useState(null);
+  const[errStripHover,setErrStripHover]=useState(null);
   const[errAcctFilter,setErrAcctFilter]=useState(null);
   const[hoveredAcct,setHoveredAcct]=useState(null);
   const[hoveredRef,setHoveredRef]=useState(null);
   const[acctMapOpen,setAcctMapOpen]=useState(false);
+  const[tlHoveredBucket,setTlHoveredBucket]=useState(null);
+  const[tlHighlightType,setTlHighlightType]=useState(null);
+  const[tlAcctFilter,setTlAcctFilter]=useState(null);
+  const[tlGrouping,setTlGrouping]=useState(true);
+  const[expandedGroups,setExpandedGroups]=useState({});
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
@@ -2890,9 +2940,10 @@ function App(){
   const[showGlobalResults,setShowGlobalResults]=useState(false);
   const[liveBalances,setLiveBalances]=useState({});
   const fileRef=useRef();
+  const timelineScrollRef=useRef(null);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -2907,7 +2958,7 @@ function App(){
           setLoadErr('');
           setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
-          setTab('Overview');setSection('overview');setSearchTerm('');setTypeFilter('all');
+          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
         setParsing(false);
       },10);
@@ -2973,19 +3024,64 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setTab('Overview');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setExpandedRow(null);setAcctFilter('');setParsing(false);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
-  const jumpTo=li=>{setSection('timeline');setTypeFilter('all');setSearchTerm('');setTimeout(()=>setExpandedRow(li),50);};
+  const jumpTo=li=>{setSection('timeline');setTypeFilter('all');setSearchTerm('');setTlAcctFilter(null);setTlHighlightType(null);setTlGrouping(false);setTimeout(()=>{setExpandedRow(li);setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${li}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);},50);};
   const goToAcct=useCallback(addr=>{setSection('accounts');setAcctFilter(addr.slice(0,12));setTimeout(()=>setAcctFilter(addr.slice(0,12)),50);},[]);
 
   const filtered=useMemo(()=>{
     if(!logData)return[];let f=logData.entries;
     if(typeFilter!=='all')f=f.filter(e=>e.type===typeFilter);
     if(searchTerm){const s=searchTerm.toLowerCase();f=f.filter(e=>(e.message||'').toLowerCase().includes(s)||(e.type||'').toLowerCase().includes(s));}
+    if(tlAcctFilter){
+      const addr=tlAcctFilter.addr?.toLowerCase();
+      const cid=tlAcctFilter.cid?.toLowerCase();
+      const ticker=tlAcctFilter.ticker?.toLowerCase();
+      const name=tlAcctFilter.name?.toLowerCase();
+      f=f.filter(e=>{
+        const hay=[(e.message||''),(e.type||''),JSON.stringify(e.data||''),JSON.stringify(e.queryArg||''),JSON.stringify(e.payload||'')].join(' ').toLowerCase();
+        if(addr&&addr.length>8&&hay.includes(addr))return true;
+        if(cid&&hay.includes(cid))return true;
+        if(ticker&&hay.includes(ticker))return true;
+        if(name&&hay.includes(name))return true;
+        return false;
+      });
+    }
     return f;
-  },[logData,typeFilter,searchTerm]);
+  },[logData,typeFilter,searchTerm,tlAcctFilter]);
+  useEffect(()=>{setExpandedGroups({});},[typeFilter,searchTerm,tlAcctFilter]);
+
+  const groupedTimeline=useMemo(()=>{
+    if(!tlGrouping||filtered.length===0)return filtered.map(e=>({type:'single',entry:e}));
+    const GAP=1500;
+    const MIN_GROUP=3;
+    const result=[];
+    let i=0;
+    while(i<filtered.length){
+      const e=filtered[i];
+      const eType=e.type||'';
+      const isErr=e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0)||(e.message||'').toLowerCase().includes('rejected');
+      if(isErr||!eType){result.push({type:'single',entry:e});i++;continue;}
+      let j=i+1;
+      while(j<filtered.length){
+        const next=filtered[j];
+        const nextType=next.type||'';
+        const nextTime=new Date(next.timestamp).getTime();
+        const nextIsErr=next.level==='error'||next.type==='error'||(next.error&&typeof next.error==='object'&&Object.keys(next.error).length>0)||(next.message||'').toLowerCase().includes('rejected');
+        if(nextType!==eType||(nextTime-new Date(filtered[j-1].timestamp).getTime())>GAP||nextIsErr)break;
+        j++;
+      }
+      const groupSize=j-i;
+      if(groupSize>=MIN_GROUP){
+        const groupEntries=filtered.slice(i,j);
+        result.push({type:'group',eventType:eType,count:groupSize,firstTs:groupEntries[0].timestamp,lastTs:groupEntries[groupEntries.length-1].timestamp,firstIndex:groupEntries[0].logIndex,entries:groupEntries});
+        i=j;
+      }else{result.push({type:'single',entry:e});i++;}
+    }
+    return result;
+  },[filtered,tlGrouping]);
 
   const netEntries=useMemo(()=>logData?logData.entries.filter(e=>e.type==='network'):[],[logData]);
   const filtAccts=useMemo(()=>{
@@ -3389,21 +3485,133 @@ function App(){
             if(ents.length<2)return null;
             const t0=new Date(ents[0].timestamp).getTime();
             const t1=new Date(ents[ents.length-1].timestamp).getTime();
-            const span=t1-t0||1;
+            const span=t1-t0;
+            if(span<=0)return null;
+            const durSec=span/1000;
+            const durLabel=durSec<60?durSec.toFixed(1)+'s':(durSec<3600?(durSec/60).toFixed(1)+'m':(durSec/3600).toFixed(1)+'h');
             const N=80;
-            const buckets=Array.from({length:N},()=>({total:0,errors:0,device:0}));
-            const devTypes=new Set(['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager']);
+            const buckets=Array.from({length:N},()=>({types:{},total:0,samples:[]}));
+            const typeTotals={};
             for(const e of ents){
               const idx=Math.min(Math.floor(((new Date(e.timestamp).getTime()-t0)/span)*N),N-1);
-              buckets[idx].total++;
-              if(e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0))buckets[idx].errors++;
-              if(devTypes.has(e.type))buckets[idx].device++;
+              const b=buckets[idx];
+              const tp=e.type||'unknown';
+              b.types[tp]=(b.types[tp]||0)+1;
+              b.total++;
+              typeTotals[tp]=(typeTotals[tp]||0)+1;
+              if(b.samples.length<2)b.samples.push(e);
             }
             const maxTotal=Math.max(...buckets.map(b=>b.total),1);
-            return <div style={{display:'flex',alignItems:'flex-end',height:24,gap:1,marginBottom:12,borderRadius:3,overflow:'hidden',background:T.bg}}>
-              {buckets.map((b,i)=>(
-                <div key={i} style={{flex:1,height:Math.max(2,(b.total/maxTotal)*24),borderRadius:'1px 1px 0 0',background:b.errors>0?T.error:b.device>0?T.primary:'rgba(255,255,255,0.15)',alignSelf:'flex-end'}}/>
-              ))}
+            const sortedTypes=Object.keys(typeTotals).sort((a,b)=>{
+              if(a==='error')return -1;if(b==='error')return 1;
+              return typeTotals[b]-typeTotals[a];
+            });
+            const errDots=[];
+            for(const e of ents){
+              const isErr=e.level==='error'||e.type==='error'||(e.error&&typeof e.error==='object'&&Object.keys(e.error).length>0)||((e.message||'').toLowerCase().includes('rejected'));
+              if(isErr){
+                const pct=((new Date(e.timestamp).getTime()-t0)/span)*100;
+                const isCrit=(e.level==='error'||e.type==='error');
+                errDots.push({pct,li:e.logIndex,ts:e.timestamp,msg:trunc(e.message||'Error',50),crit:isCrit});
+              }
+            }
+            const scrollToTime=(ev)=>{
+              const rect=ev.currentTarget.getBoundingClientRect();
+              const pct=(ev.clientX-rect.left)/rect.width;
+              const targetTime=t0+pct*span;
+              let closest=ents[0],closestD=Infinity;
+              for(const e of ents){const d=Math.abs(new Date(e.timestamp).getTime()-targetTime);if(d<closestD){closestD=d;closest=e;}}
+              setExpandedRow(closest.logIndex);
+              setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${closest.logIndex}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},50);
+            };
+            const scrollToEntry=(li)=>{
+              setExpandedRow(li);
+              setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${li}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},50);
+            };
+            const handleBarHover=(ev)=>{
+              const rect=ev.currentTarget.getBoundingClientRect();
+              const idx=Math.min(Math.floor(((ev.clientX-rect.left)/rect.width)*N),N-1);
+              setTlHoveredBucket(idx>=0?{idx,x:ev.clientX-rect.left,cw:rect.width}:null);
+            };
+            return <div style={{marginBottom:10}}>
+              <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,overflow:'hidden'}}>
+                <div style={{height:120,display:'flex',alignItems:'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:'0 1px'}}
+                  onClick={scrollToTime}
+                  onMouseMove={handleBarHover}
+                  onMouseLeave={()=>setTlHoveredBucket(null)}>
+                  {buckets.map((b,i)=>{
+                    const h=Math.max(2,(b.total/maxTotal)*114);
+                    const isHov=tlHoveredBucket?.idx===i;
+                    const segs=[];
+                    for(const tp of sortedTypes){
+                      if(b.types[tp]){segs.push({type:tp,count:b.types[tp],pct:(b.types[tp]/b.total)*100});}
+                    }
+                    return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',opacity:isHov?1:(tlHighlightType&&!b.types[tlHighlightType])?0.15:0.85,transition:'opacity 0.1s'}}>
+                      {segs.map((s,si)=>{
+                        const color=TC[s.type.toLowerCase()]||'#717070';
+                        const dimmed=tlHighlightType&&s.type!==tlHighlightType;
+                        return <div key={si} style={{flex:s.pct,background:color,opacity:dimmed?0.15:1,minHeight:1,transition:'opacity 0.1s'}}/>;
+                      })}
+                    </div>;
+                  })}
+                  {tlHoveredBucket&&(()=>{
+                    const b=buckets[tlHoveredBucket.idx];
+                    if(!b||b.total===0)return null;
+                    const bTime=t0+(tlHoveredBucket.idx/N)*span;
+                    const topTypes=Object.entries(b.types).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                    const sample=b.samples[0];
+                    const tipW=220;
+                    const left=tlHoveredBucket.x+tipW>tlHoveredBucket.cw?Math.max(0,tlHoveredBucket.x-tipW):tlHoveredBucket.x;
+                    return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
+                      <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(bTime).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
+                      <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                        {topTypes.map(([tp,ct])=>(
+                          <div key={tp} style={{display:'flex',alignItems:'center',gap:5}}>
+                            <div style={{width:6,height:6,borderRadius:1,background:TC[tp.toLowerCase()]||'#717070',flexShrink:0}}/>
+                            <span style={{color:T.text}}>{tp}</span>
+                            <span style={{color:T.muted,marginLeft:'auto'}}>{ct}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {sample&&<div className="mono" style={{color:T.muted,marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',borderTop:`1px solid ${T.border}`,paddingTop:4}}>{trunc(sample.message,40)}</div>}
+                    </div>;
+                  })()}
+                </div>
+                <div style={{height:24,position:'relative',borderTop:`1px solid ${T.border}`,background:'rgba(255,255,255,0.015)',cursor:'pointer'}}
+                  onClick={e=>e.stopPropagation()}>
+                  <div style={{position:'absolute',top:'50%',left:0,right:0,height:1,background:'rgba(255,255,255,0.04)'}}/>
+                  {errDots.length>0&&<div style={{position:'absolute',top:3,left:8,fontSize:9,color:T.error,fontWeight:700,opacity:0.6}}>{errDots.length} error{errDots.length!==1?'s':''}</div>}
+                  {errDots.map((d,i)=>(
+                    <div key={i} onClick={()=>scrollToEntry(d.li)} title={`${fmtTime(d.ts)} — ${d.msg}`}
+                      style={{position:'absolute',left:`${d.pct}%`,top:'50%',width:d.crit?11:8,height:d.crit?11:8,borderRadius:'50%',background:d.crit?T.error:T.warning,opacity:d.crit?0.95:0.75,transform:'translate(-50%,-50%)',cursor:'pointer',zIndex:2,border:`2px solid ${T.bg}`,transition:'transform 0.1s'}}
+                      onMouseEnter={e=>e.currentTarget.style.transform='translate(-50%,-50%) scale(1.3)'}
+                      onMouseLeave={e=>e.currentTarget.style.transform='translate(-50%,-50%) scale(1)'}
+                    />
+                  ))}
+                  {errDots.length===0&&<div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',fontSize:10,color:T.muted,opacity:0.3}}>No errors</div>}
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
+                <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[0].timestamp)}</span>
+                <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[ents.length-1].timestamp)} <span style={{fontWeight:600,fontFamily:'Inter,sans-serif'}}>{durLabel}</span></span>
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:6}}>
+                {sortedTypes.map(tp=>{
+                  const color=TC[tp.toLowerCase()]||'#717070';
+                  const count=typeTotals[tp];
+                  const isActive=typeFilter===tp;
+                  return <div key={tp}
+                    onClick={()=>setTypeFilter(isActive?'all':tp)}
+                    onMouseEnter={()=>setTlHighlightType(tp)}
+                    onMouseLeave={()=>setTlHighlightType(null)}
+                    style={{display:'flex',alignItems:'center',gap:5,padding:'3px 8px',borderRadius:4,cursor:'pointer',background:isActive?color+'25':'rgba(255,255,255,0.03)',border:`1px solid ${isActive?color+'60':T.border}`,transition:'all 0.1s'}}>
+                    <div style={{width:7,height:7,borderRadius:2,background:color,flexShrink:0}}/>
+                    <span style={{fontSize:10,color:isActive?color:T.muted,fontWeight:isActive?700:400}}>{tp}</span>
+                    <span className="mono" style={{fontSize:9,color:T.muted,opacity:0.7}}>{count}</span>
+                  </div>;
+                })}
+              </div>
+              <div style={{textAlign:'center',marginTop:4,fontSize:10,color:T.muted,opacity:0.35}}>Click bars to jump · Click a type to filter · Hover to highlight</div>
             </div>;
           })()}
           <div style={{display:'flex',gap:10,marginBottom:16}}>
@@ -3413,34 +3621,89 @@ function App(){
               {logData.types.map(t=><option key={t} value={t}>{t} ({logData.entries.filter(e=>e.type===t).length})</option>)}
             </select>
           </div>
+          {tlAcctFilter&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,marginBottom:8,fontSize:12,flexShrink:0}}>
+            <span style={{color:T.muted}}>Filtered to <span style={{fontWeight:700,color:tlAcctFilter.color||T.primary}}>{tlAcctFilter.name}</span>{tlAcctFilter.addr?<span className="mono" style={{color:T.primary,marginLeft:6}}>{tlAcctFilter.addr.slice(0,12)}...{tlAcctFilter.addr.slice(-6)}</span>:''}</span>
+            <button onClick={()=>setTlAcctFilter(null)} style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:11,fontWeight:600,cursor:'pointer'}}>Show all</button>
+          </div>}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <div style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:12,color:T.muted}}>{filtered.length} of {logData.entries.length}</span>
+              <button onClick={()=>{setTlGrouping(g=>!g);setExpandedGroups({});}} style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${T.border}`,background:tlGrouping?T.primary+'1A':'transparent',color:tlGrouping?T.primary:T.muted,fontSize:10,fontWeight:600,cursor:'pointer'}} title={tlGrouping?'Show all rows flat':'Group repeated events'}>{tlGrouping?'Grouped':'Flat'}</button>
+            </div>
             <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><Ico.DL/> Export filtered</button>
           </div>
           </div>{/* end fixed header */}
-          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
+          <div ref={timelineScrollRef} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
           <div style={{background:T.panel,overflow:'hidden'}}>
             <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:'rgba(255,255,255,0.03)',position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
               {['#','Time','Type','Message'].map(h=><div key={h} className="label" style={{padding:'10px 12px',color:T.muted,background:T.panel}}>{h}</div>)}
             </div>
-            {filtered.slice(0,500).map(e=>{
-              const isExp=expandedRow===e.logIndex;
-              const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
-              const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
-              const lvl=(e.level||'').toLowerCase();
-              const isWarn=lvl==='warning'||lvl==='warn';
-              const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
-              const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
-              return <div key={e.logIndex}>
-                <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
-                  <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
-                  <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
-                  <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
-                  <div className="mono" style={{padding:'8px 12px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
-                </div>
-                {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
-              </div>;
-            })}
+            {(()=>{
+              let rowCount=0;
+              const MAX_ROWS=500;
+              return groupedTimeline.map((item,gi)=>{
+                if(rowCount>=MAX_ROWS)return null;
+                if(item.type==='single'){
+                  rowCount++;
+                  const e=item.entry;
+                  const isExp=expandedRow===e.logIndex;
+                  const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
+                  const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
+                  const lvl=(e.level||'').toLowerCase();
+                  const isWarn=lvl==='warning'||lvl==='warn';
+                  const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
+                  const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
+                  return <div key={e.logIndex} data-li={e.logIndex}>
+                    <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
+                      <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
+                      <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
+                      <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
+                      <div className="mono" style={{padding:'8px 12px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
+                    </div>
+                    {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
+                  </div>;
+                }
+                const g=item;
+                const gKey='g-'+g.firstIndex;
+                const isOpen=expandedGroups[gKey];
+                const typeColor=gtc(g.eventType);
+                const durMs=new Date(g.lastTs).getTime()-new Date(g.firstTs).getTime();
+                const durLabel=durMs<1000?durMs+'ms':(durMs/1000).toFixed(1)+'s';
+                rowCount+=isOpen?g.count+1:1;
+                return <div key={gKey}>
+                  <div role="button" tabIndex={0}
+                    onClick={()=>setExpandedGroups(prev=>({...prev,[gKey]:!prev[gKey]}))}
+                    onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedGroups(prev=>({...prev,[gKey]:!prev[gKey]}));}}}
+                    style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:'pointer',borderLeft:`3px solid ${typeColor}40`,background:`${typeColor}08`}}>
+                    <div className="mono" style={{padding:'8px 12px',color:typeColor,fontWeight:700,fontSize:11}}>{g.count}×</div>
+                    <div className="mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(g.firstTs)}</div>
+                    <div style={{padding:'8px 12px'}}><span style={bdg(typeColor)}>{g.eventType}</span></div>
+                    <div style={{padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{color:T.muted,fontSize:12}}>{g.count} events · {durLabel}</span>
+                      <span style={{color:typeColor,marginLeft:'auto',fontSize:10,fontWeight:600}}>{isOpen?'▼ collapse':'▶ expand'}</span>
+                    </div>
+                  </div>
+                  {isOpen&&g.entries.map(e=>{
+                    const isExp=expandedRow===e.logIndex;
+                    const hasD=e.data||e.queryArg||e.error||e.payload||e.env||e.accountsIds;
+                    const isErr=e.error||sGet(e,'payload.error','')||(e.message||'').toLowerCase().includes('rejected');
+                    const lvl=(e.level||'').toLowerCase();
+                    const isWarn=lvl==='warning'||lvl==='warn';
+                    const isDevice=['live-dmk-logger','list-apps','actions-manager-event','device-action','hw','manager','send-apdu'].includes(e.type);
+                    const dotColor=isErr?T.error:isWarn?T.warning:isDevice?T.primary:null;
+                    return <div key={e.logIndex} data-li={e.logIndex}>
+                      <div role={hasD?'button':undefined} tabIndex={hasD?0:-1} onClick={()=>{if(hasD)setExpandedRow(isExp?null:e.logIndex);}} onKeyDown={hasD?ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedRow(isExp?null:e.logIndex);}}:undefined} className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',borderBottom:`1px solid ${T.border}`,cursor:hasD?'pointer':'default',borderLeft:dotColor?`3px solid ${dotColor}`:'3px solid transparent',background:isErr?'rgba(239,68,68,0.04)':isWarn?'rgba(255,189,66,0.03)':'transparent'}}>
+                        <div className="tl-col-idx mono" style={{padding:'8px 12px',color:T.muted}}>{e.logIndex}</div>
+                        <div className="tl-col-time mono" style={{padding:'8px 12px',color:T.muted,whiteSpace:'nowrap'}}>{fmtTime(e.timestamp)}</div>
+                        <div style={{padding:'8px 12px'}}><span style={bdg(gtc(e.type))}>{e.type||'—'}</span></div>
+                        <div className="mono" style={{padding:'8px 12px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><HighlightText text={trunc(e.message,120)} term={searchTerm}/>{hasD&&<span style={{color:T.primary,marginLeft:6,fontSize:10}}>{isExp?'▼':'▶'}</span>}</div>
+                      </div>
+                      {isExp&&<div style={{padding:'12px 20px',background:'rgba(0,0,0,0.2)',borderBottom:`1px solid ${T.border}`}}><pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0,maxHeight:300,overflowY:'auto'}}>{JSON.stringify({data:e.data,queryArg:e.queryArg,error:e.error,payload:e.payload,context:e.context},null,2)}</pre></div>}
+                    </div>;
+                  })}
+                </div>;
+              }).filter(Boolean);
+            })()}
             {filtered.length===0&&logData.entries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494'}}>
               <div style={{fontSize:32,marginBottom:12}}>📋</div>
               <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No log entries found</div>
@@ -3452,7 +3715,7 @@ function App(){
               <div style={{fontSize:12,marginBottom:16}}>Try clearing the search or switching to "All" types</div>
               <button onClick={()=>{setSearchTerm('');setTypeFilter('all');}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer',marginTop:16}}>Clear filters</button>
             </div>}
-            {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing 500 of {filtered.length}</div>}
+            {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:T.muted,fontSize:12}}>Showing first 500 entries of {filtered.length}{tlGrouping?' (grouping may show more)':''}</div>}
           </div>
           </div>{/* end scrollable */}
         </div>}
@@ -3495,7 +3758,7 @@ function App(){
                 const op=hasFunds?1:noData?0.5:0.4;
                 const canX=a.isXpub&&a.ch.xc;
                 return <div key={a.id}
-                  onClick={()=>setAcctFilter(acctFilter===a.ch.name?'':a.ch.name)}
+                  onClick={(ev)=>{if(ev.shiftKey){setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}else{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);}}}
                   onMouseEnter={e=>{setHoveredAcct(a.id);setHoveredRef(e.currentTarget);}}
                   onMouseLeave={()=>{setHoveredAcct(null);setHoveredRef(null);}}
                   style={{
@@ -3608,7 +3871,7 @@ function App(){
                 used.add(a.id);
               }
             }
-            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}}/>;
+            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
             return groups.map((g,i)=>{
               if(g.type==='single')return renderCard(g.acct);
               const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
@@ -3665,7 +3928,14 @@ function App(){
           const seenTitles=new Set();
           const repeatingUniq=repeating.filter(e=>{if(seenTitles.has(e.dg.t))return false;seenTitles.add(e.dg.t);return true;});
 
-          const sorted=displayErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0);});
+          const filteredErrs=(()=>{
+            let f=displayErrs;
+            if(errSevFilter)f=f.filter(e=>e.dg.s===errSevFilter);
+            if(errCatFilter)f=f.filter(e=>e.dg.c===errCatFilter);
+            if(errPatternFilter)f=f.filter(e=>e.dg.t===errPatternFilter);
+            return f;
+          })();
+          const sorted=filteredErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0)});
           const effectiveSel=selectedErr!=null?selectedErr:(sorted[0]?.li??null);
           const detailErr=displayErrs.find(e=>e.li===effectiveSel)||null;
           const sevColor=s=>s==='high'?T.error:s==='medium'?T.warning:'#8A9EF5';
@@ -3673,15 +3943,50 @@ function App(){
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
             {/* Fixed header */}
             <div style={{flexShrink:0,padding:'12px 24px 8px',borderBottom:`1px solid ${T.border}`}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                <div style={{display:'flex',alignItems:'center',gap:16,fontSize:12}}>
-                  {[{label:'Critical',count:highCount,color:T.error},{label:'Warning',count:medCount,color:T.warning},{label:'Info',count:lowCount,color:'#8A9EF5'}].filter(item=>item.count>0).map(item=>(
-                    <div key={item.label} style={{display:'flex',alignItems:'center',gap:5}}>
+              {/* Row 1: Severity + Category filter chips + Copy button */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:8}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                  {/* Severity chips */}
+                  {[{key:'high',label:'Critical',count:highCount,color:T.error},{key:'medium',label:'Warning',count:medCount,color:T.warning},{key:'low',label:'Info',count:lowCount,color:'#8A9EF5'}].filter(item=>item.count>0).map(item=>(
+                    <div key={item.key}
+                      onClick={()=>setErrSevFilter(errSevFilter===item.key?null:item.key)}
+                      onMouseEnter={()=>setErrHoveredSev(item.key)}
+                      onMouseLeave={()=>setErrHoveredSev(null)}
+                      style={{
+                        display:'flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:5,cursor:'pointer',
+                        background:errSevFilter===item.key?item.color+'20':'transparent',
+                        border:`1px solid ${errSevFilter===item.key?item.color+'60':T.border}`,
+                        transition:'all 0.1s',
+                      }}>
                       <span style={{width:7,height:7,borderRadius:'50%',background:item.color,flexShrink:0}}/>
-                      <span className="mono" style={{fontWeight:700,color:item.color}}>{item.count}</span>
-                      <span style={{color:T.muted}}>{item.label}</span>
+                      <span className="mono" style={{fontWeight:700,color:errSevFilter===item.key?item.color:T.text,fontSize:12}}>{item.count}</span>
+                      <span style={{color:errSevFilter===item.key?item.color:T.muted,fontSize:11}}>{item.label}</span>
                     </div>
                   ))}
+                  {/* Divider */}
+                  <div style={{width:1,height:16,background:T.border,margin:'0 2px'}}/>
+                  {/* Category chips */}
+                  {(()=>{
+                    const catCounts={};
+                    for(const e of enrichedErrs){const c=e.dg.c||'unknown';catCounts[c]=(catCounts[c]||0)+1;}
+                    return Object.entries(catCounts).map(([cat,count])=>{
+                      const ci=CAT[cat]||CAT.unknown;
+                      return <div key={cat}
+                        onClick={()=>setErrCatFilter(errCatFilter===cat?null:cat)}
+                        onMouseEnter={()=>setErrHoveredCat(cat)}
+                        onMouseLeave={()=>setErrHoveredCat(null)}
+                        style={{
+                          display:'flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:5,cursor:'pointer',
+                          background:errCatFilter===cat?'rgba(255,255,255,0.08)':'transparent',
+                          border:`1px solid ${errCatFilter===cat?'rgba(255,255,255,0.2)':T.border}`,
+                          transition:'all 0.1s',fontSize:11,
+                        }}>
+                        <span style={{fontSize:12}}>{ci.i}</span>
+                        <span style={{color:errCatFilter===cat?T.text:T.muted}}>{ci.l.split(' / ')[0]}</span>
+                        <span className="mono" style={{color:T.muted,fontSize:10}}>{count}</span>
+                      </div>;
+                    });
+                  })()}
                 </div>
                 <button onClick={()=>{
                   const lines=['=== Error Summary ===',''];
@@ -3698,7 +4003,30 @@ function App(){
                   <Ico.Copy/> Copy Errors
                 </button>
               </div>
-              {/* Error timeline strip */}
+
+              {/* Row 2: Repeating patterns */}
+              {repeatingUniq.length>0&&<div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8,flexWrap:'wrap'}}>
+                <span style={{fontSize:10,color:T.muted,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em'}}>Patterns:</span>
+                {repeatingUniq.map(e=>{
+                  const count=e.dg.repeatCount+1;
+                  const isActive=errPatternFilter===e.dg.t;
+                  return <div key={e.dg.t}
+                    onClick={()=>setErrPatternFilter(isActive?null:e.dg.t)}
+                    style={{
+                      display:'flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,cursor:'pointer',
+                      background:isActive?T.warning+'20':'rgba(255,189,66,0.06)',
+                      border:`1px solid ${isActive?T.warning+'60':'rgba(255,189,66,0.15)'}`,
+                      fontSize:10,color:isActive?T.warning:T.muted,fontWeight:isActive?700:400,
+                      transition:'all 0.1s',
+                    }}>
+                    <span>↻</span>
+                    <span style={{maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.dg.t}</span>
+                    <span className="mono" style={{fontWeight:700}}>×{count}</span>
+                  </div>;
+                })}
+              </div>}
+
+              {/* Row 3: Enhanced error timeline strip */}
               {(()=>{
                 const ents=logData.entries;
                 if(ents.length<2||enrichedErrs.length===0)return null;
@@ -3721,37 +4049,118 @@ function App(){
                 } else {
                   interpretation=`Errors spread across ${errSpanSec}s of a ${durSec}s session — likely independent issues.`;
                 }
+                const N=60;
+                const buckets=Array.from({length:N},()=>({types:{},total:0}));
+                for(const e of ents){
+                  const idx=Math.min(Math.floor(((new Date(e.timestamp).getTime()-t0)/span)*N),N-1);
+                  const b=buckets[idx];
+                  const tp=e.type||'unknown';
+                  b.types[tp]=(b.types[tp]||0)+1;
+                  b.total++;
+                }
+                const maxTotal=Math.max(...buckets.map(b=>b.total),1);
                 const byTime=[...enrichedErrs].sort((a,b)=>new Date(a.ts).getTime()-new Date(b.ts).getTime());
                 return <div style={{marginBottom:6}}>
-                  <div style={{position:'relative',height:28,background:'rgba(255,255,255,0.03)',borderRadius:6,padding:'0 12px'}}>
-                    <div style={{position:'absolute',top:13,left:12,right:12,height:2,background:'rgba(255,255,255,0.08)',borderRadius:1}}/>
-                    <div style={{position:'absolute',top:18,left:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[0].timestamp)}</div>
-                    <div style={{position:'absolute',top:18,right:12,fontSize:9,color:T.muted,fontFamily:MF}}>{fmtTime(ents[ents.length-1].timestamp)}</div>
-                    {byTime.map((e,i)=>{
-                      const et=new Date(e.ts).getTime();
-                      const pct=((et-t0)/span)*100;
-                      const sc=sevColor(e.dg.s);
-                      const isSelected=e.li===effectiveSel;
-                      return <div key={i}
-                        onClick={()=>setSelectedErr(e.li)}
-                        title={`${e.dg.t} — ${fmtTime(e.ts)}`}
-                        style={{
-                          position:'absolute',
-                          left:`calc(12px + ${pct}% * (100% - 24px) / 100%)`,
-                          top:isSelected?4:6,width:isSelected?16:12,height:isSelected?16:12,borderRadius:'50%',
-                          background:sc,border:`2px solid ${isSelected?T.bg+'00':T.bg}`,
-                          cursor:'pointer',transform:'translateX(-50%)',zIndex:1,
-                          display:'flex',alignItems:'center',justifyContent:'center',
-                          transition:'all 0.1s',
-                        }}>
-                        <span style={{fontSize:7,fontWeight:800,color:'#000',userSelect:'none'}}>{i+1}</span>
+                  <div style={{background:T.bg,borderRadius:6,overflow:'hidden',border:`1px solid ${T.border}`,position:'relative',height:80,cursor:'crosshair',userSelect:'none'}}
+                    onMouseMove={ev=>{
+                      const rect=ev.currentTarget.getBoundingClientRect();
+                      const pct=(ev.clientX-rect.left)/rect.width;
+                      const idx=Math.min(Math.floor(pct*N),N-1);
+                      const bucketStart=t0+(idx/N)*span;
+                      const bucketEnd=t0+((idx+1)/N)*span;
+                      const bucketErrs=enrichedErrs.filter(e=>{const et=new Date(e.ts).getTime();return et>=bucketStart&&et<bucketEnd;});
+                      setErrStripHover({idx,x:ev.clientX-rect.left,cw:rect.width,errs:bucketErrs,time:bucketStart});
+                    }}
+                    onMouseLeave={()=>setErrStripHover(null)}
+                    onClick={ev=>{
+                      const rect=ev.currentTarget.getBoundingClientRect();
+                      const pct=(ev.clientX-rect.left)/rect.width;
+                      const idx=Math.min(Math.floor(pct*N),N-1);
+                      const bucketStart=t0+(idx/N)*span;
+                      const bucketEnd=t0+((idx+1)/N)*span;
+                      const bucketErrs=enrichedErrs.filter(e=>{const et=new Date(e.ts).getTime();return et>=bucketStart&&et<bucketEnd;});
+                      if(bucketErrs.length>0){
+                        setSelectedErr(bucketErrs[0].li);
+                      }else{
+                        const clickTime=t0+pct*span;
+                        let closest=enrichedErrs[0],closestD=Infinity;
+                        for(const e of enrichedErrs){const d=Math.abs(new Date(e.ts).getTime()-clickTime);if(d<closestD){closestD=d;closest=e;}}
+                        if(closest)setSelectedErr(closest.li);
+                      }
+                    }}>
+                    {/* TC-colored stacked bars with error segments prominent */}
+                    <div style={{position:'absolute',inset:0,display:'flex',alignItems:'flex-end',padding:'0 1px'}}>
+                      {buckets.map((b,i)=>{
+                        const h=Math.max(1,(b.total/maxTotal)*72);
+                        const topTypes=Object.entries(b.types).sort((a,b_)=>b_[1]-a[1]);
+                        const segs=[];
+                        const errTypes=topTypes.filter(([tp])=>tp==='error'||tp.includes('error'));
+                        const nonErrTypes=topTypes.filter(([tp])=>tp!=='error'&&!tp.includes('error'));
+                        for(const[tp,ct]of nonErrTypes)segs.push({tp,pct:(ct/b.total)*100,isErr:false});
+                        for(const[tp,ct]of errTypes)segs.push({tp,pct:(ct/b.total)*100,isErr:true});
+                        const bucketStart=t0+(i/N)*span;
+                        const bucketEnd=t0+((i+1)/N)*span;
+                        const bucketErrs=enrichedErrs.filter(e=>{const et=new Date(e.ts).getTime();return et>=bucketStart&&et<bucketEnd;});
+                        const hasSevMatch=!errHoveredSev||bucketErrs.some(e=>e.dg.s===errHoveredSev);
+                        const hasCatMatch=!errHoveredCat||bucketErrs.some(e=>e.dg.c===errHoveredCat);
+                        const errHighlighted=hasSevMatch&&hasCatMatch;
+                        const isBarHovered=errStripHover?.idx===i;
+                        return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',transition:'opacity 0.1s'}}>
+                          {segs.map((s,si)=>{
+                            const color=s.isErr?T.error:(TC[s.tp.toLowerCase()]||'#717070');
+                            const dimmedByChipHover=s.isErr&&!errHighlighted&&(errHoveredSev||errHoveredCat);
+                            return <div key={si} style={{
+                              flex:s.pct,
+                              background:color,
+                              opacity:s.isErr?(dimmedByChipHover?0.15:isBarHovered?1:0.9):(isBarHovered?0.45:0.25),
+                              minHeight:s.isErr?2:0,
+                              transition:'opacity 0.1s',
+                            }}/>;
+                          })}
+                        </div>;
+                      })}
+                    </div>
+                    {/* Hover tooltip */}
+                    {errStripHover&&(()=>{
+                      const b=buckets[errStripHover.idx];
+                      if(!b||b.total===0)return null;
+                      const errs=errStripHover.errs||[];
+                      const tipW=240;
+                      const left=errStripHover.x+tipW>errStripHover.cw?Math.max(0,errStripHover.x-tipW):errStripHover.x;
+                      return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
+                        <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(errStripHover.time).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
+                        {errs.length>0?(
+                          <div>
+                            <div style={{color:T.error,fontWeight:700,marginBottom:3}}>{errs.length} error{errs.length!==1?'s':''}:</div>
+                            {errs.slice(0,3).map((e,i)=>{
+                              const sc=sevColor(e.dg.s);
+                              return <div key={i} style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
+                                <span style={{width:5,height:5,borderRadius:'50%',background:sc,flexShrink:0}}/>
+                                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:T.text}}>{trunc(e.dg.t,35)}</span>
+                              </div>;
+                            })}
+                            {errs.length>3&&<div style={{color:T.muted,fontSize:9}}>+{errs.length-3} more</div>}
+                          </div>
+                        ):(
+                          <div style={{color:T.muted}}>No errors in this time slice</div>
+                        )}
                       </div>;
-                    })}
+                    })()}
+                    {/* Error count label */}
+                    <div style={{position:'absolute',bottom:4,left:8,fontSize:10,color:T.error,fontWeight:700,opacity:0.8,display:'flex',alignItems:'center',gap:4,pointerEvents:'none'}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:T.error}}/>
+                      {enrichedErrs.length} error{enrichedErrs.length!==1?'s':''}
+                    </div>
                   </div>
-                  <div style={{fontSize:11,color:T.muted,marginTop:6,lineHeight:1.4}}>{interpretation}</div>
+                  <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginTop:4}}>
+                    <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[0].timestamp)}</span>
+                    <span style={{fontSize:11,color:T.muted,flex:1,textAlign:'center',padding:'0 12px'}}>{interpretation}</span>
+                    <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[ents.length-1].timestamp)}</span>
+                  </div>
                 </div>;
               })()}
-              {/* Affected accounts */}
+
+              {/* Row 4: Affected accounts */}
               {(()=>{
                 if(errAcctMap.size===0)return null;
                 const acctCounts=new Map();
@@ -3778,6 +4187,15 @@ function App(){
             {errAcctFilter&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,margin:'8px 16px 0',fontSize:12,flexShrink:0}}>
               <span style={{color:T.muted}}>Filtered to account: <span className="mono" style={{color:T.primary}}>{errAcctFilter.slice(0,16)}...{errAcctFilter.slice(-6)}</span></span>
               <button onClick={()=>setErrAcctFilter(null)} style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:11,fontWeight:600,cursor:'pointer'}}>Show all</button>
+            </div>}
+            {(errSevFilter||errCatFilter||errPatternFilter)&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',borderRadius:6,margin:'8px 16px 0',fontSize:12,flexShrink:0}}>
+              <span style={{color:T.muted}}>
+                Filtered: {errSevFilter&&<span style={{color:sevColor(errSevFilter),fontWeight:600}}>{SEV[errSevFilter]?.l||errSevFilter}</span>}
+                {errCatFilter&&<span>{errSevFilter?' + ':''}<span style={{fontWeight:600}}>{(CAT[errCatFilter]||CAT.unknown).l.split(' / ')[0]}</span></span>}
+                {errPatternFilter&&<span>{(errSevFilter||errCatFilter)?' + ':''}<span style={{fontWeight:600}}>"{trunc(errPatternFilter,30)}"</span></span>}
+                <span style={{marginLeft:6,opacity:0.7}}>({sorted.length} of {displayErrs.length})</span>
+              </span>
+              <button onClick={()=>{setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);}} style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:11,fontWeight:600,cursor:'pointer'}}>Clear filters</button>
             </div>}
             {/* Master-detail body */}
             {enrichedErrs.length===0?(
@@ -3822,7 +4240,7 @@ function App(){
               </div>
               {/* Right panel: ErrCard detail */}
               <div style={{flex:1,overflowY:'auto',padding:'16px 20px',boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)'}}>
-                {detailErr?<ErrCard err={detailErr} onJump={jumpTo} linkedAcct={errAcctMap.get(detailErr.li)||null} onGoAcct={goToAcct} dev={logData.dev}/>:
+                {detailErr?<ErrCard err={detailErr} onJump={jumpTo} linkedAcct={errAcctMap.get(detailErr.li)||null} onGoAcct={goToAcct} dev={logData.dev} entries={logData.entries}/>:
                   <div style={{textAlign:'center',padding:40,color:T.muted,fontSize:13}}>Select an error to see details</div>
                 }
               </div>
