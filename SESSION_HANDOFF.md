@@ -34,17 +34,18 @@ You are picking up an ongoing collaboration. Read this entire document before re
 - When he says "lets go" or "wonderful" — he's giving the green light. Ship it.
 - He values interconnectedness — features should connect to other parts of the tool
 - His golden standard: "brilliant utility information" — no theatre, no decoration
+- **He holds you accountable.** If you make assumptions without research, he'll push back. If you miss something obvious, own it immediately. Don't read irrelevant SKILL.md files — just create the .md prompt directly.
 
 ---
 
 ## The tool
 
-`ledger-toolkit.html` — a single-file React/Babel app (~3,700 lines) for CS agents to diagnose customer issues from Ledger Wallet log exports. No build step, opens directly in browser. React 18.3.1 + Babel standalone.
+`ledger-toolkit.html` — a single-file React/Babel app (~3,850 lines) for CS agents to diagnose customer issues from Ledger Wallet log exports. No build step, opens directly in browser. React 18.3.1 + Babel standalone.
 
-**The data layer is FROZEN.** Never modify parsing, extraction, or diagnosis functions. Only rendering and styling can change. Rule: change how things LOOK, never how things WORK.
+**The data layer is FROZEN** — but may be EXTENDED to support new log formats (LLv4) as long as existing parsing for older logs is not broken.
 
-**Repo:** `github.com/pj-casey/ledger-toolkit`, branch `experimental` (merged to `main` at end of this session)
-**Primary reference:** `CLAUDE.md` in the repo (updated at end of this session to match current state)
+**Repo:** `github.com/pj-casey/ledger-toolkit`, branch `experimental` (merged to `main` at end of session)
+**Primary reference:** `CLAUDE.md` in the repo
 
 ---
 
@@ -56,84 +57,52 @@ You are picking up an ongoing collaboration. Read this entire document before re
 | `post-live-balances` | Live balance fetching + fiat values + no-device UX clarity. |
 | `pre-device-card` | Checkpoint before Overview redesign session. |
 | `post-overview-redesign` | Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview. |
+| `pre-llv4-compat` | Before LLv4 compatibility changes. |
+| `post-llv4-compat` | All LLv4 changes: device ID, sync, app catalog, branding. |
 
 To revert: `git checkout experimental && git reset --hard <tag-name> && git push origin experimental --force`
 
 ---
 
-## Current state of the tool (after this session)
+## Current state of the tool
 
-### What was built in the PREVIOUS session (already on main before this)
+### What was built in PREVIOUS sessions (already on main)
 
 1. **Mobile log support** — `synthesizeMobileMeta()` normalizes mobile logs. `logData.isMobile` flag. MOBILE badge in header.
-2. **Issues master-detail layout** — Left 45% compact list, right 55% ErrCard detail panel. `selectedErr` state. Auto-selects highest-severity error. Zero-errors: single centered message with session context.
+2. **Issues master-detail layout** — Left 45% compact list, right 55% ErrCard detail panel. `selectedErr` state.
 3. **Live on-chain balance fetching** — `COINGECKO_IDS`, `EVM_RPCS`, `fetchEvmBalance`, `BALANCE_APIS` (40+ chains), `fetchPrices`. AcctCard shows "live ···" → "X.XXXX TICKER · $Y.YY".
 4. **Portfolio stat card** — Shows total fiat from live balances.
 5. **No-sync visibility** — Comprehensive amber treatment across all surfaces.
 6. **No-device UX** — DEVICE APPS hidden when no Manager data. Auto-collapse.
+7. **Overview redesign** — Unified Device card, app chips, adaptive error grid, viewport scaling, no-scroll Overview, 3-zone layout, Quality Details popover.
 
-### What was built THIS session (the Overview redesign)
+### What was built THIS session (LLv4 compatibility + device identification overhaul)
 
-1. **Issues zero-errors fix** — When `enrichedErrs.length === 0`, shows full-width centered "✓ No errors detected" message instead of awkward split layout with empty right panel.
+**Context:** Ledger Live was renamed to Ledger Wallet on Oct 23, 2025. Ledger Wallet 4.0 (user-facing version "4.0.0") launched March 2026. LLv4 changed the log format significantly: bridge-based sync events replaced analytics SyncSuccess, DMK replaced old transport, APDU payloads stripped, device identification moved to target IDs and API responses.
 
-2. **"New file" button fix** — Removed `setFileKey(k=>k+1)` from `clearLog()`. The key increment was racing with `openPicker()` causing first file selection to be silently dropped. Fixed — loads on first try every time.
+1. **LLv4 bridge sync detection** — `extractAccounts` fallback: when no `SyncSuccess` analytics events exist, checks for `type: "bridge"` + `"SyncSession finished"` entry, sets `dur` on all accounts from session duration. Prevents false "no sync" alerts.
 
-3. **Unified Device card** — Replaced the separate Device disclosure widget + Environment card with a single `unifiedDeviceCard` block:
-   - Summary bar (unchanged)
-   - **B2: App chips** — wrapping inline tags instead of table rows. Sort: missing → outdated → ok. Green/amber/red per status. Chain enrichment in tiny text. `+ N others ✓` chip toggles `otherAppsOpen`.
-   - **B3: Environment rows** — OS, Platform, Ledger Live, User ID (with CopyBtn), Sync. Compact key-value rows.
-   - **B4: Device Reference popover** — `devDetailOpen` toggle at bottom of card. Opens as absolutely-positioned popover ABOVE the toggle (`bottom:calc(100%+4px)`). Zero layout height impact. Shows Language, Paired, Commit, MEV, Wallet Sync.
-   - No `overflowY:auto` anywhere in the card body.
+2. **Target ID masking (D-7)** — `TARGET_MASKS` constant with 6 device masks from `@ledgerhq/devices`. `identifyTargetId()` function uses `(targetId & 0xFFFF0000) >>> 0` — same algorithm as Ledger's own code. Scans `data.targetId`, `data.data.target_id`, and URL params. Primary device identification for LLv4 logs.
 
-4. **Quality Details popover** — Restored to Zone 3 bottom bar after being briefly moved to Device card. Always lives in Zone 3, upward popover (`bottom:calc(100%+8px)`).
+3. **Manager API response detection (D-5)** — Reads `get_device_version` response `data.data.name` for device model. Covers LLv4 sync/portfolio sessions.
 
-5. **Issues preview redesign** — Overview right column no longer shows full ErrCards:
-   - "N Issues" header + "View all →" link always visible at top
-   - 💡 Hint banner showing top account referenced by errors
-   - **Adaptive error grid** — `display:grid, gridTemplateColumns:repeat(auto-fit, minmax(min(200px,100%),1fr)), alignContent:start`. Up to 12 tiles. Reflows: 1 column for few errors, 2-3 for many. `overflow:hidden`, no scrollbar.
-   - Each tile: CRIT/WARN/INFO badge + timestamp | title | category
-   - Click navigates to Issues section with error pre-selected
+4. **Firmware path prefix detection (D-6)** — Parses `nanos+/1.5.1/...` style paths from Manager install data. Now includes `apex_p`/`apex` for Nano Gen5. Covers LLv4 Manager/DMK sessions.
 
-6. **No-scroll Overview** — Hard rule enforced. Left column `overflow:hidden`. Right column `overflow:hidden`. No `overflowY:auto` anywhere in Zone 2. Content clips cleanly.
+5. **Catalog-only device app detection** — New `source: 'catalog-only'` in `extractDeviceApps`. Scans `type: "hw"` install events for session installs + `apps-by-target` API response for latest available versions. Paired with `inferRequiredApps`, shows app chips with catalog versions instead of hiding the section entirely.
 
-7. **CSS viewport scaling** — 10 `--ov-*` CSS custom properties in `:root` using `clamp()` + `vh`. Applied to all Overview elements: stat cards, health pills, Device card, environment rows, chips, error tiles, Zone 3. Other sections untouched.
+6. **"Ledger Live" → "Ledger Wallet" rename** — `userAgent` parsed from `exportLogsMeta` for brand detection. `appBrand` field on `dev` ('wallet' or 'live'). Version fallback: `parseFloat(appVer) >= 2.132`. `llLabel(dev, isMobile)` and `llText(text, dev)` helpers. All 21+ UI references updated. ERR_DB advice replaced at render time without modifying frozen constants.
 
-8. **CopyBtn restored on User ID** — Environment rows now render `CopyBtn` conditionally on the User ID row.
-
-### Architecture
-Fixed-viewport dashboard. `height:100vh, overflow:hidden`. Page never scrolls. 240px sidebar + main content area. Live balance fetching on log load.
-
-### Design tokens
-```
-bg:#131214  panel:#1C1D1F  card:#242528  border:#3C3C3C  text:#FFFFFF
-muted:#949494  primary:#BBB0FF  success:#7AC26C  error:#F57375  warning:#FFBD42
-```
-
-### Overview — 3-zone layout (current)
-**Zone 1 (fixed):** Health pills + Copy Summary/Full + 4 stat cards + activity badges + no-sync amber banner.
-**Zone 2 (adaptive, NO SCROLL):**
-- WITH errors: Left 40% (`overflow:hidden`) — Unified Device card. Right 60% (`overflow:hidden`) — issues preview with hint banner + adaptive grid tiles.
-- WITHOUT errors: Single column — Unified Device card + green banner.
-**Zone 3 (clamp(44px,5.5vh,56px)):** Session info left. Quality ring + score + Details popover right.
-
-### Issues — Master-Detail
-Header: severity counts, error timeline strip, affected accounts, repeating patterns.
-With errors: Left 45% compact list + Right 55% ErrCard detail. `selectedErr` state.
-No errors: Single centered "✓ No errors detected" message with session context line.
-
-### Accounts
-Health squares, filter, funded/empty/no-data counts, Copy IDs, Export. AcctCards with live balances, app badges, amber borders for no-sync.
-
-### Customer View
-Three-panel layout. NOT modified. Marked for future dedicated redesign.
+7. **Dead code cleanup** — Removed unused `appsListOpen` state and its useEffect. Fixed redundant `v>=4||v>=2.132` to `v>=2.132`. Fixed hardcoded "Ledger Wallet Mobile" to use `llLabel`.
 
 ---
 
 ## Known issues / things to watch
 
-- **`appsListOpen` state** is declared but effectively unused — the old expand/collapse table button was removed when chips replaced the table. Harmless, but clean-up candidate.
-- **Zone 3 height** uses `clamp(44px, 5.5vh, 56px)` — at very small viewports this may feel tight. Acceptable given the tool is for desktop CS agents.
-- **Left column clips** if Device card has many chip rows + all Environment rows + Device Reference toggle. The popover pattern for Device Reference prevents the worst clipping. If this is still an issue on some logs, consider making ENVIRONMENT rows collapsible too.
+- **`SyncSuccessAllAccounts` analytics event** — PR #11917 in ledger-live monorepo added this as a new aggregate sync event. May carry richer data than our bridge "SyncSession finished" detection. Not yet implemented.
+- **Mobile Ledger Wallet logs** — `synthesizeMobileMeta` hasn't been tested against recent mobile exports from the renamed app. Same class of risk as desktop LLv4.
+- **app.json format** — `parseAppJson` was written for older exports. LLv4 may have changed structure. Not verified.
+- **Ledger's own log viewer** at `live.ledger.tools/logsviewer` — source in monorepo under `apps/web-tools`. Should compare extraction against ours.
+- **agent-guide.html** — Still needs updating for mobile logs, live balances, Overview redesign, and LLv4 changes.
 
 ---
 
@@ -143,26 +112,13 @@ Three-panel layout. NOT modified. Marked for future dedicated redesign.
 - **Phase 3:** App.json balance comparison (show delta between live and app.json — diagnostic gold for "my balance is wrong")
 - **Phase 4:** Polish (caching, "Refresh balances" button, staleness display, Ledger node endpoints as primary)
 
-### Ledger internal API optimization
-Ledger runs `{chain}.coin.ledger.com` blockchain node proxies (visible in mobile logs). Could be tried as primary balance endpoints with public RPCs as fallback. Not yet implemented.
+### Ongoing: Log format compatibility
+- Monitor LLv4/Ledger Wallet updates for further log format changes
+- Clone ledger-live repo for source code review of log export and parsing modules
+- Compare tool extraction against Ledger's own logsviewer
 
 ### Customer View redesign (backburner)
 Deferred. The Diagnostic side is the priority.
-
-### agent-guide.html
-Still needs updating for mobile log support, live balances, and Overview redesign.
-
----
-
-## Spec files in the repo
-
-| File | Status | Notes |
-|---|---|---|
-| CLAUDE.md | **Active — just updated** | Primary reference. Claude Code reads this first. |
-| SESSION_HANDOFF.md | **Active — just updated** | This file. Context for new instances. |
-| ROADMAP_LIVE_BALANCES.md | **Phase 1+2 implemented** | Phase 3 (app.json comparison) and Phase 4 (polish) pending. |
-| REDESIGN_VISION_V5.md | Historical reference | Core principles still apply. |
-| VIEWPORT_REDESIGN_SCOPE.md | Historical reference | Foundation implemented, layouts evolved. |
 
 ---
 
@@ -175,13 +131,14 @@ Still needs updating for mobile log support, live balances, and Overview redesig
 - List what NOT to change (longer than the changes — prevents regressions)
 - Specify exact state variable names, CSS values, string labels
 - Start every prompt with "Read `CLAUDE.md` first"
-- Tag before risky changes: `git tag <name>` (ask Peter to push)
+- Tag before risky changes
 
 **DON'T:**
 - Use pseudocode for critical logic
 - Combine more than ~3-4 coordinated changes without explicit sequencing
 - Assume Claude Code remembers previous prompts — each must be self-contained
 - Skip the "What NOT to change" section
+- Read SKILL.md files before creating plain .md prompt files — just create them directly
 
 **Format:** Always deliver as a downloadable .md file. Peter copy-pastes to Claude Code.
 
@@ -198,6 +155,7 @@ Still needs updating for mobile log support, live balances, and Overview redesig
 - He sometimes shares Slack conversations with colleagues — parse and translate
 - "No change for change's sake" — every modification must have clear utility
 - His golden standard: "brilliant utility information"
+- **Do your research before writing prompts.** Don't guess at version numbers, product names, or API formats. Use Ledger's open source repos as the source of truth.
 
 ---
 
@@ -205,7 +163,8 @@ Still needs updating for mobile log support, live balances, and Overview redesig
 
 1. Ask Peter what he wants to focus on
 2. Live balances Phase 3 (app.json comparison) is the highest-value remaining feature
-3. The data layer is FROZEN — never touch parsing, extraction, or diagnosis logic
+3. The data layer is FROZEN but may be EXTENDED for new log formats
 4. Every prompt needs a verification checklist and a "What NOT to change" section
-5. Tag before big changes: `git tag <name>` (ask Peter to `! git push origin <name>`)
-6. Overview no-scroll is a hard rule — if adding anything to Zone 2, it must not cause overflow
+5. Tag before big changes
+6. Overview no-scroll is a hard rule
+7. LLv4 compatibility work from this session should be tested with more diverse logs
