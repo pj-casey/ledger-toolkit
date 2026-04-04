@@ -1487,6 +1487,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance}){
     fetchTokenChains(chains).then(hadNew=>{if(hadNew)setTokV(v=>v+1);});
   },[open]);
   const ch=acct.ch,hasFunds=acct.ops>0;
+  const noSyncAcct=acct.dur==null&&acct.bal==null&&acct.ops===0;
   let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
   const hasExp=eUrl&&eUrl!=='#';
   const canX=acct.isXpub&&ch.xc;
@@ -1505,7 +1506,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance}){
     }
     return null;
   })();
-  return <div className="acct-hover" style={{background:T.panel,border:`1px solid ${open?ch.color+'60':T.border}`,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65}}>
+  return <div className="acct-hover" style={{background:T.panel,borderRadius:12,overflow:'hidden',marginBottom:12,opacity:hasFunds||open?1:0.65,border:`1px solid ${open?ch.color+'60':noSyncAcct?T.warning+'40':T.border}`,borderLeft:noSyncAcct&&!open?`3px solid ${T.warning}35`:`1px solid ${open?ch.color+'60':noSyncAcct?T.warning+'40':T.border}`}}>
     <div role="button" tabIndex={0} onClick={()=>setOpen(!open)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setOpen(o=>!o);}}} style={{display:'flex',alignItems:'center',padding:'16px 20px',cursor:'pointer',gap:14}}>
       <div className="mono" style={{width:42,height:42,borderRadius:10,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:ch.color,flexShrink:0}}>{ch.ticker.slice(0,4)}</div>
       <div style={{flex:1,minWidth:0}}>
@@ -2378,7 +2379,17 @@ function buildDeviceAppsLines(logData, isFull) {
   return lines;
 }
 
-function DiagSidebar({ logData, section, setSection }) {
+function fmtAcctLine(a,short,liveBalances,isMobile){
+  const addr=short?(a.addr.length>20?a.addr.slice(0,20)+'...':a.addr):(a.addr.length>30?a.addr.slice(0,16)+'...'+a.addr.slice(-8):a.addr);
+  const lb=liveBalances?liveBalances[a.id]:null;
+  const balStr=lb&&lb.status==='ok'&&lb.bal!=null&&lb.bal>0
+    ?`${lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} ${a.ch.ticker}${lb.fiat!=null?' ($'+lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})+')':''}`
+    :null;
+  const opsStr=!isMobile&&a.ops>0?`${a.ops} ops`:null;
+  return '  '+[a.ch.name,balStr,opsStr,addr].filter(Boolean).join(' — ');
+}
+
+function DiagSidebar({ logData, section, setSection, liveBalances }) {
   const errors = logData ? logData.errs : [];
   const accounts = logData ? logData.accts : [];
 
@@ -2397,6 +2408,8 @@ function DiagSidebar({ logData, section, setSection }) {
     : warnCount > 0
     ? `${warnCount} warning${warnCount > 1 ? 's' : ''} during session`
     : errors.length === 0 ? 'Clean session — no issues detected' : `No critical issues — ${errors.length} informational event${errors.length!==1?'s':''} logged (routine)`;
+  const noSync = accounts.length > 0 && !accounts.some(a => a.dur != null || a.bal != null);
+  const sevSentenceFinal = noSync ? sevSentence + ' · No sync data' : sevSentence;
 
   const dropItemStyle = {
     display: 'block', width: '100%', padding: '8px 12px',
@@ -2409,11 +2422,13 @@ function DiagSidebar({ logData, section, setSection }) {
     const d = logData.dev;
     const accts = logData.accts;
     const errs = logData.errs;
+    const noSyncTxt = accts.length > 0 && !accts.some(a => a.dur != null || a.bal != null);
     const ses = logData.entries.length > 1
       ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
       : 'Unknown';
     return [
       logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',
+      ...(noSyncTxt ? ['⚠ NO SYNC DATA — operation counts and log balances are unavailable.', '  Live blockchain balances shown where available.', ''] : []),
       `Session:     ${ses}`,
       '',
       'DEVICE',
@@ -2426,8 +2441,9 @@ function DiagSidebar({ logData, section, setSection }) {
       '',
       ...buildDeviceAppsLines(logData, false),
       `ACCOUNTS (${accts.length})`,
-      ...accts.slice(0, 10).map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
+      ...accts.slice(0, 10).map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
       ...(accts.length > 10 ? [`  ... and ${accts.length - 10} more`] : []),
+      (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
       '',
       `ERRORS (${errs.length})`,
       ...errs.slice(0, 8).map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${e.dg?.a || ''}`),
@@ -2446,11 +2462,13 @@ function DiagSidebar({ logData, section, setSection }) {
     const d = logData.dev;
     const accts = logData.accts;
     const errs = logData.errs;
+    const noSyncTxt = accts.length > 0 && !accts.some(a => a.dur != null || a.bal != null);
     const ses = logData.entries.length > 1
       ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
       : 'Unknown';
     return [
       logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',
+      ...(noSyncTxt ? ['⚠ NO SYNC DATA — operation counts and log balances are unavailable.', '  Live blockchain balances shown where available.', ''] : []),
       `Session:     ${ses}`,
       '',
       'DEVICE',
@@ -2463,7 +2481,8 @@ function DiagSidebar({ logData, section, setSection }) {
       '',
       ...buildDeviceAppsLines(logData, true),
       `ACCOUNTS (${accts.length})`,
-      ...accts.map(a => { const addr = a.addr.length > 20 ? a.addr.slice(0, 20) + '...' : a.addr; return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`; }),
+      ...accts.map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
+      (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
       '',
       `ERRORS (${errs.length})`,
       ...errs.map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${e.dg?.a || ''}`),
@@ -2483,8 +2502,10 @@ function DiagSidebar({ logData, section, setSection }) {
     const errs = logData.errs;
     const funded = accts.filter(a => a.ops > 0);
     const empty = accts.filter(a => a.ops <= 0);
+    const noSyncTxt = accts.length > 0 && !accts.some(a => a.dur != null || a.bal != null);
     const lines = [
       '=== Customer Wallet Summary ===',
+      ...(noSyncTxt ? ['⚠ NO SYNC DATA — operation counts and log balances are unavailable.', '  Live blockchain balances shown where available.', ''] : []),
       '',
       'DEVICE',
       `  Model:     ${dev.modelName || dev.modelId || 'Unknown'}`,
@@ -2497,10 +2518,14 @@ function DiagSidebar({ logData, section, setSection }) {
       `ACCOUNTS (${accts.length})`,
     ];
     for (const a of funded) {
-      const addr = a.addr ? (a.addr.length > 30 ? a.addr.slice(0, 16) + '...' + a.addr.slice(-8) : a.addr) : '';
-      lines.push(`  ${a.ch.name}: ${a.ops} ops — ${addr}`);
+      lines.push(fmtAcctLine(a,false,liveBalances,logData.isMobile));
     }
-    if (empty.length > 0) lines.push(`  (${empty.length} empty account${empty.length !== 1 ? 's' : ''})`);
+    const noDataCount=empty.filter(a=>a.dur==null&&a.bal==null).length;
+    const confirmedEmpty=empty.length-noDataCount;
+    if(confirmedEmpty>0)lines.push(`  (${confirmedEmpty} empty account${confirmedEmpty!==1?'s':''})`);
+    if(noDataCount>0)lines.push(`  (${noDataCount} account${noDataCount!==1?'s':''} — no balance data)`);
+    const portfolioTotal=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);
+    if(portfolioTotal>0){lines.push('');lines.push(`PORTFOLIO: $${portfolioTotal.toLocaleString(undefined,{maximumFractionDigits:2})} USD`);}
     if (errs.length > 0) {
       lines.push('');
       lines.push(`ISSUES (${errs.length})`);
@@ -2581,7 +2606,7 @@ function DiagSidebar({ logData, section, setSection }) {
         <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#949494', marginBottom: 4 }}>Overview</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{ color: sevColor, fontSize: 10 }}>●</span>
-          <span style={{ fontSize: 12, color: '#FFFFFF', lineHeight: 1.3 }}>{sevSentence}</span>
+          <span style={{ fontSize: 12, color: '#FFFFFF', lineHeight: 1.3 }}>{sevSentenceFinal}</span>
         </div>
         <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
           <button
@@ -2621,7 +2646,7 @@ function DiagSidebar({ logData, section, setSection }) {
 
         {/* Accounts */}
         <SectionHeader
-          icon={<Ico.Wallet />} label="Accounts" subtitle="Crypto accounts in this log"
+          icon={<Ico.Wallet />} label="Accounts" subtitle={noSync ? 'No sync — log balances unavailable' : 'Crypto accounts in this log'}
           count={accounts.length} active={section === 'accounts'} expandable expanded={accountsOpen}
           onClick={() => { setAccountsOpen(o => !o); setSection('accounts'); }}
         />
@@ -2638,6 +2663,7 @@ function DiagSidebar({ logData, section, setSection }) {
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: chainColor, flexShrink: 0, display: 'inline-block' }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acct.ch.name}</span>
                   {errCount > 0 && <span style={{ fontSize: 10, color: '#F57375', background: 'rgba(245,115,117,0.15)', borderRadius: 3, padding: '1px 4px' }}>⚠{errCount}</span>}
+                  {(()=>{const lb=liveBalances?.[acct.id];if(!lb||lb.status!=='ok'||!lb.fiat)return null;return <span className="mono" style={{fontSize:9,color:'#7AC26C',marginLeft:'auto',flexShrink:0}}>{lb.fiat<1000?'$'+lb.fiat.toFixed(2):'$'+Math.round(lb.fiat).toLocaleString()}</span>;})()}
                 </div>
               );
             })}
@@ -2932,7 +2958,7 @@ function App(){
 
       {/* Log Viewer */}
       {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden'}}>
-        <DiagSidebar logData={logData} section={section} setSection={setSection} />
+        <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} />
         <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
         {/* TODO: ENHANCEMENTS — contextual guidance and empty states added in task 3 */}
 
@@ -2963,6 +2989,7 @@ function App(){
           // Guidance
           const acctRefs={};logData.errs.forEach(e=>{if(e.dg&&e.dg.r){const a=logData.accts.find(a=>a.addr&&a.addr.length>8&&e.dg.r.includes(a.addr));if(a)acctRefs[a.addr]=(acctRefs[a.addr]||0)+1;}});
           const topAcct=Object.entries(acctRefs).sort((a,b)=>b[1]-a[1])[0];
+          const noSync=logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null||a.bal!=null);
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
 
             {/* Zone 1: Top strip */}
@@ -2975,19 +3002,23 @@ function App(){
                   </span>
                 ))}
                 <div style={{flex:1}}/>
-                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=[logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,...accts.slice(0,10).map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}), ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),'',`ERRORS (${errs.length})`,...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),'',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setSumCopied(true);setTimeout(()=>setSumCopied(false),2000);}} aria-label="Copy diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',flexShrink:0}}>
+                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=[logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===', ...(noSync?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,...accts.slice(0,10).map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)), ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]), (()=>{const t=Object.values(liveBalances).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),'',`ERRORS (${errs.length})`,...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),'',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setSumCopied(true);setTimeout(()=>setSumCopied(false),2000);}} aria-label="Copy diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',flexShrink:0}}>
                   {sumCopied?'Copied!':'Copy Summary'}
                 </button>
-                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=[logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,true),`ACCOUNTS (${accts.length})`,...accts.map(a=>{const addr=a.addr.length>20?a.addr.slice(0,20)+'...':a.addr;return logData.isMobile?`  ${a.ch.name} — ${addr}`:`  ${a.ch.name} — ${a.ops} ops — ${addr}`;}), '','',`ERRORS (${errs.length})`,...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), '','',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setFullCopied(true);setTimeout(()=>setFullCopied(false),2000);}} aria-label="Copy full diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'0F',color:T.primary,border:`1px solid ${T.primary}33`,cursor:'pointer',opacity:0.75,flexShrink:0}}>
+                <button onClick={()=>{const d=logData.dev;const accts=logData.accts;const errs=logData.errs;const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';const lines=[logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===', ...(noSync?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),`File:        ${fileName}`,`Session:     ${ses}`,'','DEVICE',`  Model:       ${d.modelName||d.modelId||'Unknown'}`,`  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,`  ${logData.isMobile?'LW Mobile':'Ledger Live'}: ${d.appVer||'Unknown'}`,`  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,`  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'', ...buildDeviceAppsLines(logData,true),`ACCOUNTS (${accts.length})`,...accts.map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)), (()=>{const t=Object.values(liveBalances).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),'','',`ERRORS (${errs.length})`,...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${e.dg?.a||''}`), '','',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),'================================='].filter(l=>l!==undefined).join('\n');copyText(lines);setFullCopied(true);setTimeout(()=>setFullCopied(false),2000);}} aria-label="Copy full diagnostic summary to clipboard" className="copy-btn" style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'0F',color:T.primary,border:`1px solid ${T.primary}33`,cursor:'pointer',opacity:0.75,flexShrink:0}}>
                   {fullCopied?'Copied!':'Copy Full'}
                 </button>
               </div>
+              {noSync&&<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(255,189,66,0.08)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
+                <span style={{color:T.warning,fontWeight:700,fontSize:13,flexShrink:0}}>⚠</span>
+                <span style={{color:T.warning}}><strong>No sync captured in this session</strong> — operation counts, log balances, and account status are unavailable. {Object.values(liveBalances).some(lb=>lb.status==='ok'&&lb.bal!=null)?'Live blockchain balances are being shown where available.':'Live blockchain balances are being fetched.'}</span>
+              </div>}
               {/* Stat cards */}
               <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:10}}>
                 {[
                   {l:'Entries',v:logData.entries.length,c:T.text},
-                  {l:'Accounts',v:logData.accts.length,c:logData.accts.length>0?T.success:T.muted,click:()=>setSection('accounts')},
-                  {l:'Operations',v:logData.dev.totalOps||'—',c:(logData.dev.totalOps&&logData.dev.totalOps!=='—')?T.text:T.muted},
+                  {l:noSync?'Accounts ⚠':'Accounts',v:logData.accts.length,c:logData.accts.length>0?(noSync?T.warning:T.success):T.muted,click:()=>setSection('accounts')},
+                  {l:noSync?'Portfolio (live)':'Portfolio',v:(()=>{const vals=Object.values(liveBalances);if(!vals.length)return '—';if(vals.some(lb=>lb.status==='loading'))return '···';const t=vals.reduce((s,lb)=>s+(lb.fiat||0),0);return t===0?'$0':'$'+t.toLocaleString(undefined,{maximumFractionDigits:0});})(),c:(()=>{const vals=Object.values(liveBalances);if(!vals.length||vals.some(lb=>lb.status==='loading'))return T.muted;return vals.reduce((s,lb)=>s+(lb.fiat||0),0)>0?T.success:T.muted;})(),click:()=>setSection('accounts')},
                   {l:'Issues',v:logData.errs.length,c:logData.errs.length>0?T.error:T.muted,click:()=>setSection('errors')}
                 ].map(s=>(
                   <div key={s.l}
@@ -3282,12 +3313,20 @@ function App(){
           {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
             logData.isMobile
               ? <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0}}>💡</span><span>Mobile logs don't include operation counts or balances. Accounts show chains and addresses only. Switch to <span onClick={()=>setViewMode('customer')} style={{color:T.primary,fontWeight:600,cursor:'pointer'}}>Customer View</span> and load the customer's app.json for full account details.</span></div>
-              : <div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>
+              : <div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>
           )}
           {logData.accts.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
-            {logData.accts.map(a=>(
-              <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${a.ops>0?` · ${a.ops} ops`:(a.dur!=null||a.bal!=null)?' · empty':' · no data'}`} style={{width:20,height:20,borderRadius:3,background:a.ops>0?a.ch.color:T.border,opacity:a.ops>0?1:0.4,cursor:'pointer',flexShrink:0}}/>
-            ))}
+            {logData.accts.map(a=>{
+              const lb=liveBalances[a.id];
+              const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
+              const noData=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
+              const bg=hasFunds?a.ch.color:noData?T.warning+'60':T.border;
+              const op=hasFunds?1:noData?0.5:0.4;
+              const balStr=lb&&lb.status==='ok'&&lb.bal!=null&&lb.bal>0?` · ${lb.bal.toLocaleString(undefined,{maximumFractionDigits:4})} ${a.ch.ticker}`:'';
+              const fiatStr=lb&&lb.fiat!=null&&lb.fiat>0?` ($${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})})`:'';
+              const statusStr=a.ops>0?` · ${a.ops} ops`:(a.dur!=null||a.bal!=null||(lb&&lb.status==='ok'))?' · empty':' · no data';
+              return <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${balStr}${fiatStr}${statusStr}`} style={{width:20,height:20,borderRadius:3,background:bg,opacity:op,cursor:'pointer',flexShrink:0}}/>;
+            })}
           </div>}
           <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
           </div>{/* end fixed header */}
