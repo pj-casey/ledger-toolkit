@@ -1583,7 +1583,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount,deviceApps,liveBalance}){
+function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -1620,7 +1620,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance}){
           <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
           {acct.toks.length>0&&<span style={bdg(T.primary)}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
           {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>{acct.dur!=null||acct.bal!=null?'empty':'no data'}</span>}
-          {errCount>0&&<span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,115,117,0.15)',color:T.error}}>⚠ {errCount} issue{errCount!==1?'s':''}</span>}
+          {errCount>0&&<span onClick={ev=>{ev.stopPropagation();if(onErrClick)onErrClick();}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(245,115,117,0.15)',color:T.error,cursor:'pointer'}} title="View issues for this account">⚠ {errCount} issue{errCount!==1?'s':''}</span>}
           {appBadge}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
@@ -1632,6 +1632,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance}){
       <div style={{display:'flex',alignItems:'center',gap:8}}>
         {hasExp&&!acct.isXpub&&<a href={eUrl} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()} aria-label={`View ${ch.name} on explorer`} style={{color:T.muted,display:'inline-flex',alignItems:'center',padding:4,borderRadius:4,opacity:0.6}} title="View on explorer"><Ico.Link/></a>}
 
+        {canX&&!open&&<button onClick={ev=>{ev.stopPropagation();setOpen(true);}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:5,border:`1px solid ${ch.color}40`,background:ch.color+'12',color:ch.color,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}} title={`Derive and scan ${ch.name} addresses from xpub`}><Ico.Scan/> Scan</button>}
         {acct.dm&&<span className="mono label" style={{color:T.muted,background:'rgba(255,255,255,0.04)',padding:'3px 8px',borderRadius:4,textTransform:'none',letterSpacing:'normal'}}>{acct.dm}</span>}
         <span style={{color:T.muted,transform:open?'rotate(90deg)':'none',transition:'transform 0.2s',display:'inline-block'}}><Ico.ChevR/></span>
       </div>
@@ -2873,6 +2874,10 @@ function App(){
   const[devDetailOpen,setDevDetailOpen]=useState(false);
   const[deviceExpanded,setDeviceExpanded]=useState(true);
   const[selectedErr,setSelectedErr]=useState(null);
+  const[errAcctFilter,setErrAcctFilter]=useState(null);
+  const[hoveredAcct,setHoveredAcct]=useState(null);
+  const[hoveredRef,setHoveredRef]=useState(null);
+  const[acctMapOpen,setAcctMapOpen]=useState(false);
   const[sumCopied,setSumCopied]=useState(false);
   const[fullCopied,setFullCopied]=useState(false);
   const[apduExportCopied,setApduExportCopied]=useState(false);
@@ -3465,20 +3470,116 @@ function App(){
           {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
             logData.isMobile
               ? <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0}}>💡</span><span>Mobile logs don't include operation counts or balances. Accounts show chains and addresses only. Switch to <span onClick={()=>setViewMode('customer')} style={{color:T.primary,fontWeight:600,cursor:'pointer'}}>Customer View</span> and load the customer's app.json for full account details.</span></div>
-              : <div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync).</div>
+              : <div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync). For exact balances, switch to Customer View and load the customer's app.json.</div>
           )}
-          {logData.accts.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
-            {logData.accts.map(a=>{
+          {logData.accts.length>0&&<div style={{position:'relative',marginBottom:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+              <span style={{fontSize:15,fontWeight:700,color:(()=>{const t=Object.values(liveBalances).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?T.success:T.muted;})(),fontFamily:'Inter,sans-serif'}}>
+                {(()=>{const vals=Object.values(liveBalances);if(vals.some(lb=>lb.status==='loading'))return'···';const t=vals.reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?'$'+t.toLocaleString(undefined,{maximumFractionDigits:0}):'$0';})()}
+              </span>
+              <span style={{fontSize:11,color:T.muted}}>{logData.accts.length} account{logData.accts.length!==1?'s':''}</span>
+              <div style={{flex:1}}/>
+              <button onClick={()=>setAcctMapOpen(o=>!o)} style={{padding:'3px 8px',borderRadius:5,border:`1px solid ${T.border}`,background:acctMapOpen?T.primary+'1A':'transparent',color:acctMapOpen?T.primary:T.muted,fontSize:10,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
+                {acctMapOpen?'Close':'Portfolio'} {acctMapOpen?'▾':'▸'}
+              </button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+              {logData.accts.map(a=>{
+                const lb=liveBalances[a.id];
+                const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
+                const noData=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
+                const unsupported=lb&&lb.status==='unsupported';
+                const hasErrs=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase());})();
+                const isFiltered=acctFilter&&a.ch.name.toLowerCase().includes(acctFilter.toLowerCase());
+                const bg=hasFunds?a.ch.color:noData?T.warning+'60':T.border;
+                const op=hasFunds?1:noData?0.5:0.4;
+                const canX=a.isXpub&&a.ch.xc;
+                return <div key={a.id}
+                  onClick={()=>setAcctFilter(acctFilter===a.ch.name?'':a.ch.name)}
+                  onMouseEnter={e=>{setHoveredAcct(a.id);setHoveredRef(e.currentTarget);}}
+                  onMouseLeave={()=>{setHoveredAcct(null);setHoveredRef(null);}}
+                  style={{
+                    width:30,height:30,borderRadius:4,background:bg,opacity:op,cursor:'pointer',flexShrink:0,
+                    position:'relative',display:'flex',alignItems:'center',justifyContent:'center',
+                    border:isFiltered?`2px solid ${a.ch.color}`:'2px solid transparent',
+                    transition:'border-color 0.15s, transform 0.1s',
+                    transform:hoveredAcct===a.id?'scale(1.15)':'scale(1)',
+                  }}>
+                  <span style={{fontSize:8,fontWeight:800,color:hasFunds?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'-0.02em',lineHeight:1,userSelect:'none'}}>{a.ch.ticker.slice(0,3)}</span>
+                  {hasErrs&&<span style={{position:'absolute',top:-2,right:-2,width:6,height:6,borderRadius:'50%',background:T.error,border:'1px solid '+T.bg}}/>}
+                  {canX&&<span style={{position:'absolute',bottom:-1,right:-1,width:5,height:5,borderRadius:1,background:T.primary,border:'1px solid '+T.bg}}/>}
+                  {unsupported&&<span style={{position:'absolute',top:-2,left:-2,fontSize:6,color:T.muted,fontWeight:700}}>?</span>}
+                </div>;
+              })}
+            </div>
+
+            {/* Hover popover — positioned near hovered tile */}
+            {hoveredAcct&&hoveredRef&&(()=>{
+              const a=logData.accts.find(x=>x.id===hoveredAcct);
+              if(!a)return null;
               const lb=liveBalances[a.id];
               const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
               const noData=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
-              const bg=hasFunds?a.ch.color:noData?T.warning+'60':T.border;
-              const op=hasFunds?1:noData?0.5:0.4;
-              const balStr=lb&&lb.status==='ok'&&lb.bal!=null&&lb.bal>0?` · ${lb.bal.toLocaleString(undefined,{maximumFractionDigits:4})} ${a.ch.ticker}`:'';
-              const fiatStr=lb&&lb.fiat!=null&&lb.fiat>0?` ($${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})})`:'';
-              const statusStr=a.ops>0?` · ${a.ops} ops`:(a.dur!=null||a.bal!=null||(lb&&lb.status==='ok'))?' · empty':' · no data';
-              return <div key={a.id} onClick={()=>setAcctFilter(a.ch.name)} title={`${a.ch.name}${a.id?` ${a.id.slice(-4)}`:''}${balStr}${fiatStr}${statusStr}`} style={{width:20,height:20,borderRadius:3,background:bg,opacity:op,cursor:'pointer',flexShrink:0}}/>;
-            })}
+              const canX=a.isXpub&&a.ch.xc;
+              let eUrl=null;try{eUrl=a.ch.url?.(a.addr);}catch{}
+              const hasExp=eUrl&&eUrl!=='#'&&!a.isXpub;
+              const errCount=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())?logData.errs.filter(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())).length:0;})();
+              const parentRect=hoveredRef.parentElement?.parentElement?.getBoundingClientRect();
+              const tileRect=hoveredRef.getBoundingClientRect();
+              const left=tileRect.left-(parentRect?.left||0);
+              const top=tileRect.top-(parentRect?.top||0);
+              return <div style={{position:'absolute',top:'calc('+(top+38)+'px)',left:Math.max(0,Math.min(left-60,(parentRect?.width||400)-270)),width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',padding:'10px 14px',zIndex:30,pointerEvents:'none'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <span style={{width:24,height:24,borderRadius:6,background:a.ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:a.ch.color,fontFamily:MF}}>{a.ch.ticker.slice(0,3)}</span>
+                  <span style={{fontWeight:600,fontSize:13}}>{a.ch.name}</span>
+                  {a.toks.length>0&&<span style={{fontSize:10,color:T.primary,fontWeight:600}}>{a.toks.length} token{a.toks.length!==1?'s':''}</span>}
+                </div>
+                <div className="mono" style={{fontSize:10,color:T.muted,marginBottom:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.addr}</div>
+                {lb&&lb.status==='ok'&&lb.bal!=null&&<div className="mono" style={{fontSize:12,color:T.success,fontWeight:600,marginBottom:4}}>
+                  {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
+                </div>}
+                {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:4}}>Loading balance···</div>}
+                {(!lb||lb.status==='unsupported')&&!noData&&<div style={{fontSize:11,color:T.muted,marginBottom:4}}>{hasFunds?a.ops+' operations':'Empty account'}</div>}
+                {noData&&<div style={{fontSize:11,color:T.warning,marginBottom:4}}>No sync data</div>}
+                <div style={{display:'flex',flexWrap:'wrap',gap:4,fontSize:10}}>
+                  {a.dm&&<span style={{color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:3}}>{a.dm}</span>}
+                  {errCount>0&&<span style={{color:T.error,fontWeight:700}}>⚠ {errCount} issue{errCount!==1?'s':''}</span>}
+                  {canX&&<span style={{color:T.primary,fontWeight:600}}>xpub · scannable</span>}
+                  {hasExp&&<span style={{color:T.muted}}>explorer ↗</span>}
+                </div>
+              </div>;
+            })()}
+
+            {/* Portfolio overlay — proportional tiles */}
+            {acctMapOpen&&<div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',padding:'12px 14px',zIndex:25,maxHeight:300,overflowY:'auto'}}>
+              <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',color:T.muted,marginBottom:8}}>Portfolio Allocation</div>
+              {(()=>{
+                const withFiat=logData.accts.map(a=>({a,fiat:liveBalances[a.id]?.fiat||0,lb:liveBalances[a.id]})).sort((x,y)=>y.fiat-x.fiat);
+                const maxFiat=Math.max(...withFiat.map(w=>w.fiat),1);
+                return <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'flex-end'}}>
+                  {withFiat.map(({a,fiat,lb})=>{
+                    const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
+                    const noData=a.dur==null&&a.bal==null;
+                    const pct=fiat>0?(fiat/maxFiat):0;
+                    const size=fiat>0?Math.round(36+pct*44):hasFunds?36:30;
+                    const bg=hasFunds?a.ch.color:noData?T.warning+'60':T.border;
+                    const op=hasFunds?1:noData?0.5:0.4;
+                    return <div key={a.id}
+                      onClick={()=>{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);setAcctMapOpen(false);}}
+                      style={{width:size,height:size,borderRadius:6,background:bg,opacity:op,cursor:'pointer',
+                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                        transition:'transform 0.1s',gap:1,padding:2,overflow:'hidden',
+                      }}
+                      onMouseEnter={e=>e.currentTarget.style.transform='scale(1.08)'}
+                      onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+                      title={`${a.ch.name}${fiat>0?' · $'+fiat.toLocaleString(undefined,{maximumFractionDigits:0}):''}`}>
+                      <span style={{fontSize:size>50?11:9,fontWeight:800,color:hasFunds?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.5)',textTransform:'uppercase',lineHeight:1,userSelect:'none'}}>{a.ch.ticker.slice(0,4)}</span>
+                      {fiat>0&&size>44&&<span style={{fontSize:8,fontWeight:600,color:hasFunds?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.3)',lineHeight:1,userSelect:'none'}}>${fiat>=1000?(fiat/1000).toFixed(1)+'k':fiat.toFixed(0)}</span>}
+                    </div>;
+                  })}
+                </div>;
+              })()}
+            </div>}
           </div>}
           <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
           </div>{/* end fixed header */}
@@ -3489,7 +3590,44 @@ function App(){
               const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();
               for(const a of logData.accts){if(a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())){acctErrCounts[a.id]=(acctErrCounts[a.id]||0)+1;}}
             }
-            return filtAccts.map(a=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null}/>);
+            // Group accounts by shared address (EVM chains share the same 0x address)
+            const groups=[];
+            const used=new Set();
+            for(const a of filtAccts){
+              if(used.has(a.id))continue;
+              const sameAddr=filtAccts.filter(b=>!used.has(b.id)&&b.addr===a.addr&&b.addr.length>=20);
+              if(sameAddr.length>1){
+                const sorted=[...sameAddr].sort((x,y)=>{
+                  if(x.cid==='ethereum')return -1;if(y.cid==='ethereum')return 1;
+                  return x.ch.name.localeCompare(y.ch.name);
+                });
+                groups.push({type:'group',addr:a.addr,accts:sorted});
+                for(const s of sorted)used.add(s.id);
+              }else{
+                groups.push({type:'single',acct:a});
+                used.add(a.id);
+              }
+            }
+            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}}/>;
+            return groups.map((g,i)=>{
+              if(g.type==='single')return renderCard(g.acct);
+              const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
+              const groupFunded=g.accts.filter(a=>a.ops>0||(liveBalances[a.id]?.status==='ok'&&liveBalances[a.id]?.bal>0)).length;
+              return <div key={'grp-'+g.addr} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:10,padding:'12px 12px 0',marginBottom:12}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,padding:'0 8px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',color:T.muted}}>Shared Address</span>
+                    <span className="mono" style={{fontSize:11,color:T.primary,opacity:0.8}}>{g.addr.slice(0,10)}...{g.addr.slice(-6)}</span>
+                    <CopyBtn text={g.addr}/>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{fontSize:11,color:T.muted}}>{g.accts.length} chains</span>
+                    {groupFiat>0&&<span style={{fontSize:11,fontWeight:600,color:T.success}}>${groupFiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
+                  </div>
+                </div>
+                {g.accts.map(a=>renderCard(a))}
+              </div>;
+            });
           })()}
           {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'center',color:T.muted,padding:40}}>
             <div style={{fontSize:28,marginBottom:8}}>👛</div>
@@ -3502,12 +3640,6 @@ function App(){
             <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No accounts in this log</div>
             <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Account data wasn't captured in this export. Switch to Customer View and load the customer's app.json for accounts and balances.</div>
           </div>}
-          {filtAccts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
-            <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,padding:'8px 12px',fontSize:12,color:'#949494',lineHeight:1.5,display:'flex',alignItems:'flex-start',gap:8,marginTop:12}}>
-              <span style={{fontSize:13,flexShrink:0}}>💡</span>
-              <span>No sync captured — balances may be incomplete. Switch to <span style={{color:T.primary,fontWeight:600}}>Customer View</span> for exact figures.</span>
-            </div>
-          )}
           </div>{/* end scrollable */}
         </div>}
 
@@ -3518,6 +3650,7 @@ function App(){
           const baseDg=allErrs.map(e=>({...e,dg:diagnose(e.raw)}));
           const titleCounts={};for(const e of baseDg){const t=e.dg.t;titleCounts[t]=(titleCounts[t]||0)+1;}
           const enrichedErrs=baseDg.map(e=>{const c=titleCounts[e.dg.t];return c>1?{...e,dg:{...e.dg,repeatCount:c-1}}:e;});
+          const displayErrs=errAcctFilter?enrichedErrs.filter(e=>{const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();return hay.includes(errAcctFilter.toLowerCase());}):enrichedErrs;
           const errRefs={};
           const errAcctMap=new Map();
           for(const e of enrichedErrs){
@@ -3532,9 +3665,9 @@ function App(){
           const seenTitles=new Set();
           const repeatingUniq=repeating.filter(e=>{if(seenTitles.has(e.dg.t))return false;seenTitles.add(e.dg.t);return true;});
 
-          const sorted=enrichedErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0);});
+          const sorted=displayErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0);});
           const effectiveSel=selectedErr!=null?selectedErr:(sorted[0]?.li??null);
-          const detailErr=enrichedErrs.find(e=>e.li===effectiveSel)||null;
+          const detailErr=displayErrs.find(e=>e.li===effectiveSel)||null;
           const sevColor=s=>s==='high'?T.error:s==='medium'?T.warning:'#8A9EF5';
 
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
@@ -3642,6 +3775,10 @@ function App(){
                 </div>;
               })()}
             </div>{/* end fixed header */}
+            {errAcctFilter&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,margin:'8px 16px 0',fontSize:12,flexShrink:0}}>
+              <span style={{color:T.muted}}>Filtered to account: <span className="mono" style={{color:T.primary}}>{errAcctFilter.slice(0,16)}...{errAcctFilter.slice(-6)}</span></span>
+              <button onClick={()=>setErrAcctFilter(null)} style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:11,fontWeight:600,cursor:'pointer'}}>Show all</button>
+            </div>}
             {/* Master-detail body */}
             {enrichedErrs.length===0?(
               <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'48px 24px'}}>
