@@ -3,26 +3,29 @@
 Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose customer issues from Ledger Wallet log exports.
 
 **Branch:** `experimental`
-**Design references:** REDESIGN_VISION_V5.md (design philosophy), VIEWPORT_REDESIGN_SCOPE.md (fixed-viewport architecture), ROADMAP_LIVE_BALANCES.md (planned: live on-chain balance fetching)
+**Design references:** REDESIGN_VISION_V5.md (design philosophy), VIEWPORT_REDESIGN_SCOPE.md (fixed-viewport architecture), ROADMAP_LIVE_BALANCES.md (live balance architecture — now implemented)
 
 ---
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~3,350 lines)
+- **ONE file**: `ledger-toolkit.html` (~3,650 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
+- **Live network calls** — fetches on-chain balances (public RPCs) and fiat prices (CoinGecko) on log load. No API keys required.
 
 ---
 
 ## What the tool does
 
-1. Agent drops a JSON/TXT/LOG file
+1. Agent drops a JSON/TXT/LOG file (desktop or mobile format)
 2. 3-tier parser handles minified, pretty-printed, and corrupted JSON
-3. **Two modes:**
+3. Mobile log normalization: `date→timestamp`, reverse chronological order, filename parsing for app version + platform
+4. **Live balance fetching:** Auto-fetches on-chain balances for all accounts (40+ chains), then batch-fetches fiat prices from CoinGecko
+5. **Two modes:**
 
-**Diagnostic Mode:** Fixed-viewport dashboard. Sidebar navigation + main content area. Health status pills (clickable, expand device disclosure). Device info + apps as inline disclosure on Overview. Firmware update status. Timeline density visualization. Error distribution. APDU device communication (under Advanced). Copy Summary/Full/Customer.
+**Diagnostic Mode:** Fixed-viewport dashboard. Sidebar navigation + main content area. Health status pills (clickable, expand device disclosure). Device info + apps as inline disclosure on Overview. Firmware update status. Live balances + fiat values on AcctCards. Portfolio stat card. Timeline density visualization. Error distribution. APDU device communication (under Advanced). Copy Summary/Full/Customer with balances.
 
 **Customer View:** Sidebar + main area + info bar. App.json enrichment (encrypted-safe). Copy Customer Summary. Click-to-copy. 45+ chain tx explorer links. dApp usage history.
 
@@ -42,13 +45,14 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## DO NOT MODIFY (data layer)
 
-**Parsing:** `parseLogs()` (3-tier with brace scanner), `parseAppJson()` (encrypted-safe)
+**Parsing:** `parseLogs()` (3-tier with brace scanner), `parseAppJson()` (encrypted-safe), `synthesizeMobileMeta()` (mobile log normalization)
 **Extraction:** `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `extractActivity`, `logQualityScore`, `extractAnalytics`
 **Device Apps:** `extractDeviceApps`, `inferRequiredApps`, `CURRENCY_TO_APP`, `parseGetAppAndVersionResponse`
 **Error KB:** `ERR_DB` (82), `diagnose()`, `SEV`, `CAT`
 **Chains:** `CHAINS` (60), `TX_EXPLORERS` (45+), `UTXO_NETS`, `getChain()`, `DC`, `DECIMALS`
 **Address:** `cardanoCredToStake`, `stacksPubkeyToAddr`, `tonHexToAddr`, `fmtBal`
 **Tokens:** `TOKEN_CONTRACTS`, `fetchTokenChains`, `TOKEN_URLS`, `TOKEN_SEARCH`, `EVM_CHAIN_IDS`
+**Live Balances:** `COINGECKO_IDS`, `EVM_RPCS`, `fetchEvmBalance`, `BALANCE_APIS`, `fetchPrices` (these are new but frozen — don't modify the fetch logic, only the display)
 
 ## CAN MODIFY (rendering/styling on experimental branch)
 
@@ -99,36 +103,46 @@ Fonts: Inter (body) + JetBrains Mono (mono).
 
 ## Sidebar
 
-240px fixed width. `DiagSidebar` component.
+240px fixed width. `DiagSidebar` component. Receives `liveBalances` prop for fiat hints.
 
 ```
 OVERVIEW label (uppercase, muted)
-Diagnosis block (severity dot + sentence + Copy dropdown → Quick Summary / Full Export / Customer Summary)
+Diagnosis block (severity dot + sentence + " · No sync data" when applicable + Copy dropdown)
 ─── (top border divider) ───
 ISSUES          — direct nav to errors section (not expandable)
 ─── (top border divider) ───
-ACCOUNTS  13 ·  — expandable, first 4 funded accounts with chain dots + "+N more funded" + empty count
+ACCOUNTS  96 ⚠  — expandable, first 4 funded accounts with chain dots + fiat hints + "+N more funded" + empty/no-data count
 ─── (top border divider) ───
 TIMELINE  540   — direct nav
 ─── (top border divider) ───
 ADVANCED  ·     — expandable: Network (count), APDU (conditional on count>0), Raw JSON
 ```
 
-Section headers: uppercase labels (`fontSize:12, fontWeight:600, textTransform:uppercase, letterSpacing:0.04em`), dimmer subtitles (`color:#666666`), top border dividers (`1px solid #3C3C3C`).
+**Sidebar fiat hints:** Funded accounts in the expanded list show right-aligned green dollar values from live balances (e.g., "$4,531"). Only shown when `liveBalance.status==='ok'` and `fiat > 0`.
 
-Accounts capped at 4 visible funded accounts in sidebar. "+N more funded" link navigates to Accounts section. Sidebar never pushes Timeline/Advanced off-screen.
+**No-sync indicator:** When no sync data, ACCOUNTS subtitle changes to "No sync — log balances unavailable" and count shows amber ⚠.
 
-Issues is a single clickable row (like Timeline) — no expandable content. Issue titles are already visible in Overview.
-
-**No Device sidebar entry.** Device info is consolidated into the Overview as an inline disclosure widget.
-
-Advanced subtitle is dynamic: shows "Network · APDU · Raw" when APDU data exists, "Network · Raw data" when it doesn't.
+**"no data" vs "empty" distinction:** Sidebar shows "╶╶ N empty · M no data" or "╶╶ N no balance data" depending on mix.
 
 ---
 
 ## Header bar
 
-52px. Left: Ledger logo + "DIAGNOSTIC TOOLKIT". Center: Diagnostic/Customer View toggle (prominent, bold, purple glow on active). Right: file info + "New file" button. Toggle only visible when a log is loaded.
+52px. Left: Ledger logo + "DIAGNOSTIC TOOLKIT". Center: Diagnostic/Customer View toggle (prominent, bold, purple glow on active). Right: file info + "New file" button + MOBILE badge (when mobile log). Toggle only visible when a log is loaded.
+
+---
+
+## Mobile Log Support
+
+Mobile logs (from Ledger Wallet iOS/Android) differ from desktop:
+- `date` field instead of `timestamp` — normalized by `synthesizeMobileMeta()`
+- Reverse chronological order — reversed to chronological
+- No `exportLogsMeta` — account IDs extracted from bridge schedule message
+- App version + platform parsed from filename pattern: `ledgerwallet-mob-{version}-{build}-{date}-logs`
+- No SyncSuccess analytics — accounts have 0 ops, no balance/duration data
+- `logData.isMobile` flag set, MOBILE badge shown in header bar
+
+**Mobile-aware rendering:** Device summary bar prefixed with "Mobile". Environment card shows "Ledger Wallet Mobile (iOS/Android)" for Platform. Copy summaries use "LW Mobile:" label. Accounts hint banner explains mobile limitations.
 
 ---
 
@@ -136,12 +150,14 @@ Advanced subtitle is dynamic: shows "Network · APDU · Raw" when APDU data exis
 
 ### Overview (Diagnosis Detail) — 3-zone dashboard
 
-**Zone 1 (top, fixed):** Health summary pills (clickable — first 4 expand device disclosure inline, errors pill navigates to Issues) + Copy Summary/Full buttons + stat cards (Entries/Accounts/Operations/Issues on elevated `T.card` backgrounds, no borders, no bracket accents) + activity badges.
+**Zone 1 (top, fixed):** Health summary pills (clickable — first 4 expand device disclosure inline, errors pill navigates to Issues) + Copy Summary/Full buttons + stat cards (Entries/Accounts/Portfolio/Issues) + activity badges. **No-sync amber banner** appears below pills when applicable.
+
+**Stat cards:** Entries, Accounts (amber when no-sync), **Portfolio** (replaces Operations — shows total fiat from live balances, "···" while loading, "$X,XXX" when done, "(live)" label when no-sync), Issues.
 
 **Zone 2 (middle, flex:1, adaptive layout):**
 
 *When errors > 0 — two columns:*
-Left 40% (overflowY:auto): Device disclosure widget + Environment card. Right 60%: issues preview with internal scroll panel + hint banners (💡 account references, Customer View tip).
+Left 40% (overflowY:auto): Device disclosure widget + Environment card. Right 60%: issues preview with internal scroll panel + hint banners.
 
 *When errors = 0 — single column:*
 Device disclosure widget + "No issues detected" green banner + Environment card.
@@ -156,63 +172,106 @@ Lives in the Overview left column, replaces the former Device tab.
 
 **Expanded:** Opens inline below the summary bar. Contains:
 - No-device warning (when applicable)
-- Device Apps section: "DEVICE APPS" uppercase label + summary stats on second line + expand/collapse app list + column headers (App / Version) + chain tickers (for apps serving 2+ chains) + "v" prefixed versions + "Not installed" for missing apps + outdated indicators with arrows (v1.2.0 → v1.3.0) + "Other installed apps" toggle
-- ⚠ warning banner when apps are outdated/missing (not italic text)
-- "Details" toggle → "DEVICE REFERENCE" label + reference rows: Language, Paired (shows model names via DN lookup), Commit, MEV, Wallet Sync (uses ledgerSync + appJson.encrypted + walletsync error counting)
+- Device Apps section (ONLY when `deviceApps.source==='manager-result'`): "DEVICE APPS" uppercase label + summary stats + expand/collapse app list + column headers + version rows + "Other installed apps" toggle
+- ⚠ warning banner when apps are outdated/missing
+- "Details" toggle → "DEVICE REFERENCE" label + reference rows
 
-**Auto-expand:** When app problems are detected (missing or outdated), the disclosure auto-expands on load with the app list visible.
+**Auto-collapse:** When no device was connected (`!modelId && !modelName && !fw`), disclosure collapses by default via useEffect.
 
-**`deviceExpanded` defaults to `true`** — the agent lands on Overview with device info visible.
+**DEVICE APPS hidden when no Manager data:** The section is gated by `req.length>0 && da && da.source==='manager-result'`. No misleading "20 apps missing" for no-device logs.
 
 #### Environment Card
-Elevated card (T.card background, no border). Shows: OS, Platform, User ID, Sync duration. Soft row dividers (rgba(255,255,255,0.06)). Note: "Sync duration" label (not "Sync") to distinguish from "Wallet Sync" in device details.
+Elevated card (T.card background, no border). Shows: OS, Platform, User ID, Sync duration. Mobile-aware: "Ledger Wallet Mobile (iOS)" for Platform, derived OS from platform.
 
-### Issues
-
-Reorganized for maximum viewport efficiency. All errors should be visible without scrolling when count is small (≤5).
+### Issues — Master-Detail Layout
 
 **Fixed header (compact):**
-- Row 1: Severity counts inline (only non-zero severities shown, colored dots + counts) + "Copy Errors" button (right-aligned, copies formatted summary of all errors)
-- Row 2: Error timeline strip — numbered dots positioned along session timeline by actual timestamp, colored by severity. Dots are clickable (scroll to corresponding error card). Start/end timestamps in mono font. Below the strip: auto-generated clustering interpretation ("All 3 errors within 0.3s — likely cascade" or "Errors spread across 30s — likely independent issues").
-- Row 3 (conditional): Affected accounts summary — only when errors reference specific accounts. Compact chips with chain dots, clickable to jump to Accounts section.
-- Row 4 (conditional): Repeating patterns — only shown when >5 total errors AND repeated titles exist.
+- Row 1: Severity counts inline (only non-zero) + "Copy Errors" button
+- Row 2: Error timeline strip — numbered dots on session timeline, severity-colored, clickable (selects error in detail panel)
+- Row 3 (conditional): Affected accounts summary
+- Row 4 (conditional): Repeating patterns (only >5 errors + repeats)
 
-**Scrollable:** Flat list of ErrCards sorted by severity (critical → warning → info). No category group headers (each card already shows its category). Each card wrapped in `<div id="errcard-{li}">` for timeline scroll targeting.
+**When errors > 0 — master-detail split:**
+- Left panel (45%): Compact error list. Each row: severity dot + title + action text + timestamp. Selected row highlighted with severity color. Clicking a row shows its detail on the right.
+- Right panel (55%): Full ErrCard for selected error. First (highest severity) error auto-selected on load.
+- `selectedErr` state tracks selected error by `li` (log index). Timeline dots also update selection.
 
-**Removed:** Distribution bar (redundant), summary card (sidebar already shows this), category group headers (redundant with card content).
+**When errors = 0 — single centered message:**
+"No errors detected" + guidance text + session context line ("187 entries over 8.0s · 96 accounts · no sync data").
 
 ### Accounts
-Fixed header: funded/empty count + Copy IDs + Export + no-sync warning banner (when applicable) + account health squares (colored blocks) + filter input.
-Scrollable: AcctCards (with app badges for outdated/missing apps). No-sync footer hint banner. No-accounts empty state with Customer View guidance.
+Fixed header: funded/empty/no-data counts + Copy IDs + Export + no-sync warning banner (when applicable) + account health squares (colored blocks — chain color for funded, amber tint for no-data, gray for confirmed empty, live-balance-aware) + filter input.
+Scrollable: AcctCards (with app badges, live balance display, amber left border for no-sync accounts).
+
+**AcctCard live balance display:**
+- Collapsed: "live ···" while loading → "X.XXXX TICKER · $Y.YY" in green when done
+- Expanded: "Live Balance" cell with loading/ok/error states + fiat USD
+- "Balance (log)" cell shows sync data when available
+- "no data" badge instead of "empty" when no sync data exists for the account
 
 ### Timeline
-Fixed header: Density strip (minimap: 80 time buckets, height = event count, color: gray/red errors/purple device) + search + type filter + export + count.
+Fixed header: Density strip + search + type filter + export + count.
 Scrollable: Timeline rows with purple left border on device event types.
 
 ### Network
 Fixed header: Summary/count + error request warning.
-Scrollable: Network entry rows. Empty state: "No network requests" + explanation + "View Timeline →" button.
+Scrollable: Network entry rows. Empty state: explanation + "View Timeline →" button.
 
 ### APDU (under Advanced)
-Own dedicated section. Fixed header: count + Export APDUs button + rejection summary (when rejections exist).
-Scrollable: Exchange list with decoded status labels (OK/Rejected/Locked/etc), CLA bytes, CopyBtn per row. 500 row cap.
-Empty state: guidance to ask customer to reconnect device + "Back to Overview →" button.
-Only appears in sidebar when apduCount > 0.
+Fixed header: count + Export APDUs + rejection summary.
+Scrollable: Exchange list with decoded status labels. 500 row cap.
+Empty state: reconnect guidance + "Back to Overview →" button.
 
 ### Raw JSON
-Fixed header: Progressive search (auto-expands tree ancestors, scrolls to first match as you type, "1/47" counter with ▲▼ prev/next navigation, Enter/Shift+Enter keyboard shortcuts) + expand controls (Collapse/Level 1/2/3/All) + count + Copy raw text.
-Scrollable: JTTree with highlighted matches (current match: strong purple + left border, other matches: subtle purple tint).
-Empty state: explanation + re-export instructions.
+Fixed header: Progressive search + expand controls + count + Copy raw text.
+Scrollable: JTTree with highlighted matches.
+
+---
+
+## Live Balance Fetching
+
+**Architecture:**
+- `COINGECKO_IDS` constant: maps 40+ chain currency IDs to CoinGecko coin slugs
+- `EVM_RPCS` constant: 23 EVM chains mapped to publicnode.com RPC URLs
+- `fetchEvmBalance(rpc, addr)`: JSON-RPC `eth_getBalance`, parses hex result
+- `BALANCE_APIS` object: per-chain fetch functions for UTXO (wrapping existing UTXO_NETS), Solana, Tezos, XRP, Stellar, Cardano, NEAR, Tron, TON, Aptos, Sui, Stacks, Hedera, MultiversX, Kaspa, Cosmos, Algorand, Filecoin
+- `fetchPrices(cgIds)`: batch CoinGecko `/simple/price` call (free, no key, 30 calls/min)
+- `liveBalances` state in App component
+- `useEffect` orchestrator: fires on `logData` change, staggers 150ms per account, then batch CoinGecko price fetch
+- AcctCard: `liveBalance` prop, collapsed badge shows "live ···" loading / "X.XXXX TICKER · $Y.YY" / error states; expanded shows "Live Balance" cell
+
+**Copy builders:** All 5 copy paths use `fmtAcctLine()` helper which includes live balance + fiat when available. PORTFOLIO total line appended after accounts section.
+
+**Potential optimization:** Ledger's own blockchain nodes (`{chain}.coin.ledger.com`) could be tried as primary endpoints with public RPCs as fallback. Not yet implemented.
+
+---
+
+## No-Device UX
+
+When a log has no device connection data:
+- Device disclosure auto-collapses (useEffect sets `deviceExpanded=false`)
+- DEVICE APPS section hidden (gated by `da.source==='manager-result'`)
+- Summary bar shows "No device connected during this session"
+
+## No-Sync Visibility
+
+When a log has accounts but no sync data (`!accts.some(a => a.dur != null || a.bal != null)`):
+- Persistent amber banner on Overview below health pills
+- Sidebar diagnosis sentence appended with "· No sync data"
+- Sidebar ACCOUNTS subtitle changes, count shows amber ⚠
+- Stat cards: Accounts amber, Portfolio labeled "(live)"
+- AcctCards: amber left border for no-sync accounts
+- Health squares: amber tint for no-data accounts, chain color for live-balance-funded
+- Copy summaries: "⚠ NO SYNC DATA" warning after header
+- AcctCard badges: "no data" instead of "empty"
 
 ---
 
 ## Contextual Guidance Pattern
 
-All guidance text follows consistent patterns:
+**💡 Hint banners** (navigational tips): `background:rgba(187,176,255,0.06), border:1px solid rgba(187,176,255,0.15), borderRadius:6, padding:8px 12px` with 💡 emoji.
 
-**💡 Hint banners** (navigational tips): `background:rgba(187,176,255,0.06), border:1px solid rgba(187,176,255,0.15), borderRadius:6, padding:8px 12px` with 💡 emoji. Direct, imperative language. Always ends with a next step. Clickable links to other sections where relevant.
-
-**⚠ Warning banners** (actionable problems): `background:rgba(255,189,66,0.06), border:1px solid rgba(255,189,66,0.25)` with ⚠. Specific instructions for the agent.
+**⚠ Warning banners** (actionable problems): `background:rgba(255,189,66,0.06), border:1px solid rgba(255,189,66,0.25)` with ⚠.
 
 **Empty states:** Emoji + headline + explanation + action button pointing to the next most useful section.
 
@@ -224,9 +283,9 @@ No raw italic muted text for guidance anywhere. Every hint has a visual containe
 
 **Primary:** `actions-manager-event` result with `installed[]` array. Full app list with versions and update status.
 **Secondary:** `live-dmk-logger` APDU `b001` responses. Single running app only.
-**None:** Returns null. UI shows guidance.
+**None:** Returns null. UI hides DEVICE APPS section entirely (no misleading "missing" warnings).
 **AcctCard badges:** Only render for ⚠ outdated and ✕ missing. Green suppressed.
-**Chain enrichment:** App rows show dependent chain tickers when 2+ chains require the same app (e.g., Ethereum row shows "ETH, MATIC, ARB, BASE").
+**Chain enrichment:** App rows show dependent chain tickers when 2+ chains require the same app.
 
 ---
 
@@ -238,7 +297,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `appsListOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `section`
+**App:** `logData`, `fileName`, `loadErr`, `tab`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `appsListOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `section`, `liveBalances`, `selectedErr`, `globalSearch`, `showGlobalResults`
 **DiagSidebar:** `accountsOpen`, `advOpen`, `copyOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
@@ -260,6 +319,9 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `TOKEN_URLS` | 23 | Token page URL builders |
 | `TOKEN_SEARCH` | 8 | Token search fallbacks |
 | `CURRENCY_TO_APP` | 46 | Currency ID → device app name |
+| `COINGECKO_IDS` | 40+ | Chain currency ID → CoinGecko coin slug |
+| `EVM_RPCS` | 23 | Chain → publicnode.com RPC URL |
+| `BALANCE_APIS` | 17 | Chain → custom balance fetch function (non-EVM) |
 
 ---
 
@@ -268,8 +330,16 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | File | Status | Purpose |
 |---|---|---|
 | `CLAUDE.md` | **Active — primary reference** | This file. Claude Code reads this before every task. |
-| `ROADMAP_LIVE_BALANCES.md` | **Planned feature** | Live on-chain balance fetching for Diagnostic Accounts. API registry, phased implementation, app.json comparison. |
+| `ROADMAP_LIVE_BALANCES.md` | **Implemented (Phase 1+2)** | Live on-chain balance fetching. API registry, phased implementation. Phase 1 (EVM+UTXO) and Phase 2 (major L1s) done. Phase 3 (app.json comparison) and Phase 4 (polish) pending. |
+| `SESSION_HANDOFF.md` | **Active — session memory** | Context for new Claude instances picking up the project. |
 | `REDESIGN_VISION_V5.md` | Historical reference | Original design philosophy. Core principles still apply. Some structural specifics outdated. |
 | `VIEWPORT_REDESIGN_SCOPE.md` | Historical reference | Fixed-viewport architecture. Foundation implemented, specific layouts evolved. |
-| `DEVICE_APP_VERSIONS_SPEC.md` | Implemented | Device app detection. Phases 0-6 done. Phase 7 (runtime Manager API) not done. |
-| `TOOLKIT_SNAPSHOT.md` | Outdated | Superseded by this file. Can be deleted. |
+
+---
+
+## Git tags
+
+| Tag | Commit | What's included |
+|---|---|---|
+| `pre-live-balances` | `20e7760` | Mobile support + UX refinements + Issues master-detail. Before any balance/fiat work. |
+| `post-live-balances` | `9081d1c` | Live balance fetching + fiat values + no-device UX clarity. |
