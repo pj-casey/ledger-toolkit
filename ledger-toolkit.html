@@ -2584,7 +2584,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances }) {
 
   const advItems = [
     { label: 'Network', icon: '🌐', count: networkCount, sec: 'network' },
-    ...(apduCount > 0 ? [{ label: 'APDU', icon: '📡', count: apduCount, sec: 'apdu' }] : []),
+    { label: 'APDU', icon: '📡', count: apduCount, sec: 'apdu' },
     { label: 'Raw JSON', icon: '{ }', count: null, sec: 'raw' },
   ];
 
@@ -2704,7 +2704,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances }) {
 
         {/* Advanced */}
         <SectionHeader
-          icon={<span>⚙</span>} label="Advanced" subtitle={apduCount>0?'Network · APDU · Raw':'Network · Raw data'}
+          icon={<span>⚙</span>} label="Advanced" subtitle="Network · APDU · Raw"
           active={['network', 'apdu', 'raw'].includes(section)} expandable expanded={advOpen}
           onClick={() => setAdvOpen(o => !o)}
         />
