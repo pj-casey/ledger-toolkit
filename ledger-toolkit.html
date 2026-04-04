@@ -100,6 +100,54 @@ button:active{transform:scale(0.98);}
 .jt-arrow{font-size:8px;transition:transform 0.15s ease;}
 .jt-copy-path{margin-left:6px;cursor:pointer;font-size:10px;opacity:0.5;transition:opacity 100ms ease;}
 .jt-copy-path:hover{opacity:1;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.guide-embed{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#FFFFFF;line-height:1.7;font-size:14px;padding:0 0 60px}
+.guide-embed .hero{padding:40px 32px 32px;text-align:center}
+.guide-embed .hero h1{font-size:28px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;color:#fff}
+.guide-embed .hero .subtitle{font-size:14px;color:#949494}
+.guide-embed .page{max-width:780px;margin:0 auto;padding:0 32px}
+.guide-embed h2{font-size:18px;font-weight:700;margin-top:40px;margin-bottom:16px;padding-left:14px;border-left:4px solid #BBB0FF;color:#fff}
+.guide-embed h3{font-size:14px;font-weight:600;margin-top:24px;margin-bottom:8px;color:#fff}
+.guide-embed p{margin-bottom:12px;color:#c8c8c8}
+.guide-embed .card{background:#242528;border-radius:8px;padding:18px 22px;margin-bottom:14px}
+.guide-embed .toc{background:#242528;border-radius:8px;padding:20px 24px;margin:28px 0 24px}
+.guide-embed .toc-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#949494;margin-bottom:12px}
+.guide-embed .toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+.guide-embed .toc a{color:#949494;text-decoration:none;font-size:12px;padding:4px 0;display:block}
+.guide-embed .toc a:hover{color:#BBB0FF}
+.guide-embed .toc a.indent{padding-left:24px;font-size:11px}
+.guide-embed .step{display:flex;gap:14px;margin-bottom:16px;padding:14px 18px;background:#242528;border-radius:8px}
+.guide-embed .step-num{width:28px;height:28px;border-radius:50%;background:#BBB0FF;color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.guide-embed .step-content p{margin-bottom:4px}
+.guide-embed .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:3px}
+.guide-embed .badge-purple{background:rgba(187,176,255,0.15);color:#BBB0FF}
+.guide-embed .badge-green{background:rgba(122,194,108,0.15);color:#7AC26C}
+.guide-embed .badge-red{background:rgba(245,115,117,0.15);color:#F57375}
+.guide-embed .badge-yellow{background:rgba(255,189,66,0.15);color:#FFBD42}
+.guide-embed .badge-muted{background:rgba(148,148,148,0.15);color:#949494}
+.guide-embed .tip{background:rgba(187,176,255,0.06);border:1px solid rgba(187,176,255,0.15);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:12px;color:#c8c8c8;line-height:1.6}
+.guide-embed .tip::before{content:'💡 ';font-size:13px}
+.guide-embed .warn{background:rgba(255,189,66,0.06);border:1px solid rgba(255,189,66,0.2);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:12px;color:#c8c8c8;line-height:1.6}
+.guide-embed .warn::before{content:'⚠️ ';font-size:13px}
+.guide-embed .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.guide-embed .feat-item{background:#242528;border-radius:8px;padding:14px 18px}
+.guide-embed .feat-item .icon{font-size:18px;margin-bottom:6px}
+.guide-embed .feat-item .label{font-size:13px;font-weight:600;margin-bottom:3px}
+.guide-embed .feat-item .desc{font-size:11px;color:#949494;line-height:1.5}
+.guide-embed .new-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;text-transform:uppercase;background:rgba(122,194,108,0.15);color:#7AC26C;margin-left:5px;vertical-align:middle}
+.guide-embed .shortcut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:12px 0}
+.guide-embed .shortcut-card{background:#242528;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#c8c8c8}
+.guide-embed kbd{background:#242528;border:1px solid #3C3C3C;border-bottom:2px solid #3C3C3C;border-radius:4px;padding:2px 6px;font-size:10px;font-family:'JetBrains Mono',monospace;color:#949494}
+.guide-embed .section-divider{height:1px;background:linear-gradient(90deg,transparent 0%,#3C3C3C 20%,#3C3C3C 80%,transparent 100%);margin:36px 0 0}
+.guide-embed .mono{font-family:'JetBrains Mono','SF Mono',Consolas,monospace}
+.guide-embed .hero-logo{display:none}
+.guide-embed .top-bar{display:none}
+.guide-embed .def-list{margin:10px 0 12px;padding-left:0;list-style:none}
+.guide-embed .def-list li{padding:4px 0 4px 14px;border-left:2px solid #3C3C3C;margin-bottom:3px;font-size:13px;color:#c8c8c8;line-height:1.5}
+.guide-embed .def-list li strong{color:#fff}
+.guide-embed ol.tech-list{margin:10px 0 12px;padding-left:18px}
+.guide-embed ol.tech-list li{padding:3px 0;font-size:13px;color:#c8c8c8;line-height:1.5}
+.guide-embed ol.tech-list li strong{color:#fff}
 </style>
 </head>
 <body>
@@ -138,6 +186,767 @@ const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:
 const TARGET_MASKS=[[0x31100000,'nanoS'],[0x33000000,'nanoX'],[0x33100000,'nanoSP'],[0x33200000,'stax'],[0x33300000,'europa'],[0x33400000,'apex']];
 function identifyTargetId(tid){const n=typeof tid==='string'?parseInt(tid,10):tid;if(!n||isNaN(n))return null;const masked=(n&0xFFFF0000)>>>0;for(const[mask,id]of TARGET_MASKS){if(masked===mask)return id;}return null;}
 const TC={action:'#717070',analytics:'#BBB0FF',countervalues:'#06b6d4',bridge:'#FFBD42',network:'#8A9EF5',persistence:'#7AC26C',walletsync:'#ec4899',error:'#F57375','live-dmk-logger':'#BBB0FF'};
+const GUIDE_AGENT=`<!-- Hero -->
+<div class="hero">
+  <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
+  </svg>
+  <h1>Ledger Diagnostic Toolkit</h1>
+  <p class="subtitle">Investigation guide for CS agents</p>
+</div>
+
+<div class="page">
+
+<!-- Table of Contents -->
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <div class="toc-grid">
+    <div>
+      <a href="#quick-start"><span class="toc-icon">⚡</span> Quick Start</a>
+      <a href="#playbook"><span class="toc-icon">🎯</span> Investigation Playbook</a>
+      <a class="indent" href="#s-balance">"My balance is wrong"</a>
+      <a class="indent" href="#s-tx">"My transaction failed"</a>
+      <a class="indent" href="#s-device">"My device won't connect"</a>
+      <a class="indent" href="#s-crash">"The app crashes"</a>
+      <a class="indent" href="#s-verify">Verify what the customer sees</a>
+      <a class="indent" href="#s-general">General investigation</a>
+    </div>
+    <div>
+      <a href="#interface"><span class="toc-icon">🖥</span> The Interface</a>
+      <a class="indent" href="#xpub-scanner">Xpub Scanner</a>
+      <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
+      <a class="indent" href="#timeline-strip">Timeline Session Strip</a>
+      <a class="indent" href="#issues-interactive">Issues Interactive Filters</a>
+      <a class="indent" href="#account-tiles">Account Health Tiles</a>
+      <a class="indent" href="#raw-json-search">Raw JSON Search</a>
+      <a class="indent" href="#live-balances">Live On-Chain Balances</a>
+      <a class="indent" href="#mobile-logs">Mobile Log Support</a>
+      <a class="indent" href="#no-sync">No-Sync Visibility</a>
+      <a href="#copy"><span class="toc-icon">📋</span> Copy &amp; Export</a>
+      <a href="#shortcuts"><span class="toc-icon">⌨</span> Keyboard Shortcuts</a>
+      <a href="#troubleshooting"><span class="toc-icon">🔧</span> Tips &amp; Troubleshooting</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ QUICK START ═══════════════ -->
+<h2 id="quick-start">Quick Start</h2>
+
+<p>File to diagnosis in 30 seconds.</p>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <p><strong>Load the log.</strong> Drag the customer's log file onto the tool, or click to browse. Accepts <kbd>.json</kbd> <kbd>.txt</kbd> <kbd>.log</kbd></p>
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <p><strong>Read the Diagnosis block</strong> under the <strong>OVERVIEW</strong> label at the top of the sidebar. <span class="badge badge-green">green</span> = clean session. <span class="badge badge-yellow">yellow</span> = warnings. <span class="badge badge-red">red</span> = critical issues.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <p><strong>Click the relevant section</strong> in the sidebar — Issues, Accounts, Timeline, or Advanced. Each is a single click.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">
+    <p><strong>For richer data</strong>, switch to <span class="badge badge-purple">Customer View</span> using the top bar toggle and load the customer's <kbd>app.json</kbd>.</p>
+  </div>
+</div>
+
+<div class="tip">The tool analyzes the log automatically. The Diagnosis block tells you what it found — you don't need to search for problems. Device info, firmware status, app versions, and live blockchain balances are all visible on the Overview as soon as you load a file. Mobile logs (from Ledger Wallet iOS/Android) are supported — a MOBILE badge appears in the top bar.</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ PLAYBOOK ═══════════════ -->
+<h2 id="playbook">Investigation Playbook</h2>
+
+<p>Start with the scenario that matches your customer's complaint.</p>
+
+<h3 id="s-balance">"My balance is wrong / I'm missing funds"</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Check the <strong>Overview</strong>. The Portfolio stat card shows the total USD value of all accounts from live blockchain data. In <strong>Accounts</strong>, each account card shows its live on-chain balance and fiat value — compare these with what the customer reports.</p>
+  <p><strong>Look for:</strong> Mismatches between live balance and what the customer sees. If the log has no sync data, accounts show an amber "no data" badge — the live balance is your only reference. The sidebar also shows fiat values next to funded accounts for a quick scan.</p>
+  <p><strong>For deeper investigation:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for the balances their app was displaying. Compare app.json balances with the live balances shown in Diagnostic mode.</p>
+  <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
+  <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
+  <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
+</div>
+
+<h3 id="s-tx">"My transaction failed / is stuck"</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Click <strong>Issues</strong> in the sidebar. Use the severity chips at the top to focus — click <span class="badge badge-red">Critical</span> to filter to critical errors only. Click a category chip (<span class="badge badge-muted">Hardware</span> / <span class="badge badge-muted">Software</span>) to narrow further.</p>
+  <p><strong>Look for:</strong> The error strip shows where errors occurred in the session — red segments stand out against muted session context. Hover any bar for details. Click to select that error in the detail panel.</p>
+  <p><strong>Dig deeper:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 log entries leading up to the error. This shows you what triggered it. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
+  <p><strong>Next:</strong> Check <strong>Affected account</strong> on the error card. Check <strong>Advanced → Network</strong> for failed API calls. If the error mentions device rejection, check <strong>Advanced → APDU</strong>.</p>
+  <div class="tip">Repeating pattern badges at the top of Issues (like "↻ Price data unavailable ×4") flag cascade events. Click one to filter to just that pattern. APDU codes <span class="mono">6985</span> or <span class="mono">6982</span> mean the device rejected the transaction — the user didn't approve on-screen.</div>
+</div>
+
+<h3 id="s-device">"My device won't connect / isn't recognized"</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Look at the <strong>Overview</strong>. The health pills at the top show device status at a glance. If the device pill says "Device —", the device never identified itself.</p>
+  <p><strong>Look for:</strong> Device model and firmware version in the device disclosure widget (the expandable panel below the health pills). Check if firmware is outdated — the tool shows "FW 2.6.1 ⚠ 2.7.0 avail." when an update is needed.</p>
+  <p><strong>Next:</strong> Check <strong>Issues</strong> for hardware/USB errors. Check <strong>Advanced → APDU</strong> for device communication. If there's zero APDU data, the device never established a connection at all.</p>
+  <div class="warn">No APDU data = no device communication during this session. Check USB cable, port, or Bluetooth before investigating software.</div>
+</div>
+
+<h3 id="s-crash">"The app crashes / won't open / is slow"</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> in the sidebar. The severity and issue count tell you how bad this session was.</p>
+  <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating pattern badges at the top — "↻ Unexpected error ×6" means the same error is looping. The error strip shows whether problems are clustered (cascade) or spread across the session.</p>
+  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> device card's Environment section for OS and platform — some issues are platform-specific.</p>
+  <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
+</div>
+
+<h3 id="s-verify">I need to verify what the customer sees</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> using the prominent toggle in the top bar.</p>
+  <p><strong>Look for:</strong> Portfolio overview with all accounts. Click any account for full detail — address, tokens, transaction history.</p>
+  <p><strong>Next:</strong> Load the customer's <kbd>app.json</kbd> via the upload banner. Adds real balances, tx history, and account names. This shows exactly what the customer's Ledger Wallet was displaying.</p>
+</div>
+
+<h3 id="s-general">General investigation (no specific complaint)</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Read the <strong>Diagnosis block</strong> for the overall picture. The Overview shows everything at a glance — device status, health pills, stat cards, and a log quality score.</p>
+  <p><strong>Recommended flow:</strong></p>
+  <p><strong>Overview</strong> → device health + big picture<br>
+     <strong>Issues</strong> → what went wrong and when<br>
+     <strong>Accounts</strong> → what exists<br>
+     <strong>Timeline</strong> → what happened in sequence<br>
+     <strong>Advanced</strong> → deeper data if needed</p>
+  <p>Big picture first, problems second, context third.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ INTERFACE ═══════════════ -->
+<h2 id="interface">The Interface</h2>
+
+<p>Two modes, switchable from the top bar toggle. <span class="badge badge-purple">Diagnostic</span> for technical investigation. <span class="badge badge-purple">Customer View</span> to see the customer's wallet.</p>
+
+<h3>Diagnostic Mode</h3>
+<p>Sidebar on the left for navigation. Main area on the right for detail. The sidebar is always visible — you never lose your place. Everything fits in one screen — no page scrolling.</p>
+
+<div class="feat-grid">
+  <div class="feat-item">
+    <div class="icon">📊</div>
+    <div class="label">Overview<span class="new-badge">Updated</span></div>
+    <div class="desc">Default landing. Health pills (device, firmware, apps, sync, errors) at the top. Stat cards: Entries, Accounts, Portfolio (live USD total), Issues. Unified Device card with app status as color-coded chips (red = missing, amber = outdated, green = OK), environment info, and a Device Reference popover. Issues preview as adaptive tiles on the right. Session info and quality score at the bottom. No scrolling — everything fits in one screen.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">⚠️</div>
+    <div class="label">Issues<span class="new-badge">Updated</span></div>
+    <div class="desc">Interactive severity and category filter chips. Error strip shows session context with error segments highlighted. Repeating pattern badges surface cascades. Error detail panel includes breadcrumbs ("What happened before") and "View in Timeline" for one-click context. Affected account links. Copy Errors for tickets.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">👛</div>
+    <div class="label">Accounts<span class="new-badge">Updated</span></div>
+    <div class="desc">Health tiles with ticker labels — hover for account details, click to filter, Shift+click to filter Timeline. Portfolio overlay shows proportional fiat distribution. EVM chains sharing an address are auto-grouped. Error badges link to Issues. Timeline buttons filter the session to that account. Live on-chain balances with fiat values for 40+ chains.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">📋</div>
+    <div class="label">Timeline<span class="new-badge">Updated</span></div>
+    <div class="desc">Session visualizer with color-coded stacked bars — same colors as the type badges on each row. Interactive legend chips: hover to highlight segments, click to filter the list. Error dots below for one-click navigation. Smart grouping collapses repeated events. Account filtering with Shift+click from Accounts.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">🌐</div>
+    <div class="label">Network</div>
+    <div class="desc">HTTP requests to Ledger and third-party APIs. Error summary at the top when requests failed. Status codes on each row.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">📡</div>
+    <div class="label">APDU</div>
+    <div class="desc">Device communication commands under Advanced. Status codes (OK, Rejected, Locked), rejection summaries. Only appears when APDU data exists in the log.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">{ }</div>
+    <div class="label">Raw JSON<span class="new-badge">Updated</span></div>
+    <div class="desc">Interactive tree viewer under Advanced. Progressive search — type to find, tree auto-expands to show matches and scrolls to the first one. Navigate between matches with ▲▼ buttons or Enter key.</div>
+  </div>
+  <div class="feat-item">
+    <div class="icon">👤</div>
+    <div class="label">Customer View</div>
+    <div class="desc">Separate mode (top bar toggle). Shows the customer's wallet as they see it. Account list, portfolio, transaction history. Load app.json for exact balances. Use this when you need to confirm what the customer is experiencing.</div>
+  </div>
+</div>
+
+<h3 id="timeline-strip">Timeline: Session Strip &amp; Legend<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The <strong>Timeline</strong> header shows a stacked bar chart of the entire session. Bar height = event density. Bar color = event type, using the same colors as the type badges on every row. You read the session left to right: "gray startup, yellow sync burst, blue network calls, red errors at the end."</p>
+  <p><strong>Legend chips</strong> below the strip show every event type with its color and count. Hover a chip to highlight matching segments — everything else dims. Click to filter the row list. Click again to clear. The type dropdown and chips share state.</p>
+  <p><strong>Error dots</strong> sit on a baseline below the bars — click any dot to scroll to that error entry.</p>
+  <p><strong>Smart grouping:</strong> Bursts of same-type events (40 bridge events during sync) collapse into expandable group headers. Toggle with the Grouped/Flat button. Errors never collapse.</p>
+  <p><strong>Account filtering:</strong> On the Accounts tab, <strong>Shift+click</strong> a health tile or click the <strong>Timeline</strong> button on any account card. The Timeline filters to that account's events with a "Show all" banner to clear.</p>
+  <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch yellow light up — next time you see yellow, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
+</div>
+
+<h3 id="issues-interactive">Issues: Interactive Filters &amp; Breadcrumbs<span class="new-badge">New</span></h3>
+<div class="card">
+  <p><strong>Filter chips:</strong> Severity chips (<span class="badge badge-red">Critical</span> <span class="badge badge-yellow">Warning</span> <span class="badge badge-purple">Info</span>) and category chips (Hardware, Software, Server) at the top of Issues. Click to filter. Hover to highlight matching errors on the strip. Combine them: Critical + Hardware = only critical hardware errors.</p>
+  <p><strong>Error strip:</strong> Same color-coded session bars as the Timeline, but error segments are prominent (full opacity) while context is muted. Hover any bar for a tooltip showing what errors occurred at that moment. Click to select that error.</p>
+  <p><strong>Pattern badges:</strong> "↻ Price data unavailable ×4" — click to filter to just that repeating pattern. Cascades become obvious.</p>
+  <p><strong>Breadcrumbs:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 entries leading up to the error — type badges, messages, and relative timestamps. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
+  <div class="tip">The error strip and Timeline strip share the same visual language. Colors you learned in Timeline work here — yellow bars during errors means the error happened during sync.</div>
+</div>
+
+<h3 id="account-tiles">Account Health Tiles<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>At the top of <strong>Accounts</strong>, colored tiles give you a quick visual map. Each tile = one account, colored by chain, with a 3-letter ticker label.</p>
+  <p><strong>Corner dots:</strong> Red (top-right) = errors for this account. Purple (bottom-right) = xpub/scannable. <strong>?</strong> = unsupported for live balance.</p>
+  <p><strong>Hover</strong> any tile for a popover: chain name, address, live balance + fiat, status, error count, and xpub/explorer flags.</p>
+  <p><strong>Click</strong> to filter the account list to that chain. <strong>Shift+click</strong> to jump to Timeline filtered to that account.</p>
+  <p><strong>Portfolio ▸</strong> button opens a proportional overlay — bigger tile = more value. Click any tile to filter and close.</p>
+  <p><strong>EVM grouping:</strong> Accounts sharing the same 0x address (Ethereum + L2 chains) are grouped with a shared header, combined fiat, and a copy button.</p>
+  <div class="tip">Health tiles are the fastest way to answer "what does this customer have?" One glance shows funded chains, problem accounts (red dots), and portfolio shape.</div>
+</div>
+
+<h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
+<div class="card">
+  <p>When you expand an account that stores an extended public key (xpub, ypub, or zpub), the tool shows a <strong>Scan</strong> button. Clicking it derives individual addresses from the key, queries the blockchain for each one, and shows the balance and transaction count per address.</p>
+  <p>This is your most powerful tool for "my balance is wrong" on UTXO chains. It shows exactly which addresses hold funds — even addresses the app's sync may have missed.</p>
+  <p>The scanner walks the derivation path (receive and change chains), stopping when it hits a gap of unused addresses. Each address gets an explorer link so you can verify on-chain.</p>
+  <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin and Dogecoin are slower due to rate limiting — the tool handles retries automatically.</div>
+</div>
+
+<h3 id="derived-addresses">Derived Addresses &amp; Token Explorer Links</h3>
+<div class="card">
+  <p><strong>Derived addresses:</strong> Some chains store raw credentials in logs that aren't directly searchable on an explorer. The tool converts them automatically:</p>
+  <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
+    <strong style="color:var(--text)">Cardano</strong> — hex credential → <span class="mono">stake1...</span> bech32 address<br>
+    <strong style="color:var(--text)">TON</strong> — 32-byte hash → <span class="mono">UQ...</span> user-friendly address<br>
+    <strong style="color:var(--text)">Stacks</strong> — compressed pubkey → <span class="mono">SP...</span> c32check address
+  </p>
+  <p>Look for the blue "Derived Address" block when you expand one of these accounts. It includes a copy button and an explorer link. Always verify derived addresses with the customer — they're computed from log data, not confirmed on-chain.</p>
+  <p><strong>Token explorer links:</strong> Token badges on account cards are clickable. The tool resolves contract addresses for 45+ chains and links directly to the token on the correct block explorer. If you're investigating "my tokens are missing," click the token badge to verify it exists on-chain.</p>
+</div>
+
+<h3 id="raw-json-search">Raw JSON Progressive Search</h3>
+<div class="card">
+  <p>The Raw JSON viewer (under <strong>Advanced</strong>) has a search that works like Chrome DevTools. As you type, the tree automatically expands to reveal matching nodes and scrolls to the first one.</p>
+  <p><strong>Navigation:</strong> The counter shows <span class="mono" style="color:var(--success)">1/47</span> — your position in the results. Use the <strong>▲▼</strong> buttons or press <kbd>Enter</kbd> to jump to the next match. <kbd>Shift</kbd>+<kbd>Enter</kbd> goes backward. The current match is highlighted with a purple left border; other matches have a subtle tint.</p>
+  <p>The expand/collapse buttons (Collapse, Level 1/2/3, All) still work independently. Clearing the search collapses the tree back to its previous state.</p>
+  <div class="tip">Use this when you need to find a specific error code, account ID, or data field in the raw log. It's much faster than scrolling through the Timeline for technical data.</div>
+</div>
+
+<h3 id="live-balances">Live On-Chain Balances<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The tool automatically fetches live blockchain balances for every account in the log — no app.json needed. As soon as you load a file, balances start appearing on each account card in the Accounts section with a green dollar value.</p>
+  <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
+  <p><strong>Portfolio total:</strong> The Overview stat card labeled "Portfolio" shows the total USD value across all accounts. The sidebar shows fiat values next to funded accounts for a quick scan.</p>
+  <p><strong>Copy exports:</strong> All copy formats (Summary, Full, Customer) now include live balances and fiat values per account, plus a PORTFOLIO total line.</p>
+  <p>Balances are fetched from public blockchain APIs and priced via CoinGecko. No API keys required. Accounts that show "live ···" are still loading. Xpub accounts (Bitcoin-family) use the existing Xpub Scanner for balance — live fetch doesn't apply to those.</p>
+  <div class="tip">This is your fastest way to answer "is this a high-value customer?" — check the Portfolio stat card on the Overview. No app.json needed.</div>
+</div>
+
+<h3 id="mobile-logs">Mobile Log Support<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The tool supports logs from <strong>Ledger Wallet Mobile</strong> (iOS and Android). When a mobile log is loaded, a purple <strong>MOBILE</strong> badge appears in the top bar.</p>
+  <p><strong>What's different about mobile logs:</strong> They don't include sync data (operation counts, log balances, or sync duration). All accounts show "no data" badges instead of operation counts. The tool compensates by showing live blockchain balances for every account.</p>
+  <p><strong>What works the same:</strong> Error detection, device info (when available), timeline, network requests, copy exports. The Diagnosis block and Issues section work identically.</p>
+  <div class="warn">Mobile logs typically score 50–65 on log quality due to reduced metadata. This is expected — don't treat a low quality score as a problem on mobile.</div>
+</div>
+
+<h3 id="no-sync">No-Sync Visibility<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>When a log has accounts but no sync data (common with mobile logs and some short sessions), the tool shows <strong>amber warnings everywhere</strong> so you don't mistake "no data" for "empty account."</p>
+  <p><strong>What you'll see:</strong> An amber banner on the Overview, amber ⚠ next to the Accounts count in the sidebar, amber borders on account cards, and "no data" badges instead of "empty." The Portfolio stat card shows "(live)" to indicate balances come from live blockchain data, not the log.</p>
+  <p>Copy exports include a "⚠ NO SYNC DATA" warning at the top so recipients know the data source.</p>
+  <div class="tip">When you see amber everywhere, it means the log didn't capture sync. The accounts are real — they just have no operation history in this log. Live balances tell you what's actually on-chain.</div>
+</div>
+
+<h3>Customer View — "See the customer's wallet"</h3>
+<div class="card">
+  <p>Read-only wallet simulation. Account list on the left, portfolio or account detail in the center, device info on the right. Load <kbd>app.json</kbd> via the upload banner for exact balances and transaction history.</p>
+  <p>Switch between Diagnostic and Customer View using the toggle in the top bar. The active mode is highlighted with a purple glow.</p>
+  <div class="warn">Red "mismatch" warning after loading app.json? You loaded the wrong customer's file. Click ✕ to remove and upload the correct one.</div>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ COPY ═══════════════ -->
+<h2 id="copy">Copy &amp; Export</h2>
+
+<div class="card">
+  <h3>Four formats</h3>
+  <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts with live balances, top errors, portfolio total. Paste into your support ticket.</p>
+  <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts with live balances and fiat values, all errors, device apps. For escalation to Tier 2 or engineering.</p>
+  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Live balances, fiat values, and portfolio total. For describing what the wallet looks like. Available in the sidebar Copy dropdown and as a button in Customer View.</p>
+  <p><span class="badge badge-red">Copy Errors</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">Quick Summary, Full Export, and Customer Summary are all in the <strong>Copy ▾</strong> dropdown in the sidebar's Diagnosis block. Summary and Full also appear as buttons at the top of the Overview. Copy Errors is in the Issues section header. All copy formats include live blockchain balances when available.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ SHORTCUTS ═══════════════ -->
+<h2 id="shortcuts">Keyboard Shortcuts</h2>
+
+<div class="shortcut-grid">
+  <div class="shortcut-card"><kbd>Ctrl+1</kbd> <span>Overview</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+2</kbd> <span>Issues</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+3</kbd> <span>Accounts</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+4</kbd> <span>Timeline</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+5</kbd> <span>Network</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+6</kbd> <span>APDU</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+7</kbd> <span>Raw JSON</span></div>
+</div>
+<p style="font-size:13px;color:var(--muted);margin-top:12px">On Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd>.</p>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ TROUBLESHOOTING ═══════════════ -->
+<h2 id="troubleshooting">Tips &amp; Troubleshooting</h2>
+
+<h3>The file won't load</h3>
+<p>Accepts <kbd>.json</kbd>, <kbd>.txt</kbd>, and <kbd>.log</kbd> files. Must be a Ledger Wallet log export. Large log files show a "Parsing log file..." indicator — give it a moment.</p>
+
+<h3>I see 0 accounts</h3>
+<p>Some logs don't include account data. Switch to <strong>Customer View</strong> and load the customer's <kbd>app.json</kbd> for full account information. The Accounts section will show a hint pointing you there.</p>
+
+<h3>All errors say "Unexpected error"</h3>
+<p>The error isn't in the tool's knowledge base (82 known patterns). Expand the error card's "Details" section for the raw data. Use <strong>Raw JSON</strong> search to find the error in the full log — the progressive search will take you right to it.</p>
+
+<h3>Customer View is empty</h3>
+<p>Make sure you've switched modes using the top bar toggle — the active mode glows purple. If no accounts appear, load the customer's <kbd>app.json</kbd>.</p>
+
+<h3>App.json says "Ledger Sync encryption"</h3>
+<p>The file is encrypted by Ledger Sync. The tool extracts what it can (settings, paired devices, token preferences) but can't read balances or transaction history.</p>
+
+<h3>Diagnosis is green but customer has problems</h3>
+<p>The tool only sees what's in the log. If the issue happened outside this session, it won't be captured. Ask the customer to reproduce and export logs immediately after.</p>
+
+<h3>I loaded the wrong app.json</h3>
+<p>Click ✕ on the green banner to remove it, then upload the correct file.</p>
+
+<h3>The xpub scanner is slow</h3>
+<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
+
+<h3>Device apps show "Not installed"</h3>
+<p>A red chip marked <strong>✕ AppName</strong> on the Overview means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall. Amber chips marked <strong>⚠</strong> mean the app is installed but outdated.</p>
+
+<h3>The error strip says "likely cascade"</h3>
+<p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Click the first error, then expand <strong>"What happened before"</strong> to see what triggered it. Use the <span class="badge badge-red">Critical</span> chip to isolate the root cause — the rest are typically consequences.</p>
+
+<h3>Live balances show "unsupported" or stay loading</h3>
+<p>"Unsupported" means the chain doesn't have a public API the tool can query — this affects a few uncommon chains. If balances stay on "live ···" for more than 10 seconds, the blockchain API may be rate-limited or down. This doesn't affect the rest of the tool. Xpub accounts (Bitcoin-family) don't use live fetch — use the Xpub Scanner instead.</p>
+
+<h3>Everything is amber / "no sync data"</h3>
+<p>The log didn't capture sync information. This is normal for mobile logs and very short desktop sessions. The accounts are real — they just have no operation history in this log. Live blockchain balances are your primary reference. See the <a href="#no-sync" style="color:var(--primary)">No-Sync Visibility</a> section for details.</p>
+
+</div>
+`;
+const GUIDE_TECHNICAL=`<!-- Hero -->
+<div class="hero">
+  <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
+  </svg>
+  <h1>Technical Capabilities Reference</h1>
+  <p class="subtitle">Analytical, diagnostic, and forensic capabilities</p>
+</div>
+
+<div class="page">
+
+<!-- Table of Contents -->
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <div class="toc-grid">
+    <div>
+      <a href="#data-processing"><span class="toc-icon">⚙️</span> Data Processing</a>
+      <a class="indent" href="#ingestion">Ingestion &amp; Parsing</a>
+      <a class="indent" href="#quality">Data Quality Assessment</a>
+      <a href="#device-analysis"><span class="toc-icon">🔌</span> Device &amp; Hardware Analysis</a>
+      <a class="indent" href="#device-id">Device Identification</a>
+      <a class="indent" href="#apdu">APDU Analysis</a>
+      <a class="indent" href="#app-detection">Installed App Detection</a>
+      <a href="#session-reconstruction"><span class="toc-icon">📋</span> Session Reconstruction</a>
+      <a class="indent" href="#event-classification">Temporal Event Classification</a>
+      <a class="indent" href="#session-viz">Session Visualization</a>
+      <a class="indent" href="#event-grouping">Event Grouping</a>
+      <a class="indent" href="#acct-filter">Account-Correlated Filtering</a>
+      <a href="#error-analysis"><span class="toc-icon">⚠️</span> Error Analysis &amp; Diagnosis</a>
+      <a class="indent" href="#pattern-classification">Pattern-Based Classification</a>
+      <a class="indent" href="#temporal-error">Temporal Error Analysis</a>
+      <a class="indent" href="#breadcrumbs">Error Context Breadcrumbs</a>
+      <a class="indent" href="#error-acct">Error-to-Account Correlation</a>
+      <a class="indent" href="#sev-filter">Severity &amp; Category Filtering</a>
+    </div>
+    <div>
+      <a href="#account-analysis"><span class="toc-icon">👛</span> Account &amp; Asset Analysis</a>
+      <a class="indent" href="#acct-extraction">Account Extraction</a>
+      <a class="indent" href="#addr-derivation">Address Derivation &amp; Conversion</a>
+      <a class="indent" href="#xpub">UTXO Extended Public Key Analysis</a>
+      <a class="indent" href="#evm-grouping">EVM Address Grouping</a>
+      <a class="indent" href="#health-viz">Account Health Visualization</a>
+      <a href="#onchain"><span class="toc-icon">🔗</span> On-Chain Verification</a>
+      <a class="indent" href="#live-balances">Live Blockchain Balance Fetching</a>
+      <a class="indent" href="#token-resolution">Token Resolution</a>
+      <a href="#cross-domain"><span class="toc-icon">🔀</span> Cross-Domain Correlation</a>
+      <a class="indent" href="#connected-nav">Connected Navigation</a>
+      <a class="indent" href="#triangulation">Multi-Source Data Triangulation</a>
+      <a href="#network-analysis"><span class="toc-icon">🌐</span> Network &amp; Protocol Analysis</a>
+      <a class="indent" href="#http-analysis">HTTP Request Analysis</a>
+      <a class="indent" href="#activity-detection">Session Activity Detection</a>
+      <a href="#export"><span class="toc-icon">📤</span> Export &amp; Integration</a>
+      <a class="indent" href="#export-formats">Structured Export Formats</a>
+      <a class="indent" href="#sovereignty">Data Sovereignty</a>
+    </div>
+  </div>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ DATA PROCESSING ═══════════════ -->
+<h2 id="data-processing">Data Processing</h2>
+
+<h3 id="ingestion">Ingestion &amp; Parsing</h3>
+<div class="card">
+  <p>Accepts structured JSON log exports, plain text, and mixed-format files via drag-and-drop or file picker. Input extensions: <kbd>.json</kbd> <kbd>.txt</kbd> <kbd>.log</kbd></p>
+  <p><strong>Three-tier parser:</strong> The parser attempts structured parsing first, falling back to a recovery parser for malformed JSON, and finally a brace scanner that extracts parseable JSON objects from corrupted or partially-truncated files. Handles UTF-8 BOM and normalizes top-level arrays vs. objects.</p>
+  <p><strong>Mobile log synthesis:</strong> When <span class="mono">exportLogsMeta</span> is absent (mobile log format), the parser reconstructs metadata — platform, app version, and account IDs — from bridge schedule messages embedded in the event stream.</p>
+  <p><strong>Post-parse normalization:</strong> All entries are chronologically sorted and assigned a stable <span class="mono">logIndex</span> used as the universal cross-reference key throughout the tool. Reverse-chronological mobile exports are detected and reversed before indexing.</p>
+  <p>Tested with logs containing 15,000+ entries. All parsing runs client-side in the browser — no data is transmitted to any server during parsing.</p>
+</div>
+
+<h3 id="quality">Data Quality Assessment</h3>
+<div class="card">
+  <p>Automated quality scoring on a 0–100 scale evaluates log completeness across four independent dimensions:</p>
+  <ul class="def-list">
+    <li><strong>Metadata presence</strong> — device model, firmware version, OS, user ID, app version</li>
+    <li><strong>Account data</strong> — sync durations, reported balances, operation counts</li>
+    <li><strong>Error context</strong> — stack traces, payload data, query arguments attached to errors</li>
+    <li><strong>Session integrity</strong> — timestamp consistency, entry count, event type diversity</li>
+  </ul>
+  <p><strong>Grade thresholds:</strong> Excellent (85+), Good (65+), Fair (40+), Poor (&lt;40). Each dimension contributes a weighted sub-score; the breakdown is available for granular assessment.</p>
+  <p>Mobile log normalization adjusts expectations for platform-specific data gaps — mobile logs are not penalized for absent sync data that is structurally unavailable on that platform.</p>
+  <div class="tip">Quality scoring enables objective comparison between log exports — a 90-score log from a 2-minute session provides more investigative surface than a 45-score log from a 30-minute session.</div>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ DEVICE & HARDWARE ═══════════════ -->
+<h2 id="device-analysis">Device &amp; Hardware Analysis</h2>
+
+<h3 id="device-id">Device Identification</h3>
+<div class="card">
+  <p>Multi-source identification with automatic fallback chain. The extractor attempts each method in order, stopping when both <span class="mono">modelId</span> and <span class="mono">fw</span> are resolved:</p>
+  <ol class="tech-list">
+    <li><strong>Direct metadata fields</strong> — <span class="mono">d.modelId</span>, <span class="mono">d.modelName</span>, <span class="mono">d.deviceVersion</span> from <span class="mono">exportLogsMeta</span></li>
+    <li><strong>Target ID bitmask analysis</strong> — applies <span class="mono">(targetId &amp; 0xFFFF0000) &gt;&gt;&gt; 0</span> against 6 known device masks. Same algorithm as <span class="mono">@ledgerhq/devices</span>. Scans <span class="mono">data.targetId</span>, <span class="mono">data.data.target_id</span>, and Manager API URL params. Primary identification method for Ledger Wallet 4.0+ logs.</li>
+    <li><strong>Manager API response</strong> — reads <span class="mono">get_device_version</span> response <span class="mono">data.data.name</span> (e.g., "Nano S Plus")</li>
+    <li><strong>Firmware path prefix</strong> — parses install paths such as <span class="mono">nanos+/1.5.1/...</span> to extract model and firmware. Covers <span class="mono">apex_p</span> / <span class="mono">apex</span> for Gen5 devices.</li>
+    <li><strong>Device apps result backfill</strong> — extracts model from <span class="mono">actions-manager-event</span> payload when earlier methods are inconclusive</li>
+  </ol>
+  <p><strong>Supported devices:</strong> Nano S, Nano X, Nano S Plus, Stax, Flex (europa), Nano Gen5 (apex). Firmware version extraction includes update availability detection when the current firmware can be compared against the latest known release.</p>
+  <p><strong>Software version-aware branding:</strong> Detects whether the session used "Ledger Live" (v2.x) or "Ledger Wallet" (v4.x) via <span class="mono">userAgent</span> parsing and version number analysis. All diagnostic text adjusts accordingly.</p>
+</div>
+
+<h3 id="apdu">Application Protocol Data Unit (APDU) Analysis</h3>
+<div class="card">
+  <p>Extracts device communication commands from log entries. Each APDU record includes command direction (sent to device / received from device), raw instruction byte, and status code.</p>
+  <p><strong>Status code interpretation:</strong></p>
+  <ul class="def-list">
+    <li><span class="mono">9000</span> — Success</li>
+    <li><span class="mono">6985</span> — Conditions not satisfied (user rejected on device)</li>
+    <li><span class="mono">6982</span> — Security status not satisfied (device locked or PIN not entered)</li>
+    <li>Additional codes are parsed from the error knowledge base and cross-referenced against known patterns</li>
+  </ul>
+  <p><strong>TLV parsing:</strong> GetAppAndVersion responses (instruction <span class="mono">B001</span>) are parsed as Tag-Length-Value structures to identify which applications were open on the device during the session.</p>
+  <p>Rejection counting and summary generation per session. Supports both the legacy APDU format and the LLv4 Device Management Kit (DMK) logger format used in Ledger Wallet 4.0+.</p>
+</div>
+
+<h3 id="app-detection">Installed Application Detection</h3>
+<div class="card">
+  <p>Three detection methods with priority fallback:</p>
+  <ol class="tech-list">
+    <li><strong>Manager result</strong> — full installed app list with versions and update status from <span class="mono">actions-manager-event</span> responses. Source label: <span class="mono">manager-result</span>.</li>
+    <li><strong>APDU TLV parsing</strong> — GetAppAndVersion exchanges identify the running application during the session. Source label: <span class="mono">apdu-only</span>. Single app only.</li>
+    <li><strong>Catalog cross-reference</strong> — <span class="mono">hw</span> install events matched against <span class="mono">apps-by-target</span> API catalog data. Source label: <span class="mono">catalog-only</span>. Covers LLv4 sessions where manager result is unavailable.</li>
+  </ol>
+  <p><strong>Required app inference:</strong> Account currencies are mapped to the device applications they depend on (via a 46-entry <span class="mono">CURRENCY_TO_APP</span> map). Each inferred required app is compared against the detected installed set to produce status classifications: installed + current, installed + outdated, or not installed.</p>
+  <p><strong>Chain enrichment:</strong> When 2 or more accounts require the same device app, the app row lists all dependent chain tickers. Missing or outdated apps are surfaced as visual indicators on account cards.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ SESSION RECONSTRUCTION ═══════════════ -->
+<h2 id="session-reconstruction">Session Reconstruction</h2>
+
+<h3 id="event-classification">Temporal Event Classification</h3>
+<div class="card">
+  <p>Every log entry is classified by type: <span class="mono">action</span>, <span class="mono">analytics</span>, <span class="mono">bridge</span>, <span class="mono">countervalues</span>, <span class="mono">error</span>, <span class="mono">network</span>, <span class="mono">persistence</span>, <span class="mono">walletsync</span>, <span class="mono">live-dmk-logger</span>, and others. Each type is assigned a consistent color used identically across all visualizations — session strip bars, row type badges, legend chips, Issues strip, and ErrCard breadcrumbs.</p>
+  <p><strong>Per-entry metadata extraction:</strong> timestamp (normalized from <span class="mono">date</span> or <span class="mono">timestamp</span> field), type, log level, message string, structured data payload, query arguments, payload fields, and embedded error objects.</p>
+  <p>Session boundary detection: first and last timestamps establish total session duration. Entry count and type diversity contribute to data quality scoring.</p>
+</div>
+
+<h3 id="session-viz">Session Visualization</h3>
+<div class="card">
+  <p>The session is divided into 80 equal time buckets. Each bucket renders as a stacked bar where bar height represents event density (total entry count) and color segments represent event type distribution, using the same canonical color map as row badges.</p>
+  <p><strong>Legend chips:</strong> One chip per event type present in the session, showing type name, color, and entry count. Hovering a chip dims all non-matching bar segments to 15% opacity. Clicking a chip filters the entry list to that type. State is shared with the type dropdown filter — changes in either update both.</p>
+  <p><strong>Error dot baseline:</strong> Error entries are rendered as individual colored dots on a dedicated baseline below the bars. Each dot is a clickable navigation target — click scrolls to and expands that entry in the list.</p>
+  <p><strong>Bucket hover tooltip:</strong> Hovering any bar shows timestamp, total event count for that bucket, per-type breakdown, and sample message. Clicking the bar scrolls to and expands the nearest log entry to the bucket's midpoint.</p>
+</div>
+
+<h3 id="event-grouping">Event Grouping</h3>
+<div class="card">
+  <p>Consecutive same-type events within a 1.5-second temporal window are automatically collapsed into expandable group headers. Group headers display: event type, repeat count, time range, and total duration.</p>
+  <p><strong>Minimum group size:</strong> 3 events — sequences smaller than this remain as individual rows. Error entries are unconditionally excluded from grouping and always appear as individual rows regardless of proximity or type match.</p>
+  <p>Groups are keyed by the <span class="mono">logIndex</span> of the first entry in the group, allowing stable expand/collapse state across filter changes. Toggleable between Grouped (default) and Flat mode via a header button.</p>
+  <p>Typical compression ratio: 50–70% reduction in visible rows on standard production logs (e.g., 2,500 raw entries → approximately 80 visible rows after grouping).</p>
+</div>
+
+<h3 id="acct-filter">Account-Correlated Filtering</h3>
+<div class="card">
+  <p>Filters the full event stream to entries that reference a specific account. The matcher performs case-insensitive substring search across five fields per entry: message string, type string, serialized data payload, serialized query arguments, and serialized payload fields.</p>
+  <p><strong>Match criteria (OR logic across fields, AND with other filters):</strong></p>
+  <ul class="def-list">
+    <li><strong>Address</strong> — substring match when address length ≥ 8 characters</li>
+    <li><strong>Currency ID</strong> — exact chain currency identifier (e.g., <span class="mono">ethereum</span>, <span class="mono">solana</span>)</li>
+    <li><strong>Ticker symbol</strong> — 3–5 character ticker (e.g., <span class="mono">ETH</span>, <span class="mono">SOL</span>)</li>
+    <li><strong>Chain name</strong> — human-readable chain name</li>
+  </ul>
+  <p>Activated from the Accounts section via Shift+click on a health tile or the Timeline button on account cards. A filter banner in the Timeline header displays the active account and provides one-click clear. Combines with type filter and text search as AND logic.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ ERROR ANALYSIS ═══════════════ -->
+<h2 id="error-analysis">Error Analysis &amp; Diagnosis</h2>
+
+<h3 id="pattern-classification">Pattern-Based Error Classification</h3>
+<div class="card">
+  <p>82-pattern error knowledge base. Each pattern specifies a matching strategy (regex or substring), category (Hardware / Software / Server), severity (Critical / Warning / Info), diagnostic title, recommended agent action, and list of common causes.</p>
+  <p><strong>Priority matching:</strong> When multiple patterns match a single error entry, the highest severity match is selected. Within the same severity, the match with the longer match string wins (specificity tiebreaker).</p>
+  <p><strong>APDU subcode extraction:</strong> When a generic transport error is detected, the system scans the error data and message for embedded hexadecimal status codes and attempts a secondary pattern match against the more specific code. This converts generic "device communication failed" errors into actionable diagnoses when the specific rejection code is present.</p>
+  <p>Unmatched errors are classified as "Unexpected error" (Info severity) with full raw data preserved for manual inspection via the Raw JSON viewer.</p>
+  <p><strong>ERR_DB text localization:</strong> All diagnostic advice text undergoes runtime substitution — "Ledger Live" is replaced with "Ledger Wallet" when the session brand is detected as the newer product, without modifying the knowledge base array itself.</p>
+</div>
+
+<h3 id="temporal-error">Temporal Error Analysis</h3>
+<div class="card">
+  <p>Error clustering analysis computes the time span between the first and last error relative to total session duration. Automatic plain-English interpretation is generated:</p>
+  <ul class="def-list">
+    <li><strong>Single error</strong> — position reported as a percentage into session (e.g., "at 73% of session")</li>
+    <li><strong>All errors within 2 seconds</strong> — "All N errors within Xs — likely a single cascade event"</li>
+    <li><strong>Errors within 30% of session span</strong> — "likely related"</li>
+    <li><strong>Errors spread beyond 30%</strong> — "likely independent issues"</li>
+  </ul>
+  <p><strong>Repeat detection:</strong> Errors sharing the same diagnostic title are counted and grouped. When a pattern appears 2 or more times, it is surfaced as an interactive badge in the Issues header (e.g., "↻ Price data unavailable ×4"). Clicking a badge applies a pattern filter to the error list.</p>
+</div>
+
+<h3 id="breadcrumbs">Error Context Breadcrumbs</h3>
+<div class="card">
+  <p>For each error entry, the 5 immediately preceding log entries are locatable by scanning backward through the full entry array from the error's <span class="mono">logIndex</span>. These entries are renderable as a breadcrumb trail in the error detail panel.</p>
+  <p>Each breadcrumb shows: relative time offset from the error (e.g., <span class="mono">−0.3s</span>), event type with a TC-colored badge matching the type badge system used throughout the tool, and a truncated message string. The final row in the trail is the error itself, highlighted in the error's severity color.</p>
+  <p>One-click navigation from any error detail panel to the error's position in the full Timeline — this navigation clears all active Timeline filters and grouping to guarantee the target entry is visible, then scrolls to it.</p>
+</div>
+
+<h3 id="error-acct">Error-to-Account Correlation</h3>
+<div class="card">
+  <p>Automatic scanning of error messages, structured data payloads, and raw payload fields for strings matching known account addresses. When a match is found (candidate string ≥ 8 characters), the error is linked to the corresponding account.</p>
+  <p>Linked accounts appear as interactive navigation chips on error detail cards. Clicking an account chip navigates to that account in the Accounts section. The correlation map is computed once at log load time using a <span class="mono">Map&lt;logIndex, account&gt;</span> structure keyed on entry position.</p>
+  <p>The reverse pathway also exists: clicking an error badge on an account card in the Accounts section navigates to the Issues section with a filter applied to show only errors associated with that account's address.</p>
+</div>
+
+<h3 id="sev-filter">Interactive Severity &amp; Category Filtering</h3>
+<div class="card">
+  <p>Severity filter chips (Critical / Warning / Info) and category filter chips (Hardware / Software / Server) are rendered in the Issues section header. Clicking a chip applies that filter. Filters combine with AND logic — activating Critical + Hardware returns only errors that are simultaneously critical severity and hardware category.</p>
+  <p><strong>Hover interaction:</strong> Hovering a severity chip dims non-matching error indicators on the session strip in real time, without applying a persistent filter. Hovering a category chip produces the same effect for the category dimension. This enables visual inspection of distribution before committing to a filter.</p>
+  <p><strong>Error session strip:</strong> Stacked bars using the same color and bucket system as the Timeline strip. Error entry segments are rendered at full opacity; non-error context segments are rendered at 25% opacity. Hovering any bar renders a tooltip showing the timestamp, error count, total event count, and error details for that bucket. Clicking selects the nearest error.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ ACCOUNT & ASSET ═══════════════ -->
+<h2 id="account-analysis">Account &amp; Asset Analysis</h2>
+
+<h3 id="acct-extraction">Account Extraction</h3>
+<div class="card">
+  <p>Primary extraction from <span class="mono">SyncSuccess</span> analytics events (Ledger Live / Ledger Wallet 2.x–3.x format). Each event carries per-account sync duration, operation count, and reported balance. Secondary extraction from bridge sync sessions (Ledger Wallet 4.0 / LLv4 format).</p>
+  <p><strong>LLv4 bridge sync fallback:</strong> When no <span class="mono">SyncSuccess</span> analytics events are present, the extractor scans for <span class="mono">type: "bridge"</span> entries containing "SyncSession finished". When found, the total session duration is applied as a sync duration across all accounts, preventing false "no sync data" alerts on newer log formats.</p>
+  <p>Per-account data extracted: chain identification, address, derivation mode, operation count, log-reported balance, spendable balance, sync duration, token list with contract addresses and operation counts. Account IDs extracted from <span class="mono">exportLogsMeta.accountsIds</span> for cross-referencing with external systems.</p>
+</div>
+
+<h3 id="addr-derivation">Address Derivation &amp; Conversion</h3>
+<div class="card">
+  <p>Three chains store non-explorer-compatible credential formats in logs. The tool automatically converts these to usable addresses:</p>
+  <ul class="def-list">
+    <li><strong>Cardano</strong> — hex credential bytes → bech32 stake address (<span class="mono">stake1...</span>). Conversion via <span class="mono">cardanoCredToStake()</span>.</li>
+    <li><strong>TON</strong> — 32-byte hash → user-friendly bounceable address (<span class="mono">UQ...</span>) with CRC16 checksum. Conversion via <span class="mono">tonHexToAddr()</span>.</li>
+    <li><strong>Stacks</strong> — compressed public key → c32check mainnet address (<span class="mono">SP...</span>). Conversion via <span class="mono">stacksPubkeyToAddr()</span>.</li>
+  </ul>
+  <p>Derived addresses are surfaced with copy buttons and direct block explorer links. All three conversions run entirely client-side with no external API calls.</p>
+  <div class="warn">Derived addresses are computed from log data — always verify with the customer before taking action based on derived values.</div>
+</div>
+
+<h3 id="xpub">UTXO Extended Public Key Analysis</h3>
+<div class="card">
+  <p>Full BIP32 hierarchical deterministic key derivation for Bitcoin, Litecoin, Dogecoin, and Bitcoin Cash. Derives individual addresses from <span class="mono">xpub</span>, <span class="mono">ypub</span>, and <span class="mono">zpub</span> keys along receive (<span class="mono">m/0/i</span>) and change (<span class="mono">m/1/i</span>) chains.</p>
+  <p><strong>Supported derivation modes:</strong></p>
+  <ul class="def-list">
+    <li><strong>BIP84</strong> — Native SegWit (zpub, P2WPKH, bc1q... addresses)</li>
+    <li><strong>BIP49</strong> — SegWit (ypub, P2SH-P2WPKH, 3... addresses)</li>
+    <li><strong>BIP44</strong> — Legacy (xpub, P2PKH, 1... addresses)</li>
+  </ul>
+  <p>Per-address live balance query and transaction count via public blockchain APIs. Gap limit detection: scanning stops after consecutive unused addresses are found (gap limit = 20 for receive chain, configurable). Rate limiting handled with automatic retry up to 5 times with exponential backoff.</p>
+  <p>Per-address explorer links for independent on-chain verification. Uses <span class="mono">bitcoinjs-lib</span> 5.2.0 for address derivation, running entirely in the browser via bundled library.</p>
+</div>
+
+<h3 id="evm-grouping">EVM Address Grouping</h3>
+<div class="card">
+  <p>Accounts sharing the same Ethereum-format address (hex strings ≥ 20 characters) are automatically identified as an EVM group. This is common when a customer uses Ethereum alongside L2 and EVM-compatible chains (Polygon, Arbitrum, Optimism, BSC, Base, etc.) that share the same address space.</p>
+  <p>Group rendering: shared address header with copy button, chain tile count, and combined fiat value aggregated across all accounts in the group. The Ethereum account sorts first within each group; remaining chains sort by fiat value descending.</p>
+  <p>Grouping is applied after the full account list is rendered — individual account cards within a group retain their full detail, error badges, and xpub scan buttons.</p>
+</div>
+
+<h3 id="health-viz">Account Health Visualization</h3>
+<div class="card">
+  <p>Per-account health tile with chain-colored background derived from the chain registry color and a 3-letter ticker label. Tile opacity reflects account status: funded (full), empty (reduced), no sync data (amber border).</p>
+  <p><strong>Corner indicator system:</strong></p>
+  <ul class="def-list">
+    <li><strong>Red dot (top-right)</strong> — one or more errors are correlated to this account</li>
+    <li><strong>Purple dot (bottom-right)</strong> — account has an xpub / is scannable via the UTXO scanner</li>
+    <li><strong>? label</strong> — chain is not supported for live balance fetching</li>
+  </ul>
+  <p><strong>Hover popover:</strong> chain name, truncated address, live balance and fiat value, sync status (no sync / loading / empty), derivation mode, error count, and xpub/explorer availability flags. Popover is pointer-events-none and clamped to container width.</p>
+  <p><strong>Portfolio overlay:</strong> Activated via "Portfolio ▸" button. Tiles are resized proportionally to fiat value (36–80px) and sorted by value descending. Clicking any tile applies a chain filter and closes the overlay.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ ON-CHAIN VERIFICATION ═══════════════ -->
+<h2 id="onchain">On-Chain Verification</h2>
+
+<h3 id="live-balances">Live Blockchain Balance Fetching</h3>
+<div class="card">
+  <p>Automatic balance retrieval for 40+ blockchain networks from public APIs. No API keys, authentication, or server-side components required. All requests originate from the user's browser.</p>
+  <p><strong>Coverage by tier:</strong></p>
+  <ul class="def-list">
+    <li><strong>EVM chains (23 networks)</strong> — Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, Base, Fantom, Celo, and others via JSON-RPC <span class="mono">eth_getBalance</span> against publicnode.com endpoints</li>
+    <li><strong>UTXO chains</strong> — Bitcoin (mempool.space), Litecoin/Dogecoin (BlockCypher), Bitcoin Cash (Blockchair)</li>
+    <li><strong>Major L1s</strong> — Solana, Tezos, Cosmos, XRP, Polkadot, Cardano, NEAR, Tron, TON, Stellar, Hedera, Algorand, and others via chain-specific REST/RPC APIs</li>
+  </ul>
+  <p><strong>Fiat pricing:</strong> CoinGecko API with chain currency IDs mapped via a 40+ entry <span class="mono">COINGECKO_IDS</span> constant. USD prices batch-fetched after balances complete.</p>
+  <p>Request staggering at 200ms intervals to avoid rate limiting. Per-account status tracking: loading, ok, error, unsupported. Portfolio aggregation: sum of all accounts' USD values displayed as a stat card on the Overview. Accounts with <span class="mono">unsupported</span> status are identified with a <span class="mono">?</span> indicator on health tiles.</p>
+</div>
+
+<h3 id="token-resolution">Token Resolution</h3>
+<div class="card">
+  <p>Token contract address resolution for 45+ EVM and non-EVM chains via a <span class="mono">TOKEN_CONTRACTS</span> registry and per-chain URL builders (<span class="mono">TOKEN_URLS</span>). When an exact contract resolution is available, a direct token explorer link is generated. When it is not, a <span class="mono">TOKEN_SEARCH</span> fallback generates an explorer search URL for 8 supported chains.</p>
+  <p>Token badges on account cards are rendered as clickable links. Token operation counts from log sync data are preserved per token per account. EVM chain IDs are mapped via a 22-entry <span class="mono">EVM_CHAIN_IDS</span> constant used to construct the correct explorer URL for each network.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ CROSS-DOMAIN CORRELATION ═══════════════ -->
+<h2 id="cross-domain">Cross-Domain Correlation</h2>
+
+<h3 id="connected-nav">Connected Navigation</h3>
+<div class="card">
+  <p>The following data correlation pathways are implemented as direct navigation actions:</p>
+  <ul class="def-list">
+    <li><strong>Error → Account</strong> — address matching in error data links errors to specific accounts; linked account chips navigate to the Accounts section</li>
+    <li><strong>Error → Timeline</strong> — "View in Timeline" clears all active filters, disables grouping, expands the target entry, and scrolls to it</li>
+    <li><strong>Account → Issues</strong> — error badge on account cards applies an address filter to the Issues section, showing only errors referencing that account</li>
+    <li><strong>Account → Timeline</strong> — Shift+click on a health tile or the Timeline button on account cards applies account-correlated filtering to the full event stream</li>
+    <li><strong>Timeline → Entry detail</strong> — clicking any point on the session visualization strip navigates to the corresponding raw event</li>
+    <li><strong>Overview → All sections</strong> — stat cards display entry, account, error, and portfolio counts that establish baseline expectations before investigation</li>
+  </ul>
+</div>
+
+<h3 id="triangulation">Multi-Source Data Triangulation</h3>
+<div class="card">
+  <p>Three independent balance data sources are available simultaneously:</p>
+  <ul class="def-list">
+    <li><strong>Log-reported balance</strong> — from sync events captured in the log at the time of the session</li>
+    <li><strong>Live blockchain balance</strong> — fetched from public APIs at the time of analysis</li>
+    <li><strong>App.json balance</strong> — from the application's local state file, when loaded in Customer View</li>
+  </ul>
+  <p>Comparison across these sources enables detection of:</p>
+  <ul class="def-list">
+    <li><strong>Sync failures</strong> — log balance differs from live balance</li>
+    <li><strong>Stale local cache</strong> — app.json balance differs from live balance</li>
+    <li><strong>Missing accounts</strong> — accounts present in app.json but absent from the log</li>
+    <li><strong>Unreported assets</strong> — live balance is positive but no sync data was captured</li>
+  </ul>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ NETWORK & PROTOCOL ═══════════════ -->
+<h2 id="network-analysis">Network &amp; Protocol Analysis</h2>
+
+<h3 id="http-analysis">HTTP Request Analysis</h3>
+<div class="card">
+  <p>Extraction and display of all HTTP requests captured in the log. Each request record includes URL, HTTP method, status code, and associated error data when present.</p>
+  <p><strong>Status code classification:</strong> success (2xx), client error (4xx), server error (5xx). Error summarization at the section header level: total error count with server vs. client error breakdown. This enables rapid determination of whether failures were caused by server-side problems or client configuration issues.</p>
+  <p>Request URLs are displayed in full and are useful for identifying which Ledger or third-party APIs were contacted during the session, including firmware update endpoints, Manager API calls, and pricing service requests.</p>
+</div>
+
+<h3 id="activity-detection">Session Activity Detection</h3>
+<div class="card">
+  <p>Automatic detection of significant user activities during the session based on analytics event and log entry patterns:</p>
+  <ul class="def-list">
+    <li><strong>Manager access</strong> — device app management session detected from manager-related events</li>
+    <li><strong>Swap activity</strong> — swap browsing and execution events</li>
+    <li><strong>Device scanning</strong> — transport scanning events indicating device connection attempts</li>
+  </ul>
+  <p><strong>Analytics event parsing:</strong> App Start metadata captures user ID, OS, platform, device model, and app version at session open. Portfolio analytics events record portfolio metrics at session time. SyncSuccess events capture per-account sync outcomes including operation count and balance.</p>
+  <p><strong>Software version-aware branding:</strong> The tool detects whether the session originated from "Ledger Live" (versions 2.46–~2.131) or "Ledger Wallet" (versions ~2.132+, 4.0+). Detection uses <span class="mono">userAgent</span> string parsing from <span class="mono">exportLogsMeta</span> with version number fallback. All labels, error advice text, and session descriptions adjust to reflect the correct product name.</p>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ EXPORT & INTEGRATION ═══════════════ -->
+<h2 id="export">Export &amp; Integration</h2>
+
+<h3 id="export-formats">Structured Export Formats</h3>
+<div class="card">
+  <p>Six export formats, all generating plain text optimized for copy-paste into support systems:</p>
+  <ul class="def-list">
+    <li><strong>Quick Summary</strong> — device info, top accounts with live balances, top errors with severity, portfolio total. Formatted for support ticket notes.</li>
+    <li><strong>Full Export</strong> — complete device info, all accounts with balances and fiat values, all errors with severity and recommended actions, APDU count, data quality score, session activity summary. For escalation to Tier 2 or engineering.</li>
+    <li><strong>Customer Summary</strong> — account-focused with live balances, fiat values, and portfolio total. For customer communication. Available in both Diagnostic and Customer View modes.</li>
+    <li><strong>Error Export</strong> — all errors with severity, diagnostic title, recommended action, category, entry reference, timestamp, and common causes. Optimized for error-focused ticket investigation.</li>
+    <li><strong>Filtered Timeline Export</strong> — current filtered and searched timeline entries as JSON. Preserves active filter state.</li>
+    <li><strong>Account Data Export</strong> — all accounts with chain identifier, address, derivation mode, and operation count as JSON.</li>
+  </ul>
+  <p>All copy formats include live blockchain balances and fiat values when available. Formats that include account data add a <span class="mono">⚠ NO SYNC DATA</span> warning line when the log contains no sync information, so recipients are aware of the data source limitations.</p>
+</div>
+
+<h3 id="sovereignty">Data Sovereignty</h3>
+<div class="card">
+  <p>All log parsing, analysis, pattern matching, and data correlation runs entirely in the browser via client-side JavaScript. No log data is transmitted to any server under any circumstance.</p>
+  <p><strong>External contacts made during analysis (addresses only, no log content):</strong></p>
+  <ul class="def-list">
+    <li><strong>Public blockchain APIs</strong> — account addresses are sent to query on-chain balances. No log content, error data, or metadata is included.</li>
+    <li><strong>CoinGecko API</strong> — chain currency identifiers (e.g., <span class="mono">ethereum</span>, <span class="mono">bitcoin</span>) are sent to retrieve USD prices. No account or user data is included.</li>
+  </ul>
+  <p>No cookies are set. No data is written to localStorage or sessionStorage. No analytics or telemetry of any kind. The tool can operate fully offline except for live balance fetching and fiat pricing — all other features function without network access.</p>
+  <div class="tip">Log files may contain sensitive customer data including account addresses, device identifiers, and user IDs. Handle exported summaries and raw log data according to your organization's data handling and privacy policies.</div>
+</div>
+
+
+</div>
+`;
 const gtc=t=>t?TC[t.toLowerCase()]||'#717070':'#717070';
 
 function copyText(text){
@@ -2939,6 +3748,8 @@ function App(){
   const[globalSearch,setGlobalSearch]=useState('');
   const[showGlobalResults,setShowGlobalResults]=useState(false);
   const[liveBalances,setLiveBalances]=useState({});
+  const[guideOpen,setGuideOpen]=useState(null);
+  const[guideSearch,setGuideSearch]=useState('');
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
 
@@ -3115,6 +3926,18 @@ function App(){
     return()=>window.removeEventListener('pageshow',handlePageShow);
   },[]);
 
+  const openGuide=useCallback((type)=>{
+    setGuideOpen(type);
+    setGuideSearch('');
+  },[]);
+
+  useEffect(()=>{
+    if(!guideOpen)return;
+    const handler=e=>{if(e.key==='Escape')setGuideOpen(null);};
+    document.addEventListener('keydown',handler);
+    return()=>document.removeEventListener('keydown',handler);
+  },[guideOpen]);
+
   const moreAlert=logData&&(
     (logData.apdu||[]).some(a=>{
       if(!a.hex||a.dir==='in')return false;
@@ -3170,6 +3993,10 @@ function App(){
         <div style={{display:'flex',justifyContent:'center',gap:16,flexWrap:'wrap',fontSize:12,color:T.muted,position:'relative'}}>
           <span>Device info</span><span>Accounts</span><span>Error diagnosis</span><span>On-chain links</span><span>Network</span>
         </div>
+      </div>}
+      {!logData&&!parsing&&<div style={{display:'flex',gap:12,marginTop:16,justifyContent:'center'}}>
+        <button onClick={e=>{e.stopPropagation();openGuide('agent');}} style={{padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>📖</span> Agent Guide</button>
+        <button onClick={e=>{e.stopPropagation();openGuide('technical');}} style={{padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>🔬</span> Technical Reference</button>
       </div>}
 
       {/* Log Viewer */}
@@ -4378,6 +5205,23 @@ function App(){
       </div>}
     </div>
   {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson}/>}
+  {guideOpen&&<div onClick={()=>setGuideOpen(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 0.15s ease'}}>
+    <div onClick={e=>e.stopPropagation()} style={{width:'min(900px, 90vw)',height:'85vh',background:T.bg,border:`1px solid ${T.border}`,borderRadius:12,display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.6)'}}>
+      <div style={{display:'flex',alignItems:'center',padding:'12px 20px',borderBottom:`1px solid ${T.border}`,flexShrink:0,gap:12}}>
+        <span style={{fontSize:14,fontWeight:700,color:T.text,flex:1}}>{guideOpen==='agent'?'Agent Guide':'Technical Reference'}</span>
+        <input value={guideSearch} onChange={e=>setGuideSearch(e.target.value)} placeholder="Search..." style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:T.panel,color:T.text,fontSize:12,width:200,fontFamily:'Inter,sans-serif'}}/>
+        <button onClick={()=>setGuideOpen(null)} style={{width:28,height:28,borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(245,115,117,0.15)';e.currentTarget.style.color=T.error;}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color=T.muted;}}>✕</button>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'0'}}>
+        {(()=>{
+          const raw=guideOpen==='agent'?GUIDE_AGENT:GUIDE_TECHNICAL;
+          let html=raw;
+          if(guideSearch.length>=2){const esc=guideSearch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const re=new RegExp(`(${esc})`,'gi');html=html.replace(re,'<mark style="background:rgba(187,176,255,0.35);color:#fff;padding:1px 2px;border-radius:2px">$1</mark>');}
+          return <div className="guide-embed" dangerouslySetInnerHTML={{__html:html}}/>;
+        })()}
+      </div>
+    </div>
+  </div>}
   </div>
 
 }
