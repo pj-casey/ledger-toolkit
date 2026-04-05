@@ -3772,7 +3772,7 @@ function buildErrorText(logData){
   return lines.join('\n');
 }
 
-function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, setFocusedAcct }) {
+function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, setFocusedAcct, versionCheck, firmwareCheck, appVersionCheck, ledgerStatus }) {
   const errors = logData ? logData.errs : [];
   const accounts = logData ? logData.accts : [];
 
@@ -3992,6 +3992,34 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
           ))}
         </div>
       )}
+
+      {/* API data sources */}
+      <div style={{padding:'8px 12px',borderTop:`1px solid ${T.border}`,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
+        {(()=>{
+          const lbVals=Object.values(liveBalances||{});
+          const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
+          const balLoading=lbVals.some(v=>v?.status==='loading');
+          const priceOk=lbVals.some(v=>v?.fiat!=null&&v.fiat>0);
+          const mgOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
+          const mgLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
+          const ghOk=appVersionCheck?.status==='ok';
+          const ghLoading=appVersionCheck?.status==='loading';
+          const dot=(label,ok,loading,tip)=>{
+            const color=ok?T.success:T.muted;
+            const bg=ok?'rgba(122,194,108,0.08)':'transparent';
+            const bdr=ok?'rgba(122,194,108,0.3)':'rgba(255,255,255,0.08)';
+            const opa=(ok||loading)?1:0.4;
+            return <span key={label} title={tip} style={{fontFamily:MF,fontSize:8,color,padding:'1px 5px',borderRadius:3,border:`1px solid ${bdr}`,background:bg,letterSpacing:'0.05em',opacity:opa,whiteSpace:'nowrap'}}>{label}</span>;
+          };
+          return <>
+            {dot('MGR',mgOk,mgLoading,mgOk?'App catalog + firmware: live data':mgLoading?'Fetching Manager API…':'Manager API unavailable')}
+            {dot('GH',ghOk,ghLoading,ghOk?'Desktop version check: live data':ghLoading?'Fetching GitHub releases…':'GitHub API unavailable')}
+            {dot('BAL',balOk,balLoading,balOk?'On-chain balances fetched':balLoading?'Fetching on-chain balances…':'On-chain balances unavailable')}
+            {dot('FX',priceOk,balOk&&!priceOk,priceOk?'Fiat prices from CoinGecko':balOk?'Fetching fiat prices…':'Fiat prices unavailable')}
+            {dot('STS',!!ledgerStatus,!ledgerStatus,ledgerStatus?'Ledger status page: live':'Fetching Ledger status…')}
+          </>;
+        })()}
+      </div>
 
     </div>
   );
@@ -4614,7 +4642,15 @@ function App(){
           <Ico.File/>
           <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
           {logData.isMobile&&<span style={{fontSize:10,fontWeight:700,letterSpacing:'0.05em',padding:'2px 6px',borderRadius:4,background:T.primary+'1A',color:T.primary,marginLeft:2}}>MOBILE</span>}
-          <span style={{color:T.muted,marginLeft:4}}>{logData.entries.length} entries · {' '}<span onClick={()=>setSection('accounts')} style={{cursor:'pointer',color:logData.accts.length>0?T.success:T.muted,textDecoration:'underline',textDecorationColor:'transparent',transition:I.fast}} onMouseEnter={e=>e.target.style.textDecorationColor='currentColor'} onMouseLeave={e=>e.target.style.textDecorationColor='transparent'}>{logData.accts.length} accounts</span> · {' '}<span onClick={()=>setSection('errors')} style={{cursor:'pointer',color:logData.errs.length>0?T.error:T.muted,textDecoration:'underline',textDecorationColor:'transparent',transition:I.fast}} onMouseEnter={e=>e.target.style.textDecorationColor='currentColor'} onMouseLeave={e=>e.target.style.textDecorationColor='transparent'}>{logData.errs.length} issue{logData.errs.length!==1?'s':''}</span></span>
+          <span style={{color:T.muted,marginLeft:4,fontFamily:MF,fontSize:10,letterSpacing:'0.03em'}}>
+            {logData.entries.length>1?(()=>{
+              const t0=logData.entries[0].timestamp;
+              const tN=logData.entries[logData.entries.length-1].timestamp;
+              const dur=((new Date(tN)-new Date(t0))/1000);
+              const durLabel=dur<60?dur.toFixed(1)+'s':dur<3600?(dur/60).toFixed(1)+'m':(dur/3600).toFixed(1)+'h';
+              return `${fmtDate(t0)} ${fmtTime(t0)}–${fmtTime(tN)} · ${durLabel}`;
+            })():''}
+          </span>
         </div>
         <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>New file</button>
       </div>}
@@ -4655,7 +4691,7 @@ function App(){
 
       {/* Log Viewer */}
       {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden'}}>
-        <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} />
+        <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} ledgerStatus={ledgerStatus} />
         <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`}}>
         {/* Context Ribbon */}
         {(focusedAcct||(selectedErr!=null&&section==='errors'))&&(()=>{
@@ -4700,10 +4736,6 @@ function App(){
           const medCount=logData.errs.filter(e=>e.dg?.s==='medium').length;
           const errLabel=logData.errs.length===0?'0 errors':highCount>0?`${highCount} critical`:medCount>0?`${medCount} warning`:`${logData.errs.length} info`;
           const errColor=logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#3B82F6';
-          // Session data
-          const hasSession=logData.entries.length>1;
-          const chainCounts={};logData.accts.forEach(a=>{const key=a.ch.name;if(!chainCounts[key]){chainCounts[key]={count:0,color:a.ch.color};}chainCounts[key].count++;});
-          const topChains=Object.entries(chainCounts).sort((x,y)=>y[1].count-x[1].count).slice(0,5);
           // Guidance
           const acctRefs={};logData.errs.forEach(e=>{if(e.dg&&e.dg.r){const a=logData.accts.find(a=>a.addr&&a.addr.length>8&&e.dg.r.includes(a.addr));if(a)acctRefs[a.addr]=(acctRefs[a.addr]||0)+1;}});
           const topAcct=Object.entries(acctRefs).sort((a,b)=>b[1]-a[1])[0];
@@ -5285,47 +5317,6 @@ function App(){
                 </div>
               </div>;
             })()}
-
-            {/* Zone 3: Bottom bar */}
-            <div style={{flexShrink:0,height:'clamp(44px, 5.5vh, 56px)',borderTop:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.08) 0%, ${T.panel} 35%)`,position:'relative'}}>
-              {/* Session info — left */}
-              {/* Session info — left */}
-              <div style={{display:'flex',alignItems:'center',gap:8,fontSize:'var(--ov-fs-sm)',color:T.muted,overflow:'hidden',flexShrink:1,minWidth:0}}>
-                {hasSession?<>
-                  <span style={{fontWeight:600,color:T.primary,flexShrink:0}}>Session:</span>
-                  <span style={{flexShrink:0,whiteSpace:'nowrap'}}>{fmtDate(logData.entries[0].timestamp)}&nbsp;{fmtTime(logData.entries[0].timestamp)} — {fmtTime(logData.entries[logData.entries.length-1].timestamp)}</span>
-                  <span style={{flexShrink:0}}>·</span>
-                  <span style={{flexShrink:0}}>{((new Date(logData.entries[logData.entries.length-1].timestamp)-new Date(logData.entries[0].timestamp))/1000).toFixed(1)}s</span>
-                </>:<span>No session data</span>}
-              </div>
-              {/* API status pills — right */}
-              <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
-                {(()=>{
-                  const lbVals=Object.values(liveBalances||{});
-                  const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
-                  const balLoading=lbVals.some(v=>v?.status==='loading');
-                  const priceOk=lbVals.some(v=>v?.fiat!=null&&v.fiat>0);
-                  const mgOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
-                  const mgLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
-                  const ghOk=appVersionCheck?.status==='ok';
-                  const ghLoading=appVersionCheck?.status==='loading';
-                  const pill=(label,ok,loading,tip)=>{
-                    const color=ok?T.success:T.muted;
-                    const bg=ok?'rgba(122,194,108,0.08)':'transparent';
-                    const bdr=ok?'rgba(122,194,108,0.3)':'rgba(255,255,255,0.08)';
-                    const opa=(ok||loading)?1:0.45;
-                    return <span key={label} title={tip} style={{fontFamily:MF,fontSize:9,color,padding:'1px 5px',borderRadius:4,border:`1px solid ${bdr}`,background:bg,letterSpacing:'0.06em',opacity:opa,flexShrink:0,whiteSpace:'nowrap'}}>{label}</span>;
-                  };
-                  return <>
-                    {pill('MANAGER',mgOk,mgLoading,mgOk?'App catalog + firmware: live data':mgLoading?'Fetching Manager API…':'Manager API unavailable')}
-                    {pill('GITHUB',ghOk,ghLoading,ghOk?'Desktop version check: live data':ghLoading?'Fetching GitHub releases…':'GitHub API unavailable')}
-                    {pill('BALANCES',balOk,balLoading,balOk?'On-chain balances fetched':balLoading?'Fetching on-chain balances…':'On-chain balances unavailable')}
-                    {pill('PRICES',priceOk,balOk&&!priceOk,priceOk?'Fiat prices from CoinGecko':balOk?'Fetching fiat prices…':'Fiat prices unavailable')}
-                    {pill('STATUS',!!ledgerStatus,!ledgerStatus,ledgerStatus?'Ledger status page: live':'Fetching Ledger status…')}
-                  </>;
-                })()}
-              </div>
-            </div>
 
           </div>;
         })()}
