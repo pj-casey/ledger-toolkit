@@ -4800,7 +4800,7 @@ function App(){
                 })()}
               </div>
               {/* Activity badges */}
-              {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{badges.map(b=><span key={b.k} style={{...bdg(b.c),fontSize:'var(--ov-fs-xs)',padding:'3px 10px',textTransform:'uppercase',letterSpacing:'0.04em'}}>{b.l}</span>)}</div>;})()}
+              {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{badges.map(b=><span key={b.k} style={{...bdg(b.c),fontSize:'var(--ov-fs-xs)',padding:'3px 10px',textTransform:'uppercase',letterSpacing:'0.04em'}}>{b.l}</span>)}</div>;})()}
             </div>
 
             {/* Zone 2: Middle content — adaptive layout */}
@@ -4815,7 +4815,7 @@ function App(){
                   <span style={{flex:1,fontSize:'var(--ov-fs-md)'}}>{parts.join(' · ')}</span>
                   <span style={{color:T.muted,fontSize:11}}>{deviceExpanded?'▾':'▸'}</span>
                 </div>
-                {deviceExpanded&&<div style={{background:T.panel,border:'1px solid rgba(255,255,255,0.04)',borderTop:'none',borderRadius:'0 0 4px 4px',padding:'8px 14px'}}>
+                {deviceExpanded&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderTop:'none',borderRadius:'0 0 4px 4px',padding:'8px 14px'}}>
                   {/* B1: No-device warning */}
                   {!logData.dev.modelId&&!logData.dev.modelName&&<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'8px 12px',marginBottom:10,fontSize:12,color:T.muted}}>{logData.dev.fw?'Device model not identified — the log captured firmware info but not the device model.':'No device was connected during this session. Device model and firmware are not available.'}</div>}
                   {/* B2: App chips */}
@@ -4989,7 +4989,7 @@ function App(){
                       <span onClick={()=>setSection('errors')} style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',color:T.primary,cursor:'pointer',fontWeight:600,letterSpacing:'0.04em'}}>View all →</span>
                     </div>
                     {/* Hint banner */}
-                    {(topAcct||logData.accts.length>0)&&<div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,padding:'clamp(6px, 0.8vh, 10px) clamp(8px, 1vh, 12px)',fontSize:'var(--ov-fs-sm)',color:'#949494',lineHeight:1.5,display:'flex',alignItems:'flex-start',gap:8,marginTop:10}}>
+                    {(topAcct||logData.accts.length>0)&&<div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:6,padding:'clamp(6px, 0.8vh, 10px) clamp(8px, 1vh, 12px)',fontSize:'var(--ov-fs-sm)',color:'#949494',lineHeight:1.5,display:'flex',alignItems:'flex-start',gap:8,marginTop:6,marginBottom:8}}>
                       <span style={{fontSize:13,flexShrink:0}}>💡</span>
                       <span>
                         {topAcct&&<>{topAcct[1]} error{topAcct[1]>1?'s':''} reference account {topAcct[0].slice(0,16)}… — open <span style={{color:T.primary,cursor:'pointer',fontWeight:600}} onClick={()=>setSection('accounts')}>Accounts</span> to review. </>}
@@ -4997,7 +4997,7 @@ function App(){
                       </span>
                     </div>}
                     {/* Issues panel — adaptive grid, no scroll */}
-                    <div style={{flex:1,overflow:'hidden',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'10px 0 0'}}>
+                    <div style={{flex:1,overflow:'hidden',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'10px 4px 0'}}>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',gap:'var(--ov-gap-chips, 5px)',overflow:'hidden',alignContent:'start'}}>
                         {[...logData.errs].sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[(b.dg||{}).s]||0)-(r[(a.dg||{}).s]||0);}).slice(0,12).map(e=>{
                           const dg=e.dg||{};
@@ -5041,37 +5041,41 @@ function App(){
             {/* Zone 3: Bottom bar */}
             <div style={{flexShrink:0,height:'clamp(44px, 5.5vh, 56px)',borderTop:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.08) 0%, ${T.panel} 35%)`,position:'relative'}}>
               {/* Session info — left */}
+              {/* Session info — left */}
               <div style={{display:'flex',alignItems:'center',gap:8,fontSize:'var(--ov-fs-sm)',color:T.muted,overflow:'hidden',flexShrink:1,minWidth:0}}>
                 {hasSession?<>
                   <span style={{fontWeight:600,color:T.primary,flexShrink:0}}>Session:</span>
                   <span style={{flexShrink:0,whiteSpace:'nowrap'}}>{fmtDate(logData.entries[0].timestamp)}&nbsp;{fmtTime(logData.entries[0].timestamp)} — {fmtTime(logData.entries[logData.entries.length-1].timestamp)}</span>
                   <span style={{flexShrink:0}}>·</span>
                   <span style={{flexShrink:0}}>{((new Date(logData.entries[logData.entries.length-1].timestamp)-new Date(logData.entries[0].timestamp))/1000).toFixed(1)}s</span>
-                  {(()=>{
-                    const lbVals=Object.values(liveBalances||{});
-                    const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
-                    const balLoading=lbVals.some(v=>v?.status==='loading');
-                    const priceOk=lbVals.some(v=>v?.fiat!=null&&v.fiat>0);
-                    const mgOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
-                    const mgLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
-                    const ghOk=appVersionCheck?.status==='ok';
-                    const ghLoading=appVersionCheck?.status==='loading';
-                    const pill=(label,ok,loading,tip)=>{
-                      const color=ok?T.success:T.muted;
-                      const bg=ok?'rgba(122,194,108,0.08)':'transparent';
-                      const bdr=ok?'rgba(122,194,108,0.3)':'rgba(255,255,255,0.08)';
-                      const opa=(ok||loading)?1:0.45;
-                      return <span key={label} title={tip} style={{fontFamily:MF,fontSize:9,color,padding:'1px 5px',borderRadius:4,border:`1px solid ${bdr}`,background:bg,letterSpacing:'0.06em',opacity:opa,flexShrink:0,whiteSpace:'nowrap'}}>{label}</span>;
-                    };
-                    return <>
-                      {pill('MANAGER',mgOk,mgLoading,mgOk?'App catalog + firmware: live data':mgLoading?'Fetching Manager API…':'Manager API unavailable')}
-                      {pill('GITHUB',ghOk,ghLoading,ghOk?'Desktop version check: live data':ghLoading?'Fetching GitHub releases…':'GitHub API unavailable')}
-                      {pill('BALANCES',balOk,balLoading,balOk?'On-chain balances fetched':balLoading?'Fetching on-chain balances…':'On-chain balances unavailable')}
-                      {pill('PRICES',priceOk,balOk&&!priceOk,priceOk?'Fiat prices from CoinGecko':balOk?'Fetching fiat prices…':'Fiat prices unavailable')}
-                      {pill('STATUS',!!ledgerStatus,!ledgerStatus,ledgerStatus?'Ledger status page: live':'Fetching Ledger status…')}
-                    </>;
-                  })()}
                 </>:<span>No session data</span>}
+              </div>
+              {/* API status pills — right */}
+              <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+                {(()=>{
+                  const lbVals=Object.values(liveBalances||{});
+                  const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
+                  const balLoading=lbVals.some(v=>v?.status==='loading');
+                  const priceOk=lbVals.some(v=>v?.fiat!=null&&v.fiat>0);
+                  const mgOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
+                  const mgLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
+                  const ghOk=appVersionCheck?.status==='ok';
+                  const ghLoading=appVersionCheck?.status==='loading';
+                  const pill=(label,ok,loading,tip)=>{
+                    const color=ok?T.success:T.muted;
+                    const bg=ok?'rgba(122,194,108,0.08)':'transparent';
+                    const bdr=ok?'rgba(122,194,108,0.3)':'rgba(255,255,255,0.08)';
+                    const opa=(ok||loading)?1:0.45;
+                    return <span key={label} title={tip} style={{fontFamily:MF,fontSize:9,color,padding:'1px 5px',borderRadius:4,border:`1px solid ${bdr}`,background:bg,letterSpacing:'0.06em',opacity:opa,flexShrink:0,whiteSpace:'nowrap'}}>{label}</span>;
+                  };
+                  return <>
+                    {pill('MANAGER',mgOk,mgLoading,mgOk?'App catalog + firmware: live data':mgLoading?'Fetching Manager API…':'Manager API unavailable')}
+                    {pill('GITHUB',ghOk,ghLoading,ghOk?'Desktop version check: live data':ghLoading?'Fetching GitHub releases…':'GitHub API unavailable')}
+                    {pill('BALANCES',balOk,balLoading,balOk?'On-chain balances fetched':balLoading?'Fetching on-chain balances…':'On-chain balances unavailable')}
+                    {pill('PRICES',priceOk,balOk&&!priceOk,priceOk?'Fiat prices from CoinGecko':balOk?'Fetching fiat prices…':'Fiat prices unavailable')}
+                    {pill('STATUS',!!ledgerStatus,!ledgerStatus,ledgerStatus?'Ledger status page: live':'Fetching Ledger status…')}
+                  </>;
+                })()}
               </div>
             </div>
 
