@@ -2,14 +2,14 @@
 
 Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose customer issues from Ledger Wallet log exports.
 
-**Branch:** `experimental`
+**Branch:** `main`
 **Design references:** REDESIGN_VISION_V5.md (design philosophy), VIEWPORT_REDESIGN_SCOPE.md (fixed-viewport architecture), ROADMAP_LIVE_BALANCES.md (live balance architecture — now implemented)
 
 ---
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~5,700 lines)
+- **ONE file**: `ledger-toolkit.html` (~6,057 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
@@ -62,7 +62,7 @@ These were extended to support LLv4 (Ledger Wallet 4.0) logs. Extensions are add
 **`extractAccounts`** — added LLv4 bridge sync fallback (sets `dur` from `SyncSession finished` when no SyncSuccess analytics events exist).
 **`extractDeviceApps`** — added tertiary `catalog-only` source (hw install events + apps-by-target catalog).
 
-## CAN MODIFY (rendering/styling on experimental branch)
+## CAN MODIFY (rendering/styling)
 
 Rendering and styling of ALL components may be modified for UX improvements.
 
@@ -152,7 +152,9 @@ Source: `@ledgerhq/devices` package in LedgerHQ/ledger-live monorepo.
 **Fixed header zone (flexShrink:0):**
 - Row 1: Severity chips (Critical/Warning/Info — click `errSevFilter`, hover `errHoveredSev`) + Category chips (computed from enrichedErrs — click `errCatFilter`, hover `errHoveredCat`) + Copy Errors button.
 - Row 2: Repeating pattern badges ("↻ title ×N" — click `errPatternFilter`). Only shows when patterns exist.
-- Row 3: Error-prominent session strip (80px). TC-colored stacked bars, error segments at full opacity, context at 25%. Hover: `errStripHover` state → tooltip with time, event count, error titles. Click: selects error in master-detail. Severity/category chip hover dims non-matching error segments.
+- Row 3: Error-prominent session strip (80px). Uniform grey (#4A4A4A) for context activity, T.error for error segments (simplified from full TC colors — Timeline keeps the full palette). Hover: `errStripHover` state → tooltip with time, event count, error titles. Click: selects error in master-detail. Severity/category chip hover dims non-matching error segments. Selected error: vertical line + triangle marker at error's timestamp on strip, pulses with `selectPulse` animation. Both strip marker AND selected error row in the list pulse the same severity color simultaneously.
+- Strip labels: "SESSION · CLICK TO NAVIGATE" top-right (MF font, muted). "N errors highlighted" bottom-left when errors present.
+- Strip legend: Two-item legend below strip — grey "ACTIVITY" + red "ERRORS".
 - Row 4: Affected accounts chips (from `errAcctMap`). Clickable → navigates to Accounts.
 - Filter banners: `errAcctFilter` banner (from Accounts section), `errSevFilter/errCatFilter/errPatternFilter` banner with "Clear filters".
 
@@ -185,7 +187,8 @@ Source: `@ledgerhq/devices` package in LedgerHQ/ledger-live monorepo.
 
 **Scrollable panel (flex:1, overflowY:auto):**
 - EVM grouping: same-address accounts grouped, ETH first. "SHARED ADDRESS" header + CopyBtn + chain count + group fiat.
-- `AcctCard` props: `acct, errCount, deviceApps, liveBalance, onErrClick, onTimelineClick`
+- `AcctCard` props: `acct, errCount, deviceApps, liveBalance, versionCheck, onErrClick, onTimelineClick`
+- **App status badges** (plain language): "Missing" (red) when required apps not installed. "Outdated · N errors" (red) when outdated + has errors. "Outdated" (amber) when outdated only. No badge when current (green suppressed to reduce noise).
 - Error badge → sets `errAcctFilter` + navigates to Issues
 - "Timeline" button → sets `tlAcctFilter` + navigates to Timeline
 - Xpub scan button on collapsed UTXO cards
@@ -274,12 +277,22 @@ Three tiers, normalized across the entire tool:
 
 Do NOT use 12, 10, 5, or 3. These have been eliminated.
 
+### CSS animations
+
+| Keyframe | Duration | Used by |
+|---|---|---|
+| `focusPulse` | infinite | Accounts health tile focus mode breathing |
+| `selectPulse` | 0.6s ease-out | Issues strip selected-error marker + selected error row glow |
+| `confirmFlash` | 0.4s ease-out | CopyBtn green flash on successful copy |
+| `statFadeIn` | 0.3s | Stat card value entrance |
+| `iconPulse` | 1.5s infinite | Drop zone icon breathing on drag hover |
+
 ### Hover patterns
 
-Three standardized hover behaviors:
-- **Data rows** (timeline, network, APDU, device info): `background → rgba(255,255,255,0.02–0.03)`
+Standardized hover behaviors (being unified under the `I` interaction constants — work in progress):
+- **Data rows** (timeline, network, APDU, device info): `background → I.hover` (`rgba(255,255,255,0.04)`)
 - **Cards** (ErrCard, AcctCard): existing hover classes (`.err-hover`, `.acct-hover`)
-- **Ghost buttons** (outlined, transparent bg): `borderColor → T.primary, color → T.primary` on hover
+- **Ghost buttons** (outlined, transparent bg): `borderColor → T.primary, color → T.primary, background → I.hoverAccent` on hover
 
 ---
 
@@ -343,7 +356,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`, `versionCheck`, `firmwareCheck`
+**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`, `versionCheck`, `firmwareCheck`, `desktopCheck`
 **DiagSidebar:** `accountsOpen`, `advOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
@@ -357,7 +370,8 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 |---|---|---|
 | `T` | 11 | Theme colors (includes `card` elevation and `orange:#FF5300`) |
 | `MF` | 1 | Monospace font stack constant — `'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace` |
-| `TC` | 9 | Log type badge colors — used on Timeline bars, legend chips, Issues strip, breadcrumbs. Same color for same type everywhere. |
+| `I` | 7 | Interaction constants — hover backgrounds, timing, selection, feedback tokens. Used by CopyBtn confirmation flash; universal application in progress. |
+| `TC` | 9 | Log type badge colors — bold palette: action grey, analytics purple, countervalues amber, bridge orange, network blue, persistence green, walletsync pink, error crimson, live-dmk-logger purple. Same color for same type everywhere. |
 | `DN` | 6 | Device model names (nanoS, nanoSP, nanoX, stax, europa→Flex, apex→Nano Gen5) |
 | `TARGET_MASKS` | 6 | Target ID → device model mapping (same as @ledgerhq/devices) |
 | `CHAINS` | 60 | Chain registry + explorer URLs |
@@ -406,6 +420,7 @@ Full pass bringing the tool's visual language into alignment with Ledger's curre
 **Color changes:**
 - `T.orange = '#FF5300'` — Ledger Safety Orange. Used for: Customer Summary copy border, contextual help link hover, ErrCard help article link, drag-over accent on landing page drop zone.
 - `T.error = '#E40046'` — Ledger brand crimson (was #F57375). Replaces all error red uses: `SEV.high`, `TC` error type, CSS `--error`, all `rgba(245,115,117,...)` alpha variants.
+- `SEV.low` info color = `#3B82F6` — bold blue (was `#8A9EF5` pastel periwinkle). All `#8A9EF5` replaced globally.
 
 **Typography changes:**
 - Body font: Brut Grotesque (300–700) embedded via Base64 @font-face (replaces previous web fonts).
@@ -457,8 +472,7 @@ On log load, the tool fetches the current app catalog from Ledger's Manager API 
 
 **Copy reports:** `buildSummaryText` and `buildFullText` accept `versionCheck` as 4th parameter. Include VERSION CHECK section with outdated apps when available.
 
-**Phases remaining:**
-- Phase 3: Ledger Wallet version check (GitHub releases API)
+**All phases implemented.** See Phase 2 (Firmware) and Phase 3 (Desktop App) sections below.
 
 ---
 
@@ -493,6 +507,32 @@ On log load, the tool checks if the device's firmware is the latest available vi
 
 ---
 
+## Live Version Checking — Phase 3 (Desktop App)
+
+Checks if the desktop app version is current via GitHub releases.
+
+**API:** `GET https://api.github.com/repos/LedgerHQ/ledger-live/releases?per_page=30`
+
+Filters for tags matching `@ledgerhq/live-desktop@X.Y.Z` pattern. Extracts latest version number.
+
+**State:** `desktopCheck = {status:'ok'|'loading'|'error', current, latest, outdated}`
+
+**UI:** App version row shows version normally. When outdated: amber "UPDATE → X.Y.Z" badge. When current: green "LATEST" badge.
+
+**Copy reports:** When outdated, included in VERSION CHECK section of Summary and Full exports.
+
+---
+
+## API Status Footer
+
+Bottom bar of Overview Zone 3 shows 5 API status pills: MANAGER, GITHUB, BALANCES, PRICES, STATUS.
+
+Each pill reflects the fetch status of its API: green dot = fetched successfully, amber dot = loading, red dot = failed, muted = not attempted.
+
+Replaces the previous chain-specific balance status badges. Gives agents a single glance at which live data sources are available for the current log.
+
+---
+
 ## Spec files in repo
 
 | File | Status | Purpose |
@@ -504,7 +544,7 @@ On log load, the tool checks if the device's firmware is the latest available vi
 | `VIEWPORT_REDESIGN_SCOPE.md` | Historical reference | Foundation implemented, layouts evolved. |
 | `agent-guide.html` | **Active** | Agent-facing investigation guide. Updated to v4.2. |
 | `technical-reference.html` | **Active** | Technical capabilities reference. Updated to v4.2. |
-| `ROADMAP_LIVE_VERSIONS.md` | **Active — Phase 1 implemented** | Phase 2 (firmware) and Phase 3 (Ledger Wallet) pending. |
+| `ROADMAP_LIVE_VERSIONS.md` | **Implemented (all phases)** | Phase 1 (app catalog), Phase 2 (firmware), Phase 3 (desktop app) all complete. |
 
 ---
 
@@ -523,3 +563,4 @@ On log load, the tool checks if the device's firmware is the latest available vi
 | `post-helpcenter-integration` | — | Help center Layers 1-3, doc updates, copy report relocation. |
 | `post-brand-alignment-v1` | `3913328` | **Tag after brand alignment session.** Safety Orange, brand crimson, ambient gradient system, surface physics, typography pass. |
 | `post-version-check-p1` | — | Live version checking Phase 1, Brut Grotesque font, visual unification sweep, Customer View unification, app chip redesign. |
+| `post-session4-api-brand` | `f1e9dde` | **Phase 2+3 version checks, API status footer, TC bold palette, brand alignment (Timeline+Issues), Issues strip UX, interaction foundation (I constants, CopyBtn flash).** |

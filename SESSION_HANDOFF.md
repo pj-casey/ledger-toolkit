@@ -1,119 +1,112 @@
-# Session Handoff — April 4, 2026 (Session 3)
+# Session Handoff — April 5, 2026 (Session 4)
 
 ## What was built this session
 
-### Brut Grotesque Font Embedding
-- Embedded 4 Brut Grotesque woff2 files as Base64 `@font-face` declarations directly in the HTML
-- Weights: Light 300, Regular 400, Medium 500, Bold (600+700 share one file)
-- ~194KB for font data, ~700KB total file size
-- No CDN dependency — works fully offline and on `file://`
-- Replaces Space Grotesk (previously loaded from Google Fonts) across all body text, values, headings, descriptions
+### Phase 2: Firmware Version Checking
+- 3-call API chain to Ledger Manager API: get_device_version → get_firmware_version → get_latest_firmware
+- State: `firmwareCheck = {status:'ok'|'loading'|'error', current, latest, outdated}`
+- UI: amber "UPDATE AVAILABLE → X.Y.Z" badge when outdated, green "LATEST" when current
+- 5 fix iterations to discover correct API endpoint chain and POST body format
 
-### Visual Unification Sweep (Design Normalization)
-Full pass normalizing design inconsistencies introduced over multiple sessions:
+### Phase 3: Desktop App Version Check
+- Single call: `GET https://api.github.com/repos/LedgerHQ/ledger-live/releases?per_page=30`
+- Filters for `@ledgerhq/live-desktop@X.Y.Z` tags to find latest version
+- State: `desktopCheck = {status:'ok'|'loading'|'error', current, latest, outdated}`
+- UI: amber "UPDATE → X.Y.Z" or green "LATEST" badge on app version row
 
-**Border-radius system established:**
-- 8px — cards, panels, containers, overlays, popups
-- 6px — buttons, interactive controls, input fields, filter chips, advice boxes
-- 4px — small badges, pills, severity tags, breadcrumb chips
-- Eliminated: 12, 10, 5, 3 (all gone)
+### API Status Footer
+- 5 API status pills (MANAGER, GITHUB, BALANCES, PRICES, STATUS) in Overview Zone 3 bottom bar
+- Replaces chain-specific balance badges
+- Green/amber/red dot per API reflecting fetch status
 
-**Hover patterns standardized:**
-- Data rows (timeline, network, APDU, device info): `rgba(255,255,255,0.02–0.03)`
-- Cards: `.err-hover`, `.acct-hover` classes
-- Ghost buttons: `borderColor → T.primary, color → T.primary`
+### AcctCard Badge Clarity
+- Plain-language app status badges: "Missing" (red), "Outdated · N errors" (red), "Outdated" (amber), "Current" (no badge — green suppressed)
 
-**Other polish:** stat card `borderTop` highlight, stat card value letter-spacing, `.stat-value` class, network section container, APDU export container, popover/dropdown consistency.
+### TC Bold Color Palette
+```
+TC={action:'#808080', analytics:'#D4A0FF', countervalues:'#FFBD42', bridge:'#FF5300',
+network:'#3B82F6', persistence:'#6EC85C', walletsync:'#E545A0', error:'#E40046',
+'live-dmk-logger':'#D4A0FF'}
+```
+Peter rejected pastels. Brand guide colors are bold. Nine types, eight distinct hues at full saturation.
 
-### Customer View — Visual Alignment
-Brought Customer View visual language into full alignment with Diagnostic mode:
-- `.cv-sidebar` — vertical purple gradient (matches Diagnostic sidebar)
-- `.cv-infobar` — subtle top gradient
-- `.cv-portfolio-card`, `.cv-detail-card` — 8px radius, top-edge highlight border
-- `.cv-section-title` — JetBrains Mono (matches all other section labels)
-- `.cv-info-row` — hover highlight; keys use `fontFamily:MF` monospace treatment
-- `.cv-acct-row.cv-active` — horizontal gradient glow from left border (matches AcctCards)
-- Portfolio cards get chain-colored left borders with inset glow
-- **Layout fix:** `.cv-layout` changed from `height:calc(100vh - 100px)` to `calc(100vh - 52px)` (the 100px was legacy from a separate mode-toggle row that no longer exists). Diagnostic main div hidden (`display:none`) in customer mode to eliminate residual gap.
+### Timeline Tab Brand Alignment
+11 fixes: search input + dropdown elevation, legend chip MF fonts, grid header MF treatment, error row tint → brand crimson, expanded rows T.bg, group header MF fonts, strip top-edge highlight, hint text MF, duration label MF.
 
-### Live Version Checking — Phase 1 (App Catalog Comparison)
+### Issues Tab Full Brand Alignment
+Comprehensive pass: header area typography (severity/category chips, hint text, patterns label, interpretation text, affected label, error list timestamps — all MF font), global `#8A9EF5` → `#3B82F6` replacement (bold blue replacing pastel periwinkle for info severity), ErrCard internals (severity badge, breadcrumb labels, cause chips, section headers), strip top-edge highlight, edge spacing.
 
-**Data layer extension:**
-- `extractDevice` now stores `info.targetId` (full 32-bit numeric value) for Manager API calls
-- D-7 block: stores targetId when model is identified via bitmask
-- Post-D-7 fallback: scans `data.targetId`, `data.data.target_id`, and URL params for targetId even when model identified via other path
+### Issues Strip UX Improvements
+1. Selected error marker: vertical line + triangle at error's timestamp on strip
+2. Purpose label: "SESSION · CLICK TO NAVIGATE" top-right, "N errors highlighted" bottom-left
+3. Simplified colors: uniform grey (#4A4A4A) for context, T.error for errors (Timeline keeps full TC palette)
+4. `selectPulse` animation: strip marker AND selected error row pulse same severity color simultaneously
+5. Two-item legend below strip: grey "ACTIVITY" + red "ERRORS"
 
-**API integration:**
-- Fetches `GET manager.api.live.ledger.com/api/v2/apps/by-target` on log load
-- Required params: `target_id`, `firmware_version_name`, `device_type`, `livecommonversion` (extracted from Manager API URLs in log entries, fallback `'1'`), `provider=1`
-- Missing `livecommonversion` was the cause of initial 400 errors — fixed by scanning log entries for any Manager API URL containing the param
-- `versionCheck` state: `{status:'ok'|'loading'|'error', apps:[{name, installed, latest, outdated}], catalogSize}`
-- Cleared on new file load; aborted on unmount
+### Design Language Part 1 Foundation (commit f1e9dde)
+- Added `I` interaction constants object (hover, timing, selection, feedback tokens)
+- Added `confirmFlash` CSS keyframe
+- CopyBtn upgraded with green flash animation on copy
+- NOTE: CopyBtn flash was too subtle to notice — needs stronger visual treatment (icon color + scale)
 
-**Copy report integration:**
-- `buildSummaryText` and `buildFullText` accept `versionCheck` as 4th param
-- Include VERSION CHECK section with outdated app list when available
+### Universal Design Language Part 2
+- `.stat-card:active` CSS rule: purple `selectPulse` on click
+- Stat cards: `I.interactiveBorder` resting border + `className="stat-card"`
+- Timeline legend chips: `I.interactiveBorder` inactive + `selectPulse` on activation
+- Timeline expanded rows: `selectPulse` on expand (both single and grouped-child rows)
+- Issues severity chips: `I.interactiveBorder` + `I.fast` transition + `selectPulse` on activation
+- Issues category chips: same pattern
+- Issues pattern chips: `selectPulse` on activation
 
-**App chip visual system (manager-result path):**
-- New 3-state system: green `✓` current, red `⬆` outdated (with `v1.0→1.1` version path), red `✕` missing
-- Live catalog data overrides log-derived status when `versionCheck.status==='ok'`
-- Tooltip on red chips: "Installed vX → latest vY (update available)"
-- Cursor `help` on outdated chips
-- Device Apps header simplified: label left, single LIVE/CHECKING/OFFLINE badge right; fallback count only when `versionCheck` is null
-- Advice box: red-tinted, shows specific counts ("2 outdated, 1 missing")
-- Others expanded chips: live-aware, red `⬆ name v→v` for outdated
-- "+ N others" button: crimson `+ N others (M ⬆)` when hidden apps outdated
-
-### CLAUDE.md Update
-Full Session 3 documentation pass via `/team-build`. All 11 changes applied including: Brut Grotesque font table, border-radius system, hover patterns, Customer View section, Live Version Checking section, versionCheck in state variables, extractDevice targetId docs, helper functions, git tags, spec files.
+### Overview Polish — 5 Edge Fixes
+Bottom bar separation, device card border match, issues grid padding, hint banner spacing, activity badges margin.
 
 ---
 
 ## Current file state
 
-~5,700+ lines. One file: `ledger-toolkit.html`.
+~6,057 lines. One file: `ledger-toolkit.html`.
 
 ## Current git state
 
-Branch: `main`. Two unpushed commits on top of `origin/main`:
-1. `bee7d45` — Live version checking, Brut Grotesque, visual unification, chip redesign
-2. Latest (uncommitted) — Customer View layout fix (cv-layout height) + header simplification
-
-To push: `git push origin main`
+Branch: `main`. Latest commit: `f1e9dde` (design language foundation). Session 4 visual work not yet committed.
 
 ---
 
 ## Key decisions made this session
 
-- **Brut Grotesque embedded, not CDN.** File:// compatibility and offline use require self-contained font delivery. Base64 woff2 is the right approach even at ~194KB cost.
-- **Live version check uses log's own livecommonversion.** Avoids hardcoding a version number that would go stale. Extracted from first Manager API URL found in log entries.
-- **Chip color system: red for outdated, not amber.** Agents think "amber = warning, fix eventually." Red makes urgency clear. Consistent with error color system elsewhere in the tool.
-- **Header simplified to label + single badge.** The previous header had count text + badge text — redundant. The chips communicate status directly; the badge communicates data freshness.
-- **Customer View layout: `calc(100vh - 52px)`.** The original `100px` subtraction was legacy from a separate mode-toggle row. Mode toggle is now in the top bar.
-- **`/team-build` for all multi-file or large editing tasks.** Working well as a pattern.
+- **Pastels rejected.** Peter wants bold brand colors, not muted versions. TC palette uses full-saturation Ledger brand colors.
+- **Issues strip simplified.** Full TC color palette stays on Timeline; Issues strip uses only grey (context) + red (errors). This reduces cognitive load — the Issues strip answers "where are the errors?" not "what types of activity happened?"
+- **`#8A9EF5` → `#3B82F6` globally.** Pastel periwinkle replaced with bold blue for info severity. Matches the bold philosophy.
+- **Design language needs rethinking.** "A bunch of flashing elements isn't a cohesive visual design language" (Peter). Consistent hovers and pulse animations are necessary but not sufficient. The real question is affordance and guidance: how does a first-time agent know what's interactive?
 
 ---
 
 ## Backlog (carried forward + new)
 
-### Carried from earlier sessions
-1. **Responsiveness audit** — click-outside handlers for sidebar popovers. Copy dropdown fixed; others may still have stopPropagation issues.
-2. **Test with real logs** — all new features, especially Live Version Checking (needs a log where Manager API call resolves successfully end-to-end).
+### Pending design language work
+1. **Universal design language** — Part 2 shipped (hovers, resting affordances, selectPulse extensions, filter feedback). But the broader question of first-time affordance/guidance remains open.
+2. **CopyBtn animation** — too subtle, needs icon color change + scale, not just background flash
+3. **Guidance labels** — small MF-font purpose labels on every interactive zone (like the Issues strip label). Deferred to later.
 
-### Live Version Checking — remaining phases
-3. **Phase 2: Firmware check** — needs `POST /api/v2/get_latest_firmware`. Requires `device_version_id` from `get_device_version` first. Full `targetId` is now stored, enabling this.
-4. **Phase 3: Ledger Wallet version** — GitHub releases API. Handle `ledger-live-desktop` vs `ledger-wallet-desktop` tag naming differences.
-5. **Phase 4 polish** — per-session cache, re-check button, Agent Guide entry for version check features.
+### Tab-specific work
+4. **Accounts tab brand alignment** — prompt written (`accounts-brand-alignment.md`), not yet run. 7 fixes: stats line MF, filter input elevation+focus, hint text MF, account count MF, expanded card panels T.bg+border, panel labels MF, EVM group header MF.
+5. **Network/APDU/Raw JSON tab brand alignment** — not started
+6. **Customer View overhaul** — bigger project, backburner
+
+### Documentation
+7. **Agent Guide + Technical Reference** — stale since Session 2, need entries for version checking, brand changes
 
 ### Other
-6. **Git tag** `post-version-check-p1` after push.
-7. **Agent Guide + Technical Reference update** — guides haven't been updated since Session 2. Need entries for: Brut Grotesque font, Live Version Checking, Customer View alignment, new chip visual system.
+8. **Responsiveness audit** — click-outside handlers still may have stopPropagation issues
+9. **Test with real logs** — especially firmware/desktop version checks end-to-end
 
 ---
 
 ## Lessons from this session
 
-- **Single-file edits don't benefit from parallel agents.** All 11 CLAUDE.md edits went to one agent — the right call. Parallel agents on one file cause conflicts.
-- **400 errors often have simple param causes.** The Manager API 400 was just a missing `livecommonversion`. Scanning the existing log entries for the correct param value was the cleanest fix.
-- **Customer View had accumulated drift.** Gradients, fonts, hover states, border radii were all inconsistent with Diagnostic mode. One visual alignment pass fixed all of it.
-- **Legacy height values accumulate silently.** The `100px` cv-layout subtraction was never wrong enough to break anything, but produced a visible black bar once the mode toggle moved into the top bar.
+- **Peter rejects pastels.** Brand colors are bold. Match them.
+- **Every animation must serve agent comprehension.** Consistency of mechanics ≠ design language. A pulse on 20 elements is noise, not language.
+- **Invisible infrastructure feels like nothing shipped.** The `I` constants with nothing using them yet felt empty. Ship visible changes first, plumbing second.
+- **Ship the real change, not the setup for the real change.** Part 1 (plumbing) without Part 2 (visible changes) was the wrong order. Should have combined them or led with visible impact.
+- **"What am I supposed to be seeing?"** — if you can't immediately show someone the change, it's not done yet.
