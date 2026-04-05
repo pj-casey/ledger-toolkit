@@ -1473,51 +1473,51 @@ async function fetchTokenChains(chains){
 
 /* Error KB */
 const ERR_DB=[
-  {m:'TransportStatusError',c:'hardware',s:'high',t:'Device communication failed',a:'Unlock device, open correct app, try different cable.',causes:['Device locked','Wrong app open','Faulty USB cable','USB hub interference']},
-  {m:'DisconnectedDevice',c:'hardware',s:'high',t:'Device disconnected',a:'Connect directly, try different cable.',causes:['Loose USB connection','Low battery (Nano X)','USB hub issue','Driver conflict']},
-  {m:'ManagerDeviceLockedError',c:'hardware',s:'medium',t:'Device is locked',a:'Ask customer to enter PIN.',causes:['Auto-lock timeout','User stepped away','PIN not entered after connection','Inactivity during long operation']},
-  {m:'CantOpenDevice',c:'hardware',s:'high',t:'Cannot connect to device',a:'Close other apps and retry.',causes:['Another app using device','Missing USB drivers','Insufficient permissions']},
+  {m:'TransportStatusError',c:'hardware',s:'high',t:'Device communication failed',a:'Unlock device, open correct app, try different cable.',causes:['Device locked','Wrong app open','Faulty USB cable','USB hub interference'],u:'https://support.ledger.com/article/115005165269-zd'},
+  {m:'DisconnectedDevice',c:'hardware',s:'high',t:'Device disconnected',a:'Connect directly, try different cable.',causes:['Loose USB connection','Low battery (Nano X)','USB hub issue','Driver conflict'],u:'https://support.ledger.com/article/115005165269-zd'},
+  {m:'ManagerDeviceLockedError',c:'hardware',s:'medium',t:'Device is locked',a:'Ask customer to enter PIN.',causes:['Auto-lock timeout','User stepped away','PIN not entered after connection','Inactivity during long operation'],u:'https://support.ledger.com/article/360023518653-zd'},
+  {m:'CantOpenDevice',c:'hardware',s:'high',t:'Cannot connect to device',a:'Close other apps and retry.',causes:['Another app using device','Missing USB drivers','Insufficient permissions'],u:'https://support.ledger.com/article/115005165269-zd'},
   {m:'GenuineCheckFailed',c:'hardware',s:'high',t:'Genuine check failed',a:'Retry. If persistent, escalate.',causes:['Firmware mismatch','Modified firmware','Connection interrupted during check'],u:'https://support.ledger.com/article/360003117594-zd'},
-  {m:'SyncError',c:'software',s:'medium',t:'Account sync failed',a:'Wait and retry.',causes:['API rate limit','Network timeout','Corrupted account cache'],w:1},
+  {m:'SyncError',c:'software',s:'medium',t:'Account sync failed',a:'Wait and retry.',causes:['API rate limit','Network timeout','Corrupted account cache'],w:1,u:'https://support.ledger.com/article/360012207759-zd'},
   {m:'failed to fetch nominations',c:'software',s:'low',t:'Staking info unavailable',a:'No action needed.',causes:['Validator node API unreachable','Chain RPC timeout','No nominations set for this account']},
   {m:'LedgerAPI4xx',c:'software',s:'low',t:'Price data unavailable',a:'Expected for newer tokens.',causes:['Token not yet indexed by Ledger','Unsupported asset','API endpoint deprecated']},
   {m:'Failed to fetch daily history',c:'software',s:'low',t:'Price data unavailable',a:'Balance correct.'},
   {m:'Failed to fetch hourly history',c:'software',s:'low',t:'Chart data unavailable',a:'No action needed.'},
   {m:'pushDevices',c:'server',s:'low',t:'Push notifications skipped',a:'No action needed.'},
-  {m:'FETCH_ERROR',c:'server',s:'low',t:'Background request failed',a:'Safe to ignore.',w:1},
-  {m:'TypeError: Failed to fetch',c:'server',s:'low',t:'Background request failed',a:'Check connectivity.'},
+  {m:'FETCH_ERROR',c:'server',s:'low',t:'Background request failed',a:'Safe to ignore.',w:1,u:'https://support.ledger.com/article/7755415040157-zd'},
+  {m:'TypeError: Failed to fetch',c:'server',s:'low',t:'Background request failed',a:'Check connectivity.',u:'https://support.ledger.com/article/7755415040157-zd'},
   // Hardware errors
-  {m:'PairingNotFound',c:'hardware',s:'high',t:'Bluetooth pairing lost',a:'Re-pair device via Ledger Live settings.',causes:['Bluetooth cache cleared','OS pairing removed','Device reset']},
-  {m:'WebHidNotSupported',c:'hardware',s:'high',t:'WebHID not supported',a:'Use Chrome/Edge browser, or try USB.',causes:['Unsupported browser','Firefox/Safari limitation','Old browser version']},
-  {m:'DeviceOnDashboardExpected',c:'hardware',s:'medium',t:'App open on device — dashboard needed',a:'Exit app on device, go back to dashboard.',causes:['Coin app left open','Previous operation incomplete']},
-  {m:'DeviceOnDashboardUnexpected',c:'hardware',s:'medium',t:'App expected but dashboard shown',a:'Open the correct app on device.',causes:['App not opened','Wrong app opened','App crashed on device']},
-  {m:'LockedDeviceError',c:'hardware',s:'medium',t:'Device locked',a:'Enter PIN on device.',causes:['Auto-lock timeout','Device idle too long']},
-  {m:'UnexpectedBootloader',c:'hardware',s:'high',t:'Device in bootloader mode',a:'Unplug, hold left button while plugging in, follow recovery steps.',causes:['Incomplete firmware update','Manual bootloader entry','Power loss during update'],u:'https://support.ledger.com/article/360003117594-zd'},
+  {m:'PairingNotFound',c:'hardware',s:'high',t:'Bluetooth pairing lost',a:'Re-pair device via Ledger Live settings.',causes:['Bluetooth cache cleared','OS pairing removed','Device reset'],u:'https://support.ledger.com/article/360025864773-zd'},
+  {m:'WebHidNotSupported',c:'hardware',s:'high',t:'WebHID not supported',a:'Use Chrome/Edge browser, or try USB.',causes:['Unsupported browser','Firefox/Safari limitation','Old browser version'],u:'https://support.ledger.com/article/115005165269-zd'},
+  {m:'DeviceOnDashboardExpected',c:'hardware',s:'medium',t:'App open on device — dashboard needed',a:'Exit app on device, go back to dashboard.',causes:['Coin app left open','Previous operation incomplete'],u:'https://support.ledger.com/article/360023518653-zd'},
+  {m:'DeviceOnDashboardUnexpected',c:'hardware',s:'medium',t:'App expected but dashboard shown',a:'Open the correct app on device.',causes:['App not opened','Wrong app opened','App crashed on device'],u:'https://support.ledger.com/article/360023518653-zd'},
+  {m:'LockedDeviceError',c:'hardware',s:'medium',t:'Device locked',a:'Enter PIN on device.',causes:['Auto-lock timeout','Device idle too long'],u:'https://support.ledger.com/article/360023518653-zd'},
+  {m:'UnexpectedBootloader',c:'hardware',s:'high',t:'Device in bootloader mode',a:'Unplug, hold left button while plugging in, follow recovery steps.',causes:['Incomplete firmware update','Manual bootloader entry','Power loss during update'],u:'https://support.ledger.com/article/4410408656273-zd'},
   {m:'FirmwareUpdateFailed',c:'hardware',s:'high',t:'Firmware update failed',a:'Retry update. Do not unplug device. If stuck, use Recovery mode.',causes:['USB disconnection during update','Insufficient battery (Nano X)','Antivirus interference'],u:'https://support.ledger.com/article/360003117594-zd'},
   {m:'LatestMCUInstalledError',c:'hardware',s:'low',t:'MCU already up to date',a:'No action needed.',causes:['Redundant update attempt']},
-  {m:'NetworkDown',c:'server',s:'medium',t:'Ledger services unreachable',a:'Check status.ledger.com and retry.',causes:['Internet outage','Firewall blocking Ledger domains','VPN interference']},
-  {m:'TimeoutTagError',c:'hardware',s:'medium',t:'Device response timeout',a:'Unlock device, ensure correct app is open.',causes:['Device locked mid-operation','Slow USB connection','App loading slowly']},
+  {m:'NetworkDown',c:'server',s:'medium',t:'Ledger services unreachable',a:'Check status.ledger.com and retry.',causes:['Internet outage','Firewall blocking Ledger domains','VPN interference'],u:'https://support.ledger.com/article/8889073163037-zd'},
+  {m:'TimeoutTagError',c:'hardware',s:'medium',t:'Device response timeout',a:'Unlock device, ensure correct app is open.',causes:['Device locked mid-operation','Slow USB connection','App loading slowly'],u:'https://support.ledger.com/article/115005165269-zd'},
   // Software errors
   {m:'AccountAlreadyExists',c:'software',s:'low',t:'Account already added',a:'Account is already in the wallet.',causes:['Duplicate add attempt','Re-import of existing account']},
-  {m:'NotEnoughBalance',c:'software',s:'medium',t:'Insufficient balance',a:'Check balance and fee estimate.',causes:['Fees not accounted for','Balance recently spent','Wrong account selected']},
-  {m:'NotEnoughGas',c:'software',s:'medium',t:'Insufficient gas',a:'Increase gas limit or add funds for fees.',causes:['Gas limit too low','ETH balance insufficient for fees','Gas price spike']},
-  {m:'InvalidAddress',c:'software',s:'medium',t:'Invalid recipient address',a:'Double-check address format for the chain.',causes:['Wrong network address pasted','Checksum mismatch','Truncated address']},
-  {m:'ReplacementTransactionUnderpriced',c:'software',s:'low',t:'Speed-up gas too low',a:'Increase gas price above original transaction.',causes:['Gas bump less than 10%','Network fee spike']},
-  {m:'cannot estimate gas',c:'software',s:'medium',t:'Gas estimation failed',a:'Contract may have reverted. Check inputs.',causes:['Contract revert condition','Invalid parameters','Insufficient balance for call']},
-  {m:'nonce too low',c:'software',s:'low',t:'Nonce conflict',a:'Previous transaction may be pending. Wait or reset account nonce.',causes:['Pending transaction in mempool','Account used in another wallet','RPC node out of sync']},
-  {m:'getAccountBridgeT0',c:'software',s:'low',t:'Bridge init error',a:'Reload Ledger Live.',causes:['App state corruption','Stale bridge connection']},
-  {m:'deserializeTransaction',c:'software',s:'medium',t:'Transaction deserialization failed',a:'Log data may be corrupted. Try re-syncing.',causes:['Corrupted local cache','Schema mismatch after update','Incomplete transaction data']},
+  {m:'NotEnoughBalance',c:'software',s:'medium',t:'Insufficient balance',a:'Check balance and fee estimate.',causes:['Fees not accounted for','Balance recently spent','Wrong account selected'],u:'https://support.ledger.com/article/360021039173-zd'},
+  {m:'NotEnoughGas',c:'software',s:'medium',t:'Insufficient gas',a:'Increase gas limit or add funds for fees.',causes:['Gas limit too low','ETH balance insufficient for fees','Gas price spike'],u:'https://support.ledger.com/article/360021039173-zd'},
+  {m:'InvalidAddress',c:'software',s:'medium',t:'Invalid recipient address',a:'Double-check address format for the chain.',causes:['Wrong network address pasted','Checksum mismatch','Truncated address'],u:'https://support.ledger.com/article/12434176239773-zd'},
+  {m:'ReplacementTransactionUnderpriced',c:'software',s:'low',t:'Speed-up gas too low',a:'Increase gas price above original transaction.',causes:['Gas bump less than 10%','Network fee spike'],u:'https://support.ledger.com/article/9231137322525-zd'},
+  {m:'cannot estimate gas',c:'software',s:'medium',t:'Gas estimation failed',a:'Contract may have reverted. Check inputs.',causes:['Contract revert condition','Invalid parameters','Insufficient balance for call'],u:'https://support.ledger.com/article/360021039173-zd'},
+  {m:'nonce too low',c:'software',s:'low',t:'Nonce conflict',a:'Previous transaction may be pending. Wait or reset account nonce.',causes:['Pending transaction in mempool','Account used in another wallet','RPC node out of sync'],u:'https://support.ledger.com/article/9231137322525-zd'},
+  {m:'getAccountBridgeT0',c:'software',s:'low',t:'Bridge init error',a:'Reload Ledger Live.',causes:['App state corruption','Stale bridge connection'],u:'https://support.ledger.com/article/4404381846929-zd'},
+  {m:'deserializeTransaction',c:'software',s:'medium',t:'Transaction deserialization failed',a:'Log data may be corrupted. Try re-syncing.',causes:['Corrupted local cache','Schema mismatch after update','Incomplete transaction data'],u:'https://support.ledger.com/article/4404381846929-zd'},
   // Server / network errors
-  {m:'403',c:'server',s:'medium',t:'API access denied (403)',a:'May be rate-limited or geo-blocked. Try VPN off.',causes:['Geo-restriction','API key expired','Rate limit reached'],w:1},
+  {m:'403',c:'server',s:'medium',t:'API access denied (403)',a:'May be rate-limited or geo-blocked. Try VPN off.',causes:['Geo-restriction','API key expired','Rate limit reached'],w:1,u:'https://support.ledger.com/article/8889073163037-zd'},
   {m:'429',c:'server',s:'low',t:'API rate limited (429)',a:'Too many requests. Will retry automatically.',causes:['Too many sync requests','Multiple accounts syncing','Background refresh frequency'],w:1},
-  {m:'503',c:'server',s:'medium',t:'Service unavailable (503)',a:'Ledger service is down. Check status.ledger.com.',causes:['Ledger backend maintenance','Service overload','Deployment in progress'],w:1},
-  {m:'ECONNREFUSED',c:'server',s:'medium',t:'Connection refused',a:'Local service not running or blocked by firewall.',causes:['Local proxy not running','Firewall blocking port','Service crashed']},
-  {m:'certificate',c:'server',s:'high',t:'TLS/certificate error',a:'Check system clock. Antivirus may be intercepting traffic.',causes:['System clock wrong','Antivirus SSL inspection','Corporate proxy MITM','Expired certificate'],w:1},
-  {m:'walletconnect',c:'software',s:'low',t:'WalletConnect session issue',a:'Re-connect WalletConnect session.',causes:['Session expired','dApp disconnected','WalletConnect relay down'],w:1},
+  {m:'503',c:'server',s:'medium',t:'Service unavailable (503)',a:'Ledger service is down. Check status.ledger.com.',causes:['Ledger backend maintenance','Service overload','Deployment in progress'],w:1,u:'https://support.ledger.com/article/15158192560157-zd'},
+  {m:'ECONNREFUSED',c:'server',s:'medium',t:'Connection refused',a:'Local service not running or blocked by firewall.',causes:['Local proxy not running','Firewall blocking port','Service crashed'],u:'https://support.ledger.com/article/8889073163037-zd'},
+  {m:'certificate',c:'server',s:'high',t:'TLS/certificate error',a:'Check system clock. Antivirus may be intercepting traffic.',causes:['System clock wrong','Antivirus SSL inspection','Corporate proxy MITM','Expired certificate'],w:1,u:'https://support.ledger.com/article/8889073163037-zd'},
+  {m:'walletconnect',c:'software',s:'low',t:'WalletConnect session issue',a:'Re-connect WalletConnect session.',causes:['Session expired','dApp disconnected','WalletConnect relay down'],w:1,u:'https://support.ledger.com/article/360018444599-zd'},
   // Bluetooth errors
-  {m:'BluetoothRequired',c:'hardware',s:'high',t:'Bluetooth required',a:'Enable Bluetooth on your device and grant Ledger Live Bluetooth permission.',causes:['Bluetooth disabled on host device','OS Bluetooth permission not granted','Ledger Live Bluetooth access revoked']},
-  {m:'BleError',c:'hardware',s:'high',t:'Bluetooth communication error',a:'Toggle Bluetooth off/on, re-pair the device, and retry.',causes:['Bluetooth signal interference','OS BLE stack crash','Device out of range','Stale BLE connection not cleaned up']},
-  {m:'BleDeviceNotFound',c:'hardware',s:'high',t:'Bluetooth device not found',a:'Ensure device is in pairing mode, Bluetooth is on, and retry scan.',causes:['Device not in pairing mode','Already paired to another host','Bluetooth range too large','OS BLE cache stale']},
+  {m:'BluetoothRequired',c:'hardware',s:'high',t:'Bluetooth required',a:'Enable Bluetooth on your device and grant Ledger Live Bluetooth permission.',causes:['Bluetooth disabled on host device','OS Bluetooth permission not granted','Ledger Live Bluetooth access revoked'],u:'https://support.ledger.com/article/360019138694-zd'},
+  {m:'BleError',c:'hardware',s:'high',t:'Bluetooth communication error',a:'Toggle Bluetooth off/on, re-pair the device, and retry.',causes:['Bluetooth signal interference','OS BLE stack crash','Device out of range','Stale BLE connection not cleaned up'],u:'https://support.ledger.com/article/360025864773-zd'},
+  {m:'BleDeviceNotFound',c:'hardware',s:'high',t:'Bluetooth device not found',a:'Ensure device is in pairing mode, Bluetooth is on, and retry scan.',causes:['Device not in pairing mode','Already paired to another host','Bluetooth range too large','OS BLE cache stale'],u:'https://support.ledger.com/article/360025864773-zd'},
   // WalletSync / Trustchain errors
   {m:'CloudSyncError',c:'software',s:'medium',t:'Cloud sync failed',a:'Check internet connection and retry. Re-enable WalletSync if problem persists.',causes:['Network unavailable during sync','Ledger Sync service outage','Authentication token expired']},
   {m:'TrustchainNotFound',c:'software',s:'medium',t:'Trustchain not found',a:'Re-initialize WalletSync in settings.',causes:['Trustchain deleted or never initialized','Account migrated without trustchain','Backend data purged']},
@@ -1567,6 +1567,23 @@ const ERR_DB=[
 ];
 const SEV={high:{l:'Critical',c:'#F57375',bg:'rgba(245,115,117,0.10)',bd:'rgba(245,115,117,0.3)'},medium:{l:'Warning',c:'#FFBD42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#8A9EF5',bg:'rgba(138,158,245,0.08)',bd:'rgba(138,158,245,0.25)'}};
 const CAT={hardware:{l:'Hardware / Device',i:'🔌'},software:{l:'Software / Sync',i:'🔄'},server:{l:'Server / Network',i:'☁️'},unknown:{l:'Unknown',i:'❓'}};
+
+function errUrl(dg){const match=ERR_DB.find(r=>r.t===dg.t&&r.u);return match?match.u:null;}
+
+const CONTEXT_HELP=[
+  {id:'fw-outdated',test:(d)=>d.deviceApps&&d.deviceApps.firmware&&d.deviceApps.firmware.version!==d.dev.fw,label:'Firmware update guide',url:'https://support.ledger.com/article/360013349800-zd',icon:'🔄'},
+  {id:'usb-issues',test:(d)=>d.apdu.length===0&&d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('transport')||h.includes('cantopen')||h.includes('disconnect')||h.includes('webhid');}),label:'Fix USB connection issues',url:'https://support.ledger.com/article/115005165269-zd',icon:'🔌'},
+  {id:'bluetooth',test:(d)=>d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('bluetooth')||h.includes('ble')||h.includes('pairing');}),label:'Fix Bluetooth pairing issues',url:'https://support.ledger.com/article/360025864773-zd',icon:'📶'},
+  {id:'sync-failures',test:(d)=>d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('sync');}),label:'Solve sync errors',url:'https://support.ledger.com/article/360012207759-zd',icon:'🔄'},
+  {id:'network-heavy',test:(d)=>{const net=d.entries.filter(e=>e.type==='network');const fail=net.filter(e=>e.status>=400||e.level==='error');return net.length>0&&fail.length>net.length*0.3;},label:'Network connectivity',url:'https://support.ledger.com/article/8889073163037-zd',icon:'🌐'},
+  {id:'loading-loop',test:(d)=>d.apdu.length===0&&d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('manager')||h.includes('getdeviceversion')||h.includes('genuine');}),label:'Ledger stuck in loading loop',url:'https://support.ledger.com/article/13662281923357-zd',icon:'⏳'},
+  {id:'swap-issues',test:(d)=>d.activity&&(d.activity.swapBrowsed||d.activity.swapExecuted)&&d.errs.length>0,label:'Swap troubleshooting',url:'https://support.ledger.com/article/Troubleshooting-Swap-Issues-in-Ledger-Live',icon:'🔀'},
+  {id:'apdu-rejections',test:(d)=>d.apdu.some(a=>{if(!a.hex||a.dir==='in')return false;const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();return['6985','6982','6a82','6984','5515'].includes(sw);}),label:'UNKNOWN_ERROR & non-standard path',url:'https://support.ledger.com/article/12434176239773-zd',icon:'⚠'},
+  {id:'staking',test:(d)=>d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('stak')||h.includes('nominat')||h.includes('delegat')||h.includes('validator');}),label:'Earn Section FAQs',url:'https://support.ledger.com/article/11575566424221-zd',icon:'💰'},
+  {id:'fees',test:(d)=>d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('notenoughgas')||h.includes('notenoughbalance')||h.includes('cannot estimate gas')||h.includes('underpriced');}),label:'Choose network fees',url:'https://support.ledger.com/article/360021039173-zd',icon:'⛽'},
+  {id:'ongoing-issues',test:()=>true,label:'Known ongoing issues',url:'https://support.ledger.com/article/15158192560157-zd',icon:'📋'},
+  {id:'common-solutions',test:()=>true,label:'Common solutions',url:'https://support.ledger.com/article/360023518653-zd',icon:'💡'},
+];
 
 function diagnose(e,allErrors){
   const parts=[(e.message||''),sGet(e,'error.message',''),sGet(e,'payload.error',''),sGet(e,'payload.status','')].filter(Boolean);
@@ -2288,6 +2305,7 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
       <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:'rgba(255,255,255,0.06)',color:T.muted,border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer'}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
     </div>
     <div style={{fontSize:13,color:T.text,paddingLeft:34}}>{llText(d.a,dev)}</div>
+    {(()=>{const u=errUrl(d);return u?<div style={{paddingLeft:34,marginTop:6}}><a href={u} target="_blank" rel="noopener" style={{fontSize:11,color:T.primary,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3}} onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'} onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>📄 Help article ↗</a></div>:null;})()}
     <div style={{paddingLeft:34,marginTop:8,display:'flex',alignItems:'center',flexWrap:'wrap',gap:6}}>
       <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:sv.bg,color:sv.c,border:`1px solid ${sv.bd}`}}>{sv.l.toUpperCase()}</span>
       {d.repeatCount>0&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning,border:'1px solid rgba(255,189,66,0.3)'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
@@ -3613,6 +3631,7 @@ function buildErrorText(logData){
     lines.push(`  Action: ${llText(dg.a,logData.dev)}`);
     lines.push(`  Category: ${dg.c} · Entry #${e.li} · ${fmtTime(e.ts)}`);
     if(dg.causes&&dg.causes.length>0)lines.push(`  Causes: ${dg.causes.join(', ')}`);
+    const u=errUrl(dg);if(u)lines.push(`  Help: ${u}`);
     lines.push('');
   }
   lines.push('===================');
@@ -3639,6 +3658,11 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
     : errors.length === 0 ? 'Clean session — no issues detected' : `No critical issues — ${errors.length} informational event${errors.length!==1?'s':''} logged (routine)`;
   const noSync = accounts.length > 0 && !accounts.some(a => a.dur != null || a.bal != null);
   const sevSentenceFinal = noSync ? sevSentence + ' · No sync data' : sevSentence;
+
+  const contextArticles = logData ? CONTEXT_HELP.filter(ch => { try { return ch.test(logData); } catch(e) { return false; } }) : [];
+  const conditional = contextArticles.filter(ch => ch.id !== 'ongoing-issues' && ch.id !== 'common-solutions');
+  const alwaysOn = contextArticles.filter(ch => ch.id === 'ongoing-issues' || ch.id === 'common-solutions');
+  const displayArticles = [...conditional.slice(0, 3), ...alwaysOn].slice(0, 5);
 
   // Sub-components defined inline
   const SectionHeader = ({ icon, label, subtitle, count, active, onClick, expandable, expanded, dot }) => (
@@ -3815,6 +3839,25 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
         )}
 
       </div>
+
+      {/* Contextual help */}
+      {displayArticles.length > 0 && (
+        <div style={{ padding: '8px 12px', borderTop: `1px solid ${T.border}` }}>
+          <div style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.muted, marginBottom: 6, opacity: 0.7 }}>
+            📄 Help articles
+          </div>
+          {displayArticles.map(ch => (
+            <a key={ch.id} href={ch.url} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 4px', fontSize: 11, color: T.muted, textDecoration: 'none', borderRadius: 4, transition: 'color 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.color = T.primary; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = T.muted; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span style={{ fontSize: 10, flexShrink: 0 }}>{ch.icon}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.label}</span>
+            </a>
+          ))}
+        </div>
+      )}
 
     </div>
   );
@@ -4562,7 +4605,10 @@ function App(){
                           return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:T.card,borderRadius:6,cursor:'pointer',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:'background 0.1s, opacity 0.2s',display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.25}} onMouseEnter={ev=>ev.currentTarget.style.background='rgba(255,255,255,0.04)'} onMouseLeave={ev=>ev.currentTarget.style.background=T.card}>
                             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
                               <span style={{fontSize:'var(--ov-fs-xs, 10px)',fontWeight:700,padding:'1px 5px',borderRadius:3,background:sc+'22',color:sc,textTransform:'uppercase',flexShrink:0}}>{dg.s==='high'?'CRIT':dg.s==='medium'?'WARN':'INFO'}</span>
-                              <span style={{fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,flexShrink:0}} className="mono">{fmtTime(e.ts)}</span>
+                              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                {errUrl(dg)&&<a href={errUrl(dg)} target="_blank" rel="noopener" onClick={ev=>ev.stopPropagation()} style={{fontSize:10,color:T.primary,textDecoration:'none',lineHeight:1}} title="Help article">📄</a>}
+                                <span style={{fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,flexShrink:0}} className="mono">{fmtTime(e.ts)}</span>
+                              </div>
                             </div>
                             <div style={{fontSize:'var(--ov-fs-sm, 11px)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.t||'Unknown error'}</div>
                             <div style={{fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.c||'—'}</div>
