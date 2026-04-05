@@ -9,7 +9,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~6,057 lines)
+- **ONE file**: `ledger-toolkit.html` (~6,100 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
@@ -282,17 +282,21 @@ Do NOT use 12, 10, 5, or 3. These have been eliminated.
 | Keyframe | Duration | Used by |
 |---|---|---|
 | `focusPulse` | infinite | Accounts health tile focus mode breathing |
-| `selectPulse` | 0.6s ease-out | Issues strip selected-error marker + selected error row glow |
+| `selectPulse` | `I.pulse` = 0.5s ease-out | Issues strip selected-error marker, selected error row glow, active filter chips, Timeline legend chips, expanded rows, stat card click |
 | `confirmFlash` | 0.4s ease-out | CopyBtn green flash on successful copy |
 | `statFadeIn` | 0.3s | Stat card value entrance |
 | `iconPulse` | 1.5s infinite | Drop zone icon breathing on drag hover |
+| `stripDraw` | 0.8s ease-out | Timeline + Issues strips reveal left-to-right on tab enter (`clip-path: inset()`) |
+| `listFade` | 0.3s ease-out | Timeline rows, Issues error list, Accounts list fade on filter change (React `key` remount) |
+| `filterRemind` | 0.6s ease-out | Active filter chips glow when returning to a tab with a filter still active (`sectionChanged` 600ms window) |
 
 ### Hover patterns
 
-Standardized hover behaviors (being unified under the `I` interaction constants — work in progress):
+Standardized hover behaviors (unified under the `I` interaction constants):
 - **Data rows** (timeline, network, APDU, device info): `background → I.hover` (`rgba(255,255,255,0.04)`)
 - **Cards** (ErrCard, AcctCard): existing hover classes (`.err-hover`, `.acct-hover`)
 - **Ghost buttons** (outlined, transparent bg): `borderColor → T.primary, color → T.primary, background → I.hoverAccent` on hover
+- **All transitions:** normalized to `I.fast` (150ms) or `I.medium` (250ms) — no hardcoded `transition` values
 
 ---
 
@@ -370,7 +374,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 |---|---|---|
 | `T` | 11 | Theme colors (includes `card` elevation and `orange:#FF5300`) |
 | `MF` | 1 | Monospace font stack constant — `'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace` |
-| `I` | 7 | Interaction constants — hover backgrounds, timing, selection, feedback tokens. Used by CopyBtn confirmation flash; universal application in progress. |
+| `I` | 11 | Interaction constants — timing (`fast`, `medium`, `slow`), hover backgrounds (`hover`, `hoverStrong`, `hoverAccent`), selection (`selectedBg`, `selectedBorder`), feedback (`confirmColor`, `pulse`), resting affordance (`interactiveBorder`). Fully applied across all interactive zones. |
 | `TC` | 9 | Log type badge colors — bold palette: action grey, analytics purple, countervalues amber, bridge orange, network blue, persistence green, walletsync pink, error crimson, live-dmk-logger purple. Same color for same type everywhere. |
 | `DN` | 6 | Device model names (nanoS, nanoSP, nanoX, stax, europa→Flex, apex→Nano Gen5) |
 | `TARGET_MASKS` | 6 | Target ID → device model mapping (same as @ledgerhq/devices) |
@@ -548,6 +552,95 @@ Replaces the previous chain-specific balance status badges. Gives agents a singl
 
 ---
 
+## Design Language System (Session 5, 2026-04-05)
+
+Four-layer system for consistent, legible interactivity across all tabs. All changes are styling-only.
+
+### Layer 1 — Clickable Signal
+
+Every non-button interactive element has a hairline resting border (`I.interactiveBorder` = `rgba(255,255,255,0.06)`) so agents can distinguish clickable elements from static display.
+
+- **Overview error tiles:** hairline on top/right/bottom + 3px severity accent on left (4 separate border sides)
+- **Accounts health tiles:** `outline: 1px solid rgba(255,255,255,0.06)` (uses `outline` to avoid disrupting filter/focus border states)
+- **Timeline type badges:** hairline border + `cursor:pointer` + `onClick` with `stopPropagation` → sets `typeFilter` on click
+- **Issues strip container:** hairline border (`borderTop` slightly stronger at 0.08)
+- **Cursor sweep:** `cursor:pointer` added to any clickable element missing it
+
+### Layer 2 — Guide Layer
+
+Six `purposeLabel` annotations (10px JetBrains Mono, `T.muted`, uppercase, 0.06em tracking) explain each interactive zone without visual weight.
+
+`purposeLabel` constant is defined inside `App()` after `sectionChanged`:
+
+```javascript
+const purposeLabel={fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:500,flexShrink:0};
+```
+
+| Location | Label | Placement |
+|---|---|---|
+| Overview error grid | `Diagnostics · click to navigate` | Inline flow, `marginBottom:4` |
+| Accounts health tiles | `Portfolio · click to filter` | `position:absolute, top:4, right:0` |
+| Timeline strip | `Session · hover for detail` | `position:absolute, top:4, right:8, opacity:0.5` |
+| Timeline legend | `Types · click to filter` | Inline, `marginRight:6, opacity:0.6` |
+| Issues severity chips | `Severity · click to filter` | Inline, `marginRight:2, opacity:0.6` |
+| Issues category chips | `Category · click to filter` | Inline, `marginRight:2, opacity:0.6` |
+
+### Layer 3 — Consistent Motion
+
+All transitions and pulse animations normalized to `I` constants. No hardcoded `transition` values remain.
+
+**I constants (line ~189):**
+```javascript
+const I={
+  fast:'150ms ease',       // micro-interactions, borders, opacity
+  medium:'250ms ease',     // color changes, hover fills
+  slow:'350ms ease',       // layout shifts, card expansions
+  hover:'rgba(255,255,255,0.04)',
+  hoverStrong:'rgba(255,255,255,0.07)',
+  hoverAccent:T.primary+'15',
+  interactiveBorder:'rgba(255,255,255,0.06)',
+  selectedBg:c=>c+'12',
+  selectedBorder:c=>`3px solid ${c}`,
+  confirmColor:T.success,
+  pulse:'selectPulse 0.5s ease-out',
+};
+```
+
+All `selectPulse` durations normalized to `I.pulse` (0.5s). CSS `.stat-card:active` updated to 0.5s.
+
+### Layer 4 — Delight Layer
+
+Three animation behaviors that reward attention without adding noise:
+
+**`stripDraw`** — Timeline and Issues strips reveal left-to-right on tab enter. Uses `clip-path: inset(0 100% 0 0)` → `inset(0 0 0 0)` over 0.8s. Applied directly on the strip container `style` prop.
+
+**`listFade`** — Content lists fade in (opacity 0.6 → 1 over 0.3s) when filters change. Implemented via React `key` prop: changing the `key` forces unmount/remount, replaying the CSS `animation` declaration. Applied to:
+- Issues error list left panel: key = `${errSevFilter}-${errCatFilter}-${errPatternFilter}-${errAcctFilter}`
+- Timeline scroll container: key = `${typeFilter}-${tlAcctFilter?.addr}-${searchTerm}`
+- Accounts scroll container: key = `${acctFilter}-${focusedAcct?.addr}`
+
+**`filterRemind`** — Active filter chips glow briefly when returning to a tab that still has a filter set. Implemented via `sectionChanged` state (600ms window after tab switch):
+- `sectionChanged=true` → chip animation = `filterRemind 0.6s ease-out` (using `--remind-color` CSS var)
+- `sectionChanged=false` → chip animation = `I.pulse` as normal
+- Applied to: Issues severity chips, Issues category chips, Timeline legend chips
+- Each chip passes `--pulse-color` and `--remind-color` as inline CSS custom properties
+
+**`sectionChanged` state (inside `App()`):**
+```javascript
+const prevSectionRef=React.useRef('overview');
+const[sectionChanged,setSectionChanged]=useState(false);
+React.useEffect(()=>{
+  if(prevSectionRef.current!==section){
+    setSectionChanged(true);
+    const t=setTimeout(()=>setSectionChanged(false),600);
+    prevSectionRef.current=section;
+    return()=>clearTimeout(t);
+  }
+},[section]);
+```
+
+---
+
 ## Git tags
 
 | Tag | Commit | What's included |
@@ -564,3 +657,4 @@ Replaces the previous chain-specific balance status badges. Gives agents a singl
 | `post-brand-alignment-v1` | `3913328` | **Tag after brand alignment session.** Safety Orange, brand crimson, ambient gradient system, surface physics, typography pass. |
 | `post-version-check-p1` | — | Live version checking Phase 1, Brut Grotesque font, visual unification sweep, Customer View unification, app chip redesign. |
 | `post-session4-api-brand` | `f1e9dde` | **Phase 2+3 version checks, API status footer, TC bold palette, brand alignment (Timeline+Issues), Issues strip UX, interaction foundation (I constants, CopyBtn flash).** |
+| `post-design-language` | `9bdf91a` | **Design Language System (4 layers): clickable signal borders, guide labels, motion normalization, stripDraw/listFade/filterRemind animations.** |

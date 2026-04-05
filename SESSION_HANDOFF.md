@@ -1,112 +1,94 @@
-# Session Handoff — April 5, 2026 (Session 4)
+# Session Handoff — April 5, 2026 (Session 5)
 
 ## What was built this session
 
-### Phase 2: Firmware Version Checking
-- 3-call API chain to Ledger Manager API: get_device_version → get_firmware_version → get_latest_firmware
-- State: `firmwareCheck = {status:'ok'|'loading'|'error', current, latest, outdated}`
-- UI: amber "UPDATE AVAILABLE → X.Y.Z" badge when outdated, green "LATEST" when current
-- 5 fix iterations to discover correct API endpoint chain and POST body format
+### Design Language System — 4 Layers
 
-### Phase 3: Desktop App Version Check
-- Single call: `GET https://api.github.com/repos/LedgerHQ/ledger-live/releases?per_page=30`
-- Filters for `@ledgerhq/live-desktop@X.Y.Z` tags to find latest version
-- State: `desktopCheck = {status:'ok'|'loading'|'error', current, latest, outdated}`
-- UI: amber "UPDATE → X.Y.Z" or green "LATEST" badge on app version row
+#### Layer 1 — Clickable Signal
+Hairline `I.interactiveBorder` (`rgba(255,255,255,0.06)`) borders added to all clickable non-button elements:
+- Overview error tiles: hairline on 3 sides + 3px severity accent on left (4 separate border props)
+- Accounts health tiles: `outline: 1px solid rgba(255,255,255,0.06)` (outline preserves existing border logic)
+- Timeline type badges: hairline border + `cursor:pointer` + `onClick` with `stopPropagation` → sets `typeFilter`
+- Issues strip container: hairline border (top edge at 0.08 opacity)
+- Cursor sweep: `cursor:pointer` on all clickable elements missing it
 
-### API Status Footer
-- 5 API status pills (MANAGER, GITHUB, BALANCES, PRICES, STATUS) in Overview Zone 3 bottom bar
-- Replaces chain-specific balance badges
-- Green/amber/red dot per API reflecting fetch status
+#### Layer 2 — Guide Layer
+`purposeLabel` constant defined inside `App()`. Six annotations across all tabs:
+- Overview: `Diagnostics · click to navigate` (inline flow)
+- Accounts: `Portfolio · click to filter` (absolute, top-right of tiles wrapper)
+- Timeline strip: `Session · hover for detail` (absolute top-right, opacity 0.5)
+- Timeline legend: `Types · click to filter` (inline)
+- Issues severity: `Severity · click to filter` (inline)
+- Issues category: `Category · click to filter` (inline)
 
-### AcctCard Badge Clarity
-- Plain-language app status badges: "Missing" (red), "Outdated · N errors" (red), "Outdated" (amber), "Current" (no badge — green suppressed)
+#### Layer 3 — Consistent Motion
+- `I` constants extended: added `medium` (250ms), `slow` (350ms), `pulse` ('selectPulse 0.5s ease-out')
+- All hardcoded `transition` values normalized to `I.fast`/`I.medium`
+- All `selectPulse` durations normalized to `I.pulse` (0.5s)
+- All hover rgba values normalized to `I.hover`/`I.hoverStrong`
 
-### TC Bold Color Palette
-```
-TC={action:'#808080', analytics:'#D4A0FF', countervalues:'#FFBD42', bridge:'#FF5300',
-network:'#3B82F6', persistence:'#6EC85C', walletsync:'#E545A0', error:'#E40046',
-'live-dmk-logger':'#D4A0FF'}
-```
-Peter rejected pastels. Brand guide colors are bold. Nine types, eight distinct hues at full saturation.
+#### Layer 4 — Delight Layer
+Three new CSS keyframes + React patterns:
 
-### Timeline Tab Brand Alignment
-11 fixes: search input + dropdown elevation, legend chip MF fonts, grid header MF treatment, error row tint → brand crimson, expanded rows T.bg, group header MF fonts, strip top-edge highlight, hint text MF, duration label MF.
+**`stripDraw`** (0.8s): Timeline + Issues strips reveal left-to-right on tab enter via `clip-path: inset()`.
 
-### Issues Tab Full Brand Alignment
-Comprehensive pass: header area typography (severity/category chips, hint text, patterns label, interpretation text, affected label, error list timestamps — all MF font), global `#8A9EF5` → `#3B82F6` replacement (bold blue replacing pastel periwinkle for info severity), ErrCard internals (severity badge, breadcrumb labels, cause chips, section headers), strip top-edge highlight, edge spacing.
+**`listFade`** (0.3s): Content lists fade in on filter change. Uses React `key` prop on containers — key encodes active filters, so filter changes trigger unmount/remount and replay the `animation`. Applied to Issues error list, Timeline rows, Accounts list.
 
-### Issues Strip UX Improvements
-1. Selected error marker: vertical line + triangle at error's timestamp on strip
-2. Purpose label: "SESSION · CLICK TO NAVIGATE" top-right, "N errors highlighted" bottom-left
-3. Simplified colors: uniform grey (#4A4A4A) for context, T.error for errors (Timeline keeps full TC palette)
-4. `selectPulse` animation: strip marker AND selected error row pulse same severity color simultaneously
-5. Two-item legend below strip: grey "ACTIVITY" + red "ERRORS"
+**`filterRemind`** (0.6s): Active filter chips glow when returning to a tab with a live filter. `sectionChanged` state = true for 600ms after tab switch. During that window, active chips use `filterRemind` instead of `I.pulse`. CSS custom props `--pulse-color` and `--remind-color` passed inline.
 
-### Design Language Part 1 Foundation (commit f1e9dde)
-- Added `I` interaction constants object (hover, timing, selection, feedback tokens)
-- Added `confirmFlash` CSS keyframe
-- CopyBtn upgraded with green flash animation on copy
-- NOTE: CopyBtn flash was too subtle to notice — needs stronger visual treatment (icon color + scale)
+---
 
-### Universal Design Language Part 2
-- `.stat-card:active` CSS rule: purple `selectPulse` on click
-- Stat cards: `I.interactiveBorder` resting border + `className="stat-card"`
-- Timeline legend chips: `I.interactiveBorder` inactive + `selectPulse` on activation
-- Timeline expanded rows: `selectPulse` on expand (both single and grouped-child rows)
-- Issues severity chips: `I.interactiveBorder` + `I.fast` transition + `selectPulse` on activation
-- Issues category chips: same pattern
-- Issues pattern chips: `selectPulse` on activation
+## Bug fixed this session
 
-### Overview Polish — 5 Edge Fixes
-Bottom bar separation, device card border match, issues grid padding, hint banner spacing, activity badges margin.
+**Circular self-reference in `I.pulse`:** Part 3 sub-agent wrote `pulse:I.pulse` inside the `I` object literal. `I` doesn't exist during its own construction → resolves to `undefined`. Fixed: `pulse:'selectPulse 0.5s ease-out'`.
 
 ---
 
 ## Current file state
 
-~6,057 lines. One file: `ledger-toolkit.html`.
+~6,100 lines. One file: `ledger-toolkit.html`.
 
 ## Current git state
 
-Branch: `main`. Latest commit: `f1e9dde` (design language foundation). Session 4 visual work not yet committed.
+Branch: `main`. Latest local commit: `9bdf91a` (design language system). **Not yet pushed to remote.**
+
+Push workflow: `! git push origin main` in chat (Claude Code PreToolUse hook blocks Bash-level push to main — user must run directly).
 
 ---
 
 ## Key decisions made this session
 
-- **Pastels rejected.** Peter wants bold brand colors, not muted versions. TC palette uses full-saturation Ledger brand colors.
-- **Issues strip simplified.** Full TC color palette stays on Timeline; Issues strip uses only grey (context) + red (errors). This reduces cognitive load — the Issues strip answers "where are the errors?" not "what types of activity happened?"
-- **`#8A9EF5` → `#3B82F6` globally.** Pastel periwinkle replaced with bold blue for info severity. Matches the bold philosophy.
-- **Design language needs rethinking.** "A bunch of flashing elements isn't a cohesive visual design language" (Peter). Consistent hovers and pulse animations are necessary but not sufficient. The real question is affordance and guidance: how does a first-time agent know what's interactive?
+- **Hairline borders as resting affordance.** Not visible at a glance, but present on hover scan. The goal is discovery, not announcement.
+- **`outline` vs `border` for health tiles.** Health tiles use `outline` because `border` is already used to signal filter/focus state — switching to border would clobber that logic.
+- **React `key` for animation replay.** Much simpler than imperative animation triggering. Changing `key` forces full unmount/remount, which replays any `animation` CSS on the element. Zero extra state.
+- **`sectionChanged` is a 600ms window, not permanent state.** It exists only to differentiate "just arrived here" from "been here the whole time." After 600ms it resets to false.
+- **Purpose labels are low-opacity infrastructure.** They use `T.muted` at 50–60% opacity. They should be readable on inspection, not demanding attention.
 
 ---
 
 ## Backlog (carried forward + new)
 
 ### Pending design language work
-1. **Universal design language** — Part 2 shipped (hovers, resting affordances, selectPulse extensions, filter feedback). But the broader question of first-time affordance/guidance remains open.
-2. **CopyBtn animation** — too subtle, needs icon color change + scale, not just background flash
-3. **Guidance labels** — small MF-font purpose labels on every interactive zone (like the Issues strip label). Deferred to later.
+1. **CopyBtn animation** — too subtle (background flash only). Needs icon color change + scale on copy. Not done.
+2. **Guidance labels completeness** — currently only 6 labels covering main interactive zones. Advanced tab, Network, APDU, Raw JSON have no labels yet.
 
 ### Tab-specific work
-4. **Accounts tab brand alignment** — prompt written (`accounts-brand-alignment.md`), not yet run. 7 fixes: stats line MF, filter input elevation+focus, hint text MF, account count MF, expanded card panels T.bg+border, panel labels MF, EVM group header MF.
-5. **Network/APDU/Raw JSON tab brand alignment** — not started
-6. **Customer View overhaul** — bigger project, backburner
+3. **Accounts tab brand alignment** — prompt written (`accounts-brand-alignment.md`), not yet run. 7 fixes: stats line MF, filter input elevation+focus, hint text MF, account count MF, expanded card panels T.bg+border, panel labels MF, EVM group header MF.
+4. **Network/APDU/Raw JSON tab brand alignment** — not started
+5. **Customer View overhaul** — bigger project, backburner
 
 ### Documentation
-7. **Agent Guide + Technical Reference** — stale since Session 2, need entries for version checking, brand changes
+6. **Agent Guide + Technical Reference** — stale since Session 2, need entries for version checking, brand changes, design language
 
 ### Other
-8. **Responsiveness audit** — click-outside handlers still may have stopPropagation issues
-9. **Test with real logs** — especially firmware/desktop version checks end-to-end
+7. **Responsiveness audit** — click-outside handlers may still have stopPropagation issues
+8. **Test with real logs** — especially firmware/desktop version checks end-to-end
 
 ---
 
 ## Lessons from this session
 
-- **Peter rejects pastels.** Brand colors are bold. Match them.
-- **Every animation must serve agent comprehension.** Consistency of mechanics ≠ design language. A pulse on 20 elements is noise, not language.
-- **Invisible infrastructure feels like nothing shipped.** The `I` constants with nothing using them yet felt empty. Ship visible changes first, plumbing second.
-- **Ship the real change, not the setup for the real change.** Part 1 (plumbing) without Part 2 (visible changes) was the wrong order. Should have combined them or led with visible impact.
-- **"What am I supposed to be seeing?"** — if you can't immediately show someone the change, it's not done yet.
+- **Design language ≠ more animations.** The real work was adding resting affordance (borders) and context (labels). Animations are the reward, not the message.
+- **React `key` is the right primitive for filter-triggered animations.** Don't fight React — use it.
+- **Don't self-reference during object construction.** `const I={..., pulse:I.pulse}` is `undefined` because `I` doesn't exist yet. Write the literal value.
+- **600ms is the right window for "just navigated here."** Long enough to be seen, short enough not to be annoying.
