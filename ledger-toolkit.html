@@ -4055,6 +4055,11 @@ function App(){
   const timelineScrollRef=useRef(null);
   const acctTreemapRef=React.useRef(null);
   const acctScrollRef=React.useRef(null);
+  const[tlBrush,setTlBrush]=useState(null);
+  const[tlBrushing,setTlBrushing]=useState(false);
+  const[tlSwimlane,setTlSwimlane]=useState(false);
+  const tlBrushRef=React.useRef(null);
+  const tlTimeRef=React.useRef({t0:0,t1:1,ents:[]});
 
 
   useEffect(()=>{
@@ -4093,6 +4098,39 @@ function App(){
   },[sortDropOpen]);
 
   React.useEffect(()=>{
+    if(!tlBrushing)return;
+    const onMove=(ev)=>{
+      if(!tlBrushRef.current)return;
+      const pct=Math.max(0,Math.min(1,(ev.clientX-tlBrushRef.current.rect.left)/tlBrushRef.current.rect.width));
+      tlBrushRef.current.end=pct;
+      setTlBrush({start:tlBrushRef.current.start,end:pct});
+    };
+    const onUp=(ev)=>{
+      if(!tlBrushRef.current)return;
+      const pct=Math.max(0,Math.min(1,(ev.clientX-tlBrushRef.current.rect.left)/tlBrushRef.current.rect.width));
+      const s=Math.min(tlBrushRef.current.start,pct);
+      const e=Math.max(tlBrushRef.current.start,pct);
+      const isClick=Math.abs(e-s)<0.01;
+      setTlBrushing(false);
+      if(isClick){
+        setTlBrush(null);
+        const{t0,t1,ents}=tlTimeRef.current;
+        const span=t1-t0;
+        const targetTime=t0+pct*span;
+        let closest=ents[0],closestD=Infinity;
+        for(const ent of ents){const d=Math.abs(new Date(ent.timestamp).getTime()-targetTime);if(d<closestD){closestD=d;closest=ent;}}
+        if(closest){setExpandedRow(closest.logIndex);setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${closest.logIndex}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},50);}
+      }else{
+        setTlBrush({start:s,end:e});
+      }
+      tlBrushRef.current=null;
+    };
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+    return()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+  },[tlBrushing]);
+
+  React.useEffect(()=>{
     const el=acctTreemapRef.current;
     if(!el)return;
     const ro=new ResizeObserver(entries=>{
@@ -4117,7 +4155,7 @@ function App(){
   },[focusedAcct]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -4419,7 +4457,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -4428,6 +4466,14 @@ function App(){
 
   const filtered=useMemo(()=>{
     if(!logData)return[];let f=logData.entries;
+    if(tlBrush&&f.length>=2){
+      const bt0=new Date(f[0].timestamp).getTime();
+      const bt1=new Date(f[f.length-1].timestamp).getTime();
+      const bspan=bt1-bt0;
+      const brushStart=bt0+Math.min(tlBrush.start,tlBrush.end)*bspan;
+      const brushEnd=bt0+Math.max(tlBrush.start,tlBrush.end)*bspan;
+      f=f.filter(e=>{const et=new Date(e.timestamp).getTime();return et>=brushStart&&et<=brushEnd;});
+    }
     if(typeFilter!=='all')f=f.filter(e=>e.type===typeFilter);
     if(searchTerm){const s=searchTerm.toLowerCase();f=f.filter(e=>(e.message||'').toLowerCase().includes(s)||(e.type||'').toLowerCase().includes(s));}
     if(tlAcctFilter){
@@ -4445,7 +4491,7 @@ function App(){
       });
     }
     return f;
-  },[logData,typeFilter,searchTerm,tlAcctFilter]);
+  },[logData,tlBrush,typeFilter,searchTerm,tlAcctFilter]);
   useEffect(()=>{setExpandedGroups({});},[typeFilter,searchTerm,tlAcctFilter]);
 
   const groupedTimeline=useMemo(()=>{
@@ -5225,6 +5271,7 @@ function App(){
                 errDots.push({pct,li:e.logIndex,ts:e.timestamp,msg:trunc(e.message||'Error',50),crit:isCrit});
               }
             }
+            tlTimeRef.current={t0,t1,ents};
             const scrollToTime=(ev)=>{
               const rect=ev.currentTarget.getBoundingClientRect();
               const pct=(ev.clientX-rect.left)/rect.width;
@@ -5245,47 +5292,84 @@ function App(){
             };
             return <div style={{marginBottom:10}}>
               <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden'}}>
-                <div style={{height:120,display:'flex',alignItems:'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:'0 1px',animation:'stripDraw 0.8s ease-out forwards'}}
-                  onClick={scrollToTime}
+                <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards'}}
+                  onMouseDown={ev=>{const rect=ev.currentTarget.getBoundingClientRect();const start=(ev.clientX-rect.left)/rect.width;tlBrushRef.current={start,end:start,rect};setTlBrushing(true);setTlBrush({start,end:start});ev.preventDefault();}}
                   onMouseMove={handleBarHover}
                   onMouseLeave={()=>setTlHoveredBucket(null)}>
-                  <span style={{...purposeLabel,position:'absolute',top:4,right:8,opacity:0.5,pointerEvents:'none'}}>Session · hover for detail</span>
-                  {buckets.map((b,i)=>{
-                    const h=Math.max(2,(b.total/maxTotal)*114);
-                    const isHov=tlHoveredBucket?.idx===i;
-                    const segs=[];
-                    for(const tp of sortedTypes){
-                      if(b.types[tp]){segs.push({type:tp,count:b.types[tp],pct:(b.types[tp]/b.total)*100});}
-                    }
-                    return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',opacity:isHov?1:(tlHighlightType&&!b.types[tlHighlightType])?0.15:0.85,transition:I.fast}}>
-                      {segs.map((s,si)=>{
-                        const color=TC[s.type.toLowerCase()]||'#717070';
-                        const dimmed=tlHighlightType&&s.type!==tlHighlightType;
-                        return <div key={si} style={{flex:s.pct,background:color,opacity:dimmed?0.15:1,minHeight:1,transition:I.fast}}/>;
-                      })}
-                    </div>;
-                  })}
-                  {tlHoveredBucket&&(()=>{
-                    const b=buckets[tlHoveredBucket.idx];
-                    if(!b||b.total===0)return null;
-                    const bTime=t0+(tlHoveredBucket.idx/N)*span;
-                    const topTypes=Object.entries(b.types).sort((a,b)=>b[1]-a[1]).slice(0,4);
-                    const sample=b.samples[0];
-                    const tipW=220;
-                    const left=tlHoveredBucket.x+tipW>tlHoveredBucket.cw?Math.max(0,tlHoveredBucket.x-tipW):tlHoveredBucket.x;
-                    return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
-                      <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(bTime).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
-                      <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                        {topTypes.map(([tp,ct])=>(
-                          <div key={tp} style={{display:'flex',alignItems:'center',gap:5}}>
-                            <div style={{width:6,height:6,borderRadius:1,background:TC[tp.toLowerCase()]||'#717070',flexShrink:0}}/>
-                            <span style={{color:T.text}}>{tp}</span>
-                            <span style={{color:T.muted,marginLeft:'auto'}}>{ct}</span>
+                  <span style={{...purposeLabel,position:'absolute',top:4,right:8,opacity:0.5,pointerEvents:'none',zIndex:7}}>{tlBrush?'Session · drag to adjust':'Session · drag to zoom'}</span>
+                  {tlSwimlane?(
+                    <div style={{display:'flex',flexDirection:'column',gap:1,padding:'4px 1px',flex:1}}>
+                      {sortedTypes.map(tp=>{
+                        const color=TC[tp.toLowerCase()]||'#717070';
+                        const isActive=typeFilter===tp;
+                        const isHighlighted=tlHighlightType===tp;
+                        const maxForType=Math.max(...buckets.map(bk=>bk.types[tp]||0),1);
+                        return <div key={tp} style={{display:'flex',alignItems:'center',height:14,gap:0}}>
+                          <span style={{width:70,fontSize:8,fontFamily:MF,color:isActive?color:T.muted,fontWeight:isActive?700:400,textAlign:'right',paddingRight:6,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.03em'}}
+                            onClick={e=>{e.stopPropagation();setTypeFilter(isActive?'all':tp);}}
+                            onMouseEnter={()=>setTlHighlightType(tp)}
+                            onMouseLeave={()=>setTlHighlightType(null)}
+                          >{tp}</span>
+                          <div style={{flex:1,height:10,display:'flex',borderRadius:2,overflow:'hidden',background:'rgba(255,255,255,0.02)'}}>
+                            {buckets.map((b,i)=>{
+                              const count=b.types[tp]||0;
+                              const intensity=count>0?Math.max(0.2,Math.min(1,count/maxForType)):0;
+                              const dimmed=tlHighlightType&&tp!==tlHighlightType;
+                              return <div key={i} style={{flex:1,background:count>0?color:'transparent',opacity:dimmed?0.1:(count>0?intensity*0.9+0.1:0),transition:I.fast}}/>;
+                            })}
                           </div>
-                        ))}
-                      </div>
-                      {sample&&<div className="mono" style={{color:T.muted,marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',borderTop:`1px solid ${T.border}`,paddingTop:4}}>{trunc(sample.message,40)}</div>}
-                    </div>;
+                        </div>;
+                      })}
+                    </div>
+                  ):(
+                    <>
+                      {buckets.map((b,i)=>{
+                        const h=Math.max(2,(b.total/maxTotal)*114);
+                        const isHov=tlHoveredBucket?.idx===i;
+                        const segs=[];
+                        for(const tp of sortedTypes){
+                          if(b.types[tp]){segs.push({type:tp,count:b.types[tp],pct:(b.types[tp]/b.total)*100});}
+                        }
+                        return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',opacity:isHov?1:(tlHighlightType&&!b.types[tlHighlightType])?0.15:0.85,transition:I.fast}}>
+                          {segs.map((s,si)=>{
+                            const color=TC[s.type.toLowerCase()]||'#717070';
+                            const dimmed=tlHighlightType&&s.type!==tlHighlightType;
+                            return <div key={si} style={{flex:s.pct,background:color,opacity:dimmed?0.15:1,minHeight:1,transition:I.fast}}/>;
+                          })}
+                        </div>;
+                      })}
+                      {tlHoveredBucket&&(()=>{
+                        const b=buckets[tlHoveredBucket.idx];
+                        if(!b||b.total===0)return null;
+                        const bTime=t0+(tlHoveredBucket.idx/N)*span;
+                        const topTypes=Object.entries(b.types).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const sample=b.samples[0];
+                        const tipW=220;
+                        const left=tlHoveredBucket.x+tipW>tlHoveredBucket.cw?Math.max(0,tlHoveredBucket.x-tipW):tlHoveredBucket.x;
+                        return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
+                          <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(bTime).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                            {topTypes.map(([tp,ct])=>(
+                              <div key={tp} style={{display:'flex',alignItems:'center',gap:5}}>
+                                <div style={{width:6,height:6,borderRadius:1,background:TC[tp.toLowerCase()]||'#717070',flexShrink:0}}/>
+                                <span style={{color:T.text}}>{tp}</span>
+                                <span style={{color:T.muted,marginLeft:'auto'}}>{ct}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {sample&&<div className="mono" style={{color:T.muted,marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',borderTop:`1px solid ${T.border}`,paddingTop:4}}>{trunc(sample.message,40)}</div>}
+                        </div>;
+                      })()}
+                    </>
+                  )}
+                  {tlBrush&&(()=>{
+                    const bleft=Math.min(tlBrush.start,tlBrush.end)*100;
+                    const bright=(1-Math.max(tlBrush.start,tlBrush.end))*100;
+                    return <>
+                      <div style={{position:'absolute',top:0,bottom:0,left:0,width:`${bleft}%`,background:'rgba(0,0,0,0.5)',pointerEvents:'none',zIndex:5}}/>
+                      <div style={{position:'absolute',top:0,bottom:0,right:0,width:`${bright}%`,background:'rgba(0,0,0,0.5)',pointerEvents:'none',zIndex:5}}/>
+                      <div style={{position:'absolute',top:0,bottom:0,left:`${bleft}%`,right:`${bright}%`,border:`1px solid ${T.primary}60`,pointerEvents:'none',zIndex:6}}/>
+                    </>;
                   })()}
                 </div>
                 <div style={{height:24,position:'relative',borderTop:`1px solid ${T.border}`,background:'rgba(255,255,255,0.015)',cursor:'pointer'}}
@@ -5306,6 +5390,18 @@ function App(){
                 <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[0].timestamp)}</span>
                 <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[ents.length-1].timestamp)} <span style={{fontWeight:600,fontFamily:MF}}>{durLabel}</span></span>
               </div>
+              {tlBrush&&<div style={{display:'flex',alignItems:'center',gap:8,marginTop:4,flexWrap:'wrap'}}>
+                {(()=>{
+                  const bs=Math.min(tlBrush.start,tlBrush.end);
+                  const be=Math.max(tlBrush.start,tlBrush.end);
+                  const bStartT=new Date(t0+bs*span);
+                  const bEndT=new Date(t0+be*span);
+                  const durMs=(be-bs)*span;
+                  const durLbl=durMs<1000?Math.round(durMs)+'ms':durMs<60000?(durMs/1000).toFixed(1)+'s':(durMs/60000).toFixed(1)+'m';
+                  return <span className="mono" style={{fontSize:10,color:T.primary,fontWeight:600}}>{fmtTime(bStartT.toISOString())} — {fmtTime(bEndT.toISOString())} ({durLbl})</span>;
+                })()}
+                <button onClick={()=>setTlBrush(null)} style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${T.primary}40`,background:T.primary+'15',color:T.primary,fontSize:10,fontWeight:600,fontFamily:MF,cursor:'pointer',letterSpacing:'0.04em'}}>Clear time selection ✕</button>
+              </div>}
               <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:6,alignItems:'center'}}>
                 <span style={{...purposeLabel,marginRight:6,opacity:0.6}}>Types · click to filter</span>
                 {sortedTypes.map(tp=>{
@@ -5341,11 +5437,12 @@ function App(){
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <span style={{fontFamily:MF,fontSize:10,color:T.muted,letterSpacing:'0.04em'}}>{filtered.length} of {logData.entries.length}</span>
               <button onClick={()=>{setTlGrouping(g=>!g);setExpandedGroups({});}} style={{fontFamily:MF,padding:'3px 8px',borderRadius:4,border:`1px solid ${T.border}`,background:tlGrouping?T.primary+'1A':'transparent',color:tlGrouping?T.primary:T.muted,fontSize:9,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}} title={tlGrouping?'Show all rows flat':'Group repeated events'}>{tlGrouping?'Grouped':'Flat'}</button>
+              <button onClick={()=>setTlSwimlane(s=>!s)} style={{fontFamily:MF,padding:'3px 8px',borderRadius:4,border:`1px solid ${T.border}`,background:tlSwimlane?T.primary+'1A':'transparent',color:tlSwimlane?T.primary:T.muted,fontSize:9,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}} title={tlSwimlane?'Show stacked bars':'Show type lanes'}>{tlSwimlane?'Lanes':'Stacked'}</button>
             </div>
             <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.DL/> Export filtered</button>
           </div>
           </div>{/* end fixed header */}
-          <div ref={timelineScrollRef} key={`${typeFilter||'all'}-${tlAcctFilter?.addr||'all'}-${searchTerm||''}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',animation:'listFade 0.3s ease-out'}}>
+          <div ref={timelineScrollRef} key={`${typeFilter||'all'}-${tlAcctFilter?.addr||'all'}-${searchTerm||''}-${tlBrush?`${tlBrush.start.toFixed(2)}-${tlBrush.end.toFixed(2)}`:'none'}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',animation:'listFade 0.3s ease-out'}}>
           <div style={{background:T.panel,overflow:'hidden'}}>
             <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:T.panel,position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
               {['#','Time','Type','Message'].map(h=><div key={h} style={{padding:'8px 12px',color:T.muted,fontFamily:MF,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',background:T.panel}}>{h}</div>)}
