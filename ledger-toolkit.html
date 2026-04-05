@@ -113,6 +113,7 @@ button:active{transform:scale(0.98);}
 @keyframes stripDraw{from{clip-path:inset(0 100% 0 0);}to{clip-path:inset(0 0 0 0);}}
 @keyframes listFade{0%{opacity:0.6;}100%{opacity:1;}}
 @keyframes filterRemind{0%{box-shadow:0 0 8px 2px var(--remind-color,rgba(187,176,255,0.4));}100%{box-shadow:none;}}
+@keyframes focusEngage{0%{background-color:var(--focus-color,rgba(187,176,255,0.08));}100%{background-color:transparent;}}
 .stat-card:active{animation:selectPulse 0.5s ease-out;--pulse-color:rgba(187,176,255,0.3);}
 .guide-embed{font-family:'Brut Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;color:#FFFFFF;line-height:1.7;font-size:14px;padding:0 0 60px}
 .guide-embed .hero{padding:40px 32px 32px;text-align:center}
@@ -3846,7 +3847,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
 
   return (
-    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: 'linear-gradient(180deg, rgba(69,57,92,0.12) 0%, #1C1D1F 35%)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0 }}>
+    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: focusedAcct?`linear-gradient(180deg, ${focusedAcct.color}12 0%, #1C1D1F 35%)`:'linear-gradient(180deg, rgba(69,57,92,0.12) 0%, #1C1D1F 35%)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0, transition:'background 0.4s ease' }}>
 
       {/* Overview — matches SectionHeader pattern, severity-colored left border */}
       <div
@@ -4624,9 +4625,9 @@ function App(){
     })
   );
 
-  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:`radial-gradient(ellipse at 0% 0%, rgba(69,57,92,0.07) 0%, ${T.bg} 50%)`,color:T.text}}>
+  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}07 0%, ${T.bg} 50%)`:`radial-gradient(ellipse at 0% 0%, rgba(69,57,92,0.07) 0%, ${T.bg} 50%)`,color:T.text,transition:'background 0.4s ease'}}>
     {/* Top bar */}
-    <div style={{height:52,flexShrink:0,borderBottom:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.15) 0%, transparent 40%)`,zIndex:10}}>
+    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}50`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.15) 0%, transparent 40%)`,zIndex:10,transition:'border-bottom 0.4s ease'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <svg width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color:T.text,flexShrink:0}}>
           <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="currentColor"/>
@@ -4694,7 +4695,7 @@ function App(){
       {/* Log Viewer */}
       {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden'}}>
         <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} ledgerStatus={ledgerStatus} />
-        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`}}>
+        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:focusedAcct?`linear-gradient(135deg, ${focusedAcct.color}08 0%, ${focusedAcct.color}03 30%, transparent 60%)`:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`,animation:focusedAcct?'focusEngage 0.4s ease-out':'none','--focus-color':focusedAcct?focusedAcct.color+'12':'transparent'}}>
         {/* Context Ribbon */}
         {(selectedErr!=null&&section==='errors')&&(()=>{
           const ribbonErr=selectedErr!=null?logData.errs.find(e=>e.li===selectedErr):null;
@@ -5782,7 +5783,7 @@ function App(){
                 }
                 const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
                 return groups.map((g,i)=>{
-                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.25,transition:I.fast,boxShadow:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
+                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;const isFocSingle=focusedAcct&&focusedAcct.addr===g.acct.addr;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.12,transition:I.medium,boxShadow:isFocSingle?`0 0 0 1px ${g.acct.ch.color}50, 0 4px 20px ${g.acct.ch.color}20, inset 0 1px 0 rgba(255,255,255,0.06)`:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
                   const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
                   const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr):true;
                   return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.12,transition:I.medium}}>
