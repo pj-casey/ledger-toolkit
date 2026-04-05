@@ -5703,7 +5703,7 @@ function App(){
                     const showSmall=bw>30&&bh>20;
                     const blockBg=hasErrs?`linear-gradient(135deg, ${T.error}18 0%, ${a.ch.color}${hasFunds?'30':'15'} 40%)`:a.ch.color+(hasFunds?'30':'15');
                     return <div key={a.id}
-                      onClick={ev=>{if(ev.shiftKey){if(isFocused)setFocusedAcct(null);else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}else{scrollToAcct(a.id);}}}
+                      onClick={ev=>{if(isFocused){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});scrollToAcct(a.id);}}}
                       onMouseEnter={ev=>{setHoveredAcct(a.id);setHoveredTmRect(ev.currentTarget.getBoundingClientRect());}}
                       onMouseLeave={()=>{setHoveredAcct(null);setHoveredTmRect(null);}}
                       style={{position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,background:blockBg,borderLeft:`3px solid ${a.ch.color}`,borderRadius:4,cursor:'pointer',overflow:'hidden',transition:I.fast,opacity:op,animation:isFocused?'focusPulse 2s ease-in-out infinite':(navigatedAcct===a.id?I.pulse:undefined),'--pulse-color':a.ch.color+'60',boxShadow:hoveredAcct===a.id&&!hoveredTmRect?`0 0 12px ${a.ch.color}50, inset 0 0 8px ${a.ch.color}30`:'none',display:'flex',flexDirection:'column',justifyContent:'center',padding:'3px 5px 3px 6px',boxSizing:'border-box'}}>
