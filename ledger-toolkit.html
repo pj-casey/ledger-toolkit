@@ -4011,6 +4011,10 @@ function App(){
   const[expandedRow,setExpandedRow]=useState(null);
   const[dragOver,setDragOver]=useState(false);
   const[acctFilter,setAcctFilter]=useState('');
+  const[acctSort,setAcctSort]=useState('fiat');
+  const[sortDropOpen,setSortDropOpen]=useState(false);
+  const[tmSize,setTmSize]=useState({w:300,h:400});
+  const[hoveredTmRect,setHoveredTmRect]=useState(null);
   const[qualityOpen,setQualityOpen]=useState(false);
   const[otherAppsOpen,setOtherAppsOpen]=useState(false);
   const[devDetailOpen,setDevDetailOpen]=useState(false);
@@ -4048,6 +4052,8 @@ function App(){
   const[copyOpen,setCopyOpen]=useState(false);
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
+  const acctTreemapRef=React.useRef(null);
+  const acctScrollRef=React.useRef(null);
 
 
   useEffect(()=>{
@@ -4077,6 +4083,23 @@ function App(){
     const t=setTimeout(()=>document.addEventListener('click',h),0);
     return()=>{clearTimeout(t);document.removeEventListener('click',h);};
   },[copyOpen]);
+
+  useEffect(()=>{
+    if(!sortDropOpen)return;
+    const h=(e)=>{if(!e.target.closest('[data-sort-drop]'))setSortDropOpen(false);};
+    const t=setTimeout(()=>document.addEventListener('click',h),0);
+    return()=>{clearTimeout(t);document.removeEventListener('click',h);};
+  },[sortDropOpen]);
+
+  React.useEffect(()=>{
+    const el=acctTreemapRef.current;
+    if(!el)return;
+    const ro=new ResizeObserver(entries=>{
+      for(const entry of entries){const{width,height}=entry.contentRect;if(width>0&&height>0)setTmSize({w:width,h:height});}
+    });
+    ro.observe(el);
+    return()=>ro.disconnect();
+  },[section]);
 
   useEffect(()=>{
     setQualityOpen(false);
@@ -4460,6 +4483,32 @@ function App(){
     const s=acctFilter.toLowerCase();
     return logData.accts.filter(a=>a.ch.name.toLowerCase().includes(s)||a.ch.ticker.toLowerCase().includes(s)||a.addr.toLowerCase().includes(s)||a.cid.toLowerCase().includes(s));
   },[logData,acctFilter]);
+  const sortedAccts=useMemo(()=>{
+    const accts=[...filtAccts];
+    switch(acctSort){
+      case 'fiat': return accts.sort((a,b)=>{const af=liveBalances[a.id]?.fiat||0;const bf=liveBalances[b.id]?.fiat||0;if(bf!==af)return bf-af;return b.ops-a.ops;});
+      case 'balance': return accts.sort((a,b)=>{const ab=liveBalances[a.id]?.bal||Number(a.bal)||0;const bb=liveBalances[b.id]?.bal||Number(b.bal)||0;return bb-ab;});
+      case 'activity': return accts.sort((a,b)=>b.ops-a.ops);
+      case 'health': return accts.sort((a,b)=>{const ae=logData.errs.filter(e=>((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes((a.addr||'').toLowerCase())).length;const be=logData.errs.filter(e=>((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes((b.addr||'').toLowerCase())).length;if(be!==ae)return be-ae;return b.ops-a.ops;});
+      case 'chain':case 'alpha': return accts.sort((a,b)=>a.ch.name.localeCompare(b.ch.name));
+      default:return accts;
+    }
+  },[filtAccts,acctSort,liveBalances,logData]);
+  const treemapValue=(acct)=>{
+    const lb=liveBalances[acct.id];
+    switch(acctSort){
+      case 'fiat': return (lb?.fiat||0)||((acct.ops>0)?0.01:0.001);
+      case 'balance': return (lb?.bal||Number(acct.bal)||0)||(acct.ops>0?0.01:0.001);
+      case 'activity': return acct.ops||0.001;
+      case 'health':{const ec=logData.errs.filter(e=>((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes((acct.addr||'').toLowerCase())).length;return ec||0.1;}
+      case 'chain':case 'alpha': return 1;
+      default: return 1;
+    }
+  };
+  const scrollToAcct=(acctId)=>{
+    const el=acctScrollRef.current?.querySelector(`[data-acct-id="${acctId}"]`);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  };
 
 
   useEffect(()=>{
@@ -5382,53 +5431,65 @@ function App(){
 
         {/* Accounts */}
         {section==='accounts'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-          <div style={{flexShrink:0,padding:'20px 24px 12px',background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          {/* Top bar: stats + action buttons */}
+          <div style={{flexShrink:0,padding:'16px 24px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
             <div style={{fontSize:12,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{(()=>{const funded=logData.accts.filter(a=>a.ops>0).length;const withSync=logData.accts.filter(a=>a.ops===0&&(a.dur!=null||a.bal!=null)).length;const noData=logData.accts.filter(a=>a.ops===0&&a.dur==null&&a.bal==null).length;const parts=[];if(funded)parts.push(`${funded} funded`);if(withSync)parts.push(`${withSync} empty`);if(noData)parts.push(`${noData} no data`);return parts.join(' · ')||'0 accounts';})()}</div>
             <div style={{display:'flex',gap:6}}>
               {logData.dev.accountIds&&logData.dev.accountIds.length>0&&<button onClick={()=>copyText(logData.dev.accountIds.join('\n'))} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Copy/> Copy all IDs ({logData.dev.accountIds.length})</button>}
               <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.DL/> Export</button>
             </div>
           </div>
+          {/* Sync warning banners */}
           {logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync&&(
             logData.isMobile
-              ? <div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0}}>💡</span><span>Mobile logs don't include operation counts or balances. Accounts show chains and addresses only. Switch to <span onClick={()=>setViewMode('customer')} style={{color:T.primary,fontWeight:600,cursor:'pointer'}}>Customer View</span> and load the customer's app.json for full account details.</span></div>
-              : <div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync). For exact balances, switch to Customer View and load the customer's app.json.</div>
+              ? <div style={{flexShrink:0,padding:'0 24px 8px'}}><div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'10px 16px',fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0}}>💡</span><span>Mobile logs don't include operation counts or balances. Accounts show chains and addresses only. Switch to <span onClick={()=>setViewMode('customer')} style={{color:T.primary,fontWeight:600,cursor:'pointer'}}>Customer View</span> and load the customer's app.json for full account details.</span></div></div>
+              : <div style={{flexShrink:0,padding:'0 24px 8px'}}><div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync). For exact balances, switch to Customer View and load the customer's app.json.</div></div>
           )}
-          {logData.accts.length>0&&<div style={{position:'relative',marginBottom:10}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-              <span style={{fontSize:15,fontWeight:700,color:(()=>{const t=Object.values(liveBalances).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?T.success:T.muted;})(),fontFamily:"'Brut Grotesque',sans-serif"}}>
-                {(()=>{const vals=Object.values(liveBalances);if(vals.some(lb=>lb.status==='loading'))return'···';const t=vals.reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?'$'+t.toLocaleString(undefined,{maximumFractionDigits:0}):'$0';})()}
-              </span>
-              <span style={{fontSize:11,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{logData.accts.length} account{logData.accts.length!==1?'s':''}</span>
-            </div>
-            {/* Squarified treemap */}
-            {(()=>{
-              const tmItems=logData.accts.map(a=>{
-                const lb=liveBalances[a.id];
-                const fiat=lb?.fiat||0;
-                const value=fiat>0?fiat:(a.ops>0?0.01:0.001);
-                return {...a,_value:value};
-              }).sort((a,b)=>b._value-a._value);
-              const TM_H=120;
-              return <div style={{position:'relative',width:'100%',height:TM_H,borderRadius:8,overflow:'hidden',border:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
-                <span style={{...purposeLabel,position:'absolute',top:4,right:8,opacity:0.5,pointerEvents:'none',zIndex:10}}>Portfolio · click to filter</span>
-                {(()=>{
-                  // We use a ResizeObserver-free approach: render inside a 100%-width div and use clientWidth at paint time via a ref-less calculation.
-                  // Since we can't get actual px width here, we use a useMemo with a fixed measurement approach.
-                  // The treemap will be re-laid-out by the browser; we use a CSS container approach.
-                  // Actually in React/Babel we can use a inline render with a sentinel — but simplest: pick a reasonable reference width.
-                  // The panel is ~(viewport - 240px sidebar - 48px padding). We compute from window.innerWidth at render time.
-                  const pw=Math.max((window.innerWidth||1280)-240-48,400);
-                  const rects=squarify(tmItems.map(a=>({...a,value:a._value})),{x:0,y:0,w:pw,h:TM_H});
-                  return rects.map((rect,ri)=>{
+          {/* Two-panel body */}
+          <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+            {/* LEFT PANEL: Treemap */}
+            <div style={{width:'38%',minWidth:240,flexShrink:0,display:'flex',flexDirection:'column',borderRight:`1px solid ${T.border}`,padding:'12px 14px 12px 16px'}}>
+              {/* Portfolio total + sort dropdown */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{fontSize:15,fontWeight:700,color:(()=>{const t=Object.values(liveBalances).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?T.success:T.muted;})(),fontFamily:"'Brut Grotesque',sans-serif"}}>
+                    {(()=>{const vals=Object.values(liveBalances);if(vals.some(lb=>lb.status==='loading'))return'···';const t=vals.reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?'$'+t.toLocaleString(undefined,{maximumFractionDigits:0}):'$0';})()}
+                  </span>
+                  <span style={{fontSize:11,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{sortedAccts.length} account{sortedAccts.length!==1?'s':''}</span>
+                </div>
+                <div data-sort-drop style={{position:'relative'}}>
+                  <button onClick={()=>setSortDropOpen(o=>!o)}
+                    style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,fontFamily:MF,letterSpacing:'0.04em',textTransform:'uppercase',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,cursor:'pointer'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+                    {({fiat:'Fiat',balance:'Balance',activity:'Activity',health:'Health',chain:'Chain',alpha:'Alpha'}[acctSort]||acctSort)} {sortDropOpen?'▾':'▸'}
+                  </button>
+                  {sortDropOpen&&<div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',zIndex:30,minWidth:160,overflow:'hidden'}}>
+                    {[{key:'fiat',label:'Fiat Value',desc:'Dollar amount'},{key:'balance',label:'Core Balance',desc:'Native token'},{key:'activity',label:'Activity',desc:'Operation count'},{key:'health',label:'Health',desc:'Errors first'},{key:'chain',label:'Chain Family',desc:'Alphabetical'},{key:'alpha',label:'Alphabetical',desc:'A → Z'}].map(opt=>(
+                      <button key={opt.key} onClick={()=>{setAcctSort(opt.key);setSortDropOpen(false);}}
+                        style={{display:'block',width:'100%',padding:'8px 14px',background:acctSort===opt.key?T.primary+'15':'transparent',border:'none',borderBottom:`1px solid ${T.border}`,color:acctSort===opt.key?T.primary:T.text,cursor:'pointer',textAlign:'left',fontSize:12,fontWeight:acctSort===opt.key?600:400}}
+                        onMouseEnter={e=>e.currentTarget.style.background=acctSort===opt.key?T.primary+'15':I.hover}
+                        onMouseLeave={e=>e.currentTarget.style.background=acctSort===opt.key?T.primary+'15':'transparent'}>
+                        <div>{opt.label}</div>
+                        <div style={{fontSize:10,color:T.muted,marginTop:1}}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>}
+                </div>
+              </div>
+              {/* Treemap container — measured by ResizeObserver */}
+              <div ref={acctTreemapRef} style={{flex:1,position:'relative',borderRadius:8,overflow:'hidden',border:'1px solid rgba(255,255,255,0.06)',background:T.bg,minHeight:80}}>
+                <span style={{...purposeLabel,position:'absolute',top:4,right:8,opacity:0.5,pointerEvents:'none',zIndex:10}}>Portfolio · click to navigate</span>
+                {sortedAccts.length>0&&tmSize.w>10&&tmSize.h>10&&(()=>{
+                  const tmItems=sortedAccts.map(a=>({...a,value:treemapValue(a)})).sort((a,b)=>b.value-a.value);
+                  const rects=squarify(tmItems,{x:0,y:0,w:tmSize.w,h:tmSize.h});
+                  return rects.map(rect=>{
                     const a=rect;
                     const lb=liveBalances[a.id];
                     const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
                     const noData=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
                     const unsupported=lb&&lb.status==='unsupported';
                     const hasErrs=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase());})();
-                    const isFiltered=acctFilter&&a.ch.name.toLowerCase().includes(acctFilter.toLowerCase());
                     const canX=a.isXpub&&a.ch.xc;
                     const isFocused=focusedAcct&&focusedAcct.addr===a.addr;
                     const op=focusedAcct?(isFocused?1:0.25):(hasFunds?1:noData?0.5:0.4);
@@ -5437,136 +5498,122 @@ function App(){
                     const showMedium=bw>60&&bh>30;
                     const showSmall=bw>30&&bh>20;
                     return <div key={a.id}
-                      onClick={ev=>{if(ev.shiftKey){if(isFocused){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}}else{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);}}}
-                      onMouseEnter={()=>setHoveredAcct(a.id)}
-                      onMouseLeave={()=>setHoveredAcct(null)}
-                      style={{
-                        position:'absolute',
-                        left:rect.x,top:rect.y,
-                        width:bw,height:bh,
-                        margin:1,
-                        background:a.ch.color+(hasFunds?'30':'15'),
-                        borderLeft:`3px solid ${a.ch.color}`,
-                        borderRadius:4,
-                        cursor:'pointer',
-                        overflow:'hidden',
-                        transition:I.fast,
-                        opacity:op,
-                        animation:isFocused?'focusPulse 2s ease-in-out infinite':undefined,
-                        outline:isFiltered?`2px solid ${a.ch.color}80`:undefined,
-                        display:'flex',flexDirection:'column',justifyContent:'center',
-                        padding:'3px 5px 3px 6px',
-                        boxSizing:'border-box',
-                        zIndex:hoveredAcct===a.id?30:undefined,
-                      }}>
+                      onClick={ev=>{if(ev.shiftKey){if(isFocused)setFocusedAcct(null);else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}else{scrollToAcct(a.id);}}}
+                      onMouseEnter={ev=>{setHoveredAcct(a.id);setHoveredTmRect(ev.currentTarget.getBoundingClientRect());}}
+                      onMouseLeave={()=>{setHoveredAcct(null);setHoveredTmRect(null);}}
+                      style={{position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,background:a.ch.color+(hasFunds?'30':'15'),borderLeft:`3px solid ${a.ch.color}`,borderRadius:4,cursor:'pointer',overflow:'hidden',transition:I.fast,opacity:op,animation:isFocused?'focusPulse 2s ease-in-out infinite':undefined,display:'flex',flexDirection:'column',justifyContent:'center',padding:'3px 5px 3px 6px',boxSizing:'border-box'}}>
                       {showSmall&&<span style={{fontFamily:MF,fontSize:showFull?12:10,fontWeight:700,color:a.ch.color,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.ticker}</span>}
                       {showMedium&&lb&&lb.fiat>0&&<span style={{fontSize:10,color:T.muted,fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
                       {showFull&&<span style={{fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.name}</span>}
                       {hasErrs&&<span style={{position:'absolute',top:2,right:2,width:6,height:6,borderRadius:'50%',background:T.error,border:'1px solid '+T.bg}}/>}
                       {canX&&<span style={{position:'absolute',bottom:2,right:2,width:5,height:5,borderRadius:1,background:T.primary,border:'1px solid '+T.bg}}/>}
                       {unsupported&&<span style={{position:'absolute',top:2,left:2,fontSize:6,color:T.muted,fontWeight:700}}>?</span>}
-                      {hoveredAcct===a.id&&(()=>{
-                        const hf=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
-                        const nd=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
-                        const cX=a.isXpub&&a.ch.xc;
-                        let eUrl=null;try{eUrl=a.ch.url?.(a.addr);}catch{}
-                        const hasExp=eUrl&&eUrl!=='#';
-                        const ec=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())?logData.errs.filter(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())).length:0;})();
-                        const popLeft=rect.x+bw+4>pw-270?rect.x-266:rect.x+bw+4;
-                        const popTop=Math.min(rect.y,TM_H-260);
-                        return <div onClick={e=>e.stopPropagation()} onMouseEnter={()=>{}} onMouseLeave={()=>{}} style={{position:'fixed',left:'auto',top:'auto',marginLeft:popLeft-rect.x+bw,marginTop:popTop-rect.y,width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderLeft:`3px solid ${a.ch.color}60`,borderRadius:8,boxShadow:`0 8px 24px rgba(0,0,0,0.5), inset 6px 0 18px -4px ${a.ch.color}35`,padding:'10px 14px',zIndex:50,cursor:'default',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                            <span style={{width:24,height:24,borderRadius:6,background:a.ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:a.ch.color,fontFamily:MF}}>{a.ch.ticker.slice(0,3)}</span>
-                            <span style={{fontWeight:600,fontSize:13}}>{a.ch.name}</span>
-                            {a.toks.length>0&&<span style={{fontSize:10,color:T.primary,fontWeight:600}}>{a.toks.length} token{a.toks.length!==1?'s':''}</span>}
-                          </div>
-                          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-                            <span className="mono" style={{fontSize:10,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{a.addr}</span>
-                            <CopyBtn text={a.addr}/>
-                          </div>
-                          {lb&&lb.status==='ok'&&lb.bal!=null&&<div className="mono" style={{fontSize:12,color:T.success,fontWeight:600,marginBottom:6}}>
-                            {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
-                          </div>}
-                          {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:6}}>Loading balance···</div>}
-                          {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'Empty account'}</div>}
-                          {nd&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>No sync data</div>}
-                          {a.dm&&<div style={{marginBottom:6}}><span className="mono" style={{fontSize:10,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:4}}>{a.dm}</span></div>}
-                          <div style={{display:'flex',flexWrap:'wrap',gap:4,fontSize:10,borderTop:`1px solid ${T.border}`,paddingTop:8,marginTop:2}}>
-                            {hasExp&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{color:a.ch.color,fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:a.ch.color+'12',border:`1px solid ${a.ch.color}25`,cursor:'pointer'}} onClick={e=>e.stopPropagation()}><Ico.Link/> Explorer</a>}
-                            {ec>0?<span onClick={e=>{e.stopPropagation();setErrAcctFilter(a.addr);setSection('errors');setHoveredAcct(null);}} style={{color:T.error,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(228,0,70,0.12)',border:'1px solid rgba(228,0,70,0.25)'}}>⚠ {ec} issue{ec!==1?'s':''}</span>:<span style={{color:T.muted,fontSize:10,display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}}>0 issues</span>}
-                            {cX&&<span onClick={e=>{e.stopPropagation();setAcctFilter(a.ch.name);setHoveredAcct(null);setTimeout(()=>{const panel=document.querySelector('[data-accounts-scroll]');if(panel)panel.scrollTop=0;},50);}} style={{color:T.primary,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(187,176,255,0.10)',border:'1px solid rgba(187,176,255,0.20)'}}><Ico.Scan/> Xpub</span>}
-                            <span onClick={e=>{e.stopPropagation();setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');setHoveredAcct(null);}} style={{color:T.muted,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Logs/> Timeline</span>
-                            {(()=>{const isFoc=focusedAcct&&focusedAcct.addr===a.addr;return <span onClick={e=>{e.stopPropagation();if(isFoc){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}setHoveredAcct(null);}} style={{color:isFoc?T.primary:'#BBB0FF',fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:isFoc?'rgba(187,176,255,0.18)':'rgba(187,176,255,0.08)',border:isFoc?'1px solid rgba(187,176,255,0.50)':'1px solid rgba(187,176,255,0.20)'}}>{isFoc?'◎ Unfocus':'◉ Focus'}</span>;})()}
-                          </div>
-                        </div>;
-                      })()}
                     </div>;
                   });
                 })()}
-              </div>;
-            })()}
-          </div>}
-          <input onFocus={()=>setHoveredAcct(null)} value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.card,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
-          </div>{/* end fixed header */}
-          <div data-accounts-scroll key={`${acctFilter||'all'}-${focusedAcct?.addr||'all'}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',animation:'listFade 0.3s ease-out'}}>
-          {(()=>{
-            const acctErrCounts={};
-            for(const e of logData.errs){
-              const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();
-              for(const a of logData.accts){if(a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())){acctErrCounts[a.id]=(acctErrCounts[a.id]||0)+1;}}
-            }
-            // Group accounts by shared address (EVM chains share the same 0x address)
-            const groups=[];
-            const used=new Set();
-            for(const a of filtAccts){
-              if(used.has(a.id))continue;
-              const sameAddr=filtAccts.filter(b=>!used.has(b.id)&&b.addr===a.addr&&b.addr.length>=20);
-              if(sameAddr.length>1){
-                const sorted=[...sameAddr].sort((x,y)=>{
-                  if(x.cid==='ethereum')return -1;if(y.cid==='ethereum')return 1;
-                  return x.ch.name.localeCompare(y.ch.name);
+              </div>
+              {/* Hover popover — position:fixed escapes overflow:hidden */}
+              {hoveredAcct&&hoveredTmRect&&(()=>{
+                const a=sortedAccts.find(x=>x.id===hoveredAcct);
+                if(!a)return null;
+                const lb=liveBalances[a.id];
+                const hf=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
+                const nd=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
+                const cX=a.isXpub&&a.ch.xc;
+                let eUrl=null;try{eUrl=a.ch.url?.(a.addr);}catch{}
+                const hasExp=eUrl&&eUrl!=='#';
+                const ec=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())?logData.errs.filter(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())).length:0;})();
+                const rawLeft=hoveredTmRect.right+6;
+                const popLeft=rawLeft+268>window.innerWidth?hoveredTmRect.left-272:rawLeft;
+                const popTop=Math.max(8,Math.min(hoveredTmRect.top,window.innerHeight-296));
+                return <div onClick={e=>e.stopPropagation()} style={{position:'fixed',left:popLeft,top:popTop,width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderLeft:`3px solid ${a.ch.color}60`,borderRadius:8,boxShadow:`0 8px 24px rgba(0,0,0,0.5), inset 6px 0 18px -4px ${a.ch.color}35`,padding:'10px 14px',zIndex:60,cursor:'default',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{width:24,height:24,borderRadius:6,background:a.ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:a.ch.color,fontFamily:MF}}>{a.ch.ticker.slice(0,3)}</span>
+                    <span style={{fontWeight:600,fontSize:13}}>{a.ch.name}</span>
+                    {a.toks.length>0&&<span style={{fontSize:10,color:T.primary,fontWeight:600}}>{a.toks.length} token{a.toks.length!==1?'s':''}</span>}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                    <span className="mono" style={{fontSize:10,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{a.addr}</span>
+                    <CopyBtn text={a.addr}/>
+                  </div>
+                  {lb&&lb.status==='ok'&&lb.bal!=null&&<div className="mono" style={{fontSize:12,color:T.success,fontWeight:600,marginBottom:6}}>
+                    {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
+                  </div>}
+                  {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:6}}>Loading balance···</div>}
+                  {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'Empty account'}</div>}
+                  {nd&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>No sync data</div>}
+                  {a.dm&&<div style={{marginBottom:6}}><span className="mono" style={{fontSize:10,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:4}}>{a.dm}</span></div>}
+                  <div style={{display:'flex',flexWrap:'wrap',gap:4,fontSize:10,borderTop:`1px solid ${T.border}`,paddingTop:8,marginTop:2}}>
+                    {hasExp&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{color:a.ch.color,fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:a.ch.color+'12',border:`1px solid ${a.ch.color}25`,cursor:'pointer'}} onClick={e=>e.stopPropagation()}><Ico.Link/> Explorer</a>}
+                    {ec>0?<span onClick={e=>{e.stopPropagation();setErrAcctFilter(a.addr);setSection('errors');setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:T.error,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(228,0,70,0.12)',border:'1px solid rgba(228,0,70,0.25)'}}>⚠ {ec} issue{ec!==1?'s':''}</span>:<span style={{color:T.muted,fontSize:10,display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}}>0 issues</span>}
+                    {cX&&<span onClick={e=>{e.stopPropagation();setAcctFilter(a.ch.name);setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:T.primary,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(187,176,255,0.10)',border:'1px solid rgba(187,176,255,0.20)'}}><Ico.Scan/> Xpub</span>}
+                    <span onClick={e=>{e.stopPropagation();setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:T.muted,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Logs/> Timeline</span>
+                    {(()=>{const isFoc=focusedAcct&&focusedAcct.addr===a.addr;return <span onClick={e=>{e.stopPropagation();if(isFoc)setFocusedAcct(null);else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:isFoc?T.primary:'#BBB0FF',fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:isFoc?'rgba(187,176,255,0.18)':'rgba(187,176,255,0.08)',border:isFoc?'1px solid rgba(187,176,255,0.50)':'1px solid rgba(187,176,255,0.20)'}}>{isFoc?'◎ Unfocus':'◉ Focus'}</span>;})()}
+                  </div>
+                </div>;
+              })()}
+            </div>
+            {/* RIGHT PANEL: Filter + Card list */}
+            <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+              <div style={{flexShrink:0,padding:'12px 16px 8px'}}>
+                <input onFocus={()=>setHoveredAcct(null)} value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.card,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,boxSizing:'border-box'}}/>
+              </div>
+              <div ref={acctScrollRef} data-accounts-scroll key={`${acctFilter||'all'}-${focusedAcct?.addr||'all'}-${acctSort}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 16px 24px',animation:'listFade 0.3s ease-out'}}>
+              {(()=>{
+                const acctErrCounts={};
+                for(const e of logData.errs){
+                  const hay=((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase();
+                  for(const a of logData.accts){if(a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())){acctErrCounts[a.id]=(acctErrCounts[a.id]||0)+1;}}
+                }
+                const groups=[];
+                const used=new Set();
+                for(const a of sortedAccts){
+                  if(used.has(a.id))continue;
+                  const sameAddr=sortedAccts.filter(b=>!used.has(b.id)&&b.addr===a.addr&&b.addr.length>=20);
+                  if(sameAddr.length>1){
+                    const sorted=[...sameAddr].sort((x,y)=>{if(x.cid==='ethereum')return -1;if(y.cid==='ethereum')return 1;return x.ch.name.localeCompare(y.ch.name);});
+                    groups.push({type:'group',addr:a.addr,accts:sorted});
+                    for(const s of sorted)used.add(s.id);
+                  }else{
+                    groups.push({type:'single',acct:a});
+                    used.add(a.id);
+                  }
+                }
+                const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
+                return groups.map((g,i)=>{
+                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} data-acct-id={g.acct.id} style={{opacity:cardRelevant?1:0.25,transition:I.fast}}>{renderCard(g.acct)}</div>;}
+                  const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
+                  const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr):true;
+                  return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.25,transition:I.fast}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,padding:'0 8px'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,fontFamily:MF}}>Shared Address</span>
+                        <span className="mono" style={{fontSize:11,color:T.primary,opacity:0.8}}>{g.addr.slice(0,10)}...{g.addr.slice(-6)}</span>
+                        <CopyBtn text={g.addr}/>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:11,color:T.muted}}>{g.accts.length} chains</span>
+                        {groupFiat>0&&<span style={{fontSize:11,fontWeight:600,color:T.success}}>${groupFiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
+                      </div>
+                    </div>
+                    {g.accts.map(a=><div key={a.id} data-acct-id={a.id}>{renderCard(a)}</div>)}
+                  </div>;
                 });
-                groups.push({type:'group',addr:a.addr,accts:sorted});
-                for(const s of sorted)used.add(s.id);
-              }else{
-                groups.push({type:'single',acct:a});
-                used.add(a.id);
-              }
-            }
-            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
-            return groups.map((g,i)=>{
-              if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} style={{opacity:cardRelevant?1:0.25,transition:I.fast}}>{renderCard(g.acct)}</div>;}
-              const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
-              const groupFunded=g.accts.filter(a=>a.ops>0||(liveBalances[a.id]?.status==='ok'&&liveBalances[a.id]?.bal>0)).length;
-              const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr):true;
-              return <div key={'grp-'+g.addr} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.25,transition:I.fast}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,padding:'0 8px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,fontFamily:MF}}>Shared Address</span>
-                    <span className="mono" style={{fontSize:11,color:T.primary,opacity:0.8}}>{g.addr.slice(0,10)}...{g.addr.slice(-6)}</span>
-                    <CopyBtn text={g.addr}/>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:11,color:T.muted}}>{g.accts.length} chains</span>
-                    {groupFiat>0&&<span style={{fontSize:11,fontWeight:600,color:T.success}}>${groupFiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
-                  </div>
-                </div>
-                {g.accts.map(a=>renderCard(a))}
-              </div>;
-            });
-          })()}
-          {filtAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,textAlign:'center',color:T.muted,padding:40}}>
-            <div style={{fontSize:28,marginBottom:8}}>👛</div>
-            <div style={{fontWeight:600,marginBottom:4}}>No accounts match your filter.</div>
-            <div style={{fontSize:12,marginBottom:12}}>Try searching by chain name, ticker, or partial address</div>
-            <button onClick={()=>setAcctFilter('')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filter</button>
-          </div>}
-          {filtAccts.length===0&&!acctFilter&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494',background:'linear-gradient(135deg, rgba(69,57,92,0.06) 0%, transparent 30%)',borderRadius:8}}>
-            <div style={{fontSize:32,marginBottom:12}}>👛</div>
-            <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No accounts in this log</div>
-            <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Account data wasn't captured in this export. Switch to Customer View and load the customer's app.json for accounts and balances.</div>
-          </div>}
-          </div>{/* end scrollable */}
+              })()}
+              {sortedAccts.length===0&&acctFilter&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,textAlign:'center',color:T.muted,padding:40}}>
+                <div style={{fontSize:28,marginBottom:8}}>👛</div>
+                <div style={{fontWeight:600,marginBottom:4}}>No accounts match your filter.</div>
+                <div style={{fontSize:12,marginBottom:12}}>Try searching by chain name, ticker, or partial address</div>
+                <button onClick={()=>setAcctFilter('')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filter</button>
+              </div>}
+              {sortedAccts.length===0&&!acctFilter&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494',background:'linear-gradient(135deg, rgba(69,57,92,0.06) 0%, transparent 30%)',borderRadius:8}}>
+                <div style={{fontSize:32,marginBottom:12}}>👛</div>
+                <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No accounts in this log</div>
+                <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Account data wasn't captured in this export. Switch to Customer View and load the customer's app.json for accounts and balances.</div>
+              </div>}
+              </div>{/* end scrollable */}
+            </div>{/* end right panel */}
+          </div>{/* end two-panel */}
         </div>}
 
         {/* Errors */}
