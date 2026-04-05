@@ -3635,6 +3635,42 @@ function buildIncidentLines(logData,ledgerStatus){
   if(!overlapping.length)return[];
   return['⚠ INCIDENTS DURING SESSION:',...overlapping.map(inc=>`  ${inc.name} (${inc.impact}) — ${inc.resolved_at?'resolved '+new Date(inc.resolved_at).toLocaleString():inc.status}`),''];
 }
+function worstAspectRatio(row,rowValue,sideLength,totalValue,container){
+  const area=(container.w*container.h)*(rowValue/totalValue);
+  const rowThickness=area/sideLength;
+  let worst=0;
+  for(const item of row){const itemLength=sideLength*(item.value/rowValue);const ratio=Math.max(itemLength/rowThickness,rowThickness/itemLength);worst=Math.max(worst,ratio);}
+  return worst;
+}
+function squarify(items,container){
+  const totalValue=items.reduce((s,item)=>s+item.value,0);
+  if(totalValue===0||items.length===0)return[];
+  const rects=[];let remaining=[...items];let currentContainer={...container};
+  while(remaining.length>0){
+    const isWide=currentContainer.w>=currentContainer.h;
+    const sideLength=isWide?currentContainer.h:currentContainer.w;
+    const remainingValue=remaining.reduce((s,item)=>s+item.value,0);
+    let row=[remaining[0]];let rowValue=remaining[0].value;
+    for(let i=1;i<remaining.length;i++){
+      const testRow=[...row,remaining[i]];const testValue=rowValue+remaining[i].value;
+      if(worstAspectRatio(testRow,testValue,sideLength,remainingValue,currentContainer)<=worstAspectRatio(row,rowValue,sideLength,remainingValue,currentContainer)){row=testRow;rowValue=testValue;}
+      else break;
+    }
+    const rowFraction=rowValue/remainingValue;
+    const rowThickness=isWide?currentContainer.w*rowFraction:currentContainer.h*rowFraction;
+    let offset=0;
+    for(const item of row){
+      const itemFraction=item.value/rowValue;const itemLength=sideLength*itemFraction;
+      if(isWide){rects.push({...item,x:currentContainer.x,y:currentContainer.y+offset,w:rowThickness,h:itemLength});}
+      else{rects.push({...item,x:currentContainer.x+offset,y:currentContainer.y,w:itemLength,h:rowThickness});}
+      offset+=itemLength;
+    }
+    if(isWide){currentContainer.x+=rowThickness;currentContainer.w-=rowThickness;}
+    else{currentContainer.y+=rowThickness;currentContainer.h-=rowThickness;}
+    remaining=remaining.slice(row.length);
+  }
+  return rects;
+}
 function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck){
   const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
   const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
@@ -3989,8 +4025,7 @@ function App(){
   const[errAcctFilter,setErrAcctFilter]=useState(null);
   const[hoveredAcct,setHoveredAcct]=useState(null);
   const[focusedAcct,setFocusedAcct]=useState(null);
-  const[acctMapOpen,setAcctMapOpen]=useState(false);
-  const[tlHoveredBucket,setTlHoveredBucket]=useState(null);
+    const[tlHoveredBucket,setTlHoveredBucket]=useState(null);
   const[tlHighlightType,setTlHighlightType]=useState(null);
   const[tlAcctFilter,setTlAcctFilter]=useState(null);
   const[tlGrouping,setTlGrouping]=useState(true);
@@ -4014,12 +4049,6 @@ function App(){
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
 
-  useEffect(()=>{
-    if(!acctMapOpen)return;
-    const h=(e)=>{if(!e.target.closest('[data-portfolio-overlay]'))setAcctMapOpen(false);};
-    const t=setTimeout(()=>document.addEventListener('click',h),0);
-    return()=>{clearTimeout(t);document.removeEventListener('click',h);};
-  },[acctMapOpen]);
 
   useEffect(()=>{
     if(!qualityOpen)return;
@@ -5368,114 +5397,115 @@ function App(){
               : <div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',marginBottom:12,fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync). For exact balances, switch to Customer View and load the customer's app.json.</div>
           )}
           {logData.accts.length>0&&<div style={{position:'relative',marginBottom:10}}>
-            <span style={{...purposeLabel,position:'absolute',top:4,right:0,pointerEvents:'none'}}>Portfolio · click to filter</span>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
               <span style={{fontSize:15,fontWeight:700,color:(()=>{const t=Object.values(liveBalances).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?T.success:T.muted;})(),fontFamily:"'Brut Grotesque',sans-serif"}}>
                 {(()=>{const vals=Object.values(liveBalances);if(vals.some(lb=>lb.status==='loading'))return'···';const t=vals.reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?'$'+t.toLocaleString(undefined,{maximumFractionDigits:0}):'$0';})()}
               </span>
               <span style={{fontSize:11,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{logData.accts.length} account{logData.accts.length!==1?'s':''}</span>
-              <div style={{flex:1}}/>
-              <button onClick={()=>setAcctMapOpen(o=>!o)} style={{padding:'3px 8px',borderRadius:6,border:`1px solid ${T.border}`,background:acctMapOpen?T.primary+'1A':'transparent',color:acctMapOpen?T.primary:T.muted,fontSize:10,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
-                {acctMapOpen?'Close':'Portfolio'} {acctMapOpen?'▾':'▸'}
-              </button>
             </div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-              {logData.accts.map((a,idx)=>{
+            {/* Squarified treemap */}
+            {(()=>{
+              const tmItems=logData.accts.map(a=>{
                 const lb=liveBalances[a.id];
-                const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
-                const noData=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
-                const unsupported=lb&&lb.status==='unsupported';
-                const hasErrs=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase());})();
-                const isFiltered=acctFilter&&a.ch.name.toLowerCase().includes(acctFilter.toLowerCase());
-                const bg=hasFunds?a.ch.color:noData?T.warning+'60':T.border;
-                const op=hasFunds?1:noData?0.5:0.4;
-                const canX=a.isXpub&&a.ch.xc;
-                return <div key={a.id}
-                  onClick={(ev)=>{if(ev.shiftKey){const isFocused=focusedAcct&&focusedAcct.addr===a.addr;if(isFocused){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}}else{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);}}}
-                  onMouseEnter={()=>setHoveredAcct(a.id)}
-                  onMouseLeave={()=>setHoveredAcct(null)}
-                  style={{
-                    width:30,height:30,borderRadius:4,background:bg,opacity:focusedAcct?(focusedAcct.addr===a.addr?1:0.25):op,cursor:'pointer',flexShrink:0,outline:'1px solid rgba(255,255,255,0.06)',
-                    position:'relative',display:'flex',alignItems:'center',justifyContent:'center',
-                    border:(focusedAcct&&focusedAcct.addr===a.addr)?`2px solid ${a.ch.color}`:(isFiltered?`2px solid ${a.ch.color}60`:'2px solid transparent'),
-                    transition:I.fast,
-                    transform:hoveredAcct===a.id?'scale(1.15)':'scale(1)',
-                    animation:(focusedAcct&&focusedAcct.addr===a.addr)?'focusPulse 2s ease-in-out infinite':undefined,
-                    zIndex:hoveredAcct===a.id?40:undefined,
-                  }}>
-                  <span style={{fontSize:8,fontWeight:800,color:hasFunds?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'-0.02em',lineHeight:1,userSelect:'none'}}>{a.ch.ticker.slice(0,3)}</span>
-                  {hasErrs&&<span style={{position:'absolute',top:-2,right:-2,width:6,height:6,borderRadius:'50%',background:T.error,border:'1px solid '+T.bg}}/>}
-                  {canX&&<span style={{position:'absolute',bottom:-1,right:-1,width:5,height:5,borderRadius:1,background:T.primary,border:'1px solid '+T.bg}}/>}
-                  {unsupported&&<span style={{position:'absolute',top:-2,left:-2,fontSize:6,color:T.muted,fontWeight:700}}>?</span>}
-                  {hoveredAcct===a.id&&(()=>{
+                const fiat=lb?.fiat||0;
+                const value=fiat>0?fiat:(a.ops>0?0.01:0.001);
+                return {...a,_value:value};
+              }).sort((a,b)=>b._value-a._value);
+              const TM_H=120;
+              return <div style={{position:'relative',width:'100%',height:TM_H,borderRadius:8,overflow:'hidden',border:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
+                <span style={{...purposeLabel,position:'absolute',top:4,right:8,opacity:0.5,pointerEvents:'none',zIndex:10}}>Portfolio · click to filter</span>
+                {(()=>{
+                  // We use a ResizeObserver-free approach: render inside a 100%-width div and use clientWidth at paint time via a ref-less calculation.
+                  // Since we can't get actual px width here, we use a useMemo with a fixed measurement approach.
+                  // The treemap will be re-laid-out by the browser; we use a CSS container approach.
+                  // Actually in React/Babel we can use a inline render with a sentinel — but simplest: pick a reasonable reference width.
+                  // The panel is ~(viewport - 240px sidebar - 48px padding). We compute from window.innerWidth at render time.
+                  const pw=Math.max((window.innerWidth||1280)-240-48,400);
+                  const rects=squarify(tmItems.map(a=>({...a,value:a._value})),{x:0,y:0,w:pw,h:TM_H});
+                  return rects.map((rect,ri)=>{
+                    const a=rect;
                     const lb=liveBalances[a.id];
-                    const hf=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
-                    const nd=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
-                    const cX=a.isXpub&&a.ch.xc;
-                    let eUrl=null;try{eUrl=a.ch.url?.(a.addr);}catch{}
-                    const hasExp=eUrl&&eUrl!=='#';
-                    const ec=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())?logData.errs.filter(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())).length:0;})();
-                    return <div onClick={e=>e.stopPropagation()} onMouseEnter={()=>{}} onMouseLeave={()=>{}} style={{position:'absolute',top:24,left:Math.max(-(idx*34),-60),width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderLeft:`3px solid ${a.ch.color}60`,borderRadius:8,boxShadow:`0 8px 24px rgba(0,0,0,0.5), inset 6px 0 18px -4px ${a.ch.color}35`,padding:'10px 14px',zIndex:40,cursor:'default',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                        <span style={{width:24,height:24,borderRadius:6,background:a.ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:a.ch.color,fontFamily:MF}}>{a.ch.ticker.slice(0,3)}</span>
-                        <span style={{fontWeight:600,fontSize:13}}>{a.ch.name}</span>
-                        {a.toks.length>0&&<span style={{fontSize:10,color:T.primary,fontWeight:600}}>{a.toks.length} token{a.toks.length!==1?'s':''}</span>}
-                      </div>
-                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-                        <span className="mono" style={{fontSize:10,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{a.addr}</span>
-                        <CopyBtn text={a.addr}/>
-                      </div>
-                      {lb&&lb.status==='ok'&&lb.bal!=null&&<div className="mono" style={{fontSize:12,color:T.success,fontWeight:600,marginBottom:6}}>
-                        {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
-                      </div>}
-                      {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:6}}>Loading balance···</div>}
-                      {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'Empty account'}</div>}
-                      {nd&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>No sync data</div>}
-                      {a.dm&&<div style={{marginBottom:6}}><span className="mono" style={{fontSize:10,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:4}}>{a.dm}</span></div>}
-                      <div style={{display:'flex',flexWrap:'wrap',gap:4,fontSize:10,borderTop:`1px solid ${T.border}`,paddingTop:8,marginTop:2}}>
-                        {hasExp&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{color:a.ch.color,fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:a.ch.color+'12',border:`1px solid ${a.ch.color}25`,cursor:'pointer'}} onClick={e=>e.stopPropagation()}><Ico.Link/> Explorer</a>}
-                        {ec>0?<span onClick={e=>{e.stopPropagation();setErrAcctFilter(a.addr);setSection('errors');setHoveredAcct(null);}} style={{color:T.error,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(228,0,70,0.12)',border:'1px solid rgba(228,0,70,0.25)'}}>⚠ {ec} issue{ec!==1?'s':''}</span>:<span style={{color:T.muted,fontSize:10,display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}}>0 issues</span>}
-                        {cX&&<span onClick={e=>{e.stopPropagation();setAcctFilter(a.ch.name);setHoveredAcct(null);setTimeout(()=>{const panel=document.querySelector('[data-accounts-scroll]');if(panel)panel.scrollTop=0;},50);}} style={{color:T.primary,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(187,176,255,0.10)',border:'1px solid rgba(187,176,255,0.20)'}}><Ico.Scan/> Xpub</span>}
-                        <span onClick={e=>{e.stopPropagation();setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');setHoveredAcct(null);}} style={{color:T.muted,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Logs/> Timeline</span>
-                        {(()=>{const isFoc=focusedAcct&&focusedAcct.addr===a.addr;return <span onClick={e=>{e.stopPropagation();if(isFoc){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}setHoveredAcct(null);}} style={{color:isFoc?T.primary:'#BBB0FF',fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:isFoc?'rgba(187,176,255,0.18)':'rgba(187,176,255,0.08)',border:isFoc?'1px solid rgba(187,176,255,0.50)':'1px solid rgba(187,176,255,0.20)'}}>{isFoc?'◎ Unfocus':'◉ Focus'}</span>;})()}
-                      </div>
-                    </div>;
-                  })()}
-                </div>;
-              })}
-            </div>
-            <div style={{fontSize:9,color:T.muted,opacity:0.5,marginTop:4,letterSpacing:'0.04em',fontFamily:MF}}>hover for details · click to filter · shift+click to focus</div>
-
-            {/* Portfolio overlay — proportional tiles */}
-            {acctMapOpen&&<div data-portfolio-overlay style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',padding:'12px 14px',zIndex:25,maxHeight:300,overflowY:'auto',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-              <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',color:T.muted,marginBottom:8}}>Portfolio Allocation</div>
-              {(()=>{
-                const withFiat=logData.accts.map(a=>({a,fiat:liveBalances[a.id]?.fiat||0,lb:liveBalances[a.id]})).sort((x,y)=>y.fiat-x.fiat);
-                const maxFiat=Math.max(...withFiat.map(w=>w.fiat),1);
-                return <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'flex-end'}}>
-                  {withFiat.map(({a,fiat,lb})=>{
                     const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
-                    const noData=a.dur==null&&a.bal==null;
-                    const pct=fiat>0?(fiat/maxFiat):0;
-                    const size=fiat>0?Math.round(36+pct*44):hasFunds?36:30;
-                    const bg=hasFunds?a.ch.color:noData?T.warning+'60':T.border;
-                    const op=hasFunds?1:noData?0.5:0.4;
+                    const noData=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
+                    const unsupported=lb&&lb.status==='unsupported';
+                    const hasErrs=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase());})();
+                    const isFiltered=acctFilter&&a.ch.name.toLowerCase().includes(acctFilter.toLowerCase());
+                    const canX=a.isXpub&&a.ch.xc;
+                    const isFocused=focusedAcct&&focusedAcct.addr===a.addr;
+                    const op=focusedAcct?(isFocused?1:0.25):(hasFunds?1:noData?0.5:0.4);
+                    const bw=rect.w-2,bh=rect.h-2;
+                    const showFull=bw>120&&bh>50;
+                    const showMedium=bw>60&&bh>30;
+                    const showSmall=bw>30&&bh>20;
                     return <div key={a.id}
-                      onClick={()=>{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);setAcctMapOpen(false);}}
-                      style={{width:size,height:size,borderRadius:6,background:bg,opacity:op,cursor:'pointer',
-                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                        transition:I.fast,gap:1,padding:2,overflow:'hidden',
-                      }}
-                      onMouseEnter={e=>e.currentTarget.style.transform='scale(1.08)'}
-                      onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-                      title={`${a.ch.name}${fiat>0?' · $'+fiat.toLocaleString(undefined,{maximumFractionDigits:0}):''}`}>
-                      <span style={{fontSize:size>50?11:9,fontWeight:800,color:hasFunds?'rgba(0,0,0,0.7)':'rgba(255,255,255,0.5)',textTransform:'uppercase',lineHeight:1,userSelect:'none'}}>{a.ch.ticker.slice(0,4)}</span>
-                      {fiat>0&&size>44&&<span style={{fontSize:8,fontWeight:600,color:hasFunds?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.3)',lineHeight:1,userSelect:'none'}}>${fiat>=1000?(fiat/1000).toFixed(1)+'k':fiat.toFixed(0)}</span>}
+                      onClick={ev=>{if(ev.shiftKey){if(isFocused){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}}else{setAcctFilter(acctFilter===a.ch.name?'':a.ch.name);}}}
+                      onMouseEnter={()=>setHoveredAcct(a.id)}
+                      onMouseLeave={()=>setHoveredAcct(null)}
+                      style={{
+                        position:'absolute',
+                        left:rect.x,top:rect.y,
+                        width:bw,height:bh,
+                        margin:1,
+                        background:a.ch.color+(hasFunds?'30':'15'),
+                        borderLeft:`3px solid ${a.ch.color}`,
+                        borderRadius:4,
+                        cursor:'pointer',
+                        overflow:'hidden',
+                        transition:I.fast,
+                        opacity:op,
+                        animation:isFocused?'focusPulse 2s ease-in-out infinite':undefined,
+                        outline:isFiltered?`2px solid ${a.ch.color}80`:undefined,
+                        display:'flex',flexDirection:'column',justifyContent:'center',
+                        padding:'3px 5px 3px 6px',
+                        boxSizing:'border-box',
+                        zIndex:hoveredAcct===a.id?30:undefined,
+                      }}>
+                      {showSmall&&<span style={{fontFamily:MF,fontSize:showFull?12:10,fontWeight:700,color:a.ch.color,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.ticker}</span>}
+                      {showMedium&&lb&&lb.fiat>0&&<span style={{fontSize:10,color:T.muted,fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
+                      {showFull&&<span style={{fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.name}</span>}
+                      {hasErrs&&<span style={{position:'absolute',top:2,right:2,width:6,height:6,borderRadius:'50%',background:T.error,border:'1px solid '+T.bg}}/>}
+                      {canX&&<span style={{position:'absolute',bottom:2,right:2,width:5,height:5,borderRadius:1,background:T.primary,border:'1px solid '+T.bg}}/>}
+                      {unsupported&&<span style={{position:'absolute',top:2,left:2,fontSize:6,color:T.muted,fontWeight:700}}>?</span>}
+                      {hoveredAcct===a.id&&(()=>{
+                        const hf=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
+                        const nd=a.dur==null&&a.bal==null&&(!lb||lb.status==='loading'||lb.status==='unsupported');
+                        const cX=a.isXpub&&a.ch.xc;
+                        let eUrl=null;try{eUrl=a.ch.url?.(a.addr);}catch{}
+                        const hasExp=eUrl&&eUrl!=='#';
+                        const ec=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase())?logData.errs.filter(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())).length:0;})();
+                        const popLeft=rect.x+bw+4>pw-270?rect.x-266:rect.x+bw+4;
+                        const popTop=Math.min(rect.y,TM_H-260);
+                        return <div onClick={e=>e.stopPropagation()} onMouseEnter={()=>{}} onMouseLeave={()=>{}} style={{position:'fixed',left:'auto',top:'auto',marginLeft:popLeft-rect.x+bw,marginTop:popTop-rect.y,width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderLeft:`3px solid ${a.ch.color}60`,borderRadius:8,boxShadow:`0 8px 24px rgba(0,0,0,0.5), inset 6px 0 18px -4px ${a.ch.color}35`,padding:'10px 14px',zIndex:50,cursor:'default',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                            <span style={{width:24,height:24,borderRadius:6,background:a.ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:a.ch.color,fontFamily:MF}}>{a.ch.ticker.slice(0,3)}</span>
+                            <span style={{fontWeight:600,fontSize:13}}>{a.ch.name}</span>
+                            {a.toks.length>0&&<span style={{fontSize:10,color:T.primary,fontWeight:600}}>{a.toks.length} token{a.toks.length!==1?'s':''}</span>}
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                            <span className="mono" style={{fontSize:10,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{a.addr}</span>
+                            <CopyBtn text={a.addr}/>
+                          </div>
+                          {lb&&lb.status==='ok'&&lb.bal!=null&&<div className="mono" style={{fontSize:12,color:T.success,fontWeight:600,marginBottom:6}}>
+                            {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
+                          </div>}
+                          {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:6}}>Loading balance···</div>}
+                          {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'Empty account'}</div>}
+                          {nd&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>No sync data</div>}
+                          {a.dm&&<div style={{marginBottom:6}}><span className="mono" style={{fontSize:10,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:4}}>{a.dm}</span></div>}
+                          <div style={{display:'flex',flexWrap:'wrap',gap:4,fontSize:10,borderTop:`1px solid ${T.border}`,paddingTop:8,marginTop:2}}>
+                            {hasExp&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{color:a.ch.color,fontWeight:600,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:a.ch.color+'12',border:`1px solid ${a.ch.color}25`,cursor:'pointer'}} onClick={e=>e.stopPropagation()}><Ico.Link/> Explorer</a>}
+                            {ec>0?<span onClick={e=>{e.stopPropagation();setErrAcctFilter(a.addr);setSection('errors');setHoveredAcct(null);}} style={{color:T.error,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(228,0,70,0.12)',border:'1px solid rgba(228,0,70,0.25)'}}>⚠ {ec} issue{ec!==1?'s':''}</span>:<span style={{color:T.muted,fontSize:10,display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}}>0 issues</span>}
+                            {cX&&<span onClick={e=>{e.stopPropagation();setAcctFilter(a.ch.name);setHoveredAcct(null);setTimeout(()=>{const panel=document.querySelector('[data-accounts-scroll]');if(panel)panel.scrollTop=0;},50);}} style={{color:T.primary,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(187,176,255,0.10)',border:'1px solid rgba(187,176,255,0.20)'}}><Ico.Scan/> Xpub</span>}
+                            <span onClick={e=>{e.stopPropagation();setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');setHoveredAcct(null);}} style={{color:T.muted,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Logs/> Timeline</span>
+                            {(()=>{const isFoc=focusedAcct&&focusedAcct.addr===a.addr;return <span onClick={e=>{e.stopPropagation();if(isFoc){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}setHoveredAcct(null);}} style={{color:isFoc?T.primary:'#BBB0FF',fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:isFoc?'rgba(187,176,255,0.18)':'rgba(187,176,255,0.08)',border:isFoc?'1px solid rgba(187,176,255,0.50)':'1px solid rgba(187,176,255,0.20)'}}>{isFoc?'◎ Unfocus':'◉ Focus'}</span>;})()}
+                          </div>
+                        </div>;
+                      })()}
                     </div>;
-                  })}
-                </div>;
-              })()}
-            </div>}
+                  });
+                })()}
+              </div>;
+            })()}
           </div>}
           <input onFocus={()=>setHoveredAcct(null)} value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.card,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,marginBottom:0,boxSizing:'border-box'}}/>
           </div>{/* end fixed header */}
