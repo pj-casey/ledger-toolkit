@@ -2800,7 +2800,7 @@ function CVInfoBar({dev,as,port,accts,appJson}){
     <div className="cv-section-title">Device</div>
     {dev&&(dev.modelName||dev.modelId)&&<div style={{marginBottom:14}}>
       <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:8}}>{dev.modelName||dev.modelId}</div>
-      {dev.fw&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Firmware</span><span className="mono" style={{fontSize:11,color:T.primary}}>{dev.fw}</span></div>}
+      {dev.fw&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Firmware</span><span className="mono" style={{fontSize:11,color:firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.error:T.success):T.primary}}>{dev.fw}{firmwareCheck?.status==='ok'&&!firmwareCheck.outdated&&' ✓'}{firmwareCheck?.status==='ok'&&firmwareCheck.outdated&&firmwareCheck.latest&&<span style={{color:T.error}}> ⬆ {firmwareCheck.latest}</span>}</span></div>}
       {dev.lang&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Language</span><span style={{fontSize:12}}>{dev.lang}</span></div>}
       {dev.appVer&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>{llLabel(dev)}</span><span className="mono" style={{fontSize:11}}>{dev.appVer}</span></div>}
       {dev.platform&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Platform</span><span style={{fontSize:12}}>{dev.platform}</span></div>}
@@ -3601,7 +3601,7 @@ function buildIncidentLines(logData,ledgerStatus){
   if(!overlapping.length)return[];
   return['⚠ INCIDENTS DURING SESSION:',...overlapping.map(inc=>`  ${inc.name} (${inc.impact}) — ${inc.resolved_at?'resolved '+new Date(inc.resolved_at).toLocaleString():inc.status}`),''];
 }
-function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck){
+function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck){
   const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
   const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
   const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
@@ -3613,7 +3613,7 @@ function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck){
     ...buildIncidentLines(logData,ledgerStatus),
     `Session:     ${ses}`,'','DEVICE',
     `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
-    `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';if(firmwareCheck?.status==='ok'){return firmwareCheck.outdated&&firmwareCheck.latest?fw+` (outdated — ${firmwareCheck.latest} available, live-confirmed)`:fw+' (up to date, live-confirmed)';}const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
     `  ${llLabel(d,logData.isMobile)}: ${d.appVer||'Unknown'}`,
     `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
     `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
@@ -3625,13 +3625,13 @@ function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck){
     ...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${llText(e.dg?.a,d)||''}`),
     ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),
     '',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
-    ...(()=>{if(versionCheck?.status==='ok'&&versionCheck.apps?.length){const outdated=versionCheck.apps.filter(a=>a.outdated);if(outdated.length){return['','VERSION CHECK (live):','  Apps outdated:',...outdated.map(a=>`    ${a.name}: installed ${a.installed||'?'} → latest ${a.latest} (UPDATE AVAILABLE)`)];}}return[];})(),
+    ...(()=>{const lines=[];const hasApps=versionCheck?.status==='ok'&&versionCheck.apps?.length;const hasFw=firmwareCheck?.status==='ok';if(!hasApps&&!hasFw)return[];lines.push('','VERSION CHECK (live):');if(hasApps){const outdated=versionCheck.apps.filter(a=>a.outdated);if(outdated.length){lines.push('  Apps outdated:',...outdated.map(a=>`    ${a.name}: installed ${a.installed||'?'} → latest ${a.latest} (UPDATE AVAILABLE)`));}}if(hasFw){if(firmwareCheck.outdated&&firmwareCheck.latest){lines.push(`  Firmware outdated: ${firmwareCheck.current} → ${firmwareCheck.latest} (UPDATE AVAILABLE)`);}else{lines.push(`  Firmware: ${firmwareCheck.current} (up to date, live-confirmed)`);}}return lines;})(),
     '','SESSION ACTIVITY',
     ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
     '=================================',
   ].filter(l=>l!==undefined).join('\n');
 }
-function buildFullText(logData,liveBalances,ledgerStatus,versionCheck){
+function buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck){
   const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
   const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
   const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
@@ -3643,7 +3643,7 @@ function buildFullText(logData,liveBalances,ledgerStatus,versionCheck){
     ...buildIncidentLines(logData,ledgerStatus),
     `Session:     ${ses}`,'','DEVICE',
     `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
-    `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';if(firmwareCheck?.status==='ok'){return firmwareCheck.outdated&&firmwareCheck.latest?fw+` (outdated — ${firmwareCheck.latest} available, live-confirmed)`:fw+' (up to date, live-confirmed)';}const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
     `  ${llLabel(d,logData.isMobile)}: ${d.appVer||'Unknown'}`,
     `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
     `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
@@ -3653,7 +3653,7 @@ function buildFullText(logData,liveBalances,ledgerStatus,versionCheck){
     '',`ERRORS (${errs.length})`,
     ...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${llText(e.dg?.a,d)||''}`),
     '',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
-    ...(()=>{if(versionCheck?.status==='ok'&&versionCheck.apps?.length){const outdated=versionCheck.apps.filter(a=>a.outdated);if(outdated.length){const ok=versionCheck.apps.filter(a=>a.outdated===false);return['','VERSION CHECK (live):','  Apps outdated:',...outdated.map(a=>`    ${a.name}: installed ${a.installed||'?'} → latest ${a.latest} (UPDATE AVAILABLE)`),...(ok.length?[`  Apps current: ${ok.map(a=>a.name).join(', ')}`]:[])];}}return[];})(),
+    ...(()=>{const lines=[];const hasApps=versionCheck?.status==='ok'&&versionCheck.apps?.length;const hasFw=firmwareCheck?.status==='ok';if(!hasApps&&!hasFw)return[];lines.push('','VERSION CHECK (live):');if(hasApps){const outdated=versionCheck.apps.filter(a=>a.outdated);if(outdated.length){const ok=versionCheck.apps.filter(a=>a.outdated===false);lines.push('  Apps outdated:',...outdated.map(a=>`    ${a.name}: installed ${a.installed||'?'} → latest ${a.latest} (UPDATE AVAILABLE)`));if(ok.length)lines.push(`  Apps current: ${ok.map(a=>a.name).join(', ')}`);}}if(hasFw){if(firmwareCheck.outdated&&firmwareCheck.latest){lines.push(`  Firmware outdated: ${firmwareCheck.current} → ${firmwareCheck.latest} (UPDATE AVAILABLE)`);}else{lines.push(`  Firmware: ${firmwareCheck.current} (up to date, live-confirmed)`);}}return lines;})(),
     '','SESSION ACTIVITY',
     ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
     '=================================',
@@ -3967,6 +3967,7 @@ function App(){
   const[liveBalances,setLiveBalances]=useState({});
   const[ledgerStatus,setLedgerStatus]=useState(null);
   const[versionCheck,setVersionCheck]=useState(null);
+  const[firmwareCheck,setFirmwareCheck]=useState(null);
   const[guideOpen,setGuideOpen]=useState(null);
   const[guideSearch,setGuideSearch]=useState('');
   const[focusDropOpen,setFocusDropOpen]=useState(false);
@@ -4025,7 +4026,7 @@ function App(){
   },[focusedAcct]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -4116,7 +4117,7 @@ function App(){
     (async()=>{
       try{
         setVersionCheck({status:'loading',apps:null});
-        const lcv=(()=>{for(const e of logData.entries){const msg=e.message||'';const m=msg.match(/[?&]livecommonversion=([^&\s]+)/i);if(m)return m[1];}return'1';})();
+        const lcv=(()=>{for(const e of logData.entries){const msg=e.message||'';const m=msg.match(/[?&]livecommonversion=([^&\s]+)/i);if(m)return m[1];}return'1.0.0';})();
         const params=new URLSearchParams();
         if(dev.targetId)params.set('target_id',dev.targetId);
         params.set('firmware_version_name',dev.fw);
@@ -4176,6 +4177,106 @@ function App(){
     return()=>controller.abort();
   },[logData]);
 
+  // Live firmware checking — fetch latest firmware version from Manager API
+  useEffect(()=>{
+    if(!logData||!logData.dev)return;
+    const dev=logData.dev;
+    if(!dev.targetId)return;
+    if(!dev.fw)return;
+    const controller=new AbortController();
+    (async()=>{
+      try{
+        setFirmwareCheck({status:'loading',current:dev.fw,latest:null,outdated:false});
+        const lcv=(()=>{for(const e of logData.entries){const msg=e.message||'';const m=msg.match(/[?&]livecommonversion=([^&\s]+)/i);if(m)return m[1];}return'1.0.0';})();
+        // Step 1: Try to get device_version_id from log entries first
+        let deviceVersionId=null;
+        for(const e of logData.entries){
+          if(e.type!=='network-success')continue;
+          const msg=e.message||'';
+          if(msg.indexOf('get_device_version')<0)continue;
+          const id=e.data?.data?.id||e.data?.id;
+          if(id&&typeof id==='number'){deviceVersionId=id;break;}
+          if(id&&typeof id==='string'&&/^\d+$/.test(id)){deviceVersionId=parseInt(id,10);break;}
+        }
+        // Step 1 fallback: fetch device_version_id from API (try v1 then v2 path)
+        if(!deviceVersionId){
+          let dvData=null;
+          const dvOpts={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target_id:dev.targetId,provider:1}),signal:controller.signal};
+          const dvUrls=['https://manager.api.live.ledger.com/api/get_device_version','https://manager.api.live.ledger.com/api/v2/get_device_version'];
+          for(const url of dvUrls){
+            try{
+              const dvRes=await fetch(url,dvOpts);
+              if(dvRes.ok){dvData=await dvRes.json();console.log('get_device_version response ('+url+'):',dvData);break;}
+            }catch(e){if(e.name==='AbortError')throw e;}
+          }
+          if(!dvData||!dvData.id)throw new Error('get_device_version: no valid response from any endpoint');
+          deviceVersionId=dvData.id;
+        }
+        // Step 2: Get firmware version database ID
+        let seFirmwareId=null;
+        for(const e of logData.entries){
+          if(e.type!=='network-success')continue;
+          const msg=e.message||'';
+          if(msg.indexOf('get_firmware_version')<0&&msg.indexOf('firmware_version')<0)continue;
+          const id=e.data?.data?.id||e.data?.id;
+          if(id&&typeof id==='number'){seFirmwareId=id;break;}
+          if(id&&typeof id==='string'&&/^\d+$/.test(id)){seFirmwareId=parseInt(id,10);break;}
+        }
+        if(!seFirmwareId){
+          const fvOpts={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_version:deviceVersionId,version_name:dev.fw,provider:1}),signal:controller.signal};
+          const fvUrls=['https://manager.api.live.ledger.com/api/get_firmware_version','https://manager.api.live.ledger.com/api/v2/get_firmware_version'];
+          let fvData=null;
+          for(const url of fvUrls){
+            try{
+              const fvRes=await fetch(url,fvOpts);
+              if(fvRes.ok){fvData=await fvRes.json();console.log('get_firmware_version response ('+url+'):',fvData);break;}
+            }catch(e){if(e.name==='AbortError')throw e;}
+          }
+          if(!fvData||!fvData.id)throw new Error('get_firmware_version: no valid response');
+          seFirmwareId=fvData.id;
+        }
+        // Step 3: Check for latest firmware via get_osu_version
+        const fwBody=JSON.stringify({device_version:deviceVersionId,current_se_firmware_final_version:seFirmwareId,version_name:dev.fw,provider:1});
+        const fwOpts={method:'POST',headers:{'Content-Type':'application/json'},body:fwBody,signal:controller.signal};
+        const fwUrls=[
+          `https://manager.api.live.ledger.com/api/get_osu_version?livecommonversion=${encodeURIComponent(lcv)}`,
+          `https://manager.api.live.ledger.com/api/get_latest_firmware?livecommonversion=${encodeURIComponent(lcv)}`,
+          'https://manager.api.live.ledger.com/api/get_latest_firmware'
+        ];
+        console.log('Firmware update check sending body:',fwBody,'lcv:',lcv);
+        let fwRes=null;
+        for(const url of fwUrls){
+          try{
+            fwRes=await fetch(url,fwOpts);
+            if(fwRes.ok){console.log('Firmware update check hit ('+url+'), status:',fwRes.status);break;}
+            if(fwRes.status===404){console.log('Firmware update check ('+url+'): 404 = no update available');setFirmwareCheck({status:'ok',current:dev.fw,latest:null,outdated:false});return;}
+            if(fwRes.status===400){try{const errBody=await fwRes.text();console.log('Firmware update check 400 ('+url+'):',errBody);}catch(e){}}
+          }catch(e){if(e.name==='AbortError')throw e;}
+        }
+        if(!fwRes||!fwRes.ok){console.warn('Firmware update check: all endpoints failed');setFirmwareCheck({status:'error',current:dev.fw,latest:null,outdated:false});return;}
+        const fwData=await fwRes.json();
+        console.log('Firmware update check response:',fwData);
+        if(!fwData||(typeof fwData==='object'&&Object.keys(fwData).length===0)){
+          setFirmwareCheck({status:'ok',current:dev.fw,latest:null,outdated:false});
+          return;
+        }
+        const latestVer=fwData.name
+          ||fwData.version
+          ||fwData.se_firmware_osu_version?.firmware?.name
+          ||fwData.se_firmware_osu_version?.firmware?.version
+          ||fwData.firmware?.name
+          ||fwData.firmware?.version
+          ||null;
+        setFirmwareCheck({status:'ok',current:dev.fw,latest:latestVer,outdated:latestVer!=null&&latestVer!==dev.fw});
+      }catch(err){
+        if(err.name==='AbortError')return;
+        console.warn('Firmware check failed:',err.message);
+        setFirmwareCheck({status:'error',current:dev.fw,latest:null,outdated:false});
+      }
+    })();
+    return()=>controller.abort();
+  },[logData]);
+
   useEffect(()=>{
     if(!logData)return;
     if(!logData.dev.modelId&&!logData.dev.modelName&&!logData.dev.fw){
@@ -4186,7 +4287,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -4378,10 +4479,12 @@ function App(){
           // Health pills data
           const devLabel=d.modelName||d.modelId||'Device —';
           const devColor=(d.modelName||d.modelId)?T.success:T.muted;
-          const fwLatest=da?.source==='manager-result'?da.firmware:null;
-          const fwOk=fwLatest&&fwLatest.version===d.fw;
-          const fwLabel=d.fw?`FW ${d.fw}${fwOk?' ✓':''}` :'FW —';
-          const fwColor=d.fw?(fwOk?T.success:(fwLatest?T.warning:T.muted)):T.muted;
+          const fwLive=firmwareCheck?.status==='ok';
+          const fwOutdated=fwLive?firmwareCheck.outdated:(da?.source==='manager-result'&&da.firmware?da.firmware.version!==d.fw:false);
+          const fwLatestVer=fwLive?(firmwareCheck.latest||null):(da?.source==='manager-result'&&da.firmware?da.firmware.version:null);
+          const fwOk=d.fw&&!fwOutdated&&(fwLive||(da?.source==='manager-result'&&da.firmware));
+          const fwLabel=d.fw?(fwOk?`FW ${d.fw} ✓`:(fwOutdated?`FW ${d.fw} ⬆ ${fwLatestVer}`:`FW ${d.fw}`)):'FW —';
+          const fwColor=d.fw?(fwOk?T.success:(fwOutdated?T.error:T.muted)):T.muted;
           let appsLabel,appsColor;
           if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;appsLabel=`Apps ${okCount}/${req.length}${allOk?' ✓':' ⚠'}`;appsColor=allOk?T.success:T.warning;}
           else{appsLabel='Apps ?';appsColor=T.muted;}
@@ -4584,13 +4687,13 @@ function App(){
                         background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
                         boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:220,
                       }}>
-                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
                           onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
                           onMouseLeave={e=>e.currentTarget.style.background='none'}>
                           <div style={{fontWeight:600}}>Quick Summary</div>
                           <div style={{color:'#949494',fontSize:10}}>for ticket notes</div>
                         </button>
-                        <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus,versionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                        <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
                           onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
                           onMouseLeave={e=>e.currentTarget.style.background='none'}>
                           <div style={{fontWeight:600}}>Full Export</div>
@@ -4648,7 +4751,7 @@ function App(){
               const parts=[];
               if(logData.isMobile)parts.push('Mobile');
               if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
-              else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){if(fwOk)parts.push(`FW ${d.fw} ✓`);else if(fwLatest)parts.push(`FW ${d.fw} ⚠ ${fwLatest.version} available`);else parts.push(`FW ${d.fw}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`${llLabel(d)} ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
+              else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){if(fwOk)parts.push(`FW ${d.fw} ✓`);else if(fwOutdated&&fwLatestVer)parts.push(`FW ${d.fw} ⬆ ${fwLatestVer}`);else if(firmwareCheck?.status==='loading')parts.push(`FW ${d.fw} …`);else parts.push(`FW ${d.fw}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`${llLabel(d)} ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
               const unifiedDeviceCard=<>
                 <div onClick={()=>setDeviceExpanded(o=>!o)} style={{display:'flex',alignItems:'center',gap:10,padding:'clamp(8px, 1vh, 12px) clamp(12px, 1.5vh, 16px)',background:`linear-gradient(90deg, rgba(187,176,255,0.06) 0%, ${T.panel} 50%)`,border:`1px solid ${T.border}`,borderLeft:`3px solid ${deviceExpanded?T.primary:'transparent'}`,borderRadius:deviceExpanded?'4px 4px 0 0':4,cursor:'pointer',transition:'background 150ms ease',flexShrink:0,borderTop:'1px solid rgba(255,255,255,0.04)'}} onMouseEnter={e=>e.currentTarget.style.background='linear-gradient(90deg, rgba(187,176,255,0.10) 0%, rgba(255,255,255,0.03) 50%)'} onMouseLeave={e=>e.currentTarget.style.background=`linear-gradient(90deg, rgba(187,176,255,0.06) 0%, ${T.panel} 50%)`}>
                   <Ico.Chip/>
@@ -4675,10 +4778,15 @@ function App(){
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
                         <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted}}>Device Apps</span>
                         <span>
-                          {versionCheck?.status==='loading'&&<span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em'}}>CHECKING</span>}
-                          {versionCheck?.status==='ok'&&<span style={{fontFamily:MF,fontSize:8,color:T.success,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(122,194,108,0.3)',background:'rgba(122,194,108,0.08)',letterSpacing:'0.06em'}}>LIVE</span>}
-                          {versionCheck?.status==='error'&&<span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em',opacity:0.5}}>OFFLINE</span>}
-                          {!versionCheck&&<span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{allOk?'all up to date':okCount+'/'+rows.length+' up to date'}</span>}
+                          {(()=>{
+                            const vcLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
+                            const vcOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
+                            const vcError=versionCheck?.status==='error'&&firmwareCheck?.status==='error';
+                            if(vcLoading)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em'}}>CHECKING</span>;
+                            if(vcOk)return <span style={{fontFamily:MF,fontSize:8,color:T.success,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(122,194,108,0.3)',background:'rgba(122,194,108,0.08)',letterSpacing:'0.06em'}}>LIVE</span>;
+                            if(vcError)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em',opacity:0.5}}>OFFLINE</span>;
+                            return <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{allOk?'all up to date':okCount+'/'+rows.length+' up to date'}</span>;
+                          })()}
                         </span>
                       </div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:'var(--ov-gap-chips)'}}>
@@ -4743,6 +4851,11 @@ function App(){
                       })()}
                     </div>;
                   })()}
+                  {/* Firmware status — live check result */}
+                  {firmwareCheck?.status==='ok'&&firmwareCheck.outdated&&d.fw&&<div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',background:'rgba(228,0,70,0.06)',border:'1px solid rgba(228,0,70,0.2)',borderRadius:6,marginBottom:8,fontSize:12,lineHeight:1.5}}>
+                    <span style={{color:T.error,fontWeight:700,fontSize:13,flexShrink:0}}>⬆</span>
+                    <span style={{color:T.error}}><strong>Firmware update available:</strong> {d.fw} → {firmwareCheck.latest}</span>
+                  </div>}
                   {/* B2b: App chips — LLv4 catalog-only */}
                   {req.length>0&&da&&da.source==='catalog-only'&&(()=>{
                     const cat=da.appCatalog||{};
@@ -4759,8 +4872,15 @@ function App(){
                         <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted}}>Device Apps</span>
                         <span style={{display:'flex',alignItems:'center',gap:6}}>
                           <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>required by accounts{Object.keys(cat).length>0?' · catalog available':''}</span>
-                          {versionCheck?.status==='ok'&&<span style={{fontFamily:MF,fontSize:8,color:T.success,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(122,194,108,0.3)',background:'rgba(122,194,108,0.08)',letterSpacing:'0.06em'}}>LIVE</span>}
-                          {versionCheck?.status==='loading'&&<span style={{fontFamily:MF,fontSize:8,color:T.muted,letterSpacing:'0.06em'}}>CHECKING</span>}
+                          {(()=>{
+                            const vcLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
+                            const vcOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
+                            const vcError=versionCheck?.status==='error'&&firmwareCheck?.status==='error';
+                            if(vcLoading)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em'}}>CHECKING</span>;
+                            if(vcOk)return <span style={{fontFamily:MF,fontSize:8,color:T.success,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(122,194,108,0.3)',background:'rgba(122,194,108,0.08)',letterSpacing:'0.06em'}}>LIVE</span>;
+                            if(vcError)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em',opacity:0.5}}>OFFLINE</span>;
+                            return null;
+                          })()}
                         </span>
                       </div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:'var(--ov-gap-chips)'}}>
