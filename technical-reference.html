@@ -193,6 +193,11 @@ ol.tech-list li strong{color:var(--text)}
       <a class="indent" href="#token-resolution">Token Resolution</a>
       <a href="#cross-domain"><span class="toc-icon">🔀</span> Cross-Domain Correlation</a>
       <a class="indent" href="#connected-nav">Connected Navigation</a>
+      <a class="indent" href="#focus-system">Account Focus System</a>
+      <a class="indent" href="#context-ribbon">Context Ribbon</a>
+      <a class="indent" href="#diagnostic-pathways">Diagnostic Pathways</a>
+      <a class="indent" href="#adaptive-dimming">Adaptive Dimming</a>
+      <a class="indent" href="#overview-arch">Overview Architecture</a>
       <a class="indent" href="#triangulation">Multi-Source Data Triangulation</a>
       <a href="#network-analysis"><span class="toc-icon">🌐</span> Network &amp; Protocol Analysis</a>
       <a class="indent" href="#http-analysis">HTTP Request Analysis</a>
@@ -353,6 +358,7 @@ ol.tech-list li strong{color:var(--text)}
   <p>For each error entry, the 5 immediately preceding log entries are locatable by scanning backward through the full entry array from the error's <span class="mono">logIndex</span>. These entries are renderable as a breadcrumb trail in the error detail panel.</p>
   <p>Each breadcrumb shows: relative time offset from the error (e.g., <span class="mono">−0.3s</span>), event type with a TC-colored badge matching the type badge system used throughout the tool, and a truncated message string. The final row in the trail is the error itself, highlighted in the error's severity color.</p>
   <p>One-click navigation from any error detail panel to the error's position in the full Timeline — this navigation clears all active Timeline filters and grouping to guarantee the target entry is visible, then scrolls to it.</p>
+  <p>Below the breadcrumbs, a <strong>Diagnostic Pathways</strong> section renders correlated evidence from the pre-error window. See <a href="#diagnostic-pathways" style="color:var(--primary)">Diagnostic Pathways</a> for the computation details.</p>
 </div>
 
 <h3 id="error-acct">Error-to-Account Correlation</h3>
@@ -366,7 +372,7 @@ ol.tech-list li strong{color:var(--text)}
 <div class="card">
   <p>Severity filter chips (Critical / Warning / Info) and category filter chips (Hardware / Software / Server) are rendered in the Issues section header. Clicking a chip applies that filter. Filters combine with AND logic — activating Critical + Hardware returns only errors that are simultaneously critical severity and hardware category.</p>
   <p><strong>Hover interaction:</strong> Hovering a severity chip dims non-matching error indicators on the session strip in real time, without applying a persistent filter. Hovering a category chip produces the same effect for the category dimension. This enables visual inspection of distribution before committing to a filter.</p>
-  <p><strong>Error session strip:</strong> Stacked bars using the same color and bucket system as the Timeline strip. Error entry segments are rendered at full opacity; non-error context segments are rendered at 25% opacity. Hovering any bar renders a tooltip showing the timestamp, error count, total event count, and error details for that bucket. Clicking selects the nearest error.</p>
+  <p><strong>Error session strip:</strong> Stacked bars using the same color and bucket system as the Timeline strip. Error entry segments are rendered at full opacity; non-error context segments are rendered at 25% opacity. Hovering any bar renders a tooltip showing the timestamp, error count, total event count, and error details for that bucket. Clicking selects the nearest error. When Focus Mode is active, non-focused error segments dim to 20% opacity.</p>
 </div>
 
 
@@ -424,6 +430,7 @@ ol.tech-list li strong{color:var(--text)}
     <li><strong>? label</strong> — chain is not supported for live balance fetching</li>
   </ul>
   <p><strong>Hover popover:</strong> chain name, truncated address, live balance and fiat value, sync status (no sync / loading / empty), derivation mode, error count, and xpub/explorer availability flags. Popover is pointer-events-none and clamped to container width.</p>
+  <p><strong>Adaptive dimming:</strong> When account focus is active, non-focused tiles dim to 25% opacity with a 0.2s transition. The focused tile displays a <span class="mono">focusPulse</span> CSS animation (scale + opacity breathing). See <a href="#adaptive-dimming" style="color:var(--primary)">Adaptive Dimming</a> for full details.</p>
   <p><strong>Portfolio overlay:</strong> Activated via "Portfolio ▸" button. Tiles are resized proportionally to fiat value (36–80px) and sorted by value descending. Clicking any tile applies a chain filter and closes the overlay.</p>
 </div>
 
@@ -443,7 +450,7 @@ ol.tech-list li strong{color:var(--text)}
     <li><strong>Major L1s</strong> — Solana, Tezos, Cosmos, XRP, Polkadot, Cardano, NEAR, Tron, TON, Stellar, Hedera, Algorand, and others via chain-specific REST/RPC APIs</li>
   </ul>
   <p><strong>Fiat pricing:</strong> CoinGecko API with chain currency IDs mapped via a 40+ entry <span class="mono">COINGECKO_IDS</span> constant. USD prices batch-fetched after balances complete.</p>
-  <p>Request staggering at 200ms intervals to avoid rate limiting. Per-account status tracking: loading, ok, error, unsupported. Portfolio aggregation: sum of all accounts' USD values displayed as a stat card on the Overview. Accounts with <span class="mono">unsupported</span> status are identified with a <span class="mono">?</span> indicator on health tiles.</p>
+  <p>Request staggering at 200ms intervals to avoid rate limiting. Per-account status tracking: loading, ok, error, unsupported. Portfolio aggregation: sum of all accounts' fiat values available in the sidebar and Accounts section Portfolio overlay. Accounts with <span class="mono">unsupported</span> status are identified with a <span class="mono">?</span> indicator on health tiles.</p>
 </div>
 
 <h3 id="token-resolution">Token Resolution</h3>
@@ -467,8 +474,83 @@ ol.tech-list li strong{color:var(--text)}
     <li><strong>Account → Issues</strong> — error badge on account cards applies an address filter to the Issues section, showing only errors referencing that account</li>
     <li><strong>Account → Timeline</strong> — Shift+click on a health tile or the Timeline button on account cards applies account-correlated filtering to the full event stream</li>
     <li><strong>Timeline → Entry detail</strong> — clicking any point on the session visualization strip navigates to the corresponding raw event</li>
-    <li><strong>Overview → All sections</strong> — stat cards display entry, account, error, and portfolio counts that establish baseline expectations before investigation</li>
+    <li><strong>Overview → All sections</strong> — stat cards display Issues, Accounts, Network failure, and Log Quality counts that establish baseline expectations before investigation</li>
+    <li><strong>Focus → All sections</strong> — <span class="mono">focusedAcct</span> state propagates to <span class="mono">tlAcctFilter</span>, <span class="mono">errAcctFilter</span>, and visual dimming across tiles, cards, sidebar rows, and strip segments</li>
+    <li><strong>Overview error tile → Focus + Issues</strong> — clicking an error tile with a linked account sets <span class="mono">focusedAcct</span> and navigates to Issues</li>
+    <li><strong>ErrCard "Affected account" → Focus</strong> — clicking the linked account chip sets <span class="mono">focusedAcct</span> and navigates to Accounts</li>
+    <li><strong>Context Ribbon → Navigation</strong> — each ribbon segment is a clickable navigation target (account → Accounts, error → Issues, timestamp → Timeline jumpTo)</li>
+    <li><strong>Diagnostic Pathway → Section</strong> — "Related evidence" links navigate to Network, APDU, or Timeline with focus preserved</li>
   </ul>
+</div>
+
+<h3 id="focus-system">Account Focus System<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Single-account investigation mode controlled by the <span class="mono">focusedAcct</span> state variable in the App component. Holds the full account object (with <span class="mono">addr</span>, <span class="mono">ch.color</span>, <span class="mono">ch.ticker</span>) or null when inactive.</p>
+  <p><strong>Activation triggers:</strong></p>
+  <ul class="def-list">
+    <li><strong>Shift+click health tile</strong> — toggles focus on/off for that account</li>
+    <li><strong>Popover Focus button</strong> — on tile hover popover</li>
+    <li><strong>ErrCard linked account click</strong> — sets focus and navigates to Accounts</li>
+    <li><strong>Overview Focus Investigation dropdown</strong> — lists all accounts with chain colors, tickers, fiat values, error counts</li>
+    <li><strong>Overview error tile click</strong> — when the error is linked to an account, sets focus and navigates to Issues</li>
+  </ul>
+  <p><strong>Downstream effects:</strong> A <span class="mono">useEffect</span> propagates <span class="mono">focusedAcct</span> to <span class="mono">tlAcctFilter</span> (Timeline account filter) and <span class="mono">errAcctFilter</span> (Issues account filter). Visual effects are applied via inline opacity styles on non-focused elements.</p>
+  <p><strong>Visual indicators:</strong> Sidebar focus indicator (purple pill with chain color swatch and ticker), content area left border (3px, chain color), <span class="mono">focusPulse</span> CSS animation on the focused tile (scale 1→1.08 + opacity breathing at 2s interval).</p>
+  <p><strong>Clear triggers:</strong> <kbd>Escape</kbd> key, ✕ on sidebar indicator, ✕ on Context Ribbon, Shift+click same tile. State is also reset in <span class="mono">handleFile</span> and <span class="mono">clearLog</span>.</p>
+  <div class="tip">For investigation workflows using Focus Mode, see Agent Guide → <a href="#focus-mode" style="color:var(--primary)">Account Focus Mode</a>.</div>
+</div>
+
+<h3 id="context-ribbon">Context Ribbon<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Computed navigation bar at the top of the content area. No dedicated state variable — rendered from existing <span class="mono">focusedAcct</span>, <span class="mono">selectedErr</span>, and <span class="mono">section</span> state.</p>
+  <p><strong>Visibility condition:</strong> <span class="mono">focusedAcct</span> is set OR (<span class="mono">selectedErr</span> is set AND <span class="mono">section === 'errors'</span>).</p>
+  <p><strong>Segments:</strong></p>
+  <ul class="def-list">
+    <li><strong>Account chip</strong> — chain color dot + ticker. Click navigates to Accounts section.</li>
+    <li><strong>Error title chip</strong> — shows when <span class="mono">selectedErr</span> is set. Click navigates to Issues and selects that error.</li>
+    <li><strong>Timestamp chip</strong> — shows when <span class="mono">selectedErr</span> is set. Click calls <span class="mono">jumpTo</span> to navigate to that moment in Timeline.</li>
+  </ul>
+  <p><strong>Clear button:</strong> Wipes both <span class="mono">focusedAcct</span> and <span class="mono">selectedErr</span>.</p>
+</div>
+
+<h3 id="diagnostic-pathways">Diagnostic Pathways<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Automatic correlation of pre-error events rendered within the ErrCard component. Implemented as a <span class="mono">useMemo</span> with dependencies <span class="mono">[entries, err.li, err.ts]</span>.</p>
+  <p><strong>Computation:</strong> Scans a 5-second window before each error's timestamp. Counts events in four categories:</p>
+  <ul class="def-list">
+    <li><strong>Network failures</strong> — <span class="mono">type='network'</span> AND (<span class="mono">status ≥ 400</span> OR <span class="mono">level='error'</span> OR message includes 'fail')</li>
+    <li><strong>APDU rejections</strong> — type includes <span class="mono">'apdu'</span> AND status codes <span class="mono">6985</span>, <span class="mono">6982</span>, <span class="mono">6a82</span>, <span class="mono">6984</span>, <span class="mono">5515</span></li>
+    <li><strong>Sync entries</strong> — message includes <span class="mono">'sync'</span></li>
+    <li><strong>Other errors</strong> — <span class="mono">level='error'</span>, excluding the current error entry</li>
+  </ul>
+  <p>Returns null if no correlated events are found in the window. When results exist, renders clickable "Related evidence" links: network failures → Network section (<span class="mono">onGoNetwork</span>), APDU rejections → APDU section (<span class="mono">onGoApdu</span>), sync entries → Timeline via <span class="mono">jumpTo(syncEntry.logIndex)</span>.</p>
+  <div class="tip">For practical use in error investigation, see Agent Guide → <a href="#issues-interactive" style="color:var(--primary)">Issues Interactive Filters</a>.</div>
+</div>
+
+<h3 id="adaptive-dimming">Adaptive Dimming<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Visual de-emphasis of non-focused elements when <span class="mono">focusedAcct</span> is active. Applied via inline <span class="mono">opacity</span> styles with <span class="mono">transition: opacity 0.2s</span>.</p>
+  <p><strong>Opacity values by element type:</strong></p>
+  <ul class="def-list">
+    <li><strong>Health tiles</strong> — 0.25</li>
+    <li><strong>AcctCards (single + grouped)</strong> — 0.25</li>
+    <li><strong>Sidebar account rows</strong> — 0.4</li>
+    <li><strong>Overview error tiles</strong> — 0.25</li>
+    <li><strong>Issues strip segments</strong> — 0.2</li>
+    <li><strong>Network entries</strong> — 0.3</li>
+  </ul>
+  <p>Content area receives a <span class="mono">3px</span> left border in the focused account's chain color. The focused tile gets the <span class="mono">focusPulse</span> keyframe animation (scale 1→1.08, opacity 0.85→1, 2s ease-in-out infinite).</p>
+  <p><strong>Design principle:</strong> Non-focused elements dim but remain visible — context is preserved, not hidden. This allows peripheral awareness of the full dataset while directing attention to the investigation target.</p>
+</div>
+
+<h3 id="overview-arch">Overview Architecture<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Three-zone vertical layout within a flex column container:</p>
+  <p><strong>Zone 1 — Top strip (flexShrink:0):</strong> No-sync warning banner (conditional), device status line (compact one-liner: model · firmware status · app count status · sync status), stat cards row (Issues hero with severity-colored left border, Accounts, Network with failure count, Log Quality with score), action bar (Focus Investigation dropdown, Guide 📖 button, activity badges).</p>
+  <p><strong>Zone 2 — Content (flex:1, overflow:hidden):</strong> When errors exist: unified device card, error tiles (sorted by severity, max 12, each showing severity badge, timestamp, title, category, and linked account chain dot + ticker). When no errors: device card and green "no issues" confirmation message.</p>
+  <p><strong>Zone 3 — Bottom bar (flexShrink:0):</strong> Session timestamp range (left), chain distribution badges (center), log quality breakdown link (right).</p>
+  <p><strong>Stat card computation:</strong> Issues card shows count with severity-based label and color. Network card counts entries with <span class="mono">status ≥ 400</span> or <span class="mono">level='error'</span>. Quality card shows the computed 0–100 score. All stat numbers use <span class="mono">clamp(28px, 4vh, 42px)</span> sizing.</p>
+  <div class="tip">For step-by-step usage, see Agent Guide → <a href="#quick-start" style="color:var(--primary)">Quick Start</a>.</div>
 </div>
 
 <h3 id="triangulation">Multi-Source Data Triangulation</h3>
