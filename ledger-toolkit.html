@@ -3894,7 +3894,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
               const errCount = errorsForAcct(acct);
               return (
                 <div key={acct.id} onClick={() => setSection('accounts')}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC', opacity: focusedAcct ? (focusedAcct.addr === acct.addr ? 1 : 0.4) : 1, transition: I.fast }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC', opacity: focusedAcct ? (focusedAcct.addr === acct.addr ? 1 : 0.15) : 1, background: focusedAcct&&focusedAcct.addr===acct.addr ? focusedAcct.color+'15' : 'transparent', transition: I.medium }}
                   onMouseEnter={e => e.currentTarget.style.background = I.hover}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: chainColor, flexShrink: 0, display: 'inline-block' }} />
@@ -5227,7 +5227,7 @@ function App(){
                           const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#3B82F6';
                           const linkedAcct=logData.accts.find(a=>a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase()));
                           const errRelevant=focusedAcct?((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(focusedAcct.addr.toLowerCase()):true;
-                          return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`,borderRadius:6,cursor:'pointer',borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:I.fast,display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.25}} onMouseEnter={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}14 0%, rgba(255,255,255,0.04) 40%)`} onMouseLeave={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`}>
+                          return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`,borderRadius:6,cursor:'pointer',borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:I.fast,display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.12}} onMouseEnter={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}14 0%, rgba(255,255,255,0.04) 40%)`} onMouseLeave={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`}>
                             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
                               <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',fontWeight:700,padding:'1px 5px',borderRadius:4,background:sc+'22',color:sc,textTransform:'uppercase',letterSpacing:'0.06em',flexShrink:0}}>{dg.s==='high'?'CRIT':dg.s==='medium'?'WARN':'INFO'}</span>
                               <div style={{display:'flex',alignItems:'center',gap:4}}>
@@ -5689,7 +5689,7 @@ function App(){
                     const canX=a.isXpub&&a.ch.xc;
                     const isFocused=focusedAcct&&focusedAcct.addr===a.addr;
                     const matchesFilter=!acctFilter||a.ch.name.toLowerCase().includes(acctFilter.toLowerCase())||a.ch.ticker.toLowerCase().includes(acctFilter.toLowerCase())||(a.addr||'').toLowerCase().includes(acctFilter.toLowerCase());
-                    const op=!matchesFilter?0.15:focusedAcct?(isFocused?1:0.25):(hasFunds?1:noData?0.5:0.4);
+                    const op=!matchesFilter?0.12:focusedAcct?(isFocused?1:0.12):(hasFunds?1:noData?0.5:0.4);
                     const bw=rect.w-2,bh=rect.h-2;
                     const showFull=bw>120&&bh>50;
                     const showMedium=bw>60&&bh>30;
@@ -5785,7 +5785,7 @@ function App(){
                   if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.25,transition:I.fast,boxShadow:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
                   const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
                   const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr):true;
-                  return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.25,transition:I.fast}}>
+                  return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.12,transition:I.medium}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,padding:'0 8px'}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
                         <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,fontFamily:MF}}>Shared Address</span>
@@ -5797,7 +5797,7 @@ function App(){
                         {groupFiat>0&&<span style={{fontSize:11,fontWeight:600,color:T.success}}>${groupFiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
                       </div>
                     </div>
-                    {g.accts.map(a=><div key={a.id} data-acct-id={a.id} onMouseEnter={()=>setHoveredAcct(a.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{boxShadow:hoveredAcct===a.id&&hoveredTmRect?`0 0 0 2px ${a.ch.color}60`:'none',borderRadius:8,transition:I.fast,animation:navigatedAcct===a.id?'filterRemind 0.6s ease-out':'none','--remind-color':a.ch.color+'40'}}>{renderCard(a)}</div>)}
+                    {g.accts.map(a=>{const isFocCard=focusedAcct&&focusedAcct.addr===a.addr;return <div key={a.id} data-acct-id={a.id} onMouseEnter={()=>setHoveredAcct(a.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{boxShadow:isFocCard?`0 0 0 1px ${a.ch.color}40, 0 2px 8px ${a.ch.color}15`:hoveredAcct===a.id&&hoveredTmRect?`0 0 0 2px ${a.ch.color}60`:'none',borderRadius:8,transition:I.medium,animation:navigatedAcct===a.id?'filterRemind 0.6s ease-out':'none','--remind-color':a.ch.color+'40'}}>{renderCard(a)}</div>;})}
                   </div>;
                 });
               })()}
@@ -6137,7 +6137,7 @@ function App(){
                         const errHighlighted=hasSevMatch&&hasCatMatch;
                         const isBarHovered=errStripHover?.idx===i;
                         const barRelevant=focusedAcct?bucketErrs.some(e=>((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(focusedAcct.addr.toLowerCase())):true;
-                        return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',transition:I.fast,opacity:(!barRelevant&&bucketErrs.length>0)?0.2:1}}>
+                        return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',transition:I.fast,opacity:(!barRelevant&&bucketErrs.length>0)?0.12:1}}>
                           {segs.map((s,si)=>{
                             const color=s.isErr?T.error:'#4A4A4A';
                             const dimmedByChipHover=s.isErr&&!errHighlighted&&(errHoveredSev||errHoveredCat);
