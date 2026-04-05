@@ -5291,7 +5291,12 @@ function App(){
               setTlHoveredBucket(idx>=0?{idx,x:ev.clientX-rect.left,cw:rect.width}:null);
             };
             return <div style={{marginBottom:10}}>
-              <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden'}}>
+              <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative'}}>
+                <div style={{position:'absolute',top:6,left:8,zIndex:10,display:'flex',gap:4}}>
+                  <button onClick={()=>setTlSwimlane(s=>!s)} style={{fontFamily:MF,padding:'2px 8px',borderRadius:4,border:`1px solid ${tlSwimlane?T.primary+'40':I.interactiveBorder}`,background:tlSwimlane?T.primary+'15':'rgba(0,0,0,0.3)',color:tlSwimlane?T.primary:T.muted,fontSize:9,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase',backdropFilter:'blur(4px)'}}>
+                    {tlSwimlane?'◫ Lanes':'▥ Stacked'}
+                  </button>
+                </div>
                 <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards'}}
                   onMouseDown={ev=>{const rect=ev.currentTarget.getBoundingClientRect();const start=(ev.clientX-rect.left)/rect.width;tlBrushRef.current={start,end:start,rect};setTlBrushing(true);setTlBrush({start,end:start});ev.preventDefault();}}
                   onMouseMove={handleBarHover}
@@ -5437,7 +5442,6 @@ function App(){
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <span style={{fontFamily:MF,fontSize:10,color:T.muted,letterSpacing:'0.04em'}}>{filtered.length} of {logData.entries.length}</span>
               <button onClick={()=>{setTlGrouping(g=>!g);setExpandedGroups({});}} style={{fontFamily:MF,padding:'3px 8px',borderRadius:4,border:`1px solid ${T.border}`,background:tlGrouping?T.primary+'1A':'transparent',color:tlGrouping?T.primary:T.muted,fontSize:9,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}} title={tlGrouping?'Show all rows flat':'Group repeated events'}>{tlGrouping?'Grouped':'Flat'}</button>
-              <button onClick={()=>setTlSwimlane(s=>!s)} style={{fontFamily:MF,padding:'3px 8px',borderRadius:4,border:`1px solid ${T.border}`,background:tlSwimlane?T.primary+'1A':'transparent',color:tlSwimlane?T.primary:T.muted,fontSize:9,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}} title={tlSwimlane?'Show stacked bars':'Show type lanes'}>{tlSwimlane?'Lanes':'Stacked'}</button>
             </div>
             <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.DL/> Export filtered</button>
           </div>
