@@ -4140,6 +4140,7 @@ function App(){
   const timelineScrollRef=useRef(null);
   const acctTreemapRef=React.useRef(null);
   const acctScrollRef=React.useRef(null);
+  const hoverTimeoutRef=React.useRef(null);
   const[tlBrush,setTlBrush]=useState(null);
   const[tlBrushing,setTlBrushing]=useState(false);
   const[tlSwimlane,setTlSwimlane]=useState(false);
@@ -5757,8 +5758,8 @@ function App(){
                     const blockBg=hasErrs?`linear-gradient(135deg, ${T.error}18 0%, ${a.ch.color}${hasFunds?'30':'15'} 40%)`:a.ch.color+(hasFunds?'30':'15');
                     return <div key={a.id}
                       onClick={ev=>{if(isFocused){setFocusedAcct(null);}else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});scrollToAcct(a.id);}}}
-                      onMouseEnter={ev=>{setHoveredAcct(a.id);setHoveredTmRect(ev.currentTarget.getBoundingClientRect());}}
-                      onMouseLeave={()=>{setHoveredAcct(null);setHoveredTmRect(null);}}
+                      onMouseEnter={ev=>{clearTimeout(hoverTimeoutRef.current);setHoveredAcct(a.id);setHoveredTmRect(ev.currentTarget.getBoundingClientRect());}}
+                      onMouseLeave={()=>{hoverTimeoutRef.current=setTimeout(()=>{setHoveredAcct(null);setHoveredTmRect(null);},150);}}
                       style={{position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,background:blockBg,borderLeft:`3px solid ${a.ch.color}`,borderRadius:4,cursor:'pointer',overflow:'hidden',transition:I.fast,opacity:op,animation:isFocused?'focusPulse 2s ease-in-out infinite':(navigatedAcct===a.id?I.pulse:undefined),'--pulse-color':a.ch.color+'60',boxShadow:hoveredAcct===a.id&&!hoveredTmRect?`0 0 12px ${a.ch.color}50, inset 0 0 8px ${a.ch.color}30`:'none',display:'flex',flexDirection:'column',justifyContent:'center',padding:'3px 5px 3px 6px',boxSizing:'border-box'}}>
                       {showSmall&&<span style={{fontFamily:MF,fontSize:showFull?12:10,fontWeight:700,color:a.ch.color,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.ticker}</span>}
                       {showMedium&&lb&&lb.fiat>0&&<span style={{fontSize:10,color:T.muted,fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
@@ -5784,7 +5785,7 @@ function App(){
                 const rawLeft=hoveredTmRect.right+6;
                 const popLeft=rawLeft+268>window.innerWidth?hoveredTmRect.left-272:rawLeft;
                 const popTop=Math.max(8,Math.min(hoveredTmRect.top,window.innerHeight-296));
-                return <div onClick={e=>e.stopPropagation()} style={{position:'fixed',left:popLeft,top:popTop,width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderLeft:`3px solid ${a.ch.color}60`,borderRadius:8,boxShadow:`0 8px 24px rgba(0,0,0,0.5), inset 6px 0 18px -4px ${a.ch.color}35`,padding:'10px 14px',zIndex:60,cursor:'default',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                return <div onClick={e=>e.stopPropagation()} onMouseEnter={()=>clearTimeout(hoverTimeoutRef.current)} onMouseLeave={()=>{setHoveredAcct(null);setHoveredTmRect(null);}} style={{position:'fixed',left:popLeft,top:popTop,width:260,background:T.panel,border:`1px solid ${a.ch.color}40`,borderLeft:`3px solid ${a.ch.color}60`,borderRadius:8,boxShadow:`0 8px 24px rgba(0,0,0,0.5), inset 6px 0 18px -4px ${a.ch.color}35`,padding:'10px 14px',zIndex:60,cursor:'default',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
                     <span style={{width:24,height:24,borderRadius:6,background:a.ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:a.ch.color,fontFamily:MF}}>{a.ch.ticker.slice(0,3)}</span>
                     <span style={{fontWeight:600,fontSize:13}}>{a.ch.name}</span>
