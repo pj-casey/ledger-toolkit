@@ -5914,8 +5914,10 @@ function App(){
 
               {/* Row 2b: Error Flow Diagram */}
               {(()=>{const meaningful=deduped.filter(f=>f.triggers.length>0||f.account).length;return meaningful>=2||(meaningful>=1&&deduped.length<=5);})()&&(
-                <div style={{background:T.bg,borderRadius:8,border:'1px solid '+I.interactiveBorder,padding:'8px 12px',marginBottom:8,position:'relative',maxHeight:200,overflowY:'auto'}}>
-                  <span style={{...purposeLabel,position:'absolute',top:6,right:10,opacity:0.5,pointerEvents:'none'}}>Investigation flow · click to navigate</span>
+                <div style={{display:'flex',justifyContent:'flex-end',marginBottom:3}}>
+                  <span style={{...purposeLabel,opacity:0.5}}>Investigation flow · click to navigate</span>
+                </div>
+                <div style={{background:T.bg,borderRadius:8,border:'1px solid '+I.interactiveBorder,padding:'8px 12px',marginBottom:8,maxHeight:200,overflowY:'auto'}}>
                   <div style={{display:'flex',flexDirection:'column',gap:3}}>
                     {triggerGroups.map((group,gi)=>(
                       <div key={gi} style={{display:'flex',alignItems:'stretch',gap:0}}>
