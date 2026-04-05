@@ -6010,7 +6010,7 @@ function App(){
               </div>}
 
               {/* Row 2b: Error Flow Diagram */}
-              {(()=>{const meaningful=deduped.filter(f=>f.triggers.length>0||f.account).length;return meaningful>=2||(meaningful>=1&&deduped.length<=5);})()&&(
+              {(()=>{const meaningful=deduped.filter(f=>f.triggers.length>0||f.account).length;return meaningful>=2||(meaningful>=1&&deduped.length<=5);})()&&(<>
                 <div style={{display:'flex',justifyContent:'flex-end',marginBottom:3}}>
                   <span style={{...purposeLabel,opacity:0.5}}>Investigation flow · click to navigate</span>
                 </div>
@@ -6067,7 +6067,7 @@ function App(){
                     ))}
                   </div>
                 </div>
-              )}
+              </>)}
 
               {/* Row 3: Enhanced error timeline strip */}
               {(()=>{
