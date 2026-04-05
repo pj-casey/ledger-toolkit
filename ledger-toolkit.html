@@ -3871,13 +3871,6 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
         </div>
       </div>
 
-      {/* Focus indicator */}
-      {focusedAcct&&<div style={{margin:'0 12px 4px',padding:'6px 10px',borderRadius:6,background:'rgba(187,176,255,0.10)',border:'1px solid rgba(187,176,255,0.30)',display:'flex',alignItems:'center',gap:6}}>
-        <span style={{width:10,height:10,borderRadius:2,background:focusedAcct.color,flexShrink:0}}/>
-        <span style={{fontSize:10,fontWeight:700,color:'#BBB0FF',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{focusedAcct.ticker} focused</span>
-        <span onClick={()=>setFocusedAcct(null)} style={{fontSize:10,color:'#BBB0FF',cursor:'pointer',opacity:0.7,flexShrink:0}}>✕</span>
-      </div>}
-
       {/* Section list */}
       <div style={{ flex: 1 }}>
 
@@ -4655,6 +4648,11 @@ function App(){
               return `${fmtDate(t0)} ${fmtTime(t0)}–${fmtTime(tN)} · ${durLabel}`;
             })():''}
           </span>
+          {focusedAcct&&<span style={{display:'inline-flex',alignItems:'center',gap:5,marginLeft:8,padding:'2px 8px',borderRadius:4,background:focusedAcct.color+'20',border:`1px solid ${focusedAcct.color}40`,cursor:'default',flexShrink:0}}>
+            <span style={{width:7,height:7,borderRadius:'50%',background:focusedAcct.color}}/>
+            <span style={{fontSize:11,fontWeight:700,color:focusedAcct.color,letterSpacing:'0.02em'}}>{focusedAcct.ticker}</span>
+            <span onClick={(e)=>{e.stopPropagation();setFocusedAcct(null);}} style={{fontSize:10,color:focusedAcct.color,cursor:'pointer',opacity:0.6,marginLeft:2,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.6'}>✕</span>
+          </span>}
         </div>
         <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>New file</button>
       </div>}
@@ -4698,17 +4696,12 @@ function App(){
         <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} ledgerStatus={ledgerStatus} />
         <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`}}>
         {/* Context Ribbon */}
-        {(focusedAcct||(selectedErr!=null&&section==='errors'))&&(()=>{
+        {(selectedErr!=null&&section==='errors')&&(()=>{
           const ribbonErr=selectedErr!=null?logData.errs.find(e=>e.li===selectedErr):null;
           const ribbonDg=ribbonErr?diagnose(ribbonErr.raw):null;
           const ribbonSv=ribbonDg?SEV[ribbonDg.s]||SEV.low:null;
-          const accentColor=focusedAcct?focusedAcct.color:(ribbonSv?ribbonSv.c:T.primary);
+          const accentColor=ribbonSv?ribbonSv.c:T.primary;
           return <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 16px',borderBottom:`1px solid ${accentColor}30`,background:accentColor+'14',fontSize:12,flexShrink:0,minHeight:32}}>
-            {focusedAcct&&<span onClick={()=>setSection('accounts')} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,cursor:'pointer',fontWeight:600,background:focusedAcct.color+'18',color:focusedAcct.color,border:`1px solid ${focusedAcct.color}30`}}>
-              <span style={{width:8,height:8,borderRadius:'50%',background:focusedAcct.color}}/>
-              <span style={{fontSize:12,letterSpacing:'0.02em'}}>{focusedAcct.ticker}</span>
-            </span>}
-            {focusedAcct&&ribbonDg&&<span style={{color:T.muted}}>·</span>}
             {ribbonDg&&<span onClick={()=>{setSection('errors');setSelectedErr(ribbonErr.li);}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,cursor:'pointer',fontWeight:600,background:ribbonSv.c+'15',color:ribbonSv.c,border:`1px solid ${ribbonSv.c}25`,maxWidth:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {ribbonDg.t}
             </span>}
@@ -4716,7 +4709,7 @@ function App(){
               {fmtTime(ribbonErr.ts)}
             </span>}
             <span style={{flex:1}}/>
-            <span onClick={()=>{setFocusedAcct(null);setSelectedErr(null);}} style={{padding:'2px 8px',borderRadius:4,cursor:'pointer',fontSize:10,fontWeight:600,color:T.muted,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:3}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>✕ Clear</span>
+            <span onClick={()=>{setSelectedErr(null);}} style={{padding:'2px 8px',borderRadius:4,cursor:'pointer',fontSize:10,fontWeight:600,color:T.muted,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:3}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>✕ Clear</span>
           </div>;
         })()}
         {/* Overview */}
@@ -4897,7 +4890,7 @@ function App(){
                         color:focusedAcct?focusedAcct.color:T.primary,
                         cursor:'pointer',transition:I.fast,
                       }}>
-                        {focusedAcct?<><span style={{width:8,height:8,borderRadius:'50%',background:focusedAcct.color}}/> {focusedAcct.ticker} focused</>:<><span style={{fontSize:14}}>◎</span> Focus investigation</>}
+                        <><span style={{fontSize:14}}>◎</span> Focus investigation</>
                         <span style={{fontSize:10,opacity:0.7}}>{focusDropOpen?'▾':'▸'}</span>
                       </button>
                       {focusDropOpen&&<div style={{
