@@ -4708,6 +4708,35 @@ function App(){
           const acctRefs={};logData.errs.forEach(e=>{if(e.dg&&e.dg.r){const a=logData.accts.find(a=>a.addr&&a.addr.length>8&&e.dg.r.includes(a.addr));if(a)acctRefs[a.addr]=(acctRefs[a.addr]||0)+1;}});
           const topAcct=Object.entries(acctRefs).sort((a,b)=>b[1]-a[1])[0];
           const noSync=logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null||a.bal!=null);
+          const triageBanner=(()=>{
+            const errs=logData.errs;
+            const act=logData.activity||{};
+            const netFails=logData.entries.filter(e=>e.type==='network'&&((e.data?.status>=400)||(e.level==='error')||(e.message||'').toLowerCase().includes('fail'))).length;
+            if(highCount>0){
+              const topErr=errs.find(e=>(e.dg||{}).s==='high');
+              const linkedAcct=topErr?logData.accts.find(a=>a.addr&&a.addr.length>8&&((topErr.msg||'')+JSON.stringify(topErr.raw||'')).toLowerCase().includes(a.addr.toLowerCase())):null;
+              return{color:T.error,text:`${highCount} critical error${highCount>1?'s':''} — ${topErr?.dg?.t||'Unknown'}${fwOutdated?' · Firmware outdated':''}${linkedAcct?' · Affects '+linkedAcct.ch.name:''}`,action:'Start with Issues →',go:()=>setSection('errors')};
+            }
+            if(fwOutdated){
+              return{color:T.warning,text:`Firmware outdated: ${firmwareCheck.current} → ${firmwareCheck.latest}${medCount>0?' · '+medCount+' warning'+(medCount>1?'s':''):''}`,action:'Check Device card below',go:null};
+            }
+            if(medCount>0){
+              return{color:T.warning,text:`${medCount} warning${medCount>1?'s':''} — ${errs.find(e=>(e.dg||{}).s==='medium')?.dg?.t||'Unknown'}${netFails>0?' · '+netFails+' network failure'+(netFails>1?'s':''):''}`,action:'Review Issues →',go:()=>setSection('errors')};
+            }
+            if(netFails>0){
+              return{color:T.warning,text:`${netFails} network failure${netFails>1?'s':''} — no errors triggered but connectivity was intermittent`,action:'Check Network →',go:()=>setSection('network')};
+            }
+            if(act.swapBrowsed){
+              const chains=[...new Set(logData.accts.map(a=>a.ch.name))];
+              return{color:T.primary,text:`${act.swapExecuted?'Swap executed':'Swap browsed (not completed)'} during session · ${chains.length} chain${chains.length!==1?'s':''}`,action:'Review Timeline →',go:()=>setSection('timeline')};
+            }
+            if(noSync){
+              return{color:T.muted,text:`No sync captured — accounts show addresses only. ${logData.isMobile?'Mobile logs don\'t include balances.':'Ask customer for app.json.'}`,action:'Open Accounts →',go:()=>setSection('accounts')};
+            }
+            const chains=[...new Set(logData.accts.map(a=>a.ch.name))];
+            const infoCount=errs.length;
+            return{color:T.success,text:`${infoCount>0?infoCount+' informational event'+(infoCount>1?'s':'')+' (routine)':'Clean session'} · ${logData.accts.length} account${logData.accts.length!==1?'s':''} across ${chains.length} chain${chains.length!==1?'s':''}`,action:logData.accts.length>0?'Open Accounts →':null,go:logData.accts.length>0?()=>setSection('accounts'):null};
+          })();
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
 
             {/* Zone 1: Top strip */}
@@ -4808,6 +4837,7 @@ function App(){
                           textAlign:'center',cursor:s.click?'pointer':'default',
                           transition:I.fast,
                           borderLeft:s.hero?`3px solid ${s.c}`:'none',
+                          borderBottom:`3px solid ${s.c}40`,
                           borderTop:'1px solid rgba(255,255,255,0.05)',
                         }}
                         onMouseEnter={e=>{if(s.click)e.currentTarget.style.background=s.c+'12';}}
@@ -4949,6 +4979,17 @@ function App(){
                     {logData.isMobile&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${T.border}`,fontSize:11,color:T.muted,lineHeight:1.5}}>Mobile logs typically score 50–65 due to reduced metadata. This is expected — mobile exports don't include analytics, OS details, or user IDs.</div>}
                   </div>;
                 })()}
+              </div>
+              {/* Triage banner */}
+              <div style={{display:'flex',alignItems:'center',gap:12,padding:'8px 16px',marginTop:8,borderRadius:6,background:triageBanner.color+'0D',border:`1px solid ${triageBanner.color}20`,borderLeft:`3px solid ${triageBanner.color}`}}>
+                <span style={{width:8,height:8,borderRadius:'50%',background:triageBanner.color,flexShrink:0}}/>
+                <span style={{fontSize:12,color:T.text,flex:1,lineHeight:1.4}}>{triageBanner.text}</span>
+                {triageBanner.action&&triageBanner.go&&(
+                  <span onClick={triageBanner.go} style={{fontFamily:MF,fontSize:10,fontWeight:600,color:triageBanner.color,cursor:'pointer',flexShrink:0,letterSpacing:'0.04em',padding:'3px 10px',borderRadius:4,background:triageBanner.color+'15',border:`1px solid ${triageBanner.color}30`,whiteSpace:'nowrap'}}>{triageBanner.action}</span>
+                )}
+                {triageBanner.action&&!triageBanner.go&&(
+                  <span style={{fontFamily:MF,fontSize:10,color:T.muted,flexShrink:0,letterSpacing:'0.04em'}}>{triageBanner.action}</span>
+                )}
               </div>
               {/* Activity badges */}
               {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{badges.map(b=><span key={b.k} style={{...bdg(b.c),fontSize:'var(--ov-fs-xs)',padding:'3px 10px',textTransform:'uppercase',letterSpacing:'0.04em'}}>{b.l}</span>)}</div>;})()}
@@ -5176,15 +5217,69 @@ function App(){
                   </div>
                 </div>;
               }
-              return <div style={{flex:1,display:'flex',flexDirection:'column',gap:12,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
-                {unifiedDeviceCard}
-                <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:'rgba(122,194,108,0.08)',border:`1px solid rgba(122,194,108,0.2)`,borderRadius:6,flexShrink:0}}>
-                  <span style={{color:T.success,fontSize:16,flexShrink:0}}>✓</span>
-                  <div style={{fontSize:13}}>
-                    <span style={{fontWeight:600,color:'#CCCCCC'}}>No issues detected</span>
-                    <span style={{color:T.muted}}> — if the customer reports an issue, ask them to reproduce it and export new logs immediately after.</span>
-                    {logData.accts.length>0&&<span style={{color:T.muted}}> For exact balances, switch to Customer View and load the customer's app.json.</span>}
+              return <div style={{flex:1,display:'flex',gap:16,padding:'12px 24px',overflow:'hidden',minHeight:0}}>
+                {/* Left: device card */}
+                <div style={{width:'40%',flexShrink:0,display:'flex',flexDirection:'column',gap:12,overflow:'hidden'}}>
+                  {unifiedDeviceCard}
+                </div>
+                {/* Right: session profile */}
+                <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
+                  {/* Clean session confirmation */}
+                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'rgba(122,194,108,0.08)',border:'1px solid rgba(122,194,108,0.2)',borderRadius:6,marginBottom:12,flexShrink:0}}>
+                    <span style={{color:T.success,fontSize:14,flexShrink:0}}>✓</span>
+                    <span style={{fontSize:12,color:'#CCCCCC',fontWeight:600}}>No issues detected</span>
                   </div>
+                  {/* Chain ecosystem */}
+                  {logData.accts.length>0&&<div style={{background:T.bg,border:`1px solid ${I.interactiveBorder}`,borderRadius:8,padding:'12px 16px',marginBottom:12,flexShrink:0}}>
+                    <div style={{...purposeLabel,marginBottom:8,opacity:0.5}}>Customer ecosystem · click to explore</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
+                      {(()=>{
+                        const chainMap=new Map();
+                        for(const a of logData.accts){const key=a.ch.name;if(!chainMap.has(key))chainMap.set(key,{chain:a.ch,count:0,funded:0});const c=chainMap.get(key);c.count++;if(a.ops>0)c.funded++;}
+                        return[...chainMap.values()].sort((a,b)=>b.funded-a.funded||b.count-a.count).map(({chain,count,funded})=>(
+                          <div key={chain.name} onClick={()=>setSection('accounts')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:6,cursor:'pointer',background:chain.color+'15',border:`1px solid ${chain.color}25`,transition:I.fast}}
+                            onMouseEnter={e=>e.currentTarget.style.background=chain.color+'25'}
+                            onMouseLeave={e=>e.currentTarget.style.background=chain.color+'15'}>
+                            <span style={{width:10,height:10,borderRadius:3,background:chain.color,flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:600,color:chain.color}}>{chain.name}</span>
+                            {count>1&&<span style={{fontFamily:MF,fontSize:10,color:T.muted}}>×{count}</span>}
+                            {funded>0&&<span style={{fontFamily:MF,fontSize:9,color:T.success}}>active</span>}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                    <div style={{fontSize:11,color:T.muted}}>
+                      {logData.accts.filter(a=>a.ops>0).length} funded · {logData.accts.filter(a=>a.ops===0).length} empty/no-data · {[...new Set(logData.accts.map(a=>a.ch.name))].length} chain{[...new Set(logData.accts.map(a=>a.ch.name))].length!==1?'s':''}
+                    </div>
+                  </div>}
+                  {/* Session activity */}
+                  {(()=>{
+                    const act=logData.activity||{};
+                    const items=[];
+                    if(act.managerOpened)items.push({icon:'⚙',label:'Manager opened',desc:'Customer visited My Ledger — may have been checking app versions or installing apps.',color:T.primary});
+                    if(act.swapBrowsed)items.push({icon:'🔀',label:act.swapExecuted?'Swap executed':'Swap browsed (not completed)',desc:act.swapExecuted?'Customer completed a swap transaction during this session.':'Customer browsed swap options but did not complete. May indicate UX confusion or a price concern.',color:T.primary});
+                    if(act.deviceScan)items.push({icon:'📡',label:'Device scan active',desc:'Device management kit detected transport activity — device was connected.',color:T.success});
+                    if(items.length===0)items.push({icon:'📋',label:'Standard session',desc:'No specific activity detected — customer may have opened the app, viewed balances, and closed.',color:T.muted});
+                    return<div style={{background:T.bg,border:`1px solid ${I.interactiveBorder}`,borderRadius:8,padding:'12px 16px',flexShrink:0}}>
+                      <div style={{...purposeLabel,marginBottom:8,opacity:0.5}}>Session activity</div>
+                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                        {items.map((item,i)=>(
+                          <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>{item.icon}</span>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:600,color:item.color}}>{item.label}</div>
+                              <div style={{fontSize:11,color:T.muted,lineHeight:1.4,marginTop:2}}>{item.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>;
+                  })()}
+                  {/* Navigation buttons */}
+                  {logData.accts.length>0&&<div style={{display:'flex',gap:8,marginTop:12,flexShrink:0}}>
+                    <span onClick={()=>setSection('accounts')} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'15',color:T.primary,border:`1px solid ${T.primary}30`,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>Open Accounts →</span>
+                    <span onClick={()=>setSection('timeline')} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'transparent',color:T.muted,border:`1px solid ${T.border}`,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>View Timeline →</span>
+                  </div>}
                 </div>
               </div>;
             })()}
