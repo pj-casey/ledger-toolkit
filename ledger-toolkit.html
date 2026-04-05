@@ -4718,7 +4718,9 @@ function App(){
               return{color:T.error,text:`${highCount} critical error${highCount>1?'s':''} — ${topErr?.dg?.t||'Unknown'}${fwOutdated?' · Firmware outdated':''}${linkedAcct?' · Affects '+linkedAcct.ch.name:''}`,action:'Start with Issues →',go:()=>setSection('errors')};
             }
             if(fwOutdated){
-              return{color:T.warning,text:`Firmware outdated: ${firmwareCheck.current} → ${firmwareCheck.latest}${medCount>0?' · '+medCount+' warning'+(medCount>1?'s':''):''}`,action:'Check Device card below',go:null};
+              const fwCur=fwLive?firmwareCheck.current:d.fw;
+              const fwLat=fwLive?firmwareCheck.latest:fwLatestVer;
+              return{color:T.warning,text:`Firmware outdated: ${fwCur} → ${fwLat||'?'}${medCount>0?' · '+medCount+' warning'+(medCount>1?'s':''):''}`,action:'Check Device card below',go:null};
             }
             if(medCount>0){
               return{color:T.warning,text:`${medCount} warning${medCount>1?'s':''} — ${errs.find(e=>(e.dg||{}).s==='medium')?.dg?.t||'Unknown'}${netFails>0?' · '+netFails+' network failure'+(netFails>1?'s':''):''}`,action:'Review Issues →',go:()=>setSection('errors')};
