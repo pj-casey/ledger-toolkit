@@ -191,6 +191,7 @@ const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'sh
 const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Nano Gen5'};
 const TARGET_MASKS=[[0x31100000,'nanoS'],[0x33000000,'nanoX'],[0x33100000,'nanoSP'],[0x33200000,'stax'],[0x33300000,'europa'],[0x33400000,'apex']];
+const DEVICE_STORAGE={nanoS:160*1024,nanoSP:1536*1024,nanoX:2048*1024,stax:1536*1024,europa:1536*1024,apex:1536*1024};
 function identifyTargetId(tid){const n=typeof tid==='string'?parseInt(tid,10):tid;if(!n||isNaN(n))return null;const masked=(n&0xFFFF0000)>>>0;for(const[mask,id]of TARGET_MASKS){if(masked===mask)return id;}return null;}
 const TC={action:'#717070',analytics:'#BBB0FF',countervalues:'#06b6d4',bridge:'#FFBD42',network:'#8A9EF5',persistence:'#7AC26C',walletsync:'#ec4899',error:'#E40046','live-dmk-logger':'#BBB0FF'};
 const GUIDE_AGENT=`<!-- Hero -->
@@ -3614,6 +3615,7 @@ function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwar
     `Session:     ${ses}`,'','DEVICE',
     `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
     `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';if(firmwareCheck?.status==='ok'){return firmwareCheck.outdated&&firmwareCheck.latest?fw+` (outdated — ${firmwareCheck.latest} available, live-confirmed)`:fw+' (up to date, live-confirmed)';}const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    ...(()=>{if(versionCheck?.storage&&d.modelId&&DEVICE_STORAGE[d.modelId]){const total=DEVICE_STORAGE[d.modelId];const used=versionCheck.storage.used;const pct=Math.round((used/total)*100);const freeKB=Math.round((total-used)/1024);return[`  Storage:     ${Math.round(used/1024)} KB / ${Math.round(total/1024)} KB (${pct}%) · ${freeKB} KB free`];}return[];})(),
     `  ${llLabel(d,logData.isMobile)}: ${d.appVer||'Unknown'}`,
     `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
     `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
@@ -3644,6 +3646,7 @@ function buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCh
     `Session:     ${ses}`,'','DEVICE',
     `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
     `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';if(firmwareCheck?.status==='ok'){return firmwareCheck.outdated&&firmwareCheck.latest?fw+` (outdated — ${firmwareCheck.latest} available, live-confirmed)`:fw+' (up to date, live-confirmed)';}const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    ...(()=>{if(versionCheck?.storage&&d.modelId&&DEVICE_STORAGE[d.modelId]){const total=DEVICE_STORAGE[d.modelId];const used=versionCheck.storage.used;const pct=Math.round((used/total)*100);const freeKB=Math.round((total-used)/1024);return[`  Storage:     ${Math.round(used/1024)} KB / ${Math.round(total/1024)} KB (${pct}%) · ${freeKB} KB free`];}return[];})(),
     `  ${llLabel(d,logData.isMobile)}: ${d.appVer||'Unknown'}`,
     `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
     `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
@@ -4135,7 +4138,7 @@ function App(){
           if(app.versionName&&app.version){
             const key=app.versionName.toLowerCase();
             if(!catalogMap[key]||app.versionId>catalogMap[key].vid)
-              catalogMap[key]={name:app.versionName,version:app.version,vid:app.versionId||0};
+              catalogMap[key]={name:app.versionName,version:app.version,vid:app.versionId||0,bytes:app.bytes||0};
           }
         }
         const da=logData.deviceApps;
@@ -4168,7 +4171,11 @@ function App(){
             if(cat)appResults.push({name:req.appName,installed:null,latest:cat.version,outdated:null,required:true});
           }
         }
-        setVersionCheck({status:'ok',apps:appResults,catalogSize:Object.keys(catalogMap).length});
+        // Compute storage usage from installed apps
+        const storageApps=[];
+        if(da?.installed){for(const inst of da.installed){const key=(inst.name||'').toLowerCase();const cat=catalogMap[key];storageApps.push({name:inst.name,bytes:cat?.bytes||0});}}
+        const storageUsed=storageApps.reduce((sum,a)=>sum+a.bytes,0);
+        setVersionCheck({status:'ok',apps:appResults,catalogSize:Object.keys(catalogMap).length,storage:{used:storageUsed,apps:storageApps}});
       }catch(err){
         if(err.name==='AbortError')return;
         console.warn('Version check failed:',err.message);
@@ -4875,6 +4882,26 @@ function App(){
                           return <span key={i} title={otherTitle} style={{padding:'clamp(2px, 0.3vh, 4px) clamp(6px, 0.8vh, 8px)',borderRadius:4,fontSize:'var(--ov-fs-xs)',fontWeight:600,whiteSpace:'nowrap',cursor:'default',...otherStyle}}>{otherLabel}</span>;
                         })}
                       </div>}
+                      {/* Storage bar */}
+                      {versionCheck?.storage&&d.modelId&&DEVICE_STORAGE[d.modelId]&&(()=>{
+                        const total=DEVICE_STORAGE[d.modelId];
+                        const used=versionCheck.storage.used;
+                        const pct=Math.min(100,Math.round((used/total)*100));
+                        const free=total-used;
+                        const freeKB=Math.round(free/1024);
+                        const usedKB=Math.round(used/1024);
+                        const totalKB=Math.round(total/1024);
+                        const barColor=pct>90?T.error:pct>75?T.warning:T.muted;
+                        return <div style={{marginBottom:8,marginTop:2}}>
+                          <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.06)',overflow:'hidden',position:'relative'}}>
+                            <div style={{height:'100%',width:pct+'%',borderRadius:3,background:barColor,opacity:0.7,transition:'width 300ms ease'}}/>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+                            <span style={{fontFamily:MF,fontSize:9,color:T.muted,letterSpacing:'0.04em',textTransform:'uppercase'}}>{usedKB} KB / {totalKB} KB ({pct}%)</span>
+                            <span style={{fontFamily:MF,fontSize:9,color:freeKB<50?T.warning:T.muted,letterSpacing:'0.04em'}}>{freeKB} KB free</span>
+                          </div>
+                        </div>;
+                      })()}
                       {(()=>{
                         const liveProbs=versionCheck?.status==='ok'
                           ?versionCheck.apps?.some(a=>a.outdated||!a.installed)
