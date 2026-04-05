@@ -61,7 +61,7 @@ button:active{transform:scale(0.98);}
 .error-detail{transition:max-height 200ms ease,opacity 200ms ease;overflow:hidden;}
 
 /* ── Customer View ── */
-.cv-layout{display:flex;height:calc(100vh - 100px);overflow:hidden;}
+.cv-layout{display:flex;height:calc(100vh - 52px);overflow:hidden;}
 .cv-sidebar{width:240px;min-width:200px;background:linear-gradient(180deg, rgba(69,57,92,0.12) 0%, var(--panel) 35%);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;}
 .cv-sidebar::after{content:'';position:sticky;bottom:0;display:block;height:24px;background:linear-gradient(transparent,#131214);pointer-events:none;}
 .cv-sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
@@ -4315,7 +4315,7 @@ function App(){
     <input key={fileKey} ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
     {/* Main */}
-    <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',padding:logData?0:24}}>
+    <div style={{flex:1,overflow:'hidden',display:viewMode==='customer'?'none':'flex',flexDirection:'column',padding:logData?0:24}}>
       {/* Error state for failed file loads */}
       {loadErr&&!logData&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.3)',borderRadius:8,padding:'12px 16px',marginBottom:16,fontSize:13,color:T.error,display:'flex',alignItems:'center',gap:10}}><Ico.Alert/>{loadErr}</div>}
       {/* Drop zone — HUD scanning zone */}

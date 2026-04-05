@@ -90,7 +90,7 @@ Ledger Live was renamed to Ledger Wallet on October 23, 2025 (Op3n event). Deskt
 
 1. **Data field scan** — `d.modelId`, `d.deviceVersion`, etc. in entry data (pre-LLv4)
 2. **D-4: Manager URL params** — `firmware_version_name=` and `device_type=` in Manager API URLs
-3. **D-7: Target ID masking** — `(targetId & 0xFFFF0000)` against `TARGET_MASKS`. Same algorithm as `@ledgerhq/devices`. Scans `data.targetId`, `data.data.target_id`, and URL params. **Primary LLv4 identification.**
+3. **D-7: Target ID masking** — `(targetId & 0xFFFF0000)` against `TARGET_MASKS`. Same algorithm as `@ledgerhq/devices`. Scans `data.targetId`, `data.data.target_id`, and URL params. **Primary LLv4 identification.** Now also stores `info.targetId` (full numeric target_id) for Manager API calls. Post-D-7 fallback scan sets `targetId` from URL params, `data.targetId`, or `data.data.target_id` even when model was identified via a different path.
 4. **D-5: Manager API response** — `get_device_version` response `data.data.name` (e.g., "Nano S Plus")
 5. **D-6: Firmware path prefix** — `nanos+/1.5.1/...` → model + firmware. Covers `apex_p`/`apex` for Gen5.
 6. **exportLogsMeta** — `env` block fields, `release`, `userAnonymousId`, `accountsIds`, `userAgent`
@@ -230,9 +230,16 @@ Three elevation levels: bg → panel → card. Cards use background, NOT borders
 
 Two-font rule — applied consistently across all UI surfaces:
 - **Structural labels** (section headers, stat card labels, badge text, sidebar keys, filter chips): `MF` constant = `'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace`
-- **Values, body text, descriptions**: Space Grotesk (300–700), loaded via Google Fonts
+- **Values, body text, descriptions**: Brut Grotesque (300–700), embedded via Base64 @font-face
 
 `MF` is a module-scope constant. Never inline the font stack — reference `MF` everywhere monospace is needed.
+
+| Font | Role | Loaded from |
+|---|---|---|
+| **Brut Grotesque** (300–700) | All body text, headings, values, descriptions, stat numbers | Base64 embedded @font-face (4 woff2 files: Light 300, Regular 400, Medium 500, Bold 600+700) |
+| **JetBrains Mono** (400–500) | Labels, tags, badges, code, addresses, hashes | Google Fonts CDN |
+
+File size: ~700KB total (~194KB for the 4 embedded font files). No CDN dependency for body font — works offline, works on `file://`.
 
 ### Ambient gradient system
 
@@ -258,6 +265,22 @@ Cards convey hierarchy and type through left-edge treatment, not background grad
 - **AcctCards:** 3px colored left border (`ch.color+'40'` or `ch.color+'60'` when open) + `boxShadow: inset 8px 0 24px -2px ${ch.color}40` (chain color). Outer container must NOT have `overflow:'hidden'` — it clips the inset glow.
 - **SectionHeaders:** Active tab → horizontal glow using `boxShadow: inset 0 -2px 8px -2px ${T.primary}40`
 
+### Border-radius system
+
+Three tiers, normalized across the entire tool:
+- **8px** — cards, panels, containers, overlays, popups (ErrCards, AcctCards, stat cards, device card, network container, guide overlay, portfolio overlay)
+- **6px** — buttons, interactive controls, input fields, filter chips, advice boxes
+- **4px** — small badges, pills, severity tags, type tags, breadcrumb chips
+
+Do NOT use 12, 10, 5, or 3. These have been eliminated.
+
+### Hover patterns
+
+Three standardized hover behaviors:
+- **Data rows** (timeline, network, APDU, device info): `background → rgba(255,255,255,0.02–0.03)`
+- **Cards** (ErrCard, AcctCard): existing hover classes (`.err-hover`, `.acct-hover`)
+- **Ghost buttons** (outlined, transparent bg): `borderColor → T.primary, color → T.primary` on hover
+
 ---
 
 ## Sidebar
@@ -265,6 +288,27 @@ Cards convey hierarchy and type through left-edge treatment, not background grad
 240px fixed width. `DiagSidebar` component. Props: `logData`, `section`, `setSection`, `liveBalances`, `focusedAcct`, `setFocusedAcct`. Contains: Overview header (severity-colored left border), Focus indicator, section list (Issues, Accounts expandable, Timeline, Advanced expandable), contextual help articles (Layer 2) at bottom.
 
 **Gradient treatment:** Vertical ambient gradient (top→bottom, `rgba(69,57,92,0.08)` → transparent) on the sidebar panel background. The "Diagnosis" overview block uses a stronger `rgba(69,57,92,0.35)` gradient at 135deg for the most prominent brand warmth in the tool.
+
+---
+
+## Customer View — Visual Alignment
+
+Customer View shares the same visual language as Diagnostic mode:
+
+**CSS classes updated:**
+- `.cv-sidebar` — vertical purple gradient matching Diagnostic sidebar
+- `.cv-portfolio-card` — 8px radius, top-edge highlight
+- `.cv-detail-card` — 8px radius, top-edge highlight
+- `.cv-section-title` — JetBrains Mono font (mono label treatment)
+- `.cv-info-row` — hover highlight on rows
+- `.cv-acct-row.cv-active` — horizontal gradient glow from left border
+- `.cv-infobar` — subtle top gradient
+
+**Inline updates:**
+- CV sidebar header, stat card labels, info bar labels all use `fontFamily:MF`
+- Portfolio cards have chain-colored left borders with inset glow (matching Diagnostic AcctCards)
+
+**Layout:** `.cv-layout` uses `height:calc(100vh - 52px)` to exactly fill the space below the 52px top bar. The diagnostic main div is hidden (`display:none`) when in customer mode.
 
 ---
 
@@ -299,7 +343,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`
+**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`, `versionCheck`
 **DiagSidebar:** `accountsOpen`, `advOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
@@ -351,6 +395,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `buildFullText(logData, liveBalances, ledgerStatus)` | Full Export copy text (standalone function) |
 | `buildCustomerText(logData, liveBalances)` | Customer Summary copy text (standalone function) |
 | `buildErrorText(logData)` | Error export with severity, actions, causes, help URLs |
+| `inferRequiredApps(accounts)` | Maps account currencies → required device apps via `CURRENCY_TO_APP` |
 
 ---
 
@@ -363,7 +408,7 @@ Full pass bringing the tool's visual language into alignment with Ledger's curre
 - `T.error = '#E40046'` — Ledger brand crimson (was #F57375). Replaces all error red uses: `SEV.high`, `TC` error type, CSS `--error`, all `rgba(245,115,117,...)` alpha variants.
 
 **Typography changes:**
-- Body font: Space Grotesk (300–700) via Google Fonts, replaces Inter everywhere.
+- Body font: Brut Grotesque (300–700) embedded via Base64 @font-face (replaces previous web fonts).
 - Structural labels: JetBrains Mono (`MF` constant) on all section headers, stat card labels, badge text, sidebar keys, device info row keys, filter/legend chips.
 - `.stat-value` letter-spacing: `-0.02em`.
 
@@ -381,6 +426,43 @@ Full pass bringing the tool's visual language into alignment with Ledger's curre
 
 ---
 
+## Live Version Checking (Phase 1)
+
+On log load, the tool fetches the current app catalog from Ledger's Manager API and compares against the customer's installed/required apps.
+
+**API:** `GET https://manager.api.live.ledger.com/api/v2/apps/by-target?target_id={tid}&firmware_version_name={fw}&device_type={model}&livecommonversion={lcv}&provider=1`
+
+**Required from log:** `dev.targetId` (full 32-bit, stored by D-7 path), `dev.fw`, `dev.modelId`. `livecommonversion` extracted from Manager API URLs in log entries.
+
+**State:** `versionCheck` — `{status:'ok'|'loading'|'error', apps:[{name, installed, latest, outdated}], catalogSize}`
+
+**Data layer extension:** `extractDevice` now stores `info.targetId` (full numeric target_id, not just the bitmask). Post-D-7 fallback scan checks URL params, `data.targetId`, and `data.data.target_id`.
+
+**App chip visual system (manager-result path only):**
+- Green `✓` = installed, up to date (live-confirmed when available)
+- Red `⬆` = outdated, shows version path `⬆ Bitcoin v2.4.5→v2.4.6`
+- Gray `✕` = missing (not installed)
+- Tooltip on red chips: "Installed vX → latest vY (update available)"
+- Live data overrides log-derived status when `versionCheck.status==='ok'`
+
+**Header:** "DEVICE APPS" label left. Right badge (one of):
+- Green `LIVE` = catalog fetched, chips reflect current data
+- `CHECKING` = fetch in progress
+- `OFFLINE` = fetch failed, log-derived status shown
+- Fallback count ("8/10 up to date") only when `versionCheck` is null
+
+**Advice box:** Red-tinted, shows specific counts ("2 outdated, 1 missing"). Disappears if live data confirms everything current.
+
+**Others button:** `+ N others ✓` (muted) normally; turns crimson `+ N others (M ⬆)` when hidden apps are outdated.
+
+**Copy reports:** `buildSummaryText` and `buildFullText` accept `versionCheck` as 4th parameter. Include VERSION CHECK section with outdated apps when available.
+
+**Phases remaining:**
+- Phase 2: Firmware outdated detection (POST /api/v2/get_latest_firmware)
+- Phase 3: Ledger Wallet version check (GitHub releases API)
+
+---
+
 ## Spec files in repo
 
 | File | Status | Purpose |
@@ -392,6 +474,7 @@ Full pass bringing the tool's visual language into alignment with Ledger's curre
 | `VIEWPORT_REDESIGN_SCOPE.md` | Historical reference | Foundation implemented, layouts evolved. |
 | `agent-guide.html` | **Active** | Agent-facing investigation guide. Updated to v4.2. |
 | `technical-reference.html` | **Active** | Technical capabilities reference. Updated to v4.2. |
+| `ROADMAP_LIVE_VERSIONS.md` | **Active — Phase 1 implemented** | Phase 2 (firmware) and Phase 3 (Ledger Wallet) pending. |
 
 ---
 
@@ -408,4 +491,5 @@ Full pass bringing the tool's visual language into alignment with Ledger's curre
 | `post-accounts-overhaul` | `9eeee24` | Enhanced tiles, hover popover, portfolio overlay, EVM grouping, error nav. |
 | `post-timeline-issues` | — | Timeline strip, Issues interactive filters, breadcrumbs, guide overlays. |
 | `post-helpcenter-integration` | — | Help center Layers 1-3, doc updates, copy report relocation. |
-| `post-brand-alignment-v1` | `3913328` | **Tag after brand alignment session.** Space Grotesk, Safety Orange, brand crimson, ambient gradient system, surface physics, typography pass. |
+| `post-brand-alignment-v1` | `3913328` | **Tag after brand alignment session.** Safety Orange, brand crimson, ambient gradient system, surface physics, typography pass. |
+| `post-version-check-p1` | — | Live version checking Phase 1, Brut Grotesque font, visual unification sweep, Customer View unification, app chip redesign. |

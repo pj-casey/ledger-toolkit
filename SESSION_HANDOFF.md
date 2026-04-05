@@ -1,98 +1,119 @@
-# Session Handoff — April 4, 2026 (Session 2)
+# Session Handoff — April 4, 2026 (Session 3)
 
 ## What was built this session
 
-### Documentation Update (Agent Guide + Technical Reference)
-Both embedded guides (`GUIDE_AGENT`, `GUIDE_TECHNICAL`) updated via `/team-build`:
-- **Removed** all references to health pills, Portfolio stat card, "Stat cards: Entries, Accounts, Portfolio, Issues"
-- **Updated** Overview description, investigation playbook scenarios, feature grid, keyboard shortcuts
-- **Added to Agent Guide:** Account Focus Mode section, Discoverability Hints section, Diagnostic Pathways in Issues, Escape shortcut, Focus Mode references throughout playbook scenarios
-- **Added to Technical Reference:** Account Focus System, Context Ribbon, Diagnostic Pathways, Adaptive Dimming, Overview Architecture sections. Connected Navigation expanded from 6 to 11 pathways.
-- **Updated** Copy & Export section to reference Overview action bar location
+### Brut Grotesque Font Embedding
+- Embedded 4 Brut Grotesque woff2 files as Base64 `@font-face` declarations directly in the HTML
+- Weights: Light 300, Regular 400, Medium 500, Bold (600+700 share one file)
+- ~194KB for font data, ~700KB total file size
+- No CDN dependency — works fully offline and on `file://`
+- Replaces Space Grotesk (previously loaded from Google Fonts) across all body text, values, headings, descriptions
 
-### Copy Report Relocation
-- **Moved** Copy report dropdown from sidebar bottom to Overview action bar (between Focus Investigation and Guide 📖 button)
-- **Fixed bug:** click-outside handler used `setTimeout` pattern (matching Focus Investigation) instead of synchronous listener that was causing instant-close
-- **Extracted** `buildSummaryText`, `buildFullText`, `buildCustomerText` as standalone module-scope functions (were inside DiagSidebar)
-- `copyOpen` state moved from DiagSidebar to App
-- `dropItemStyle` moved to module scope
+### Visual Unification Sweep (Design Normalization)
+Full pass normalizing design inconsistencies introduced over multiple sessions:
 
-### Copy Dropdown Enhancement
-- **Added** Copy Errors as 4th option in dropdown (new `buildErrorText` standalone function)
-- **Color-coded** all 4 options with left borders: purple (Quick Summary, Full Export), green (Customer Summary), red (Copy Errors)
-- Hover tints background to match border color
-- Copy Errors conditional on `logData.errs.length > 0`, Customer Summary conditional on `logData.accts.length > 0`
+**Border-radius system established:**
+- 8px — cards, panels, containers, overlays, popups
+- 6px — buttons, interactive controls, input fields, filter chips, advice boxes
+- 4px — small badges, pills, severity tags, breadcrumb chips
+- Eliminated: 12, 10, 5, 3 (all gone)
 
-### Help Center Integration — Layer 1 (ERR_DB Article Links)
-- **Added** `u` field (support.ledger.com article URL) to 30 ERR_DB entries (3 pre-existing, 33 total)
-- **New** `errUrl(dg)` helper function extracts URL from diagnosis result
-- **ErrCard:** "📄 Help article ↗" link renders below action text when `dg.u` exists
-- **Overview error tiles:** small 📄 icon in corner when help article mapped
-- **Copy Errors export:** `Help: {url}` line included per error when available
+**Hover patterns standardized:**
+- Data rows (timeline, network, APDU, device info): `rgba(255,255,255,0.02–0.03)`
+- Cards: `.err-hover`, `.acct-hover` classes
+- Ghost buttons: `borderColor → T.primary, color → T.primary`
 
-### Help Center Integration — Layer 2 (Contextual Help Sidebar)
-- **New** `CONTEXT_HELP` constant (12 entries) with condition → article mappings
-- Test functions scan `logData` for: firmware outdated, USB issues, Bluetooth errors, sync failures, heavy network failures, loading loop, swap issues, APDU rejections, staking, fee errors
-- Two always-on entries: Ongoing Issues, Common Solutions
-- **Rendered** as vertical link list at bottom of DiagSidebar (below Advanced section)
-- Max 5 links, conditional first, always-on last
-- APDU status word correctly extracted from `a.hex` (last 4 hex chars)
+**Other polish:** stat card `borderTop` highlight, stat card value letter-spacing, `.stat-value` class, network section container, APDU export container, popover/dropdown consistency.
 
-### Help Center Integration — Layer 3 (Live Status Banner)
-- **Fetches** `status.ledger.com/api/v2/summary.json` on log load (fire-and-forget, no auth)
-- **New** `ledgerStatus` state in App, `STATUS_CHAIN_MAP` constant (~24 entries)
-- **Amber banner** on Overview when degraded Statuspage components match customer's chains
-- **Muted banner** when services degraded but no chain match
-- **Included** in `buildSummaryText` and `buildFullText` copy output
-- Copy builders now accept `ledgerStatus` as third parameter
+### Customer View — Visual Alignment
+Brought Customer View visual language into full alignment with Diagnostic mode:
+- `.cv-sidebar` — vertical purple gradient (matches Diagnostic sidebar)
+- `.cv-infobar` — subtle top gradient
+- `.cv-portfolio-card`, `.cv-detail-card` — 8px radius, top-edge highlight border
+- `.cv-section-title` — JetBrains Mono (matches all other section labels)
+- `.cv-info-row` — hover highlight; keys use `fontFamily:MF` monospace treatment
+- `.cv-acct-row.cv-active` — horizontal gradient glow from left border (matches AcctCards)
+- Portfolio cards get chain-colored left borders with inset glow
+- **Layout fix:** `.cv-layout` changed from `height:calc(100vh - 100px)` to `calc(100vh - 52px)` (the 100px was legacy from a separate mode-toggle row that no longer exists). Diagnostic main div hidden (`display:none`) in customer mode to eliminate residual gap.
 
-## What's ready to run (not yet executed)
+### Live Version Checking — Phase 1 (App Catalog Comparison)
 
-### Layer 3b — Incident History Time-Overlap
-Prompt written: `layer3b-incident-history-prompt.md`. Adds second fetch (`incidents.json`), compares log session time window against past incidents, shows blue 🕐 banner for outages that overlapped the customer's session even if now resolved. Changes `ledgerStatus` shape to `{ summary, incidents }`.
+**Data layer extension:**
+- `extractDevice` now stores `info.targetId` (full 32-bit numeric value) for Manager API calls
+- D-7 block: stores targetId when model is identified via bitmask
+- Post-D-7 fallback: scans `data.targetId`, `data.data.target_id`, and URL params for targetId even when model identified via other path
+
+**API integration:**
+- Fetches `GET manager.api.live.ledger.com/api/v2/apps/by-target` on log load
+- Required params: `target_id`, `firmware_version_name`, `device_type`, `livecommonversion` (extracted from Manager API URLs in log entries, fallback `'1'`), `provider=1`
+- Missing `livecommonversion` was the cause of initial 400 errors — fixed by scanning log entries for any Manager API URL containing the param
+- `versionCheck` state: `{status:'ok'|'loading'|'error', apps:[{name, installed, latest, outdated}], catalogSize}`
+- Cleared on new file load; aborted on unmount
+
+**Copy report integration:**
+- `buildSummaryText` and `buildFullText` accept `versionCheck` as 4th param
+- Include VERSION CHECK section with outdated app list when available
+
+**App chip visual system (manager-result path):**
+- New 3-state system: green `✓` current, red `⬆` outdated (with `v1.0→1.1` version path), red `✕` missing
+- Live catalog data overrides log-derived status when `versionCheck.status==='ok'`
+- Tooltip on red chips: "Installed vX → latest vY (update available)"
+- Cursor `help` on outdated chips
+- Device Apps header simplified: label left, single LIVE/CHECKING/OFFLINE badge right; fallback count only when `versionCheck` is null
+- Advice box: red-tinted, shows specific counts ("2 outdated, 1 missing")
+- Others expanded chips: live-aware, red `⬆ name v→v` for outdated
+- "+ N others" button: crimson `+ N others (M ⬆)` when hidden apps outdated
 
 ### CLAUDE.md Update
-Prompt written: `update-claude-md-prompt.md`. Updates state variables, constants table, helper functions, adds Help Center Integration section, updates Overview/sidebar/copy descriptions, removes stale health pill references.
+Full Session 3 documentation pass via `/team-build`. All 11 changes applied including: Brut Grotesque font table, border-radius system, hover patterns, Customer View section, Live Version Checking section, versionCheck in state variables, extractDevice targetId docs, helper functions, git tags, spec files.
 
-## Still on the backlog
-
-### From Session 1 (carried forward)
-1. **Sidebar Overview header fix** — Peter's #1 complaint. Overview block doesn't use SectionHeader component, looks different from Issues/Accounts/Timeline/Advanced. Spec was reviewed at start of this session but deferred.
-2. **Responsiveness audit** — click-outside handlers for sidebar popovers. The Copy dropdown issue is fixed (moved to Overview), but other popovers may still have stopPropagation issues.
-3. **Sweep cleanup** — dead code removal, missing state resets.
-
-### New items
-4. **Test all features with real logs** — especially Layer 3 status banner (needs active outage or mock data), Copy Errors dropdown, help article links on ErrCards.
-5. **Customer View delta detection** — Peter mentioned app.json comparison for detecting delta between on-chain truth and what customer sees. Visualization not fully built out yet.
-6. **Git tag** — tag after all changes committed.
+---
 
 ## Current file state
-~5,500+ lines (estimate — grew with CONTEXT_HELP, STATUS_CHAIN_MAP, expanded ERR_DB `u` fields, and guide content updates). 
 
-## Key decisions made
-- **Help center = static URL mapping, not scraping.** support.ledger.com is JS-rendered and blocked by org network policy. All article links are hardcoded URLs in ERR_DB `u` fields and CONTEXT_HELP entries. Easy to add new articles incrementally.
-- **Status API = Atlassian Statuspage public endpoint.** No auth, no rate limit. One fetch per log load. Fail silently.
-- **Copy report on Overview, not sidebar.** Peter wanted it visible and accessible, not buried.
-- **Color-coded dropdown items.** Matches Agent Guide badge colors: purple (summary/full), green (customer), red (errors).
-- **Contextual help in sidebar, not Overview.** Peter requested this — visible from every section, not just Overview.
-- **Use `/team-build` for large editing tasks.** Documentation update was one prompt covering both guides.
+~5,700+ lines. One file: `ledger-toolkit.html`.
 
-## Article mapping — reference
-35 help center articles cataloged. Full mapping in `HELPCENTER_INTEGRATION_SPEC_FINAL.md` (project knowledge). Key articles:
-- USB: `115005165269-zd` | Bluetooth: `360025864773-zd` | Sync: `360012207759-zd`
-- Network: `8889073163037-zd` | Firmware: `360013349800-zd` | Common: `360023518653-zd`
-- Ongoing: `15158192560157-zd` | Fees: `360021039173-zd` | 0x6a82: `12434176239773-zd`
+## Current git state
+
+Branch: `main`. Two unpushed commits on top of `origin/main`:
+1. `bee7d45` — Live version checking, Brut Grotesque, visual unification, chip redesign
+2. Latest (uncommitted) — Customer View layout fix (cv-layout height) + header simplification
+
+To push: `git push origin main`
+
+---
+
+## Key decisions made this session
+
+- **Brut Grotesque embedded, not CDN.** File:// compatibility and offline use require self-contained font delivery. Base64 woff2 is the right approach even at ~194KB cost.
+- **Live version check uses log's own livecommonversion.** Avoids hardcoding a version number that would go stale. Extracted from first Manager API URL found in log entries.
+- **Chip color system: red for outdated, not amber.** Agents think "amber = warning, fix eventually." Red makes urgency clear. Consistent with error color system elsewhere in the tool.
+- **Header simplified to label + single badge.** The previous header had count text + badge text — redundant. The chips communicate status directly; the badge communicates data freshness.
+- **Customer View layout: `calc(100vh - 52px)`.** The original `100px` subtraction was legacy from a separate mode-toggle row. Mode toggle is now in the top bar.
+- **`/team-build` for all multi-file or large editing tasks.** Working well as a pattern.
+
+---
+
+## Backlog (carried forward + new)
+
+### Carried from earlier sessions
+1. **Responsiveness audit** — click-outside handlers for sidebar popovers. Copy dropdown fixed; others may still have stopPropagation issues.
+2. **Test with real logs** — all new features, especially Live Version Checking (needs a log where Manager API call resolves successfully end-to-end).
+
+### Live Version Checking — remaining phases
+3. **Phase 2: Firmware check** — needs `POST /api/v2/get_latest_firmware`. Requires `device_version_id` from `get_device_version` first. Full `targetId` is now stored, enabling this.
+4. **Phase 3: Ledger Wallet version** — GitHub releases API. Handle `ledger-live-desktop` vs `ledger-wallet-desktop` tag naming differences.
+5. **Phase 4 polish** — per-session cache, re-check button, Agent Guide entry for version check features.
+
+### Other
+6. **Git tag** `post-version-check-p1` after push.
+7. **Agent Guide + Technical Reference update** — guides haven't been updated since Session 2. Need entries for: Brut Grotesque font, Live Version Checking, Customer View alignment, new chip visual system.
+
+---
 
 ## Lessons from this session
-- **Org network policy blocks all tools from support.ledger.com.** Web fetch, browser JS, page reading, navigation — all blocked. Workaround: web search indexing + Peter's domain knowledge for article mapping.
-- **Track UI relocations carefully.** Copy report moved from sidebar to Overview mid-session; subsequent prompts referenced the old location. Need to update all downstream references when moving UI.
-- **Peter prefers `/team-build` for big edits.** Noted for future prompts.
-- **Context degradation is real.** Caught stale reference errors (Copy button location). Session should end before quality drops further.
 
-## Priority order for next session
-1. **Run CLAUDE.md update prompt** (already written)
-2. **Run Layer 3b prompt** (incident history — already written)
-3. **Sidebar Overview header fix** (Peter's #1 from session 1 — still pending)
-4. **Responsiveness audit** (click-outside handlers)
-5. **Test with real logs** (all new features)
-6. **Git tag** post-help-center-integration
+- **Single-file edits don't benefit from parallel agents.** All 11 CLAUDE.md edits went to one agent — the right call. Parallel agents on one file cause conflicts.
+- **400 errors often have simple param causes.** The Manager API 400 was just a missing `livecommonversion`. Scanning the existing log entries for the correct param value was the cleanest fix.
+- **Customer View had accumulated drift.** Gradients, fonts, hover states, border radii were all inconsistent with Diagnostic mode. One visual alignment pass fixed all of it.
+- **Legacy height values accumulate silently.** The `100px` cv-layout subtraction was never wrong enough to break anything, but produced a visible black bar once the mode toggle moved into the top bar.
