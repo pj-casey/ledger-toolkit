@@ -3773,7 +3773,7 @@ function buildErrorText(logData){
   return lines.join('\n');
 }
 
-function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, setFocusedAcct, versionCheck, firmwareCheck, appVersionCheck, ledgerStatus }) {
+function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, setFocusedAcct, versionCheck, firmwareCheck, appVersionCheck, ledgerStatus, setErrAcctFilter, setTlAcctFilter }) {
   const errors = logData ? logData.errs : [];
   const accounts = logData ? logData.accts : [];
 
@@ -3847,7 +3847,66 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
 
   return (
-    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: focusedAcct?`linear-gradient(180deg, ${focusedAcct.color}12 0%, #1C1D1F 35%)`:'linear-gradient(180deg, rgba(69,57,92,0.12) 0%, #1C1D1F 35%)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0, transition:'background 0.4s ease' }}>
+    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: focusedAcct?`linear-gradient(180deg, ${focusedAcct.color}12 0%, #1C1D1F 50%)`:'linear-gradient(180deg, rgba(69,57,92,0.12) 0%, #1C1D1F 35%)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0, transition:'background 0.4s ease' }}>
+
+      {/* Investigation Panel — appears when focus is active */}
+      {focusedAcct&&(()=>{
+        const acct=logData.accts.find(a=>a.addr===focusedAcct.addr);
+        if(!acct)return null;
+        const lb=liveBalances?.[acct.id];
+        const errCount=errors.filter(e=>acct.addr&&acct.addr.length>8&&((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(acct.addr.toLowerCase())).length;
+        let eUrl=null;try{eUrl=acct.ch.url?.(acct.addr);}catch{}
+        const hasExp=eUrl&&eUrl!=='#';
+        const hasBal=lb&&lb.status==='ok'&&lb.bal!=null;
+        const hasFiat=lb&&lb.fiat>0;
+        const noSync=acct.dur==null&&acct.bal==null;
+        const c=focusedAcct.color;
+        return <div style={{background:`linear-gradient(180deg, ${c}15 0%, ${c}08 60%, transparent 100%)`,borderBottom:`1px solid ${c}30`,padding:'14px 14px 10px',flexShrink:0,animation:'focusEngage 0.4s ease-out','--focus-color':c+'12'}}>
+          {/* Header: chain identity */}
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+            <span style={{width:12,height:12,borderRadius:3,background:c,flexShrink:0,boxShadow:`0 0 8px ${c}50`}}/>
+            <span style={{fontSize:13,fontWeight:700,color:c,flex:1,letterSpacing:'0.02em'}}>{acct.ch.name}</span>
+            <span onClick={()=>setFocusedAcct(null)} style={{fontSize:10,color:T.muted,cursor:'pointer',padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,display:'flex',alignItems:'center',gap:3}} onMouseEnter={e=>{e.currentTarget.style.borderColor=c;e.currentTarget.style.color=c;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>✕</span>
+          </div>
+          {/* Address */}
+          <div style={{display:'flex',alignItems:'center',gap:4,marginBottom:8}}>
+            <span style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,letterSpacing:'0.03em'}}>{acct.addr?acct.addr.slice(0,12)+'…'+acct.addr.slice(-6):acct.cid?.slice(0,20)||'—'}</span>
+            <span onClick={()=>{navigator.clipboard?.writeText(acct.addr||acct.cid||'');}} style={{fontSize:9,color:T.muted,cursor:'pointer',opacity:0.5}} title="Copy address">📋</span>
+          </div>
+          {/* Key metrics */}
+          <div style={{display:'flex',flexDirection:'column',gap:3,marginBottom:10,fontSize:11}}>
+            {hasBal&&<div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{color:T.muted}}>Balance</span>
+              <span style={{fontFamily:MF,fontWeight:600,color:T.text}}>{lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} <span style={{color:c,fontSize:9}}>{acct.ch.ticker}</span></span>
+            </div>}
+            {hasFiat&&<div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{color:T.muted}}>Fiat</span>
+              <span style={{fontFamily:MF,fontWeight:600,color:T.success}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+            </div>}
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{color:T.muted}}>Operations</span>
+              <span style={{fontFamily:MF,fontWeight:600,color:acct.ops>0?T.text:T.muted}}>{acct.ops||0}</span>
+            </div>
+            {errCount>0&&<div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{color:T.muted}}>Errors</span>
+              <span style={{fontFamily:MF,fontWeight:700,color:T.error}}>{errCount}</span>
+            </div>}
+            {noSync&&<div style={{fontSize:10,color:T.warning,fontStyle:'italic',marginTop:2}}>No sync data</div>}
+          </div>
+          {/* Quick actions */}
+          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+            {errCount>0&&<div onClick={()=>{setErrAcctFilter(acct.addr);setSection('errors');}} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderRadius:4,cursor:'pointer',fontSize:11,fontWeight:600,color:T.error,background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.15)',transition:I.fast}} onMouseEnter={e=>e.currentTarget.style.background='rgba(228,0,70,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(228,0,70,0.08)'}>
+              <span style={{fontSize:10}}>⚠</span> View {errCount} error{errCount!==1?'s':''} →
+            </div>}
+            <div onClick={()=>{setTlAcctFilter({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});setSection('timeline');}} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderRadius:4,cursor:'pointer',fontSize:11,fontWeight:600,color:T.muted,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,transition:I.fast}} onMouseEnter={e=>{e.currentTarget.style.borderColor=c;e.currentTarget.style.color=c;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+              <span style={{fontSize:10}}>📋</span> View Timeline →
+            </div>
+            {hasExp&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',borderRadius:4,fontSize:11,fontWeight:600,color:T.muted,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,textDecoration:'none',transition:I.fast}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.orange;e.currentTarget.style.color=T.orange;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+              <span style={{fontSize:10}}>🔗</span> Explorer ↗
+            </a>}
+          </div>
+        </div>;
+      })()}
 
       {/* Overview — matches SectionHeader pattern, severity-colored left border */}
       <div
@@ -4625,9 +4684,9 @@ function App(){
     })
   );
 
-  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}07 0%, ${T.bg} 50%)`:`radial-gradient(ellipse at 0% 0%, rgba(69,57,92,0.07) 0%, ${T.bg} 50%)`,color:T.text,transition:'background 0.4s ease'}}>
+  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}06 0%, ${T.bg} 50%)`:`radial-gradient(ellipse at 0% 0%, rgba(69,57,92,0.07) 0%, ${T.bg} 50%)`,color:T.text,transition:'background 0.4s ease'}}>
     {/* Top bar */}
-    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}50`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.15) 0%, transparent 40%)`,zIndex:10,transition:'border-bottom 0.4s ease'}}>
+    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}40`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.15) 0%, transparent 40%)`,zIndex:10,transition:'border-bottom 0.4s ease'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <svg width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color:T.text,flexShrink:0}}>
           <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="currentColor"/>
@@ -4694,8 +4753,8 @@ function App(){
 
       {/* Log Viewer */}
       {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden'}}>
-        <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} ledgerStatus={ledgerStatus} />
-        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:focusedAcct?`linear-gradient(135deg, ${focusedAcct.color}08 0%, ${focusedAcct.color}03 30%, transparent 60%)`:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`,animation:focusedAcct?'focusEngage 0.4s ease-out':'none','--focus-color':focusedAcct?focusedAcct.color+'12':'transparent'}}>
+        <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} ledgerStatus={ledgerStatus} setErrAcctFilter={setErrAcctFilter} setTlAcctFilter={setTlAcctFilter} />
+        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:focusedAcct?`linear-gradient(135deg, ${focusedAcct.color}06 0%, ${focusedAcct.color}02 30%, transparent 60%)`:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`,transition:'background 0.4s ease',animation:focusedAcct?'focusEngage 0.4s ease-out':'none','--focus-color':focusedAcct?focusedAcct.color+'12':'transparent'}}>
         {/* Context Ribbon */}
         {(selectedErr!=null&&section==='errors')&&(()=>{
           const ribbonErr=selectedErr!=null?logData.errs.find(e=>e.li===selectedErr):null;
