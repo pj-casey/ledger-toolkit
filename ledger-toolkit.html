@@ -2655,7 +2655,7 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick,onTimelineClick}){
+function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,onTimelineClick}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
   useEffect(()=>{
@@ -2672,15 +2672,30 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,onErrClick,onTimelineCli
   const appBadge=(()=>{
     const appName=CURRENCY_TO_APP[acct.cid];
     if(!appName||!deviceApps)return null;
-    const tick=appName==='Ethereum'?'ETH':acct.ch.ticker.slice(0,4).toUpperCase();
-    if(deviceApps.source==='manager-result'){
+    let status=null,latestVer=null;
+    const vcApp=versionCheck?.status==='ok'&&versionCheck.apps?.find(a=>a.name.toLowerCase()===appName.toLowerCase());
+    if(vcApp){
+      if(vcApp.installed===null)status='missing';
+      else if(vcApp.outdated){status='outdated';latestVer=vcApp.latest;}
+      else status='current';
+    } else if(deviceApps.source==='manager-result'){
       const inst=deviceApps.installed?.find(i=>i.name.toLowerCase()===appName.toLowerCase());
-      if(!inst)return <span style={bdg(T.error)}>{tick} app missing</span>;
-      if(inst.updated)return null;
-      return <span style={bdg(T.warning)} className="mono">{tick} {inst.version} ⚠</span>;
+      if(!inst)status='missing';
+      else if(!inst.updated)status='outdated';
+      else status='current';
     }
-    if(deviceApps.source==='apdu-only'){
-      return null;
+    if(!status)return null;
+    const hasErrors=errCount>0;
+    if(status==='missing'){
+      return <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:600,background:'rgba(228,0,70,0.12)',color:T.error,border:'1px solid rgba(228,0,70,0.25)'}} title={`${appName} app is not installed on the device. This account cannot send transactions until the app is reinstalled via My Ledger.`}>
+        ✕ Can't transact · {appName} not installed
+      </span>;
+    }
+    if(status==='outdated'){
+      const msg=hasErrors?`⚠ ${appName} outdated · may explain errors`:`⚠ ${appName} outdated · update recommended`;
+      return <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:600,background:hasErrors?'rgba(228,0,70,0.12)':'rgba(255,189,66,0.12)',color:hasErrors?T.error:T.warning,border:`1px solid ${hasErrors?'rgba(228,0,70,0.25)':'rgba(255,189,66,0.25)'}`}} title={`${appName} app is installed but outdated${latestVer?' (latest: v'+latestVer+')':''}.  Updating via My Ledger is recommended.${hasErrors?' The outdated app may be contributing to the errors on this account.':''}`}>
+        {msg}
+      </span>;
     }
     return null;
   })();
@@ -4820,15 +4835,7 @@ function App(){
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
                         <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted}}>Device Apps</span>
                         <span>
-                          {(()=>{
-                            const vcLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading'||appVersionCheck?.status==='loading';
-                            const vcOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok'||appVersionCheck?.status==='ok';
-                            const vcError=(versionCheck?.status==='error'||!versionCheck)&&(firmwareCheck?.status==='error'||!firmwareCheck)&&(appVersionCheck?.status==='error'||!appVersionCheck);
-                            if(vcLoading)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em'}}>CHECKING</span>;
-                            if(vcOk)return <span style={{fontFamily:MF,fontSize:8,color:T.success,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(122,194,108,0.3)',background:'rgba(122,194,108,0.08)',letterSpacing:'0.06em'}}>LIVE</span>;
-                            if(vcError)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em',opacity:0.5}}>OFFLINE</span>;
-                            return <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{allOk?'all up to date':okCount+'/'+rows.length+' up to date'}</span>;
-                          })()}
+                          {!versionCheck&&<span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{allOk?'all up to date':okCount+'/'+rows.length+' up to date'}</span>}
                         </span>
                       </div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:'var(--ov-gap-chips)'}}>
@@ -4912,18 +4919,7 @@ function App(){
                     return <div style={{marginBottom:10}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
                         <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted}}>Device Apps</span>
-                        <span style={{display:'flex',alignItems:'center',gap:6}}>
-                          <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>required by accounts{Object.keys(cat).length>0?' · catalog available':''}</span>
-                          {(()=>{
-                            const vcLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading'||appVersionCheck?.status==='loading';
-                            const vcOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok'||appVersionCheck?.status==='ok';
-                            const vcError=(versionCheck?.status==='error'||!versionCheck)&&(firmwareCheck?.status==='error'||!firmwareCheck)&&(appVersionCheck?.status==='error'||!appVersionCheck);
-                            if(vcLoading)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em'}}>CHECKING</span>;
-                            if(vcOk)return <span style={{fontFamily:MF,fontSize:8,color:T.success,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(122,194,108,0.3)',background:'rgba(122,194,108,0.08)',letterSpacing:'0.06em'}}>LIVE</span>;
-                            if(vcError)return <span style={{fontFamily:MF,fontSize:8,color:T.muted,padding:'1px 5px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',letterSpacing:'0.06em',opacity:0.5}}>OFFLINE</span>;
-                            return null;
-                          })()}
-                        </span>
+                        <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>required by accounts{Object.keys(cat).length>0?' · catalog available':''}</span>
                       </div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:'var(--ov-gap-chips)'}}>
                         {rows.map((r,i)=>{
@@ -5051,11 +5047,30 @@ function App(){
                   <span style={{flexShrink:0,whiteSpace:'nowrap'}}>{fmtDate(logData.entries[0].timestamp)}&nbsp;{fmtTime(logData.entries[0].timestamp)} — {fmtTime(logData.entries[logData.entries.length-1].timestamp)}</span>
                   <span style={{flexShrink:0}}>·</span>
                   <span style={{flexShrink:0}}>{((new Date(logData.entries[logData.entries.length-1].timestamp)-new Date(logData.entries[0].timestamp))/1000).toFixed(1)}s</span>
-                  <span style={{flexShrink:0}}>·</span>
-                  <span style={{flexShrink:0}}>{logData.accts.filter(a=>a.ops>0).length}/{logData.accts.length} active</span>
-                  {topChains.slice(0,4).map(([name,info])=>(
-                    <span key={name} style={{background:info.color+'22',color:info.color,padding:'2px 6px',borderRadius:4,fontSize:'var(--ov-fs-xs)',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>{name} ×{info.count}</span>
-                  ))}
+                  {(()=>{
+                    const lbVals=Object.values(liveBalances||{});
+                    const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
+                    const balLoading=lbVals.some(v=>v?.status==='loading');
+                    const priceOk=lbVals.some(v=>v?.fiat!=null&&v.fiat>0);
+                    const mgOk=versionCheck?.status==='ok'||firmwareCheck?.status==='ok';
+                    const mgLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
+                    const ghOk=appVersionCheck?.status==='ok';
+                    const ghLoading=appVersionCheck?.status==='loading';
+                    const pill=(label,ok,loading,tip)=>{
+                      const color=ok?T.success:T.muted;
+                      const bg=ok?'rgba(122,194,108,0.08)':'transparent';
+                      const bdr=ok?'rgba(122,194,108,0.3)':'rgba(255,255,255,0.08)';
+                      const opa=(ok||loading)?1:0.45;
+                      return <span key={label} title={tip} style={{fontFamily:MF,fontSize:9,color,padding:'1px 5px',borderRadius:4,border:`1px solid ${bdr}`,background:bg,letterSpacing:'0.06em',opacity:opa,flexShrink:0,whiteSpace:'nowrap'}}>{label}</span>;
+                    };
+                    return <>
+                      {pill('MANAGER',mgOk,mgLoading,mgOk?'App catalog + firmware: live data':mgLoading?'Fetching Manager API…':'Manager API unavailable')}
+                      {pill('GITHUB',ghOk,ghLoading,ghOk?'Desktop version check: live data':ghLoading?'Fetching GitHub releases…':'GitHub API unavailable')}
+                      {pill('BALANCES',balOk,balLoading,balOk?'On-chain balances fetched':balLoading?'Fetching on-chain balances…':'On-chain balances unavailable')}
+                      {pill('PRICES',priceOk,balOk&&!priceOk,priceOk?'Fiat prices from CoinGecko':balOk?'Fetching fiat prices…':'Fiat prices unavailable')}
+                      {pill('STATUS',!!ledgerStatus,!ledgerStatus,ledgerStatus?'Ledger status page: live':'Fetching Ledger status…')}
+                    </>;
+                  })()}
                 </>:<span>No session data</span>}
               </div>
             </div>
@@ -5457,7 +5472,7 @@ function App(){
                 used.add(a.id);
               }
             }
-            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
+            const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
             return groups.map((g,i)=>{
               if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} style={{opacity:cardRelevant?1:0.25,transition:'opacity 0.2s'}}>{renderCard(g.acct)}</div>;}
               const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
