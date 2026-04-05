@@ -4028,6 +4028,7 @@ function App(){
   const[errStripHover,setErrStripHover]=useState(null);
   const[errAcctFilter,setErrAcctFilter]=useState(null);
   const[hoveredAcct,setHoveredAcct]=useState(null);
+  const[navigatedAcct,setNavigatedAcct]=useState(null);
   const[focusedAcct,setFocusedAcct]=useState(null);
     const[tlHoveredBucket,setTlHoveredBucket]=useState(null);
   const[tlHighlightType,setTlHighlightType]=useState(null);
@@ -4506,8 +4507,10 @@ function App(){
     }
   };
   const scrollToAcct=(acctId)=>{
+    setNavigatedAcct(acctId);
     const el=acctScrollRef.current?.querySelector(`[data-acct-id="${acctId}"]`);
     if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    setTimeout(()=>setNavigatedAcct(null),800);
   };
 
 
@@ -5462,8 +5465,9 @@ function App(){
                     style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,fontFamily:MF,letterSpacing:'0.04em',textTransform:'uppercase',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,cursor:'pointer'}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
-                    {({fiat:'Fiat',balance:'Balance',activity:'Activity',health:'Health',chain:'Chain',alpha:'Alpha'}[acctSort]||acctSort)} {sortDropOpen?'▾':'▸'}
+                    Sort: {({fiat:'Fiat',balance:'Balance',activity:'Activity',health:'Health',chain:'Chain',alpha:'Alpha'}[acctSort]||acctSort)} {sortDropOpen?'▾':'▸'}
                   </button>
+                  {acctSort!=='fiat'&&<button onClick={e=>{e.stopPropagation();setAcctSort('fiat');}} style={{padding:'4px 6px',borderRadius:4,border:'none',background:'rgba(255,255,255,0.06)',color:T.muted,cursor:'pointer',fontSize:10,display:'inline-flex',alignItems:'center',fontFamily:MF,marginLeft:4,verticalAlign:'middle'}} onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.muted} title="Reset to default sort">✕</button>}
                   {sortDropOpen&&<div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',zIndex:30,minWidth:160,overflow:'hidden'}}>
                     {[{key:'fiat',label:'Fiat Value',desc:'Dollar amount'},{key:'balance',label:'Core Balance',desc:'Native token'},{key:'activity',label:'Activity',desc:'Operation count'},{key:'health',label:'Health',desc:'Errors first'},{key:'chain',label:'Chain Family',desc:'Alphabetical'},{key:'alpha',label:'Alphabetical',desc:'A → Z'}].map(opt=>(
                       <button key={opt.key} onClick={()=>{setAcctSort(opt.key);setSortDropOpen(false);}}
@@ -5492,16 +5496,18 @@ function App(){
                     const hasErrs=(()=>{const hay=logData.errs.map(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase()).join(' ');return a.addr&&a.addr.length>8&&hay.includes(a.addr.toLowerCase());})();
                     const canX=a.isXpub&&a.ch.xc;
                     const isFocused=focusedAcct&&focusedAcct.addr===a.addr;
-                    const op=focusedAcct?(isFocused?1:0.25):(hasFunds?1:noData?0.5:0.4);
+                    const matchesFilter=!acctFilter||a.ch.name.toLowerCase().includes(acctFilter.toLowerCase())||a.ch.ticker.toLowerCase().includes(acctFilter.toLowerCase())||(a.addr||'').toLowerCase().includes(acctFilter.toLowerCase());
+                    const op=!matchesFilter?0.15:focusedAcct?(isFocused?1:0.25):(hasFunds?1:noData?0.5:0.4);
                     const bw=rect.w-2,bh=rect.h-2;
                     const showFull=bw>120&&bh>50;
                     const showMedium=bw>60&&bh>30;
                     const showSmall=bw>30&&bh>20;
+                    const blockBg=hasErrs?`linear-gradient(135deg, ${T.error}18 0%, ${a.ch.color}${hasFunds?'30':'15'} 40%)`:a.ch.color+(hasFunds?'30':'15');
                     return <div key={a.id}
                       onClick={ev=>{if(ev.shiftKey){if(isFocused)setFocusedAcct(null);else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}else{scrollToAcct(a.id);}}}
                       onMouseEnter={ev=>{setHoveredAcct(a.id);setHoveredTmRect(ev.currentTarget.getBoundingClientRect());}}
                       onMouseLeave={()=>{setHoveredAcct(null);setHoveredTmRect(null);}}
-                      style={{position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,background:a.ch.color+(hasFunds?'30':'15'),borderLeft:`3px solid ${a.ch.color}`,borderRadius:4,cursor:'pointer',overflow:'hidden',transition:I.fast,opacity:op,animation:isFocused?'focusPulse 2s ease-in-out infinite':undefined,display:'flex',flexDirection:'column',justifyContent:'center',padding:'3px 5px 3px 6px',boxSizing:'border-box'}}>
+                      style={{position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,background:blockBg,borderLeft:`3px solid ${a.ch.color}`,borderRadius:4,cursor:'pointer',overflow:'hidden',transition:I.fast,opacity:op,animation:isFocused?'focusPulse 2s ease-in-out infinite':(navigatedAcct===a.id?I.pulse:undefined),'--pulse-color':a.ch.color+'60',boxShadow:hoveredAcct===a.id&&!hoveredTmRect?`0 0 12px ${a.ch.color}50, inset 0 0 8px ${a.ch.color}30`:'none',display:'flex',flexDirection:'column',justifyContent:'center',padding:'3px 5px 3px 6px',boxSizing:'border-box'}}>
                       {showSmall&&<span style={{fontFamily:MF,fontSize:showFull?12:10,fontWeight:700,color:a.ch.color,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.ticker}</span>}
                       {showMedium&&lb&&lb.fiat>0&&<span style={{fontSize:10,color:T.muted,fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
                       {showFull&&<span style={{fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.name}</span>}
@@ -5556,7 +5562,10 @@ function App(){
             {/* RIGHT PANEL: Filter + Card list */}
             <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
               <div style={{flexShrink:0,padding:'12px 16px 8px'}}>
-                <input onFocus={()=>setHoveredAcct(null)} value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',background:T.card,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,boxSizing:'border-box'}}/>
+                <div style={{position:'relative'}}>
+                  <input onFocus={()=>setHoveredAcct(null)} value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Filter by chain, ticker, or address..." className="mono" style={{width:'100%',padding:'10px 14px',paddingRight:acctFilter?36:14,background:T.card,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,fontSize:13,boxSizing:'border-box'}}/>
+                  {acctFilter&&<button onClick={()=>setAcctFilter('')} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.muted,cursor:'pointer',fontSize:14,padding:4,display:'flex',alignItems:'center',lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.muted}>✕</button>}
+                </div>
               </div>
               <div ref={acctScrollRef} data-accounts-scroll key={`${acctFilter||'all'}-${focusedAcct?.addr||'all'}-${acctSort}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 16px 24px',animation:'listFade 0.3s ease-out'}}>
               {(()=>{
@@ -5581,7 +5590,7 @@ function App(){
                 }
                 const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
                 return groups.map((g,i)=>{
-                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} data-acct-id={g.acct.id} style={{opacity:cardRelevant?1:0.25,transition:I.fast}}>{renderCard(g.acct)}</div>;}
+                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.25,transition:I.fast,boxShadow:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
                   const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
                   const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr):true;
                   return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.25,transition:I.fast}}>
@@ -5596,7 +5605,7 @@ function App(){
                         {groupFiat>0&&<span style={{fontSize:11,fontWeight:600,color:T.success}}>${groupFiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
                       </div>
                     </div>
-                    {g.accts.map(a=><div key={a.id} data-acct-id={a.id}>{renderCard(a)}</div>)}
+                    {g.accts.map(a=><div key={a.id} data-acct-id={a.id} onMouseEnter={()=>setHoveredAcct(a.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{boxShadow:hoveredAcct===a.id&&hoveredTmRect?`0 0 0 2px ${a.ch.color}60`:'none',borderRadius:8,transition:I.fast,animation:navigatedAcct===a.id?'filterRemind 0.6s ease-out':'none','--remind-color':a.ch.color+'40'}}>{renderCard(a)}</div>)}
                   </div>;
                 });
               })()}
