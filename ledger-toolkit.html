@@ -5766,14 +5766,33 @@ function App(){
             const sc=s=>s==='high'?T.error:s==='medium'?T.warning:'#3B82F6';
             return{error:e,triggers,account:errAcctMap.get(e.li)||null,sevColor:sc(e.dg.s)};
           });
-          const triggerGroups=[];const ungrouped=[];const triggerMap=new Map();
+          // Deduplicate errFlows by error title
+          const deduped=[];const titleMap=new Map();
           for(const flow of errFlows){
-            if(flow.triggers.length===0){ungrouped.push(flow);continue;}
-            const sig=flow.triggers.map(t=>t.type+':'+t.count).join(',');
-            if(!triggerMap.has(sig))triggerMap.set(sig,{triggers:flow.triggers,errors:[]});
-            triggerMap.get(sig).errors.push(flow);
+            const title=flow.error.dg.t;
+            if(titleMap.has(title)){
+              const ex=titleMap.get(title);
+              ex.count++;
+              for(const t of flow.triggers){if(!ex.triggers.some(et=>et.type===t.type))ex.triggers.push(t);}
+              if(!ex.account&&flow.account)ex.account=flow.account;
+              const ts=new Date(flow.error.ts).getTime();
+              if(ts<ex.firstTs)ex.firstTs=ts;
+              if(ts>ex.lastTs)ex.lastTs=ts;
+            }else{
+              const ts=new Date(flow.error.ts).getTime();
+              const entry={...flow,count:1,firstTs:ts,lastTs:ts};
+              titleMap.set(title,entry);
+              deduped.push(entry);
+            }
           }
-          for(const group of triggerMap.values())triggerGroups.push(group);
+          const triggerGroups=[];const ungrouped=[];const triggerSigMap=new Map();
+          for(const flow of deduped){
+            if(flow.triggers.length===0){ungrouped.push(flow);continue;}
+            const sig=flow.triggers.map(t=>t.type).sort().join(',');
+            if(!triggerSigMap.has(sig))triggerSigMap.set(sig,{triggers:flow.triggers,errors:[]});
+            triggerSigMap.get(sig).errors.push(flow);
+          }
+          for(const group of triggerSigMap.values())triggerGroups.push(group);
           if(ungrouped.length>0)triggerGroups.push({triggers:[],errors:ungrouped});
 
           const highCount=enrichedErrs.filter(e=>e.dg.s==='high').length;
@@ -5894,8 +5913,8 @@ function App(){
               </div>}
 
               {/* Row 2b: Error Flow Diagram */}
-              {errFlows.some(f=>f.triggers.length>0||f.account)&&(
-                <div style={{background:T.bg,borderRadius:8,border:'1px solid '+I.interactiveBorder,padding:'8px 12px',marginBottom:8,position:'relative'}}>
+              {(()=>{const meaningful=deduped.filter(f=>f.triggers.length>0||f.account).length;return meaningful>=2||(meaningful>=1&&deduped.length<=5);})()&&(
+                <div style={{background:T.bg,borderRadius:8,border:'1px solid '+I.interactiveBorder,padding:'8px 12px',marginBottom:8,position:'relative',maxHeight:200,overflowY:'auto'}}>
                   <span style={{...purposeLabel,position:'absolute',top:6,right:10,opacity:0.5,pointerEvents:'none'}}>Investigation flow · click to navigate</span>
                   <div style={{display:'flex',flexDirection:'column',gap:3}}>
                     {triggerGroups.map((group,gi)=>(
@@ -5927,8 +5946,8 @@ function App(){
                                 onMouseLeave={e=>e.currentTarget.style.background=flow.sevColor+'12'}>
                                 <span style={{width:7,height:7,borderRadius:'50%',background:flow.sevColor,flexShrink:0}}/>
                                 <span style={{fontSize:11,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{flow.error.dg.t}</span>
-                                {flow.error.dg.repeatCount>0&&<span style={{fontFamily:MF,fontSize:9,color:T.warning,fontWeight:700,flexShrink:0}}>×{flow.error.dg.repeatCount+1}</span>}
-                                <span style={{fontFamily:MF,fontSize:9,color:T.muted,flexShrink:0,marginLeft:'auto'}}>{fmtTime(flow.error.ts)}</span>
+                                {flow.count>1&&<span style={{fontFamily:MF,fontSize:9,color:T.warning,fontWeight:700,flexShrink:0}}>×{flow.count}</span>}
+                                <span style={{fontFamily:MF,fontSize:9,color:T.muted,flexShrink:0,marginLeft:'auto'}}>{flow.count>1?`${fmtTime(new Date(flow.firstTs).toISOString())}–${fmtTime(new Date(flow.lastTs).toISOString())}`:fmtTime(flow.error.ts)}</span>
                               </div>
                               {flow.account&&<>
                                 <div style={{width:16,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -6114,7 +6133,7 @@ function App(){
               })()}
 
             {/* Row 4: Affected accounts fallback (shown when flow diagram is hidden) */}
-            {!errFlows.some(f=>f.triggers.length>0||f.account)&&errAcctMap.size>0&&(()=>{
+            {(()=>{const meaningful=deduped.filter(f=>f.triggers.length>0||f.account).length;return!(meaningful>=2||(meaningful>=1&&deduped.length<=5));})()&&errAcctMap.size>0&&(()=>{
               const uniq=[];const seen=new Set();
               for(const a of errAcctMap.values()){if(!seen.has(a.addr)){seen.add(a.addr);uniq.push(a);}}
               return <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',flexWrap:'wrap',flexShrink:0}}>
