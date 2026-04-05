@@ -5017,7 +5017,7 @@ function App(){
                         background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
                         boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:220,
                       }}>
-                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:T.success}}
                           onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
                           onMouseLeave={e=>e.currentTarget.style.background='none'}>
                           <div style={{fontWeight:600}}>Quick Summary</div>
