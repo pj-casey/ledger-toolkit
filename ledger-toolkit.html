@@ -108,6 +108,7 @@ button:active{transform:scale(0.98);}
 .jt-copy-path:hover{opacity:1;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes focusPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.8;transform:scale(1.08);}}
+@keyframes selectPulse{0%{opacity:1;box-shadow:0 0 0 0 var(--pulse-color,rgba(228,0,70,0.6));}30%{opacity:1;box-shadow:0 0 16px 4px var(--pulse-color,rgba(228,0,70,0.4));}100%{opacity:1;box-shadow:0 0 0 0 var(--pulse-color,rgba(228,0,70,0));}}
 .guide-embed{font-family:'Brut Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;color:#FFFFFF;line-height:1.7;font-size:14px;padding:0 0 60px}
 .guide-embed .hero{padding:40px 32px 32px;text-align:center}
 .guide-embed .hero h1{font-size:28px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;color:#fff}
@@ -5762,10 +5763,10 @@ function App(){
                       const selTime=new Date(selErr.ts).getTime();
                       const selPct=((selTime-t0)/span)*100;
                       const sc=sevColor(selErr.dg.s);
-                      return <>
-                        <div style={{position:'absolute',left:`${selPct}%`,top:0,bottom:0,width:2,background:sc,opacity:0.9,zIndex:10,pointerEvents:'none',transform:'translateX(-1px)',boxShadow:`0 0 8px ${sc}60`}}/>
-                        <div style={{position:'absolute',left:`${selPct}%`,bottom:-6,width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`6px solid ${sc}`,transform:'translateX(-5px)',zIndex:10,pointerEvents:'none'}}/>
-                      </>;
+                      return <div key={'marker-'+effectiveSel} style={{position:'absolute',left:`${selPct}%`,top:0,bottom:-6,zIndex:10,pointerEvents:'none',transform:'translateX(-1px)'}}>
+                        <div style={{width:2,height:'calc(100% - 6px)',background:sc,opacity:0.9,boxShadow:`0 0 8px ${sc}60`,animation:'selectPulse 0.6s ease-out','--pulse-color':sc+'80'}}/>
+                        <div style={{width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`6px solid ${sc}`,transform:'translateX(-4px)'}}/>
+                      </div>;
                     })()}
                     {/* Purpose label */}
                     <div style={{position:'absolute',top:6,right:8,display:'flex',alignItems:'center',gap:6,pointerEvents:'none'}}>
@@ -5778,9 +5779,19 @@ function App(){
                     </div>
                   </div>
                   <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginTop:4}}>
-                    <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[0].timestamp)}</span>
+                    <span style={{fontFamily:MF,fontSize:9,color:T.muted}}>{fmtTime(ents[0].timestamp)}</span>
                     <span style={{fontFamily:MF,fontSize:9,color:T.muted,flex:1,textAlign:'center',padding:'0 12px',letterSpacing:'0.02em'}}>{interpretation}</span>
-                    <span className="mono" style={{fontSize:9,color:T.muted}}>{fmtTime(ents[ents.length-1].timestamp)}</span>
+                    <span style={{fontFamily:MF,fontSize:9,color:T.muted}}>{fmtTime(ents[ents.length-1].timestamp)}</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,marginTop:4}}>
+                    <span style={{display:'flex',alignItems:'center',gap:4}}>
+                      <span style={{width:8,height:8,borderRadius:2,background:'#4A4A4A',opacity:0.3}}/>
+                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.04em',textTransform:'uppercase'}}>Activity</span>
+                    </span>
+                    <span style={{display:'flex',alignItems:'center',gap:4}}>
+                      <span style={{width:8,height:8,borderRadius:2,background:T.error,opacity:0.9}}/>
+                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.04em',textTransform:'uppercase'}}>Errors</span>
+                    </span>
                   </div>
                 </div>;
               })()}
@@ -5851,7 +5862,9 @@ function App(){
                     style={{padding:'8px 16px',borderBottom:`1px solid rgba(255,255,255,0.04)`,cursor:'pointer',
                       background:isSelected?`${sc}12`:'transparent',
                       borderLeft:isSelected?`3px solid ${sc}`:'3px solid transparent',
-                      transition:'background 0.1s'}}
+                      transition:'background 0.1s',
+                      animation:isSelected?'selectPulse 0.6s ease-out':'none',
+                      '--pulse-color':sc+'60'}}
                     onMouseEnter={ev=>{if(!isSelected)ev.currentTarget.style.background='rgba(255,255,255,0.03)';}}
                     onMouseLeave={ev=>{if(!isSelected)ev.currentTarget.style.background='transparent';}}>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
