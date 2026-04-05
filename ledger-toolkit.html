@@ -5291,12 +5291,14 @@ function App(){
               setTlHoveredBucket(idx>=0?{idx,x:ev.clientX-rect.left,cw:rect.width}:null);
             };
             return <div style={{marginBottom:10}}>
-              <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative'}}>
-                <div style={{position:'absolute',top:6,left:8,zIndex:10,display:'inline-flex',borderRadius:4,overflow:'hidden',border:`1px solid ${I.interactiveBorder}`,background:'rgba(0,0,0,0.3)',backdropFilter:'blur(4px)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                <div style={{display:'inline-flex',borderRadius:4,overflow:'hidden',border:`1px solid ${I.interactiveBorder}`,background:'transparent'}}>
                   <button onClick={()=>setTlSwimlane(false)} style={{padding:'2px 8px',border:'none',background:!tlSwimlane?T.primary+'20':'transparent',color:!tlSwimlane?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:!tlSwimlane?700:400,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}}>Stacked</button>
                   <div style={{width:1,background:I.interactiveBorder,alignSelf:'stretch'}}/>
                   <button onClick={()=>setTlSwimlane(true)} style={{padding:'2px 8px',border:'none',background:tlSwimlane?T.primary+'20':'transparent',color:tlSwimlane?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:tlSwimlane?700:400,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}}>Lanes</button>
                 </div>
+              </div>
+              <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden'}}>
                 <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards'}}
                   onMouseDown={ev=>{const rect=ev.currentTarget.getBoundingClientRect();const start=(ev.clientX-rect.left)/rect.width;tlBrushRef.current={start,end:start,rect};setTlBrushing(true);setTlBrush({start,end:start});ev.preventDefault();}}
                   onMouseMove={handleBarHover}
