@@ -5776,8 +5776,8 @@ function App(){
               for(const t of flow.triggers){if(!ex.triggers.some(et=>et.type===t.type))ex.triggers.push(t);}
               if(!ex.account&&flow.account)ex.account=flow.account;
               const ts=new Date(flow.error.ts).getTime();
-              if(ts<ex.firstTs)ex.firstTs=ts;
-              if(ts>ex.lastTs)ex.lastTs=ts;
+              ex.firstTs=Math.min(ex.firstTs,ts);
+              ex.lastTs=Math.max(ex.lastTs,ts);
             }else{
               const ts=new Date(flow.error.ts).getTime();
               const entry={...flow,count:1,firstTs:ts,lastTs:ts};
