@@ -3994,7 +3994,8 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
       )}
 
       {/* API data sources */}
-      <div style={{padding:'8px 12px',borderTop:`1px solid ${T.border}`,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
+      <div style={{padding:'8px 12px 10px',borderTop:`1px solid ${T.border}`}}>
+        <div style={{fontFamily:MF,fontSize:8,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,marginBottom:5,opacity:0.6}}>Live data</div>
         {(()=>{
           const lbVals=Object.values(liveBalances||{});
           const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
@@ -4004,19 +4005,22 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
           const mgLoading=versionCheck?.status==='loading'||firmwareCheck?.status==='loading';
           const ghOk=appVersionCheck?.status==='ok';
           const ghLoading=appVersionCheck?.status==='loading';
-          const dot=(label,ok,loading,tip)=>{
-            const color=ok?T.success:T.muted;
-            const bg=ok?'rgba(122,194,108,0.08)':'transparent';
-            const bdr=ok?'rgba(122,194,108,0.3)':'rgba(255,255,255,0.08)';
-            const opa=(ok||loading)?1:0.4;
-            return <span key={label} title={tip} style={{fontFamily:MF,fontSize:8,color,padding:'1px 5px',borderRadius:3,border:`1px solid ${bdr}`,background:bg,letterSpacing:'0.05em',opacity:opa,whiteSpace:'nowrap'}}>{label}</span>;
+          const row=(label,ok,loading)=>{
+            const color=ok?T.success:loading?T.warning:T.muted;
+            const statusText=ok?'live':loading?'···':'—';
+            const opa=ok?1:loading?0.8:0.35;
+            return <div key={label} style={{display:'flex',alignItems:'center',gap:6,padding:'2px 0',opacity:opa}}>
+              <span style={{width:5,height:5,borderRadius:'50%',background:color,flexShrink:0}}/>
+              <span style={{fontSize:10,color:T.muted,flex:1}}>{label}</span>
+              <span style={{fontFamily:MF,fontSize:9,color,fontWeight:ok?600:400}}>{statusText}</span>
+            </div>;
           };
           return <>
-            {dot('MGR',mgOk,mgLoading,mgOk?'App catalog + firmware: live data':mgLoading?'Fetching Manager API…':'Manager API unavailable')}
-            {dot('GH',ghOk,ghLoading,ghOk?'Desktop version check: live data':ghLoading?'Fetching GitHub releases…':'GitHub API unavailable')}
-            {dot('BAL',balOk,balLoading,balOk?'On-chain balances fetched':balLoading?'Fetching on-chain balances…':'On-chain balances unavailable')}
-            {dot('FX',priceOk,balOk&&!priceOk,priceOk?'Fiat prices from CoinGecko':balOk?'Fetching fiat prices…':'Fiat prices unavailable')}
-            {dot('STS',!!ledgerStatus,!ledgerStatus,ledgerStatus?'Ledger status page: live':'Fetching Ledger status…')}
+            {row('Manager API',mgOk,mgLoading)}
+            {row('GitHub',ghOk,ghLoading)}
+            {row('Balances',balOk,balLoading)}
+            {row('Prices',priceOk,balOk&&!priceOk)}
+            {row('Ledger Status',!!ledgerStatus,!ledgerStatus)}
           </>;
         })()}
       </div>
