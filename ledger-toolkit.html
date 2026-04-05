@@ -1585,6 +1585,33 @@ const CONTEXT_HELP=[
   {id:'common-solutions',test:()=>true,label:'Common solutions',url:'https://support.ledger.com/article/360023518653-zd',icon:'💡'},
 ];
 
+const STATUS_CHAIN_MAP={
+  'Ledger Live Desktop':'desktop','Ledger Live Mobile':'mobile','Ledger Live':'desktop',
+  'Bitcoin':'bitcoin','Ethereum':'ethereum','Ripple':'ripple','Litecoin':'litecoin',
+  'Stellar':'stellar','Tron':'tron','Dogecoin':'dogecoin','Polkadot':'polkadot',
+  'Cosmos':'cosmos','Solana':'solana','Cardano':'cardano','Avalanche':'avalanche-x',
+  'Polygon':'polygon','BNB Smart Chain':'bsc','Algorand':'algorand','Elrond':'elrond',
+  'Fantom':'fantom','Aptos':'aptos','Hedera':'hedera','Near':'near',
+};
+
+function parseStatusData(data,logData){
+  const components=(data?.summary?.components||data?.components);
+  if(!components)return null;
+  const degraded=[];
+  for(const c of components){
+    if(c.status&&c.status!=='operational'&&c.status!==''){
+      const chainKey=Object.keys(STATUS_CHAIN_MAP).find(k=>c.name&&c.name.includes(k));
+      if(chainKey){
+        const chainId=STATUS_CHAIN_MAP[chainKey];
+        // Only surface if relevant to loaded log
+        const relevant=!logData||(chainId==='desktop'||chainId==='mobile'||logData.accts.some(a=>a.ch&&(a.ch.id===chainId||a.ch.ticker===chainKey)));
+        if(relevant)degraded.push({name:c.name,status:c.status,chainId});
+      }
+    }
+  }
+  return degraded.length>0?degraded:null;
+}
+
 function diagnose(e,allErrors){
   const parts=[(e.message||''),sGet(e,'error.message',''),sGet(e,'payload.error',''),sGet(e,'payload.status','')].filter(Boolean);
   const h=parts.join(' | ')+' '+sGet(e,'queryArg.endpointName','');
@@ -3547,13 +3574,29 @@ function fmtAcctLine(a,short,liveBalances,isMobile){
 }
 
 const dropItemStyle={display:'block',width:'100%',padding:'8px 12px 8px 15px',background:'none',border:'none',borderBottom:'1px solid #3C3C3C',borderLeft:'3px solid transparent',color:'#FFFFFF',cursor:'pointer',textAlign:'left',fontSize:12,transition:'background 0.1s'};
-function buildSummaryText(logData,liveBalances){
+function buildIncidentLines(logData,ledgerStatus){
+  if(!ledgerStatus?.incidents||!logData.entries.length)return[];
+  const sessionStart=new Date(logData.entries[0]?.timestamp).getTime();
+  const sessionEnd=new Date(logData.entries[logData.entries.length-1]?.timestamp).getTime();
+  if(!sessionStart||!sessionEnd)return[];
+  const overlapping=ledgerStatus.incidents.filter(inc=>{
+    const s=new Date(inc.created_at).getTime();
+    const e=inc.resolved_at?new Date(inc.resolved_at).getTime():Date.now();
+    return s<=sessionEnd&&e>=sessionStart;
+  });
+  if(!overlapping.length)return[];
+  return['⚠ INCIDENTS DURING SESSION:',...overlapping.map(inc=>`  ${inc.name} (${inc.impact}) — ${inc.resolved_at?'resolved '+new Date(inc.resolved_at).toLocaleString():inc.status}`),''];
+}
+function buildSummaryText(logData,liveBalances,ledgerStatus){
   const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
   const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
   const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
+  const degraded=ledgerStatus?parseStatusData(ledgerStatus,logData):null;
   return [
     logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',
     ...(noSyncTxt?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),
+    ...(degraded?[`⚡ LEDGER STATUS: Services degraded — ${degraded.map(d=>d.name).join(', ')} — status.ledger.com`,'']:[]),
+    ...buildIncidentLines(logData,ledgerStatus),
     `Session:     ${ses}`,'','DEVICE',
     `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
     `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
@@ -3572,13 +3615,16 @@ function buildSummaryText(logData,liveBalances){
     '=================================',
   ].filter(l=>l!==undefined).join('\n');
 }
-function buildFullText(logData,liveBalances){
+function buildFullText(logData,liveBalances,ledgerStatus){
   const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
   const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
   const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
+  const degraded=ledgerStatus?parseStatusData(ledgerStatus,logData):null;
   return [
     logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',
     ...(noSyncTxt?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),
+    ...(degraded?[`⚡ LEDGER STATUS: Services degraded — ${degraded.map(d=>d.name).join(', ')} — status.ledger.com`,'']:[]),
+    ...buildIncidentLines(logData,ledgerStatus),
     `Session:     ${ses}`,'','DEVICE',
     `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
     `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
@@ -3901,6 +3947,7 @@ function App(){
   const[parsing,setParsing]=useState(false);
   const[fileKey,setFileKey]=React.useState(0);
   const[liveBalances,setLiveBalances]=useState({});
+  const[ledgerStatus,setLedgerStatus]=useState(null);
   const[guideOpen,setGuideOpen]=useState(null);
   const[guideSearch,setGuideSearch]=useState('');
   const[focusDropOpen,setFocusDropOpen]=useState(false);
@@ -3959,7 +4006,7 @@ function App(){
   },[focusedAcct]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -4031,6 +4078,16 @@ function App(){
   },[logData]);
 
   useEffect(()=>{
+    if(!logData){setLedgerStatus(null);return;}
+    Promise.all([
+      fetch('https://status.ledger.com/api/v2/summary.json').then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch('https://status.ledger.com/api/v2/incidents.json').then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(([summary,incidents])=>{
+      setLedgerStatus({summary,incidents:incidents?.incidents||[]});
+    });
+  },[logData]);
+
+  useEffect(()=>{
     if(!logData)return;
     if(!logData.dev.modelId&&!logData.dev.modelName&&!logData.dev.fw){
       setDeviceExpanded(false);
@@ -4040,7 +4097,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -4260,6 +4317,54 @@ function App(){
                 <span style={{color:T.warning,fontWeight:700,fontSize:13,flexShrink:0}}>⚠</span>
                 <span style={{color:T.warning}}><strong>No sync captured in this session</strong> — operation counts, log balances, and account status are unavailable. {Object.values(liveBalances).some(lb=>lb.status==='ok'&&lb.bal!=null)?'Live blockchain balances are being shown where available.':'Live blockchain balances are being fetched.'}</span>
               </div>}
+              {(()=>{const degraded=ledgerStatus?parseStatusData(ledgerStatus,logData):null;if(!degraded)return null;const isApp=degraded.some(d=>d.chainId==='desktop'||d.chainId==='mobile');const chainNames=degraded.filter(d=>d.chainId!=='desktop'&&d.chainId!=='mobile').map(d=>d.name).slice(0,4);const parts=[];if(isApp)parts.push('Ledger Wallet app');if(chainNames.length)parts.push(chainNames.join(', '));return(<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
+                <span style={{color:T.warning,fontWeight:700,fontSize:13,flexShrink:0}}>⚡</span>
+                <span style={{color:T.warning}}><strong>Ledger services degraded</strong> — {parts.join(' + ')} reporting issues. <a href="https://status.ledger.com" target="_blank" rel="noopener" style={{color:T.warning,textDecoration:'underline'}}>status.ledger.com ↗</a></span>
+              </div>);})()}
+              {(()=>{
+                if(!ledgerStatus?.incidents||!logData.entries.length)return null;
+                const sessionStart=new Date(logData.entries[0].timestamp).getTime();
+                const sessionEnd=new Date(logData.entries[logData.entries.length-1].timestamp).getTime();
+                if(!sessionStart||!sessionEnd)return null;
+                const overlapping=[];
+                for(const inc of ledgerStatus.incidents){
+                  const incStart=new Date(inc.created_at).getTime();
+                  const incEnd=inc.resolved_at?new Date(inc.resolved_at).getTime():Date.now();
+                  if(incStart<=sessionEnd&&incEnd>=sessionStart){
+                    const affectedNames=(inc.components||[]).map(c=>c.name);
+                    const customerChains=logData.accts.map(a=>a.ch.name.toLowerCase());
+                    const matchedChains=[];
+                    for(const compName of affectedNames){
+                      const compLower=compName.toLowerCase();
+                      for(const[key]of Object.entries(STATUS_CHAIN_MAP)){
+                        if(compLower.includes(key.toLowerCase())&&customerChains.some(cc=>cc.toLowerCase().includes(key.toLowerCase()))){
+                          matchedChains.push(compName);break;
+                        }
+                      }
+                    }
+                    if(matchedChains.length>0){
+                      overlapping.push({name:inc.name,impact:inc.impact,status:inc.status,
+                        resolved:inc.resolved_at?new Date(inc.resolved_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):null,
+                        chains:matchedChains});
+                    }
+                  }
+                }
+                if(!overlapping.length)return null;
+                return(<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(138,158,245,0.08)',border:'1px solid rgba(138,158,245,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
+                  <span style={{color:'#8A9EF5',fontWeight:700,fontSize:13,flexShrink:0}}>🕐</span>
+                  <div style={{color:'#8A9EF5'}}>
+                    <strong>During this session</strong>, Ledger experienced:{' '}
+                    {overlapping.map((inc,i)=>(
+                      <span key={i}>{i>0&&'; '}<strong>{inc.chains.join(', ')}</strong> ({inc.impact} — {inc.resolved?`resolved ${inc.resolved}`:inc.status})</span>
+                    ))}{'. '}
+                    <span style={{color:T.muted,fontSize:11}}>This may explain errors in this log.</span>{' '}
+                    <a href="https://status.ledger.com/history" target="_blank" rel="noopener noreferrer"
+                      style={{color:T.primary,textDecoration:'none',fontWeight:600,fontSize:11}}
+                      onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'}
+                      onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>incident history ↗</a>
+                  </div>
+                </div>);
+              })()}
               {/* Device status line */}
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10,fontSize:13,letterSpacing:'0.01em'}}>
                 <span style={{color:devColor,fontWeight:600}}>{devLabel}</span>
@@ -4388,13 +4493,13 @@ function App(){
                         background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
                         boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:220,
                       }}>
-                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
                           onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
                           onMouseLeave={e=>e.currentTarget.style.background='none'}>
                           <div style={{fontWeight:600}}>Quick Summary</div>
                           <div style={{color:'#949494',fontSize:10}}>for ticket notes</div>
                         </button>
-                        <button onClick={()=>{copyText(buildFullText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                        <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
                           onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
                           onMouseLeave={e=>e.currentTarget.style.background='none'}>
                           <div style={{fontWeight:600}}>Full Export</div>
