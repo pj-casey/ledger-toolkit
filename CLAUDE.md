@@ -343,7 +343,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 
 ## State variables
 
-**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`, `versionCheck`
+**App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`, `versionCheck`, `firmwareCheck`
 **DiagSidebar:** `accountsOpen`, `advOpen`
 **CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
@@ -391,8 +391,8 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `openGuide(type)` | Open guide overlay ('agent' or 'technical') |
 | `sevColor(s)` | Returns severity color for high/medium/low |
 | `errUrl(dg)` | Returns support.ledger.com URL from ERR_DB `u` field, or null |
-| `buildSummaryText(logData, liveBalances, ledgerStatus)` | Quick Summary copy text (standalone function) |
-| `buildFullText(logData, liveBalances, ledgerStatus)` | Full Export copy text (standalone function) |
+| `buildSummaryText(logData, liveBalances, ledgerStatus, versionCheck, firmwareCheck)` | Quick Summary copy text (standalone function) |
+| `buildFullText(logData, liveBalances, ledgerStatus, versionCheck, firmwareCheck)` | Full Export copy text (standalone function) |
 | `buildCustomerText(logData, liveBalances)` | Customer Summary copy text (standalone function) |
 | `buildErrorText(logData)` | Error export with severity, actions, causes, help URLs |
 | `inferRequiredApps(accounts)` | Maps account currencies → required device apps via `CURRENCY_TO_APP` |
@@ -432,7 +432,7 @@ On log load, the tool fetches the current app catalog from Ledger's Manager API 
 
 **API:** `GET https://manager.api.live.ledger.com/api/v2/apps/by-target?target_id={tid}&firmware_version_name={fw}&device_type={model}&livecommonversion={lcv}&provider=1`
 
-**Required from log:** `dev.targetId` (full 32-bit, stored by D-7 path), `dev.fw`, `dev.modelId`. `livecommonversion` extracted from Manager API URLs in log entries.
+**Required from log:** `dev.targetId` (full 32-bit, stored by D-7 path), `dev.fw`, `dev.modelId`. `livecommonversion` extracted from Manager API URLs in log entries. Fallback: `'1.0.0'` (must be valid semver).
 
 **State:** `versionCheck` — `{status:'ok'|'loading'|'error', apps:[{name, installed, latest, outdated}], catalogSize}`
 
@@ -458,8 +458,38 @@ On log load, the tool fetches the current app catalog from Ledger's Manager API 
 **Copy reports:** `buildSummaryText` and `buildFullText` accept `versionCheck` as 4th parameter. Include VERSION CHECK section with outdated apps when available.
 
 **Phases remaining:**
-- Phase 2: Firmware outdated detection (POST /api/v2/get_latest_firmware)
 - Phase 3: Ledger Wallet version check (GitHub releases API)
+
+---
+
+## Live Firmware Checking (Phase 2)
+
+On log load, the tool checks if the device's firmware is the latest available via a 3-call chain to Ledger's Manager API.
+
+**API chain (3 calls):**
+1. `POST /api/get_device_version` — body: `{target_id, provider:1}` → returns `{id: <device_version_id>, name, ...}`
+2. `POST /api/get_firmware_version` — body: `{device_version: <id>, version_name: <dev.fw>, provider:1}` → returns `{id: <se_firmware_id>, name, version, ...}`
+3. `POST /api/get_osu_version?livecommonversion=<lcv>` — body: `{device_version: <id>, current_se_firmware_final_version: <se_firmware_id>, version_name: <dev.fw>, provider:1}` → 404 = current, 200 = outdated (response contains latest firmware info)
+
+**Optimization:** Steps 1 and 2 scan log entries first for `get_device_version` and `get_firmware_version` network-success responses. If found, the corresponding API call is skipped.
+
+**Fallback URLs:** Steps 1 and 2 try `/api/` (v1) then `/api/v2/` paths. Step 3 tries `get_osu_version` then `get_latest_firmware`.
+
+**`livecommonversion`:** Extracted from Manager API URLs in log entries (same as Phase 1). Fallback: `'1.0.0'` (must be valid semver — `'1'` is rejected by the API).
+
+**State:** `firmwareCheck` — `{status:'ok'|'loading'|'error', current:string, latest:string|null, outdated:boolean}`
+
+**Required from log:** `dev.targetId` (same as Phase 1), `dev.fw`.
+
+**UI integration:**
+- Health pill: green when live-confirmed current, red `⬆` with version path when outdated
+- Compact status line: `FW x.x.x ✓` (current), `FW x.x.x ⬆ y.y.y` (outdated), `FW x.x.x …` (checking)
+- Expanded device card: red-tinted firmware advice box when outdated
+- LIVE/CHECKING/OFFLINE badge: reflects combined app check + firmware check status
+- Customer View: firmware line shows ✓ or ⬆ when live data available
+- Copy reports: `buildSummaryText` and `buildFullText` include firmware check results (5th parameter)
+
+**Overrides log-derived data:** When `firmwareCheck.status==='ok'`, it takes precedence over the log-derived `fwLatest`/`fwOk` variables (which come from `deviceApps.firmware`).
 
 ---
 

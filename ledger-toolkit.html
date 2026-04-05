@@ -4243,14 +4243,12 @@ function App(){
           `https://manager.api.live.ledger.com/api/get_latest_firmware?livecommonversion=${encodeURIComponent(lcv)}`,
           'https://manager.api.live.ledger.com/api/get_latest_firmware'
         ];
-        console.log('Firmware update check sending body:',fwBody,'lcv:',lcv);
         let fwRes=null;
         for(const url of fwUrls){
           try{
             fwRes=await fetch(url,fwOpts);
             if(fwRes.ok){console.log('Firmware update check hit ('+url+'), status:',fwRes.status);break;}
             if(fwRes.status===404){console.log('Firmware update check ('+url+'): 404 = no update available');setFirmwareCheck({status:'ok',current:dev.fw,latest:null,outdated:false});return;}
-            if(fwRes.status===400){try{const errBody=await fwRes.text();console.log('Firmware update check 400 ('+url+'):',errBody);}catch(e){}}
           }catch(e){if(e.name==='AbortError')throw e;}
         }
         if(!fwRes||!fwRes.ok){console.warn('Firmware update check: all endpoints failed');setFirmwareCheck({status:'error',current:dev.fw,latest:null,outdated:false});return;}
