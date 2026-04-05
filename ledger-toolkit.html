@@ -511,9 +511,9 @@ const GUIDE_AGENT=`<!-- Hero -->
   <h3>Four formats</h3>
   <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts with live balances, top errors, portfolio total. Paste into your support ticket.</p>
   <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts with live balances and fiat values, all errors, device apps. For escalation to Tier 2 or engineering.</p>
-  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Live balances, fiat values, and portfolio total. For describing what the wallet looks like. Available in the sidebar Copy dropdown and as a button in Customer View.</p>
+  <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Live balances, fiat values, and portfolio total. For describing what the wallet looks like. Available in the Overview action bar and as a button in Customer View.</p>
   <p><span class="badge badge-red">Copy Errors</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:0">Quick Summary, Full Export, and Customer Summary are all in the <strong>Copy report ▾</strong> button at the bottom of the sidebar. Copy Errors is in the Issues section header. All copy formats include live blockchain balances when available.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All four formats are in the <strong>📋 Copy report ▾</strong> button in the Overview action bar. Copy Errors is also available as a standalone button in the Issues section header. Each format is color-coded: <span style="color:#BBB0FF">purple</span> for summary/full, <span style="color:#7AC26C">green</span> for customer, <span style="color:#F57375">red</span> for errors.</p>
 </div>
 
 
@@ -3528,20 +3528,103 @@ function fmtAcctLine(a,short,liveBalances,isMobile){
   return '  '+[a.ch.name,balStr,opsStr,addr].filter(Boolean).join(' — ');
 }
 
+const dropItemStyle={display:'block',width:'100%',padding:'8px 12px 8px 15px',background:'none',border:'none',borderBottom:'1px solid #3C3C3C',borderLeft:'3px solid transparent',color:'#FFFFFF',cursor:'pointer',textAlign:'left',fontSize:12,transition:'background 0.1s'};
+function buildSummaryText(logData,liveBalances){
+  const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
+  const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
+  const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
+  return [
+    logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',
+    ...(noSyncTxt?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),
+    `Session:     ${ses}`,'','DEVICE',
+    `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
+    `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    `  ${llLabel(d,logData.isMobile)}: ${d.appVer||'Unknown'}`,
+    `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
+    `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
+    ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,
+    ...accts.slice(0,10).map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
+    ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),
+    (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
+    '',`ERRORS (${errs.length})`,
+    ...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${llText(e.dg?.a,d)||''}`),
+    ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),
+    '',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',
+    ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
+    '=================================',
+  ].filter(l=>l!==undefined).join('\n');
+}
+function buildFullText(logData,liveBalances){
+  const d=logData.dev;const accts=logData.accts;const errs=logData.errs;
+  const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
+  const ses=logData.entries.length>1?`${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length-1].timestamp)}`:'Unknown';
+  return [
+    logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',
+    ...(noSyncTxt?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),
+    `Session:     ${ses}`,'','DEVICE',
+    `  Model:       ${d.modelName||d.modelId||'Unknown'}`,
+    `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    `  ${llLabel(d,logData.isMobile)}: ${d.appVer||'Unknown'}`,
+    `  OS:         ${[d.os,d.osVer].filter(Boolean).join(' ')||(logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
+    `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
+    ...buildDeviceAppsLines(logData,true),`ACCOUNTS (${accts.length})`,
+    ...accts.map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
+    (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
+    '',`ERRORS (${errs.length})`,
+    ...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${llText(e.dg?.a,d)||''}`),
+    '',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,'','SESSION ACTIVITY',
+    ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
+    '=================================',
+  ].filter(l=>l!==undefined).join('\n');
+}
+function buildCustomerText(logData,liveBalances){
+  const dev=logData.dev;const accts=logData.accts;const errs=logData.errs;
+  const funded=accts.filter(a=>a.ops>0);const empty=accts.filter(a=>a.ops<=0);
+  const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
+  const lines=['=== Customer Wallet Summary ===',
+    ...(noSyncTxt?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),
+    '','DEVICE',
+    `  Model:     ${dev.modelName||dev.modelId||'Unknown'}`,
+    `  Firmware:  ${(()=>{const fw=dev.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===dev.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
+    `  ${llLabel(dev)}: ${dev.appVer||'Unknown'}`,
+    `  OS:        ${[dev.os,dev.osVer].filter(Boolean).join(' ')||(logData.isMobile?(dev.platform==='ios'?'iOS':dev.platform==='android'?'Android':'Unknown'):'Unknown')}`,
+    `  Platform:  ${dev.platform||'Unknown'}`,'',
+    ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,
+  ];
+  for(const a of funded){lines.push(fmtAcctLine(a,false,liveBalances,logData.isMobile));}
+  const noDataCount=empty.filter(a=>a.dur==null&&a.bal==null).length;
+  const confirmedEmpty=empty.length-noDataCount;
+  if(confirmedEmpty>0)lines.push(`  (${confirmedEmpty} empty account${confirmedEmpty!==1?'s':''})`);
+  if(noDataCount>0)lines.push(`  (${noDataCount} account${noDataCount!==1?'s':''} — no balance data)`);
+  const portfolioTotal=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);
+  if(portfolioTotal>0){lines.push('');lines.push(`PORTFOLIO: $${portfolioTotal.toLocaleString(undefined,{maximumFractionDigits:2})} USD`);}
+  if(errs.length>0){lines.push('');lines.push(`ISSUES (${errs.length})`);const seen=new Set();for(const e of errs){const t=e.dg?.t||e.msg||'Unknown';if(seen.has(t))continue;seen.add(t);lines.push(`  [${(e.dg?.s||'?').toUpperCase()}] ${t}`);}}
+  lines.push('');lines.push('===========================');
+  return lines.join('\n');
+}
+
+function buildErrorText(logData){
+  const errs=logData.errs;
+  if(errs.length===0)return '=== Error Summary ===\n\nNo errors detected.\n===================';
+  const lines=['=== Error Summary ===',''];
+  for(const e of errs){
+    const dg=diagnose(e.raw);
+    lines.push(`[${(dg.s||'?').toUpperCase()}] ${dg.t}`);
+    lines.push(`  Action: ${llText(dg.a,logData.dev)}`);
+    lines.push(`  Category: ${dg.c} · Entry #${e.li} · ${fmtTime(e.ts)}`);
+    if(dg.causes&&dg.causes.length>0)lines.push(`  Causes: ${dg.causes.join(', ')}`);
+    lines.push('');
+  }
+  lines.push('===================');
+  return lines.join('\n');
+}
+
 function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, setFocusedAcct }) {
   const errors = logData ? logData.errs : [];
   const accounts = logData ? logData.accts : [];
 
-  const [copyOpen, setCopyOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(true);
   const [advOpen, setAdvOpen] = useState(false);
-
-  useEffect(()=>{
-    if(!copyOpen)return;
-    const h=()=>setCopyOpen(false);
-    document.addEventListener('click',h);
-    return()=>document.removeEventListener('click',h);
-  },[copyOpen]);
 
   // Severity computation
   const diagnosed = errors.map(e => ({ ...e, dg: diagnose(e.raw) }));
@@ -3556,137 +3639,6 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
     : errors.length === 0 ? 'Clean session — no issues detected' : `No critical issues — ${errors.length} informational event${errors.length!==1?'s':''} logged (routine)`;
   const noSync = accounts.length > 0 && !accounts.some(a => a.dur != null || a.bal != null);
   const sevSentenceFinal = noSync ? sevSentence + ' · No sync data' : sevSentence;
-
-  const dropItemStyle = {
-    display: 'block', width: '100%', padding: '8px 12px',
-    background: 'none', border: 'none', borderBottom: '1px solid #3C3C3C',
-    color: '#FFFFFF', cursor: 'pointer', textAlign: 'left', fontSize: 12
-  };
-
-  // Copy text builders (mirrors Overview copy buttons)
-  const buildSummaryText = () => {
-    const d = logData.dev;
-    const accts = logData.accts;
-    const errs = logData.errs;
-    const noSyncTxt = accts.length > 0 && !accts.some(a => a.dur != null || a.bal != null);
-    const ses = logData.entries.length > 1
-      ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
-      : 'Unknown';
-    return [
-      logData.isMobile?'=== Ledger Diagnostic Summary (Mobile) ===':'=== Ledger Diagnostic Summary ===',
-      ...(noSyncTxt ? ['⚠ NO SYNC DATA — operation counts and log balances are unavailable.', '  Live blockchain balances shown where available.', ''] : []),
-      `Session:     ${ses}`,
-      '',
-      'DEVICE',
-      `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
-      `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
-      `  ${llLabel(d,logData.isMobile)}: ${d.appVer || 'Unknown'}`,
-      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || (logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
-      `  Platform:   ${d.platform || 'Unknown'}`,
-      `  User ID:    ${d.userId || 'Unknown'}`,
-      '',
-      ...buildDeviceAppsLines(logData, false),
-      `ACCOUNTS (${accts.length})`,
-      ...accts.slice(0, 10).map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
-      ...(accts.length > 10 ? [`  ... and ${accts.length - 10} more`] : []),
-      (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
-      '',
-      `ERRORS (${errs.length})`,
-      ...errs.slice(0, 8).map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${llText(e.dg?.a,d) || ''}`),
-      ...(errs.length > 8 ? [`  ... and ${errs.length - 8} more`] : []),
-      '',
-      `APDU exchanges: ${logData.apdu?.length || 0}`,
-      `Log quality: ${logData.quality?.score || 0}/100 (${logData.quality?.label || '?'})`,
-      '',
-      'SESSION ACTIVITY',
-      ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
-      '=================================',
-    ].filter(l => l !== undefined).join('\n');
-  };
-
-  const buildFullText = () => {
-    const d = logData.dev;
-    const accts = logData.accts;
-    const errs = logData.errs;
-    const noSyncTxt = accts.length > 0 && !accts.some(a => a.dur != null || a.bal != null);
-    const ses = logData.entries.length > 1
-      ? `${fmtDate(logData.entries[0].timestamp)} ${fmtTime(logData.entries[0].timestamp)} — ${fmtTime(logData.entries[logData.entries.length - 1].timestamp)}`
-      : 'Unknown';
-    return [
-      logData.isMobile?'=== Ledger Diagnostic Summary — Full (Mobile) ===':'=== Ledger Diagnostic Summary (Full) ===',
-      ...(noSyncTxt ? ['⚠ NO SYNC DATA — operation counts and log balances are unavailable.', '  Live blockchain balances shown where available.', ''] : []),
-      `Session:     ${ses}`,
-      '',
-      'DEVICE',
-      `  Model:       ${d.modelName || d.modelId || 'Unknown'}`,
-      `  Firmware:    ${(()=>{const fw=d.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===d.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
-      `  ${llLabel(d,logData.isMobile)}: ${d.appVer || 'Unknown'}`,
-      `  OS:         ${[d.os, d.osVer].filter(Boolean).join(' ') || (logData.isMobile?(d.platform==='ios'?'iOS':d.platform==='android'?'Android':'Unknown'):'Unknown')}`,
-      `  Platform:   ${d.platform || 'Unknown'}`,
-      `  User ID:    ${d.userId || 'Unknown'}`,
-      '',
-      ...buildDeviceAppsLines(logData, true),
-      `ACCOUNTS (${accts.length})`,
-      ...accts.map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
-      (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
-      '',
-      `ERRORS (${errs.length})`,
-      ...errs.map(e => `  [${(e.dg?.s || '?').toUpperCase()}] ${e.dg?.t || e.msg || '?'}: ${llText(e.dg?.a,d) || ''}`),
-      '',
-      `APDU exchanges: ${logData.apdu?.length || 0}`,
-      `Log quality: ${logData.quality?.score || 0}/100 (${logData.quality?.label || '?'})`,
-      '',
-      'SESSION ACTIVITY',
-      ...(()=>{const act=logData.activity||{};const flags=[];if(act.managerOpened)flags.push('  Manager opened');if(act.swapBrowsed)flags.push(`  Swap browsed${act.swapExecuted?'':' (not completed)'}`);if(act.deviceScan)flags.push('  Device scan active');return flags.length?flags:['  (none detected)'];})(),
-      '=================================',
-    ].filter(l => l !== undefined).join('\n');
-  };
-
-  const buildCustomerText = () => {
-    const dev = logData.dev;
-    const accts = logData.accts;
-    const errs = logData.errs;
-    const funded = accts.filter(a => a.ops > 0);
-    const empty = accts.filter(a => a.ops <= 0);
-    const noSyncTxt = accts.length > 0 && !accts.some(a => a.dur != null || a.bal != null);
-    const lines = [
-      '=== Customer Wallet Summary ===',
-      ...(noSyncTxt ? ['⚠ NO SYNC DATA — operation counts and log balances are unavailable.', '  Live blockchain balances shown where available.', ''] : []),
-      '',
-      'DEVICE',
-      `  Model:     ${dev.modelName || dev.modelId || 'Unknown'}`,
-      `  Firmware:  ${(()=>{const fw=dev.fw||'Unknown';const lf=logData.deviceApps?.firmware;return lf?(lf.version===dev.fw?fw+' (up to date)':fw+` (outdated — ${lf.version} available)`):fw;})()}`,
-      `  ${llLabel(dev)}: ${dev.appVer || 'Unknown'}`,
-      `  OS:        ${[dev.os, dev.osVer].filter(Boolean).join(' ') || (logData.isMobile?(dev.platform==='ios'?'iOS':dev.platform==='android'?'Android':'Unknown'):'Unknown')}`,
-      `  Platform:  ${dev.platform || 'Unknown'}`,
-      '',
-      ...buildDeviceAppsLines(logData, false),
-      `ACCOUNTS (${accts.length})`,
-    ];
-    for (const a of funded) {
-      lines.push(fmtAcctLine(a,false,liveBalances,logData.isMobile));
-    }
-    const noDataCount=empty.filter(a=>a.dur==null&&a.bal==null).length;
-    const confirmedEmpty=empty.length-noDataCount;
-    if(confirmedEmpty>0)lines.push(`  (${confirmedEmpty} empty account${confirmedEmpty!==1?'s':''})`);
-    if(noDataCount>0)lines.push(`  (${noDataCount} account${noDataCount!==1?'s':''} — no balance data)`);
-    const portfolioTotal=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);
-    if(portfolioTotal>0){lines.push('');lines.push(`PORTFOLIO: $${portfolioTotal.toLocaleString(undefined,{maximumFractionDigits:2})} USD`);}
-    if (errs.length > 0) {
-      lines.push('');
-      lines.push(`ISSUES (${errs.length})`);
-      const seen = new Set();
-      for (const e of errs) {
-        const t = e.dg?.t || e.msg || 'Unknown';
-        if (seen.has(t)) continue;
-        seen.add(t);
-        lines.push(`  [${(e.dg?.s || '?').toUpperCase()}] ${t}`);
-      }
-    }
-    lines.push('');
-    lines.push('===========================');
-    return lines.join('\n');
-  };
 
   // Sub-components defined inline
   const SectionHeader = ({ icon, label, subtitle, count, active, onClick, expandable, expanded, dot }) => (
@@ -3864,31 +3816,6 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
       </div>
 
-      {/* Copy — bottom of sidebar, visually subordinate */}
-      <div style={{ borderTop: '1px solid #3C3C3C', padding: '8px 12px', position: 'relative' }}>
-        <button
-          onClick={() => setCopyOpen(o => !o)}
-          style={{ fontSize: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid #3C3C3C', borderRadius: 4, color: '#666666', padding: '4px 8px', cursor: 'pointer', width: '100%', textAlign: 'left' }}
-        >Copy report ▾</button>
-        {copyOpen && (
-          <div style={{ position: 'absolute', bottom: 'calc(100% - 4px)', left: 12, right: 12, zIndex: 100, background: '#1C1D1F', border: '1px solid #3C3C3C', borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-            <button onClick={() => { copyText(buildSummaryText()); setCopyOpen(false); }} style={dropItemStyle}>
-              <div style={{ fontWeight: 600 }}>Quick Summary</div>
-              <div style={{ color: '#949494', fontSize: 10 }}>for ticket notes</div>
-            </button>
-            <button onClick={() => { copyText(buildFullText()); setCopyOpen(false); }} style={dropItemStyle}>
-              <div style={{ fontWeight: 600 }}>Full Export</div>
-              <div style={{ color: '#949494', fontSize: 10 }}>for escalation</div>
-            </button>
-            {accounts.length > 0 && (
-              <button onClick={() => { copyText(buildCustomerText()); setCopyOpen(false); }} style={{ ...dropItemStyle, borderBottom: 'none' }}>
-                <div style={{ fontWeight: 600 }}>Customer Summary</div>
-                <div style={{ color: '#949494', fontSize: 10 }}>account-focused</div>
-              </button>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -3934,6 +3861,7 @@ function App(){
   const[guideOpen,setGuideOpen]=useState(null);
   const[guideSearch,setGuideSearch]=useState('');
   const[focusDropOpen,setFocusDropOpen]=useState(false);
+  const[copyOpen,setCopyOpen]=useState(false);
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
 
@@ -3966,10 +3894,18 @@ function App(){
   },[focusDropOpen]);
 
   useEffect(()=>{
+    if(!copyOpen)return;
+    const h=(e)=>{if(!e.target.closest('[data-copy-drop]'))setCopyOpen(false);};
+    const t=setTimeout(()=>document.addEventListener('click',h),0);
+    return()=>{clearTimeout(t);document.removeEventListener('click',h);};
+  },[copyOpen]);
+
+  useEffect(()=>{
     setQualityOpen(false);
     setDevDetailOpen(false);
     setAcctMapOpen(false);
     setFocusDropOpen(false);
+    setCopyOpen(false);
     setHoveredAcct(null);
   },[section]);
 
@@ -3980,7 +3916,7 @@ function App(){
   },[focusedAcct]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -4061,7 +3997,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setAcctMapOpen(false);setFocusDropOpen(false);setCopyOpen(false);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -4332,7 +4268,8 @@ function App(){
                       </div>
                     ))}
                   </div>
-                  <div style={{display:'flex',gap:6,flexShrink:0,paddingTop:4,alignItems:'center'}}>
+                  <div style={{display:'flex',gap:6,flexShrink:0,paddingTop:4,alignItems:'flex-start'}}>
+                    <div style={{display:'flex',flexDirection:'column',gap:4,flexShrink:0}}>
                     {logData.accts.length>0&&<div data-focus-drop style={{position:'relative',flexShrink:0}}>
                       <button onClick={()=>setFocusDropOpen(o=>!o)} style={{
                         display:'inline-flex',alignItems:'center',gap:6,
@@ -4389,6 +4326,56 @@ function App(){
                         >Clear focus</div>}
                       </div>}
                     </div>}
+                    <div data-copy-drop style={{position:'relative',flexShrink:0}}>
+                      <button onClick={()=>setCopyOpen(o=>!o)} style={{
+                        display:'inline-flex',alignItems:'center',gap:6,
+                        padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,
+                        background:'rgba(255,255,255,0.04)',
+                        border:`1px solid ${T.border}`,
+                        color:T.muted,cursor:'pointer',transition:'all 0.15s',
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}
+                      >
+                        <span style={{fontSize:12}}>📋</span> Copy report
+                        <span style={{fontSize:10,opacity:0.7}}>{copyOpen?'▾':'▸'}</span>
+                      </button>
+                      {copyOpen&&<div style={{
+                        position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:30,
+                        background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
+                        boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:220,
+                      }}>
+                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                          onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
+                          onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                          <div style={{fontWeight:600}}>Quick Summary</div>
+                          <div style={{color:'#949494',fontSize:10}}>for ticket notes</div>
+                        </button>
+                        <button onClick={()=>{copyText(buildFullText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                          onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
+                          onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                          <div style={{fontWeight:600}}>Full Export</div>
+                          <div style={{color:'#949494',fontSize:10}}>for escalation</div>
+                        </button>
+                        {logData.accts.length>0&&(
+                          <button onClick={()=>{copyText(buildCustomerText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#7AC26C'}}
+                            onMouseEnter={e=>e.currentTarget.style.background='rgba(122,194,108,0.06)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                            <div style={{fontWeight:600}}>Customer Summary</div>
+                            <div style={{color:'#949494',fontSize:10}}>account-focused</div>
+                          </button>
+                        )}
+                        {logData.errs.length>0&&(
+                          <button onClick={()=>{copyText(buildErrorText(logData));setCopyOpen(false);}} style={{...dropItemStyle,borderBottom:'none',borderLeftColor:'#F57375'}}
+                            onMouseEnter={e=>e.currentTarget.style.background='rgba(245,115,117,0.06)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                            <div style={{fontWeight:600}}>Copy Errors</div>
+                            <div style={{color:'#949494',fontSize:10}}>all errors with actions</div>
+                          </button>
+                        )}
+                      </div>}
+                    </div>
+                    </div>
                     <button onClick={()=>openGuide('agent')} title="Agent Guide" style={{
                       padding:'6px 10px',borderRadius:6,fontSize:12,fontWeight:600,
                       background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,
