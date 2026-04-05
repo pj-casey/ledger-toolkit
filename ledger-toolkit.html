@@ -5715,12 +5715,12 @@ function App(){
                         const barRelevant=focusedAcct?bucketErrs.some(e=>((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(focusedAcct.addr.toLowerCase())):true;
                         return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',transition:'opacity 0.2s',opacity:(!barRelevant&&bucketErrs.length>0)?0.2:1}}>
                           {segs.map((s,si)=>{
-                            const color=s.isErr?T.error:(TC[s.tp.toLowerCase()]||'#717070');
+                            const color=s.isErr?T.error:'#4A4A4A';
                             const dimmedByChipHover=s.isErr&&!errHighlighted&&(errHoveredSev||errHoveredCat);
                             return <div key={si} style={{
                               flex:s.pct,
                               background:color,
-                              opacity:s.isErr?(dimmedByChipHover?0.15:isBarHovered?1:0.9):(isBarHovered?0.45:0.25),
+                              opacity:s.isErr?(dimmedByChipHover?0.15:isBarHovered?1:0.9):(isBarHovered?0.35:0.20),
                               minHeight:s.isErr?2:0,
                               transition:'opacity 0.1s',
                             }}/>;
@@ -5754,10 +5754,27 @@ function App(){
                         )}
                       </div>;
                     })()}
+                    {/* Selected error marker */}
+                    {(()=>{
+                      if(effectiveSel==null)return null;
+                      const selErr=enrichedErrs.find(e=>e.li===effectiveSel);
+                      if(!selErr)return null;
+                      const selTime=new Date(selErr.ts).getTime();
+                      const selPct=((selTime-t0)/span)*100;
+                      const sc=sevColor(selErr.dg.s);
+                      return <>
+                        <div style={{position:'absolute',left:`${selPct}%`,top:0,bottom:0,width:2,background:sc,opacity:0.9,zIndex:10,pointerEvents:'none',transform:'translateX(-1px)',boxShadow:`0 0 8px ${sc}60`}}/>
+                        <div style={{position:'absolute',left:`${selPct}%`,bottom:-6,width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`6px solid ${sc}`,transform:'translateX(-5px)',zIndex:10,pointerEvents:'none'}}/>
+                      </>;
+                    })()}
+                    {/* Purpose label */}
+                    <div style={{position:'absolute',top:6,right:8,display:'flex',alignItems:'center',gap:6,pointerEvents:'none'}}>
+                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.06em',textTransform:'uppercase'}}>Session · click to navigate</span>
+                    </div>
                     {/* Error count label */}
-                    <div style={{position:'absolute',bottom:4,left:8,fontSize:10,color:T.error,fontWeight:700,opacity:0.8,display:'flex',alignItems:'center',gap:4,pointerEvents:'none'}}>
+                    <div style={{position:'absolute',bottom:4,left:8,fontSize:10,color:T.error,fontWeight:700,opacity:0.8,display:'flex',alignItems:'center',gap:4,pointerEvents:'none',fontFamily:MF,letterSpacing:'0.03em'}}>
                       <span style={{width:6,height:6,borderRadius:'50%',background:T.error}}/>
-                      {enrichedErrs.length} error{enrichedErrs.length!==1?'s':''}
+                      {enrichedErrs.length} error{enrichedErrs.length!==1?'s':''} highlighted
                     </div>
                   </div>
                   <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginTop:4}}>
