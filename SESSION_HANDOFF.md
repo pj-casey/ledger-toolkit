@@ -1,3 +1,89 @@
+# Session Handoff — April 5, 2026 (Session 8)
+
+## What was built this session
+
+### Documentation Sync
+
+Both embedded guide constants (`GUIDE_AGENT`, `GUIDE_TECHNICAL`) and standalone files (`agent-guide.html`, `technical-reference.html`) updated to reflect the visual overhaul work done in sessions 7–8.
+
+**Agent Guide changes:**
+- Timeline "What you'll see" description now names all TC colors in sequence: "gray startup, purple analytics, gold price fetching, orange sync burst, blue network calls, red errors at the end."
+- Health tiles: updated to mention chain brand icons with ticker-text fallback.
+- Focus Mode: added EVM precision paragraph — for accounts sharing an address (Ethereum + L2s), focus is chain-specific, not address-wide.
+- Copy report color description corrected: orange for customer (`#FF5300`), red for errors (`#E40046`).
+
+**Technical Reference changes:**
+- Event Classification: added full TC 9-entry color table with hex values, bold color preview, and brief descriptions.
+- Session Visualization: added visual polish paragraph (rounded bars, ambient gradient, tinted chips in strip header).
+- Account Health Visualization: added chain brand icons mention (CDN-backed with ticker fallback).
+- Issues strip: TC type colors at 35% opacity for context segments + red glow for error segments.
+- New "About This Tool" section: architecture overview (React 18.3.1 + Babel, three-tier parser, 82-pattern ERR_DB, 60-chain registry, live on-chain verification, zero data transmission, fixed viewport).
+- TOC entry added for "About This Tool".
+
+---
+
+### Prior session work (covered by session 7 handoff + summarized session)
+
+Changes from the session preceding this handoff (separate summarized conversation):
+
+**Font system swap:** Brut Grotesque (base64-embedded, ~194KB) → Darker Grotesque (CDN). Total bundle ~540KB, down from ~700KB. No offline capability change — CDN required for both fonts now (JetBrains Mono was already CDN).
+
+**Chain color corrections** (`CHAINS` constant): fixed visibility and brand accuracy across multiple chains. Full list in commit `375b9b5`.
+
+**Chain brand icons:** New `ICON_CDN` constant (jsDelivr/simplr-sh/coin-logos) + `chainIconUrl(id)` helper using `COINGECKO_IDS` mapping. Applied to Accounts health tiles and treemap blocks. Ticker-text fallback when icon unavailable. Refactored in `8d1af1c` to use `COINGECKO_IDS` instead of a separate `ICON_MAP`.
+
+**TC bold palette:** 9 distinct colors with hex values, replacing previous muted palette. action (#9B9B9B), analytics (#C084FC), countervalues (#FBBF24), bridge (#FF8C42), network (#60A5FA), persistence (#4ADE80), walletsync (#D4A0FF), error (#FF4D6D), live-dmk-logger (#FF5300). Consistent across Timeline bars, legend chips, row badges, Issues strip.
+
+**Timeline strip visual polish:** rounded bar segments, ambient gradient overlay, tinted type-count chips in strip header area.
+
+**Issues strip:** TC type colors at 35% opacity for context segments; error segments use `T.error` with subtle red glow. Same `selectPulse` animation on selected marker.
+
+**Focus Mode EVM fix:** `focusedAcct` comparison changed from address-only to `addr+cid` composite key. Ethereum and Polygon can share a wallet address — focus now targets the specific chain, not all chains at that address.
+
+---
+
+## Current file state
+
+~6,600 lines. One file: `ledger-toolkit.html`.
+
+## Current git state
+
+Branch: `main`. Latest commit: `42e5978` (docs sync). 2 commits ahead of remote origin (`b853f1d`, `42e5978`).
+
+Push workflow: sandbox blocks HTTPS push — use `! git push origin main` directly from prompt.
+
+---
+
+## Key decisions made
+
+- **Darker Grotesque via CDN.** Saves ~160KB over base64-embedded Brut Grotesque; both fonts now CDN-dependent so no tradeoff in offline capability.
+- **`chainIconUrl` uses `COINGECKO_IDS`.** Rather than a separate icon map, the existing CoinGecko slug map doubles as the icon ID. One source of truth.
+- **Focus is chain-specific, not address-wide.** EVM accounts sharing an address are separate entities in the log. Focusing Ethereum should not dim Polygon, even though they have the same address.
+- **TC palette is bold, not muted.** Agents learn the color language by seeing it clearly. Pastel was soft enough to be ambiguous.
+
+---
+
+## Backlog (carried forward)
+
+### Design language
+1. **CopyBtn animation** — still too subtle. Needs icon color change + scale on copy.
+2. **Guide labels completeness** — Advanced, Network, APDU, Raw JSON have no purpose labels yet.
+
+### Tab-specific work
+3. **Accounts tab brand alignment** — prompt `accounts-brand-alignment.md` written, not yet run. 7 fixes.
+4. **Network/APDU/Raw JSON tab brand alignment** — not started.
+5. **Customer View overhaul** — backburner.
+
+### Documentation
+6. **Agent Guide + Technical Reference** — synced this session. May need further updates after Accounts/Network tab work.
+
+### Other
+7. **Responsiveness audit** — click-outside handlers may still have stopPropagation issues.
+8. **Test with real logs** — especially firmware/desktop version checks end-to-end.
+9. **Focus Mode: treemap block label on hover** — currently popover only. Consider a persistent ticker label inside each block.
+
+---
+
 # Session Handoff — April 5, 2026 (Session 7)
 
 ## What was built this session

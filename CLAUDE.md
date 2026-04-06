@@ -232,16 +232,16 @@ Three elevation levels: bg → panel → card. Cards use background, NOT borders
 
 Two-font rule — applied consistently across all UI surfaces:
 - **Structural labels** (section headers, stat card labels, badge text, sidebar keys, filter chips): `MF` constant = `'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace`
-- **Values, body text, descriptions**: Brut Grotesque (300–700), embedded via Base64 @font-face
+- **Values, body text, descriptions**: Darker Grotesque (300–800), loaded from Google Fonts CDN
 
 `MF` is a module-scope constant. Never inline the font stack — reference `MF` everywhere monospace is needed.
 
 | Font | Role | Loaded from |
 |---|---|---|
-| **Brut Grotesque** (300–700) | All body text, headings, values, descriptions, stat numbers | Base64 embedded @font-face (4 woff2 files: Light 300, Regular 400, Medium 500, Bold 600+700) |
+| **Darker Grotesque** (300–800) | All body text, headings, values, descriptions, stat numbers | Google Fonts CDN |
 | **JetBrains Mono** (400–500) | Labels, tags, badges, code, addresses, hashes | Google Fonts CDN |
 
-File size: ~700KB total (~194KB for the 4 embedded font files). No CDN dependency for body font — works offline, works on `file://`.
+File size: ~540KB. Both body and mono fonts via CDN — requires network on first load; subsequent loads use browser cache.
 
 ### Ambient gradient system
 
@@ -367,7 +367,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `T` | 11 | Theme colors (includes `card` elevation and `orange:#FF5300`) |
 | `MF` | 1 | Monospace font stack constant |
 | `I` | 11 | Interaction constants — timing (`fast`, `medium`, `slow`), hover backgrounds (`hover`, `hoverStrong`, `hoverAccent`), selection (`selectedBg`, `selectedBorder`), feedback (`confirmColor`, `pulse`), resting affordance (`interactiveBorder`) |
-| `TC` | 9 | Log type badge colors — bold palette: action grey, analytics purple, countervalues amber, bridge orange, network blue, persistence green, walletsync pink, error crimson, live-dmk-logger purple |
+| `TC` | 9 | Log type badge colors — bold palette: action grey `#808080`, analytics purple `#B49AFF`, countervalues amber `#FFBD42`, bridge orange `#FF8C42`, network blue `#4FC3F7`, persistence green `#7AC26C`, walletsync lavender `#D4A0FF`, error crimson `#E40046`, live-dmk-logger orange-red `#FF5300` |
 | `DN` | 6 | Device model names (nanoS, nanoSP, nanoX, stax, europa→Flex, apex→Nano Gen5) |
 | `TARGET_MASKS` | 6 | Target ID → device model mapping (same as @ledgerhq/devices) |
 | `CHAINS` | 60 | Chain registry + explorer URLs |
@@ -379,6 +379,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `TOKEN_SEARCH` | 8 | Token search fallbacks |
 | `CURRENCY_TO_APP` | 46 | Currency ID → device app name |
 | `COINGECKO_IDS` | 40+ | Chain currency ID → CoinGecko coin slug |
+| `ICON_CDN` | 1 | Base CDN URL for chain brand icons (simplr-sh/coin-logos via jsDelivr) |
 | `EVM_RPCS` | 23 | Chain → publicnode.com RPC URL |
 | `BALANCE_APIS` | 17 | Chain → custom balance fetch function (non-EVM) |
 | `GUIDE_AGENT` | 1 | Embedded agent guide HTML content |
@@ -406,6 +407,7 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `buildCustomerText(logData, liveBalances)` | Customer Summary copy text |
 | `buildErrorText(logData)` | Error export with severity, actions, causes, help URLs |
 | `inferRequiredApps(accounts)` | Maps account currencies → required device apps via `CURRENCY_TO_APP` |
+| `chainIconUrl(id)` | Returns CDN URL for chain brand icon using `COINGECKO_IDS` mapping, or null if not found |
 
 ---
 
