@@ -2895,9 +2895,258 @@ function ModeToggle({mode,onChange}){
   </div>;
 }
 
-function CVPortfolio(){return <div style={{padding:32,color:'#8A8A8E'}}>Portfolio view — coming in Phase 2</div>;}
-function CVMyLedger(){return <div style={{padding:32,color:'#8A8A8E'}}>My Ledger view — coming in Phase 2</div>;}
-function CVAgentInsights(){return <div style={{padding:32,color:'#8A8A8E'}}>Agent Insights — coming in Phase 2</div>;}
+function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
+  const lb=liveBalances||{};
+  const total=Object.values(lb).reduce((s,v)=>s+(v?.fiat||0),0);
+  const fmtFiat=v=>v==null?'—':'$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const accts=enrichedAccts||[];
+  const chainCount=[...new Set(accts.map(a=>a.cid))].length;
+  const withFiat=[],noFiat=[];
+  accts.forEach((a,i)=>{const fiat=lb[a.id]?.fiat||0;if(fiat>0)withFiat.push({a,i,fiat});else noFiat.push({a,i});});
+  withFiat.sort((x,y)=>y.fiat-x.fiat);
+  if(accts.length===0)return <div style={{padding:'40px 32px',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>No portfolio data available. Load the customer's app.json for account details.</div>;
+  return <div>
+    <div className="cv-content-header">
+      <div style={{fontSize:14,color:'#8A8A8E',fontWeight:500,marginBottom:4}}>Portfolio balance</div>
+      <div style={{fontSize:36,fontWeight:700,color:'#FFFFFF',lineHeight:1.1,marginBottom:6}}>
+        {total>0?'$'+total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'$0.00'}
+      </div>
+      <div style={{fontSize:13,color:'#8A8A8E'}}>{accts.length} account{accts.length!==1?'s':''} · {chainCount} chain{chainCount!==1?'s':''}</div>
+    </div>
+    <div style={{padding:'0 32px'}}>
+      <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:16}}>Asset allocation ({withFiat.length})</div>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2.5fr 1fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
+        {['Asset','Price','Allocation','Amount','Value'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
+      </div>
+      {withFiat.map(({a,i,fiat})=>{
+        const ch=a.ch;
+        const lbEntry=lb[a.id];
+        const pct=total>0?fiat/total*100:0;
+        const price=lbEntry?.fiat!=null&&lbEntry?.bal>0?lbEntry.fiat/lbEntry.bal:null;
+        const bal=lbEntry?.bal!=null?lbEntry.bal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ch.ticker:(a.enriched&&a.ajBalance!=null?fmtBal(a.ajBalance,a.cid,ch.ticker):null);
+        const iconUrl=chainIconUrl(a.cid);
+        return <div key={a.id} style={{display:'grid',gridTemplateColumns:'2fr 1fr 2.5fr 1fr 1fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
+          onClick={()=>{setCvSection('accounts');onSelectAcct(i);}}
+          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
+              {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:20,height:20,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
+            </div>
+            <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{ch.name}</span>
+          </div>
+          <div style={{fontSize:13,color:'#FFFFFF'}}>{price!=null?'$'+price.toLocaleString(undefined,{maximumFractionDigits:price>=1?2:6}):'—'}</div>
+          <div style={{paddingRight:16}}>
+            <div style={{fontSize:12,color:'#FFFFFF',marginBottom:4}}>{pct.toFixed(2)}%</div>
+            <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.06)',overflow:'hidden',maxWidth:200}}>
+              <div style={{height:'100%',width:pct+'%',background:(ch.color||'#BBB0FF')+'CC',borderRadius:3}}/>
+            </div>
+          </div>
+          <div style={{fontSize:12,color:'#FFFFFF',fontFamily:MF,textAlign:'right'}}>{bal||'—'}</div>
+          <div style={{fontSize:13,fontWeight:500,color:'#FFFFFF',textAlign:'right'}}>{fmtFiat(fiat)}</div>
+        </div>;
+      })}
+      {noFiat.length>0&&<div style={{padding:'14px 0',color:'#8A8A8E',fontSize:12,borderTop:withFiat.length?'none':'1px solid rgba(255,255,255,0.06)',marginTop:withFiat.length?0:8}}>
+        {noFiat.length} account{noFiat.length!==1?'s':''} with no balance data
+      </div>}
+      <div style={{height:32}}/>
+    </div>
+  </div>;
+}
+
+function CVMyLedger({logData,versionCheck,firmwareCheck,appVersionCheck}){
+  const[appsTab,setAppsTab]=useState('installed');
+  const dev=logData.dev||{};
+  const da=logData.deviceApps;
+  const modelName=dev.modelName||DN[dev.modelId]||'Unknown Device';
+  const installedApps=React.useMemo(()=>{
+    if(!da)return[];
+    if(da.source==='manager-result')return da.installed||[];
+    if(da.source==='apdu-only')return da.openedApps||[];
+    if(da.source==='catalog-only')return da.sessionInstalls||[];
+    return[];
+  },[da]);
+  const appBarColors=['#6B8AFF','#FF8C42','#4ADE80','#FF4D6D','#FBBF24','#C084FC','#4FC3F7','#FF5300'];
+  const chainForApp=name=>{
+    const key=name.toLowerCase();
+    return CHAINS[key]||Object.values(CHAINS).find(c=>(c.name||'').toLowerCase()===key||(c.ticker||'').toLowerCase()===key)||null;
+  };
+  return <div>
+    <div className="cv-content-header">
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+        <span style={{fontSize:20,fontWeight:700,color:'#FFFFFF'}}>{modelName}</span>
+        {dev.fw&&<span style={{fontSize:12,color:'#4FC46B',display:'flex',alignItems:'center',gap:4}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Ledger Genuine check
+        </span>}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
+        <span style={{fontSize:13,color:'#8A8A8E'}}>OS version</span>
+        <span style={{fontSize:12,background:'rgba(255,255,255,0.08)',borderRadius:4,padding:'2px 8px',fontFamily:MF,color:'#FFFFFF'}}>{dev.fw||'?'}</span>
+        {firmwareCheck?.status==='ok'&&(firmwareCheck.outdated
+          ?<span style={{fontSize:12,background:'rgba(255,189,66,0.12)',borderRadius:4,padding:'2px 8px',color:T.warning}}>⬆ Update: {firmwareCheck.latest}</span>
+          :<span style={{fontSize:12,color:'#4FC46B'}}>✓ Up to date</span>)}
+        {firmwareCheck?.status==='loading'&&<span style={{fontSize:12,color:'#8A8A8E'}}>Checking firmware…</span>}
+      </div>
+      <div style={{fontSize:12,color:'#8A8A8E',marginBottom:2}}>
+        {llLabel(dev)}: {dev.appVer||'?'}
+        {appVersionCheck?.status==='ok'&&(appVersionCheck.outdated?<span style={{color:T.warning,marginLeft:6}}>⬆ {appVersionCheck.latest} available</span>:<span style={{color:'#4FC46B',marginLeft:6}}>✓ Latest</span>)}
+      </div>
+      {dev.lang&&<div style={{fontSize:12,color:'#8A8A8E'}}>Language: {dev.lang}</div>}
+    </div>
+    {da?.source==='manager-result'&&installedApps.length>0&&<div style={{padding:'0 32px 24px'}}>
+      <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Storage</div>
+      <div style={{height:24,borderRadius:6,background:'rgba(255,255,255,0.06)',display:'flex',overflow:'hidden',boxShadow:'inset 0 1px 3px rgba(0,0,0,0.3)'}}>
+        {installedApps.map((app,idx)=>{const ch=chainForApp(app.name);const color=ch?.color||appBarColors[idx%appBarColors.length];return <div key={app.name} style={{height:'100%',width:(100/installedApps.length)+'%',background:color+'CC',borderRight:'1px solid rgba(0,0,0,0.25)'}} title={app.name}/>;})
+        }
+      </div>
+      <div style={{fontSize:11,color:'#8A8A8E',marginTop:4}}>{installedApps.length} app{installedApps.length!==1?'s':''} installed</div>
+    </div>}
+    <div style={{padding:'0 32px'}}>
+      <div style={{display:'flex',gap:0,marginBottom:16,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+        {[['installed','Apps installed'],['catalog','App catalog']].map(([tab,label])=>(
+          <button key={tab} onClick={()=>setAppsTab(tab)} style={{padding:'8px 16px',border:'none',background:'transparent',color:appsTab===tab?'#FFFFFF':'#8A8A8E',fontSize:13,fontWeight:appsTab===tab?600:400,cursor:'pointer',borderBottom:appsTab===tab?'2px solid #BBB0FF':'2px solid transparent',marginBottom:-1,transition:'color 150ms ease'}}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {appsTab==='installed'&&(installedApps.length===0
+        ?<div style={{padding:'24px 0',color:'#8A8A8E',fontSize:13}}>No device app data available. This information is extracted when the customer accesses My Ledger in the app.</div>
+        :installedApps.map((app,i)=>{
+          const ch=chainForApp(app.name);
+          const iconUrl=chainIconUrl(ch?.id||null);
+          const cat=versionCheck?.status==='ok'?versionCheck.apps?.find(a=>a.name.toLowerCase()===app.name.toLowerCase()):null;
+          return <div key={app.name+i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:i<installedApps.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
+            <div style={{width:36,height:36,borderRadius:'50%',background:ch?.color||'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+              {iconUrl?<img src={iconUrl} alt={app.name} style={{width:22,height:22,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{app.name.slice(0,3).toUpperCase()}</span>}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{app.name}</div>
+              {app.version&&<div style={{fontSize:11,color:'#8A8A8E',fontFamily:MF,marginTop:2}}>{app.version}</div>}
+            </div>
+            <div style={{textAlign:'right',flexShrink:0}}>
+              {cat?(cat.outdated?<span style={{fontSize:12,color:T.warning}}>⬆ {cat.latest} available</span>:<span style={{fontSize:12,color:'#4FC46B'}}>✓ Installed</span>):<span style={{fontSize:12,color:'#8A8A8E'}}>Installed</span>}
+            </div>
+          </div>;
+        })
+      )}
+      {appsTab==='catalog'&&(!versionCheck||versionCheck.status==='loading'
+        ?<div style={{padding:'24px 0',color:'#8A8A8E',fontSize:13}}>Loading app catalog…</div>
+        :versionCheck.status!=='ok'||!versionCheck.apps?.length
+          ?<div style={{padding:'24px 0',color:'#8A8A8E',fontSize:13}}>App catalog unavailable. Device may not have been connected during session.</div>
+          :versionCheck.apps.map((app,i)=>{
+            const ch=chainForApp(app.name);
+            const iconUrl=chainIconUrl(ch?.id||null);
+            return <div key={app.name+i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:i<versionCheck.apps.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
+              <div style={{width:36,height:36,borderRadius:'50%',background:ch?.color||'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                {iconUrl?<img src={iconUrl} alt={app.name} style={{width:22,height:22,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{app.name.slice(0,3).toUpperCase()}</span>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{app.name}</div>
+                <div style={{fontSize:11,color:'#8A8A8E',fontFamily:MF,marginTop:2}}>{app.latest||'?'}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                {app.installed?<span style={{fontSize:12,color:app.outdated?T.warning:'#4FC46B'}}>{app.outdated?'⬆ Update':'✓ Installed'}</span>:<span style={{fontSize:12,color:'#8A8A8E'}}>Available</span>}
+              </div>
+            </div>;
+          })
+      )}
+      {(logData.requiredApps||[]).length>0&&<div style={{marginTop:24,paddingTop:16,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+        <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Required by accounts</div>
+        {logData.requiredApps.map((ra,i)=>{
+          const cat=versionCheck?.apps?.find(a=>a.name.toLowerCase()===ra.appName.toLowerCase());
+          return <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:i<logData.requiredApps.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+            <span style={{fontSize:13,color:'#FFFFFF',flex:1}}>{ra.appName}</span>
+            {ra.chains&&ra.chains.length>0&&<span style={{fontSize:11,color:'#8A8A8E'}}>{ra.chains.map(c=>c.ticker).join(', ')}</span>}
+            {cat?(cat.outdated?<span style={{fontSize:11,color:T.warning}}>⬆ Outdated</span>:cat.installed?<span style={{fontSize:11,color:'#4FC46B'}}>✓</span>:<span style={{fontSize:11,color:T.error}}>Missing</span>):null}
+          </div>;
+        })}
+      </div>}
+      <div style={{height:32}}/>
+    </div>
+  </div>;
+}
+
+function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck}){
+  const errs=logData.errs||[];
+  const highCount=errs.filter(e=>e.dg?.s==='high').length;
+  const medCount=errs.filter(e=>e.dg?.s==='medium').length;
+  const lowCount=errs.filter(e=>e.dg?.s==='low').length;
+  const q=logData.quality;
+  const act=logData.activity||{};
+  const dev=logData.dev||{};
+  const lb=liveBalances||{};
+  const lbVals=Object.values(lb);
+  const fetchedCount=lbVals.filter(v=>v?.status==='ok'&&v.bal!=null).length;
+  const acctCount=logData.accts?.length||0;
+  const hasAppJson=(enrichedAccts||[]).some(a=>a.enriched&&a.ajBalance!=null);
+  const diagText=(()=>{
+    if(highCount>0){const topErr=errs.find(e=>e.dg?.s==='high');return{color:T.error,text:`${highCount} critical error${highCount!==1?'s':''} — ${topErr?.dg?.t||'Unknown'}. Start with Issues.`};}
+    if(medCount>0){return{color:T.warning,text:`${medCount} warning${medCount!==1?'s':''} — ${errs.find(e=>e.dg?.s==='medium')?.dg?.t||'Unknown'}.`};}
+    if(lowCount>0){return{color:'#BBB0FF',text:`${lowCount} informational event${lowCount!==1?'s':''} — routine activity.`};}
+    return{color:'#4FC46B',text:'Clean session — no errors detected.'};
+  })();
+  const sessionDur=(()=>{
+    const entries=logData.entries||[];
+    if(entries.length<2)return null;
+    const ms=new Date(entries[entries.length-1].timestamp)-new Date(entries[0].timestamp);
+    if(!ms||isNaN(ms))return null;
+    const m=Math.round(ms/60000);
+    return m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m}m`;
+  })();
+  const accentCard=(children)=><div style={{background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,padding:'16px 20px',marginBottom:12}}>{children}</div>;
+  const cardTitle=(t)=><div style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12,fontFamily:MF}}>{t}</div>;
+  const infoRow=(label,value,valueColor)=><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:13,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:13,color:valueColor||'#FFFFFF',fontWeight:500}}>{value}</span></div>;
+  return <div style={{padding:'24px 32px'}}>
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BBB0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span style={{fontSize:18,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
+      <span style={{fontSize:11,fontFamily:MF,color:'#BBB0FF',background:'rgba(187,176,255,0.1)',borderRadius:4,padding:'2px 8px'}}>DIAGNOSTIC</span>
+    </div>
+    {accentCard(<>
+      {cardTitle('Diagnostic Summary')}
+      <div style={{borderLeft:'3px solid '+diagText.color,paddingLeft:12,marginBottom:12}}>
+        <div style={{fontSize:14,color:'#FFFFFF',lineHeight:1.5}}>{diagText.text}</div>
+      </div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:q?12:0}}>
+        {highCount>0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:T.error+'18',color:T.error,fontWeight:600}}>{highCount} Critical</span>}
+        {medCount>0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:T.warning+'18',color:T.warning,fontWeight:600}}>{medCount} Warning</span>}
+        {lowCount>0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:'rgba(187,176,255,0.12)',color:'#BBB0FF',fontWeight:600}}>{lowCount} Info</span>}
+        {errs.length===0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:'rgba(79,196,107,0.12)',color:'#4FC46B',fontWeight:600}}>No errors</span>}
+      </div>
+      {q&&<div style={{fontSize:13,color:'#8A8A8E'}}>Log quality: <span style={{color:q.color,fontWeight:600}}>{q.score}/100 — {q.label}</span></div>}
+    </>)}
+    {accentCard(<>
+      {cardTitle('Session Details')}
+      {infoRow('Device',dev.modelName||DN[dev.modelId]||'Unknown')}
+      {infoRow('Firmware',dev.fw||'?')}
+      {infoRow(llLabel(dev),dev.appVer||'?')}
+      {sessionDur&&infoRow('Duration',sessionDur)}
+      {infoRow('Log entries',(logData.entries?.length||0).toLocaleString())}
+      {infoRow('Accounts',String(acctCount)+(hasAppJson?` (${(enrichedAccts||[]).length} with app.json)`:''))}
+      <div style={{marginTop:12,paddingTop:8,borderTop:'1px solid rgba(255,255,255,0.04)'}}>
+        <div style={{fontSize:12,color:'#8A8A8E',fontWeight:600,marginBottom:6}}>Activity flags</div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:8}}>
+          {[['Manager',act.managerOpened],['Swap',act.swapBrowsed],['Device scan',act.deviceScan]].map(([label,active])=>(
+            <span key={label} style={{fontSize:12,padding:'2px 8px',borderRadius:4,background:active?'rgba(79,196,107,0.1)':'rgba(255,255,255,0.05)',color:active?'#4FC46B':'#8A8A8E'}}>{label} {active?'✓':'—'}</span>
+          ))}
+        </div>
+        <div style={{fontSize:12,color:'#8A8A8E'}}>Data sources: {[hasAppJson&&'app.json',fetchedCount>0&&'live balances','log'].filter(Boolean).join(' + ')}</div>
+      </div>
+    </>)}
+    {accentCard(<>
+      {cardTitle('Data Confidence')}
+      {infoRow('Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E')}
+      {infoRow('App catalog',versionCheck?.status==='ok'?`${versionCheck.catalogSize||versionCheck.apps?.length||0} apps loaded`:versionCheck?.status==='loading'?'Checking…':'Unavailable',versionCheck?.status==='ok'?'#4FC46B':versionCheck?.status==='loading'?'#8A8A8E':T.warning)}
+      {infoRow('Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning)}
+      {infoRow(llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning)}
+    </>)}
+    {accentCard(<>
+      {cardTitle('Quick Actions')}
+      <div style={{fontSize:13,color:'#8A8A8E',lineHeight:1.5}}>To investigate errors, copy full reports, or use the Timeline — switch to <strong style={{color:'#FFFFFF'}}>Diagnostic mode</strong> using the toggle in the header bar.</div>
+    </>)}
+  </div>;
+}
 
 
 function CVCopyText({text,full,mono}){
@@ -2912,7 +3161,7 @@ function CVCopyText({text,full,mono}){
   </span>;
 }
 
-function CustomerView({logData,appJson,onAppJson,liveBalances}){
+function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmwareCheck,appVersionCheck}){
   const[selectedAcct,setSelectedAcct]=useState(null);
   const[ajDragOver,setAjDragOver]=useState(false);
   const[summCopied,setSummCopied]=useState(false);
@@ -3325,9 +3574,9 @@ function CustomerView({logData,appJson,onAppJson,liveBalances}){
           </div>;
         })()
       )}
-      {cvSection==='portfolio'&&<CVPortfolio/>}
-      {cvSection==='myLedger'&&<CVMyLedger/>}
-      {cvSection==='agentInsights'&&<CVAgentInsights/>}
+      {cvSection==='portfolio'&&<CVPortfolio enrichedAccts={enrichedAccts} liveBalances={liveBalances} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}} setCvSection={setCvSection}/>}
+      {cvSection==='myLedger'&&<CVMyLedger logData={logData} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
+      {cvSection==='agentInsights'&&<CVAgentInsights logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
     </div>
   </div>;
 }
@@ -6501,7 +6750,7 @@ function App(){
       </div>
       </div>}
     </div>
-  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson} liveBalances={liveBalances}/>}
+  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson} liveBalances={liveBalances} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
   {guideOpen&&<div onClick={()=>setGuideOpen(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 0.15s ease'}}>
     <div onClick={e=>e.stopPropagation()} style={{width:'min(900px, 90vw)',height:'85vh',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.6)'}}>
       <div style={{display:'flex',alignItems:'center',padding:'12px 20px',borderBottom:`1px solid ${T.border}`,flexShrink:0,gap:12}}>
