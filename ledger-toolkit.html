@@ -114,6 +114,7 @@ button:active{transform:scale(0.98);}
 @keyframes listFade{0%{opacity:0.6;}100%{opacity:1;}}
 @keyframes filterRemind{0%{box-shadow:0 0 8px 2px var(--remind-color,rgba(187,176,255,0.4));}100%{box-shadow:none;}}
 @keyframes focusEngage{0%{background-color:var(--focus-color,rgba(187,176,255,0.08));}100%{background-color:transparent;}}
+
 .stat-card:active{animation:selectPulse 0.5s ease-out;--pulse-color:rgba(187,176,255,0.3);}
 .guide-embed{font-family:'Brut Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;color:#FFFFFF;line-height:1.7;font-size:14px;padding:0 0 60px}
 .guide-embed .hero{padding:40px 32px 32px;text-align:center}
@@ -4128,6 +4129,26 @@ function App(){
   const[versionCheck,setVersionCheck]=useState(null);
   const[firmwareCheck,setFirmwareCheck]=useState(null);
   const[appVersionCheck,setAppVersionCheck]=useState(null);
+  const isLoading=parsing||(logData&&(
+    Object.values(liveBalances||{}).some(v=>v?.status==='loading')||
+    versionCheck?.status==='loading'||
+    firmwareCheck?.status==='loading'||
+    appVersionCheck?.status==='loading'||
+    (ledgerStatus===null)
+  ));
+  const loadProgress=React.useMemo(()=>{
+    if(parsing&&!logData)return 15;
+    if(!logData)return 0;
+    let done=0,total=0;
+    const lbVals=Object.values(liveBalances||{});
+    if(lbVals.length>0){total++;if(!lbVals.some(v=>v?.status==='loading'))done++;}
+    if(versionCheck){total++;if(versionCheck.status!=='loading')done++;}
+    if(firmwareCheck){total++;if(firmwareCheck.status!=='loading')done++;}
+    if(appVersionCheck){total++;if(appVersionCheck.status!=='loading')done++;}
+    total++;if(ledgerStatus!==null)done++;
+    if(total===0||done>=total)return 100;
+    return 15+Math.round((done/total)*85);
+  },[parsing,logData,liveBalances,versionCheck,firmwareCheck,appVersionCheck,ledgerStatus]);
   const[guideOpen,setGuideOpen]=useState(null);
   const[guideSearch,setGuideSearch]=useState('');
   const[focusDropOpen,setFocusDropOpen]=useState(false);
@@ -4730,6 +4751,11 @@ function App(){
         </div>
         <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>New file</button>
       </div>}
+    </div>
+    {/* Loading bar */}
+    <div style={{height:3,width:'100%',flexShrink:0,overflow:'hidden',position:'relative',opacity:isLoading?1:0,transition:'opacity 0.5s ease',pointerEvents:'none'}}>
+      <div style={{position:'absolute',top:-1,left:0,height:5,width:loadProgress+'%',background:'linear-gradient(90deg, #BBB0FF 0%, #D4C5FF 60%, #BBB0FF 100%)',filter:'blur(4px)',opacity:0.5,transition:isLoading?'width 0.6s cubic-bezier(0.45,0,0.55,1)':'none'}}/>
+      <div style={{position:'absolute',top:0,left:0,height:'100%',width:loadProgress+'%',background:'linear-gradient(90deg, #BBB0FF 0%, #D4C5FF 60%, #BBB0FF 100%)',transition:isLoading?'width 0.6s cubic-bezier(0.45,0,0.55,1)':'none'}}/>
     </div>
     <input key={fileKey} ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
