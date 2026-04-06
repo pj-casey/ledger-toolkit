@@ -3902,7 +3902,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
       {/* Investigation Panel — appears when focus is active */}
       {focusedAcct&&(()=>{
-        const acct=logData.accts.find(a=>a.addr===focusedAcct.addr);
+        const acct=logData.accts.find(a=>a.addr===focusedAcct.addr&&a.cid===focusedAcct.cid);
         if(!acct)return null;
         const lb=liveBalances?.[acct.id];
         const errCount=errors.filter(e=>acct.addr&&acct.addr.length>8&&((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(acct.addr.toLowerCase())).length;
@@ -4005,7 +4005,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
               const errCount = errorsForAcct(acct);
               return (
                 <div key={acct.id} onClick={() => setSection('accounts')}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC', opacity: focusedAcct ? (focusedAcct.addr === acct.addr ? 1 : 0.15) : 1, background: focusedAcct&&focusedAcct.addr===acct.addr ? focusedAcct.color+'15' : 'transparent', transition: I.medium }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 16px 5px 32px', cursor: 'pointer', fontSize: 12, color: '#CCCCCC', opacity: focusedAcct ? (focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid ? 1 : 0.15) : 1, background: focusedAcct&&focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid ? focusedAcct.color+'15' : 'transparent', transition: I.medium }}
                   onMouseEnter={e => e.currentTarget.style.background = I.hover}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: chainColor, flexShrink: 0, display: 'inline-block' }} />
@@ -5071,7 +5071,7 @@ function App(){
                         {logData.accts.map(a=>{
                           const lb=liveBalances[a.id];
                           const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
-                          const isFocused=focusedAcct&&focusedAcct.addr===a.addr;
+                          const isFocused=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;
                           const errCount=errByAccount[a.addr]||0;
                           return <div key={a.id}
                             onClick={()=>{
@@ -5854,7 +5854,7 @@ function App(){
                     const unsupported=lb&&lb.status==='unsupported';
                     const hasErrs=(errByAccount[a.addr]||0)>0;
                     const canX=a.isXpub&&a.ch.xc;
-                    const isFocused=focusedAcct&&focusedAcct.addr===a.addr;
+                    const isFocused=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;
                     const matchesFilter=!acctFilter||a.ch.name.toLowerCase().includes(acctFilter.toLowerCase())||a.ch.ticker.toLowerCase().includes(acctFilter.toLowerCase())||(a.addr||'').toLowerCase().includes(acctFilter.toLowerCase());
                     const op=!matchesFilter?0.12:focusedAcct?(isFocused?1:0.12):(hasFunds?1:noData?0.5:0.4);
                     const bw=rect.w-2,bh=rect.h-2;
@@ -5914,7 +5914,7 @@ function App(){
                     {ec>0?<span onClick={e=>{e.stopPropagation();setErrAcctFilter(a.addr);setSection('errors');setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:T.error,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(228,0,70,0.12)',border:'1px solid rgba(228,0,70,0.25)'}}>⚠ {ec} issue{ec!==1?'s':''}</span>:<span style={{color:T.muted,fontSize:10,display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}}>0 issues</span>}
                     {cX&&<span onClick={e=>{e.stopPropagation();setAcctFilter(a.ch.name);setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:T.primary,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(187,176,255,0.10)',border:'1px solid rgba(187,176,255,0.20)'}}><Ico.Scan/> Xpub</span>}
                     <span onClick={e=>{e.stopPropagation();setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:T.muted,fontWeight:600,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Logs/> Timeline</span>
-                    {(()=>{const isFoc=focusedAcct&&focusedAcct.addr===a.addr;return <span onClick={e=>{e.stopPropagation();if(isFoc)setFocusedAcct(null);else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:isFoc?T.primary:'#BBB0FF',fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:isFoc?'rgba(187,176,255,0.18)':'rgba(187,176,255,0.08)',border:isFoc?'1px solid rgba(187,176,255,0.50)':'1px solid rgba(187,176,255,0.20)'}}>{isFoc?'◎ Unfocus':'◉ Focus'}</span>;})()}
+                    {(()=>{const isFoc=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;return <span onClick={e=>{e.stopPropagation();if(isFoc)setFocusedAcct(null);else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setHoveredAcct(null);setHoveredTmRect(null);}} style={{color:isFoc?T.primary:'#BBB0FF',fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:4,background:isFoc?'rgba(187,176,255,0.18)':'rgba(187,176,255,0.08)',border:isFoc?'1px solid rgba(187,176,255,0.50)':'1px solid rgba(187,176,255,0.20)'}}>{isFoc?'◎ Unfocus':'◉ Focus'}</span>;})()}
                   </div>
                 </div></div>;
               })()}
@@ -5950,9 +5950,9 @@ function App(){
                 }
                 const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
                 return groups.map((g,i)=>{
-                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr:true;const isFocSingle=focusedAcct&&focusedAcct.addr===g.acct.addr;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.12,transition:I.medium,boxShadow:isFocSingle?`0 0 0 1px ${g.acct.ch.color}50, 0 4px 20px ${g.acct.ch.color}20, inset 0 1px 0 rgba(255,255,255,0.06)`:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
+                  if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr&&focusedAcct.cid===g.acct.cid:true;const isFocSingle=focusedAcct&&focusedAcct.addr===g.acct.addr&&focusedAcct.cid===g.acct.cid;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.12,transition:I.medium,boxShadow:isFocSingle?`0 0 0 1px ${g.acct.ch.color}50, 0 4px 20px ${g.acct.ch.color}20, inset 0 1px 0 rgba(255,255,255,0.06)`:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
                   const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
-                  const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr):true;
+                  const groupRelevant=focusedAcct?g.accts.some(a=>a.addr===focusedAcct.addr&&a.cid===focusedAcct.cid):true;
                   return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.12,transition:I.medium}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,padding:'0 8px'}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -5965,7 +5965,7 @@ function App(){
                         {groupFiat>0&&<span style={{fontSize:11,fontWeight:600,color:T.success}}>${groupFiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
                       </div>
                     </div>
-                    {g.accts.map(a=>{const isFocCard=focusedAcct&&focusedAcct.addr===a.addr;return <div key={a.id} data-acct-id={a.id} onMouseEnter={()=>setHoveredAcct(a.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{boxShadow:isFocCard?`0 0 0 1px ${a.ch.color}40, 0 2px 8px ${a.ch.color}15`:hoveredAcct===a.id&&hoveredTmRect?`0 0 0 2px ${a.ch.color}60`:'none',borderRadius:8,transition:I.medium,animation:navigatedAcct===a.id?'filterRemind 0.6s ease-out':'none','--remind-color':a.ch.color+'40'}}>{renderCard(a)}</div>;})}
+                    {g.accts.map(a=>{const isFocCard=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;return <div key={a.id} data-acct-id={a.id} onMouseEnter={()=>setHoveredAcct(a.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{boxShadow:isFocCard?`0 0 0 1px ${a.ch.color}40, 0 2px 8px ${a.ch.color}15`:hoveredAcct===a.id&&hoveredTmRect?`0 0 0 2px ${a.ch.color}60`:'none',borderRadius:8,transition:I.medium,animation:navigatedAcct===a.id?'filterRemind 0.6s ease-out':'none','--remind-color':a.ch.color+'40'}}>{renderCard(a)}</div>;})}
                   </div>;
                 });
               })()}
