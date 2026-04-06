@@ -1281,24 +1281,8 @@ const CHAINS={
 };
 const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
-/* Chain icon CDN — CC0-licensed spothq/cryptocurrency-icons via jsDelivr */
-const ICON_CDN='https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/svg/color/';
-const ICON_MAP={
-  aptos:'apt',bitcoin:'btc',ethereum:'eth',tezos:'xtz',cosmos:'atom',
-  tron:'trx',near:'near',solana:'sol',polkadot:'dot',assethub_polkadot:'dot',
-  ton:null,ripple:'xrp',cardano:'ada',bsc:'bnb',polygon:'matic',
-  avalanche_c_chain:'avax',optimism:null,arbitrum:null,stacks:'stx',
-  crypto_org:'cro',litecoin:'ltc',dogecoin:'doge',bitcoin_cash:'bch',
-  stellar:'xlm',hedera:null,elrond:null,celo:null,
-  osmo:null,osmosis:null,sui:null,dydx:null,injective:null,
-  mantra:null,persistence:null,axelar:null,quicksilver:null,zenrock:null,
-  base:null,zksync:null,linea:null,scroll:null,blast:null,hyperevm:null,
-  flare:null,filecoin:'fil',internet_computer:'icp',icp:'icp',
-  vechain:'vet',algorand:'algo',fantom:'ftm',klaytn:null,
-  cronos:'cro',moonbeam:null,moonriver:null,mantle:null,
-  mina:null,neon_evm:null,lukso:null,sonic:null,kaspa:null
-};
-const chainIconUrl=(chainId)=>{const t=ICON_MAP[chainId];return t?ICON_CDN+t+'.svg':null;};
+const ICON_CDN='https://cdn.jsdelivr.net/gh/simplr-sh/coin-logos@main/images/';
+const chainIconUrl=id=>{const g=COINGECKO_IDS[id];return g?ICON_CDN+g+'/small.png':null;};
 const DECIMALS={ethereum:18,bitcoin:8,tezos:6,cosmos:6,tron:6,near:24,solana:9,ripple:6,polkadot:10,assethub_polkadot:10,ton:9,cardano:6,bsc:18,polygon:18,avalanche_c_chain:18,optimism:18,arbitrum:18,base:18,linea:18,scroll:18,blast:18,zksync:18,mantle:18,fantom:18,cronos:18,moonbeam:18,moonriver:18,celo:18,neon_evm:18,lukso:18,sonic:18,stellar:7,hedera:8,elrond:18,filecoin:18,vechain:18,algorand:6,klaytn:18,mina:9,kaspa:8,stacks:6,dogecoin:8,litecoin:8,bitcoin_cash:8,aptos:8,sui:9,dydx:18,injective:18,flare:18,hyperevm:18,osmo:6,osmosis:6,internet_computer:8,icp:8,mantra:6,persistence:6,axelar:6,quicksilver:6,zenrock:6};
 
 /* Live Balance — CoinGecko IDs for fiat conversion */
