@@ -7,7 +7,7 @@
 <title>Ledger Diagnostic Toolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#131214;--panel:#1C1D1F;--border:#3C3C3C;--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--success:#7AC26C;--error:#E40046;--warning:#FFBD42;--ov-fs-xs:clamp(9px,1.1vh,11px);--ov-fs-sm:clamp(10px,1.3vh,12px);--ov-fs-md:clamp(11px,1.4vh,13px);--ov-fs-lg:clamp(13px,1.6vh,16px);--ov-pad-row:clamp(2px,0.4vh,4px);--ov-pad-section:clamp(6px,1vh,12px);--ov-gap-chips:clamp(4px,0.5vh,6px);--ov-gap-rows:clamp(4px,0.6vh,8px);--ov-stat-num:clamp(28px,4vh,42px);--ov-stat-label:clamp(10px,1.2vh,13px);--transition-fast:150ms ease;--hover-bg:rgba(255,255,255,0.04);--hover-bg-strong:rgba(255,255,255,0.07)}
@@ -51,41 +51,21 @@ button:active{transform:scale(0.98);}
 .error-detail{transition:max-height 200ms ease,opacity 200ms ease;overflow:hidden;}
 
 /* ── Customer View ── */
-.cv-layout{display:flex;height:calc(100vh - 52px);overflow:hidden;}
-.cv-sidebar{width:240px;min-width:200px;background:linear-gradient(180deg, rgba(69,57,92,0.12) 0%, var(--panel) 35%);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;}
-.cv-sidebar::after{content:'';position:sticky;bottom:0;display:block;height:24px;background:linear-gradient(transparent,#131214);pointer-events:none;}
-.cv-sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
-.cv-main{flex:1;overflow-y:auto;padding:24px;}
-.cv-infobar{width:210px;min-width:180px;background:linear-gradient(180deg, rgba(69,57,92,0.08) 0%, var(--panel) 40%);border-left:1px solid var(--border);overflow-y:auto;padding:16px;flex-shrink:0;}
-.cv-acct-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(60,60,60,0.4);transition:background 100ms ease;border-left:3px solid transparent;}
-.cv-acct-row:hover{background:rgba(255,255,255,0.04);}
-.cv-acct-row.cv-active{background:linear-gradient(90deg, rgba(187,176,255,0.10) 0%, transparent 70%);border-left:3px solid #BBB0FF;}
-.cv-chain-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.cv-sim-banner{background:rgba(255,189,66,0.08);border:1px solid rgba(255,189,66,0.2);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--warning);margin-bottom:16px;display:flex;align-items:center;gap:6px;}
-.cv-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
-.cv-portfolio-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:transform 150ms ease,border-color 150ms ease,box-shadow 150ms ease;border-top:1px solid rgba(255,255,255,0.04);}
-.cv-portfolio-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.12);box-shadow:0 4px 12px rgba(0,0,0,0.3);}
-.cv-detail-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:12px;border-top:1px solid rgba(255,255,255,0.04);}
-.cv-info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:12px;transition:background 0.1s;}
-.cv-info-row:hover{background:rgba(255,255,255,0.03);}
-.cv-info-row:last-child{border-bottom:none;}
-.cv-section-title{font-family:'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;}
+.cv-frame{display:flex;height:calc(100vh - 52px);overflow:hidden;font-family:'Inter','Darker Grotesque',sans-serif;}
+.cv-nav{width:200px;background:#1A1A1D;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.06) transparent;}
+.cv-nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;cursor:pointer;color:#8A8A8E;font-size:14px;font-weight:500;transition:background 150ms ease;margin:2px 8px;}
+.cv-nav-item:hover{background:rgba(255,255,255,0.04);}
+.cv-nav-item.cv-nav-active{background:rgba(255,255,255,0.06);color:#FFFFFF;}
+.cv-content{flex:1;overflow-y:auto;background:#1A1A1D;padding:0;}
+.cv-content-header{padding:24px 32px 16px;position:sticky;top:0;z-index:10;background:#1A1A1D;}
+.cv-acct-list-row{display:flex;align-items:center;gap:14px;padding:16px 32px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 150ms ease;}
+.cv-acct-list-row:hover{background:rgba(255,255,255,0.03);}
+.cv-acct-list-row:last-child{border-bottom:none;}
+.cv-dm-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);margin-left:6px;vertical-align:middle;}
 .cv-mode-toggle{display:flex;align-items:stretch;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;overflow:hidden;gap:0;}
 .cv-mode-btn{padding:8px 20px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:0.03em;cursor:pointer;transition:background 150ms ease,color 150ms ease,box-shadow 150ms ease;position:relative;}
 .cv-mode-btn:not(.cv-active):hover{background:rgba(255,255,255,0.06);color:#CCCCCC;}
 .cv-mode-btn.cv-active{background:var(--primary);color:#000;box-shadow:0 0 12px rgba(187,176,255,0.25);}
-@media (max-width:1024px){.cv-infobar{display:none;}}
-@media (max-width:768px){.cv-sidebar{width:180px;}.cv-portfolio-grid{grid-template-columns:1fr;}}
-.cv-enriched-banner{border:1px solid rgba(122,194,108,0.25);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--success);margin-bottom:16px;display:flex;align-items:center;gap:6px;background:rgba(122,194,108,0.06);}
-.cv-tx-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(60,60,60,0.4);font-size:11px;}
-.cv-tx-row:nth-child(even){background:rgba(255,255,255,0.015);}
-.cv-tx-row:last-child{border-bottom:none;}
-.cv-tx-type{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;min-width:32px;text-align:center;flex-shrink:0;}
-.cv-bal-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;}
-.cv-sidebar-scroll{overflow-y:auto;flex:1;}
-.cv-sidebar-scroll::after{content:'';position:sticky;bottom:0;display:block;height:24px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none;}
-.cv-card-lift{transition:transform 0.15s ease,box-shadow 0.15s ease;}
-.cv-card-lift:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.35);}
 /* ── Diagnostic card hover states ── */
 .err-hover:hover{filter:brightness(1.05);}
 .acct-hover:hover{filter:brightness(1.05);}
@@ -2915,167 +2895,10 @@ function ModeToggle({mode,onChange}){
   </div>;
 }
 
-function CVInfoBar({dev,as,port,accts,appJson}){
-  const withFunds=appJson ? appJson.accounts.filter(a=>a.balance!=='0').length : (as&&as.accountsWithFunds)?as.accountsWithFunds.length:accts.filter(a=>a.ops>0).length;
-  return <div className="cv-infobar">
-    <div className="cv-section-title">Device</div>
-    {dev&&(dev.modelName||dev.modelId)&&<div style={{marginBottom:14}}>
-      <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:8}}>{dev.modelName||dev.modelId}</div>
-      {dev.fw&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Firmware</span><span className="mono" style={{fontSize:11,color:firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.error:T.success):T.primary}}>{dev.fw}{firmwareCheck?.status==='ok'&&!firmwareCheck.outdated&&' ✓'}{firmwareCheck?.status==='ok'&&firmwareCheck.outdated&&firmwareCheck.latest&&<span style={{color:T.error}}> ⬆ {firmwareCheck.latest}</span>}</span></div>}
-      {dev.lang&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Language</span><span style={{fontSize:12}}>{dev.lang}</span></div>}
-      {dev.appVer&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>{llLabel(dev)}</span><span className="mono" style={{fontSize:11,color:appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.error:appVersionCheck.latest?T.success:T.primary):T.primary}}>{dev.appVer}{appVersionCheck?.status==='ok'&&!appVersionCheck.outdated&&appVersionCheck.latest&&<span style={{color:T.success}}> ✓</span>}{appVersionCheck?.status==='ok'&&appVersionCheck.outdated&&appVersionCheck.latest&&<span style={{color:T.error}}> ⬆ {appVersionCheck.latest}</span>}</span></div>}
-      {dev.platform&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Platform</span><span style={{fontSize:12}}>{dev.platform}</span></div>}
-      {dev.os&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>OS</span><span className="mono" style={{fontSize:11}}>{dev.os}{dev.osVer?' '+dev.osVer:''}</span></div>}
-    </div>}
-    {as&&as.modelIdList&&as.modelIdList.length>1&&<div style={{marginBottom:14}}>
-      <div className="cv-section-title" style={{marginTop:6}}>Paired Devices</div>
-      {as.modelIdList.map(m=><div key={m} style={{fontSize:11,color:T.muted,padding:'3px 0'}}>{DN[m]||m}</div>)}
-    </div>}
-    {appJson&&appJson.settings&&appJson.settings.devices&&appJson.settings.devices.length>0&&!(dev&&(dev.modelName||dev.modelId))&&<div style={{marginBottom:14}}>
-      <div className="cv-section-title" style={{marginTop:6}}>Devices from app.json</div>
-      {appJson.settings.devices.map(m=><div key={m} style={{fontSize:11,color:T.muted,padding:'3px 0'}}>{DN[m]||m}</div>)}
-    </div>}
-    <div style={{marginTop:6}}>
-      <div className="cv-section-title">Session</div>
-      <div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Accounts</span><span style={{fontWeight:600}}>{accts.length}</span></div>
-      <div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>With funds</span><span style={{fontWeight:600,color:T.success}}>{withFunds}</span></div>
-      {port&&port.totalOperations!=null&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Total ops</span><span style={{fontWeight:600}}>{port.totalOperations}</span></div>}
-      {port&&port.totalCurrencies!=null&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Currencies</span><span style={{fontWeight:600}}>{port.totalCurrencies}</span></div>}
-      {port&&port.ledgerSyncActivated!=null&&<div className="cv-info-row"><span style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Ledger Sync</span><span style={{fontWeight:600,color:port.ledgerSyncActivated?T.success:T.muted}}>{port.ledgerSyncActivated?'On':'Off'}</span></div>}
-    </div>
-  </div>;
-}
+function CVPortfolio(){return <div style={{padding:32,color:'#8A8A8E'}}>Portfolio view — coming in Phase 2</div>;}
+function CVMyLedger(){return <div style={{padding:32,color:'#8A8A8E'}}>My Ledger view — coming in Phase 2</div>;}
+function CVAgentInsights(){return <div style={{padding:32,color:'#8A8A8E'}}>Agent Insights — coming in Phase 2</div>;}
 
-function CVSidebar({accts,namedAccts,selected,onSelect,errs,as,appJson}){
-  const sorted=[...namedAccts].sort((a,b)=>{
-    const aFunded=a.bal>0||a.ops>0||(a.enriched&&a.ajBalance&&a.ajBalance!=='0');
-    const bFunded=b.bal>0||b.ops>0||(b.enriched&&b.ajBalance&&b.ajBalance!=='0');
-    return aFunded===bFunded?0:aFunded?-1:1;
-  });
-  return <div className="cv-sidebar">
-    <div className="cv-sidebar-header">
-      <div style={{fontFamily:MF,fontSize:10,fontWeight:600,color:T.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>Accounts</div>
-      <div style={{fontSize:11,color:T.muted}}>{accts.length} total · {appJson ? appJson.accounts.filter(a=>a.balance!=='0').length : (as&&as.accountsWithFunds&&as.accountsWithFunds.length)||accts.filter(a=>a.ops>0).length} with funds</div>
-    </div>
-    <div className={`cv-acct-row${selected===null?' cv-active':''}`} style={{borderLeft:selected===null?`3px solid ${T.primary}`:'3px solid transparent',paddingLeft:selected===null?11:14}} onClick={()=>onSelect(null)}>
-      <span style={{fontSize:14,flexShrink:0}}>◈</span>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,fontWeight:600,color:T.text}}>Portfolio</div>
-        <div style={{fontSize:10,color:T.muted}}>All accounts</div>
-      </div>
-    </div>
-    <div className="cv-sidebar-scroll">
-      {sorted.map((a,i)=>{
-        const ch=a.ch;
-        const originalIdx=namedAccts.indexOf(a);
-        const hasErr=errs.some(e=>(e.det||e.msg||'').includes(a.addr||'____NOMATCH'));
-        const enriched=a.enriched&&a.ajBalance!=null;
-        const bal=enriched?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
-        const ops=enriched?a.ajOps:a.ops;
-        const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
-        const isActive=selected===originalIdx;
-        return <div key={i} className={`cv-acct-row${isActive?' cv-active':''}`}
-          style={{borderLeft:isActive?`3px solid ${T.primary}`:'3px solid transparent',paddingLeft:isActive?11:14}}
-          onClick={()=>onSelect(originalIdx)}>
-          <span className="cv-chain-dot" style={{background:ch.color||T.muted}}/>
-          <div style={{flex:1,minWidth:0,overflow:'hidden'}}>
-            <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}{a.ajStarred?' ★':''}</div>
-            <div style={{fontSize:10,color:T.muted,display:'flex',gap:4,flexWrap:'wrap'}}>
-              <span>{ch.ticker}</span>
-              {bal&&<span style={{color:T.success,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>· {bal}</span>}
-              {!bal&&funded&&<span style={{color:T.success}}>· {ops} ops</span>}
-              {!bal&&!funded&&<span style={{opacity:0.5}}>· empty</span>}
-            </div>
-          </div>
-          {hasErr&&a.addr&&<span title="Has related errors" style={{color:T.error,fontSize:10,flexShrink:0}}>⚠</span>}
-        </div>;
-      })}
-    </div>
-  </div>;
-}
-
-function CVPortfolioView({accts,namedAccts,port,as,appJson,onSelectAcct}){
-  const acctCount=appJson?appJson.accounts.length:accts.length;
-  const fundedCount=appJson
-    ?appJson.accounts.filter(a=>a.balance&&a.balance!=='0').length
-    :(as&&as.accountsWithFunds&&as.accountsWithFunds.length)||accts.filter(a=>a.ops>0).length;
-  return <div>
-    <div style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
-      <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90,borderTop:'1px solid rgba(255,255,255,0.04)'}}>
-        <div style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>Accounts</div>
-        <div style={{fontSize:22,fontWeight:700}}>{acctCount}</div>
-      </div>
-      <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90,borderTop:'1px solid rgba(255,255,255,0.04)'}}>
-        <div style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>With Funds</div>
-        <div style={{fontSize:22,fontWeight:700,color:T.success}}>{fundedCount}</div>
-      </div>
-      {port&&port.totalOperations!=null&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90,borderTop:'1px solid rgba(255,255,255,0.04)'}}>
-        <div style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>Operations</div>
-        <div style={{fontSize:22,fontWeight:700}}>{port.totalOperations}</div>
-      </div>}
-      {port&&port.totalCurrencies!=null&&<div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,padding:'10px 16px',minWidth:90,borderTop:'1px solid rgba(255,255,255,0.04)'}}>
-        <div style={{fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:3}}>Currencies</div>
-        <div style={{fontSize:22,fontWeight:700}}>{port.totalCurrencies}</div>
-      </div>}
-    </div>
-    <div className="cv-portfolio-grid">
-      {namedAccts.map((a,i)=>{
-        const ch=a.ch;
-        const enriched=a.enriched&&a.ajBalance!=null;
-        const bal=enriched?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
-        const ops=enriched?a.ajOps:a.ops;
-        const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
-        const tokCount=enriched?(a.ajSubAccounts||[]).length:(a.toks||[]).length;
-        const isFunded=a.bal>0||a.ops>0||(namedAccts[i]&&namedAccts[i].ajBalance&&namedAccts[i].ajBalance!=='0')||(a.enriched&&a.ajBalance&&a.ajBalance!=='0');
-        return <div key={i} className="cv-portfolio-card cv-card-lift" onClick={()=>onSelectAcct(i)}
-          style={{border:isFunded?`1px solid ${T.border}`:`1px solid rgba(60,60,60,0.4)`,opacity:isFunded?1:0.6,borderLeft:`3px solid ${ch.color}${isFunded?'60':'25'}`,boxShadow:isFunded?`inset 6px 0 16px -4px ${ch.color}30`:'none'}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-            <span className="cv-chain-dot" style={{background:ch.color||T.muted,width:10,height:10}}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}{a.ajStarred?' ★':''}</div>
-              <div style={{fontSize:10,color:T.muted}}>{ch.name} · {ch.ticker}</div>
-            </div>
-          </div>
-          {bal&&<div style={{fontSize:13,fontWeight:700,color:T.success,marginBottom:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bal}</div>}
-          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
-            <span style={{fontSize:10,padding:'2px 7px',borderRadius:4,fontWeight:700,background:funded?T.success+'22':T.border+'88',color:funded?T.success:T.muted}}>{funded?`${ops} ops`:'empty'}</span>
-            {tokCount>0&&<span style={{fontSize:10,padding:'2px 7px',borderRadius:4,fontWeight:700,background:T.primary+'22',color:T.primary}}>{tokCount} token{tokCount!==1?'s':''}</span>}
-          </div>
-          <div className="mono" style={{fontSize:10,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.addr?trunc(a.addr,18):'—'}</div>
-        </div>;
-      })}
-    </div>
-    {(()=>{
-      const recentlyUsed=appJson?.raw?.discover?.recentlyUsed;
-      if(!Array.isArray(recentlyUsed)||recentlyUsed.length===0)return null;
-      const hist=appJson.raw.discover.currentAccountHist||{};
-      const fmtDAppName=id=>id.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-      const shown=recentlyUsed.slice(0,8);
-      const overflow=recentlyUsed.length-shown.length;
-      return(
-        <div className="cv-detail-card" style={{marginTop:20}}>
-          <div className="cv-section-title">Recent dApp Activity</div>
-          {shown.map((entry,i)=>{
-            const histKey=Object.keys(hist).find(k=>k.includes(entry.id));
-            const acctId=histKey?hist[histKey]:null;
-            const addr=acctId?acctId.split(':')[3]:null;
-            const linked=addr?namedAccts.find(a=>a.addr&&a.addr.toLowerCase()===addr.toLowerCase()):null;
-            return(
-              <div key={i} className="cv-info-row">
-                <span style={{fontWeight:600,fontSize:12}}>{fmtDAppName(entry.id)}</span>
-                <span style={{display:'flex',alignItems:'center',gap:10}}>
-                  {linked&&<span style={{fontSize:11,color:T.primary}}>{linked.displayName}</span>}
-                  <span style={{fontSize:11,color:T.muted}}>{fmtDate(entry.usedAt)}</span>
-                </span>
-              </div>
-            );
-          })}
-          {overflow>0&&<div style={{fontSize:11,color:T.muted,marginTop:6}}>and {overflow} more</div>}
-        </div>
-      );
-    })()}
-  </div>;
-}
 
 function CVCopyText({text,full,mono}){
   const[copied,setCopied]=useState(false);
@@ -3089,147 +2912,16 @@ function CVCopyText({text,full,mono}){
   </span>;
 }
 
-function CVAccountDetail({acct,errs,onBack}){
-  const ch=acct.ch;
-  const acctErrs=errs.filter(e=>acct.addr&&acct.addr.length>4&&(e.det||e.msg||'').includes(acct.addr));
-  let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
-  const enriched=acct.enriched;
-  const ajOps=acct.ajOperations||[];
-  const displayOps=ajOps.slice(0,50);
-  const txTypeStyle=type=>{
-    if(type==='IN')return{background:T.success+'22',color:T.success};
-    if(type==='OUT')return{background:T.error+'22',color:T.error};
-    if(type==='FEES')return{background:T.warning+'22',color:T.warning};
-    return{background:T.primary+'22',color:T.primary};
-  };
-  const ajSubs=acct.ajSubAccounts||[];
-  const logToks=(acct.toks||[]).filter(Boolean);
-  return <div>
-    <button onClick={onBack} style={{background:'none',border:'none',color:T.muted,cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:12,marginBottom:16,padding:0}}>
-      ← Back to Portfolio
-    </button>
-    <div className="cv-detail-card">
-      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-        <span className="cv-chain-dot" style={{background:ch.color||T.muted,width:12,height:12}}/>
-        <div style={{flex:1}}>
-          <div style={{fontSize:16,fontWeight:600}}>{acct.displayName}{acct.ajStarred?' ★':''}</div>
-          <div style={{fontSize:12,color:T.muted}}>{ch.name} · {ch.ticker}</div>
-        </div>
-        {eUrl&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:(ch.color||T.primary)+'22',color:ch.color||T.primary,border:`1px solid ${ch.color||T.primary}33`,textDecoration:'none',display:'flex',alignItems:'center',gap:4}}><Ico.Link/> Explorer</a>}
-      </div>
-      {enriched&&acct.ajBalance!=null&&<div style={{marginBottom:20}}>
-        <div className="cv-section-title">Balance</div>
-        <div className="cv-bal-card" style={{marginBottom:4}}>
-          <span style={{color:T.muted,fontSize:12}}>Balance</span>
-          <span style={{fontWeight:600,color:T.success,fontSize:13}}>{fmtBal(acct.ajBalance,acct.cid,ch.ticker)||'—'}</span>
-        </div>
-        {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div className="cv-bal-card" style={{marginBottom:4}}>
-          <span style={{color:T.muted,fontSize:12}}>Spendable</span>
-          <span style={{fontWeight:600,fontSize:12}}>{fmtBal(acct.ajSpendable,acct.cid,ch.ticker)||'—'}</span>
-        </div>}
-        {acct.ajBlockHeight!=null&&<div className="cv-bal-card">
-          <span style={{color:T.muted,fontSize:12}}>Block height</span>
-          <span className="mono" style={{fontSize:11}}>{Number(acct.ajBlockHeight).toLocaleString()}</span>
-        </div>}
-      </div>}
-      <div style={{height:1,background:T.border,margin:'16px 0',opacity:0.5}}/>
-      <div style={{marginBottom:20}}>
-        <div className="cv-section-title">Address</div>
-        <div className="mono" style={{fontSize:11,color:T.text,wordBreak:'break-all',padding:'8px 12px',background:T.bg,borderRadius:6,border:`1px solid ${T.border}`}}><CVCopyText text={acct.addr} mono={true}/></div>
-      </div>
-      <div style={{height:1,background:T.border,margin:'16px 0',opacity:0.5}}/>
-      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-        <div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center',minWidth:80}}>
-          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Operations</div>
-          <div style={{fontSize:18,fontWeight:700}}>{enriched?acct.ajOps:acct.ops}</div>
-        </div>
-        {acct.dm&&<div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center'}}>
-          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Derivation</div>
-          <div className="mono" style={{fontSize:11,fontWeight:600}}>{acct.dm}</div>
-        </div>}
-        {acct.fp&&<div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:'8px 14px',textAlign:'center'}}>
-          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Path</div>
-          <div className="mono" style={{fontSize:11,fontWeight:600}}>{acct.fp}</div>
-        </div>}
-        {acct.isXpub&&<div style={{background:T.primary+'22',border:`1px solid ${T.primary}33`,borderRadius:6,padding:'8px 14px',textAlign:'center'}}>
-          <div style={{fontSize:10,color:T.primary,marginBottom:2}}>Type</div>
-          <div className="mono" style={{fontSize:11,fontWeight:600,color:T.primary}}>xpub</div>
-        </div>}
-      </div>
-    </div>
-    {enriched&&ajSubs.length>0&&<div className="cv-detail-card">
-      <div className="cv-section-title">Token Holdings ({ajSubs.length})</div>
-      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-        {ajSubs.map((s,si)=>{
-          const rawName=(s.tokenId||'').split('/').pop()||s.tokenId||'?';
-          const name=rawName.replace(/__/g,' ').replace(/_/g,' ');
-          const bal=fmtBal(s.balance,'tezos',null);// tezos=6dec; ERC-20 default per spec
-          return <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 0',borderBottom:si<ajSubs.length-1?`1px solid ${T.border}40`:'none'}}>
-            <span style={{flex:1,fontSize:12,fontWeight:600,textTransform:'capitalize',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
-            {bal&&<span style={{fontSize:11,color:T.success,fontFamily:MF}}>{bal}</span>}
-            <span style={{fontSize:10,color:T.muted}}>{s.operationsCount} ops</span>
-          </div>;
-        })}
-      </div>
-    </div>}
-    {!enriched&&logToks.length>0&&<div className="cv-detail-card">
-      <div className="cv-section-title">Token Holdings ({logToks.length})</div>
-      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-        {logToks.map((tk,ti)=>{
-          const lb=tk.ticker||tk.name||tk.id||'?';
-          return <span key={ti} style={{display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:T.primary+'22',color:T.primary,fontFamily:MF}}>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></span>;
-        })}
-      </div>
-    </div>}
-    {enriched&&displayOps.length>0&&<div className="cv-detail-card">
-      <div className="cv-section-title">Transactions ({acct.ajOps})</div>
-      {ajOps.length>50&&<div style={{fontSize:10,color:T.muted,marginBottom:8}}>Showing 50 of {ajOps.length}</div>}
-      <div>
-        {displayOps.map((op,oi)=>{
-          const opType=(op.type||'').toUpperCase();
-          const ts=txTypeStyle(opType);
-          const amtColor=opType==='IN'?T.success:opType==='OUT'?T.error:T.text;
-          const counterparty=opType==='IN'?(op.senders||[])[0]:(op.recipients||[])[0];
-          const txUrl=op.hash&&TX_EXPLORERS[acct.cid]?TX_EXPLORERS[acct.cid](op.hash):null;
-          const isFailed=op.hasFailed||op.extra?.failed||(opType.includes('FAILED'));
-          const rowBg=isFailed?'rgba(228,0,70,0.07)':oi%2===0?'transparent':'rgba(0,0,0,0.12)';
-          const rowStyle=isFailed?{background:rowBg,borderLeft:`2px solid ${T.error}`,paddingLeft:6}:{background:rowBg};
-          return <div key={oi} className="cv-tx-row" style={rowStyle}>
-            <div style={{minWidth:68,flexShrink:0}}>
-              <div style={{fontSize:10,color:T.text}}>{fmtDate(op.date)}</div>
-              <div style={{fontSize:9,color:T.muted}}>{fmtTime(op.date)}</div>
-            </div>
-            <span className="cv-tx-type" style={ts}>{opType||'?'}</span>
-            {op.hasFailed&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:T.error+'22',color:T.error,fontWeight:700}}>FAILED</span>}
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:600,color:amtColor,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</div>
-              {op.fee&&fmtBal(op.fee,acct.cid,null)&&<div style={{fontSize:9,color:T.muted}}>Fee: {fmtBal(op.fee,acct.cid,null)}</div>}
-            </div>
-            {counterparty&&<div style={{minWidth:0,maxWidth:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(counterparty,16)} full={counterparty} mono={true}/></div>}
-            {op.hash&&<div style={{flexShrink:0}}>
-              {txUrl
-                ?<a href={txUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.primary,fontFamily:MF,textDecoration:'none'}}>{trunc(op.hash,12)}</a>
-                :<span style={{fontSize:10,color:T.muted,fontFamily:MF,position:'relative'}}><CVCopyText text={trunc(op.hash,12)} full={op.hash} mono={true}/></span>
-              }
-            </div>}
-          </div>;
-        })}
-      </div>
-    </div>}
-    {acctErrs.length>0&&<div className="cv-detail-card" style={{borderColor:'rgba(228,0,70,0.3)'}}>
-      <div className="cv-section-title" style={{color:T.error}}>Related Issues ({acctErrs.length})</div>
-      {acctErrs.map((err,i)=><div key={i} style={{fontSize:12,color:T.error,padding:'4px 0',borderBottom:i<acctErrs.length-1?'1px solid rgba(228,0,70,0.15)':'none'}}>{err.dg?.t||err.msg||'Unknown error'}</div>)}
-    </div>}
-  </div>;
-}
-
-function CustomerView({logData,appJson,onAppJson}){
+function CustomerView({logData,appJson,onAppJson,liveBalances}){
   const[selectedAcct,setSelectedAcct]=useState(null);
   const[ajDragOver,setAjDragOver]=useState(false);
   const[summCopied,setSummCopied]=useState(false);
   const[bannerExpanded,setBannerExpanded]=useState(true);
   const[ajError,setAjError]=React.useState('');
   const[ajKey,setAjKey]=React.useState(0);
+  const[cvSection,setCvSection]=useState('accounts');
+  const[cvAcctSearch,setCvAcctSearch]=useState('');
+  const[cvAcctSort,setCvAcctSort]=useState('balance');
   useEffect(()=>{
     if(appJson&&!appJson.encrypted){
       setBannerExpanded(true);
@@ -3259,7 +2951,6 @@ function CustomerView({logData,appJson,onAppJson}){
     return matchCount===0;
   },[appJson,logData]);
   const enrichedAccts=useMemo(()=>{
-    // Case 1: Log has accounts — enrich with app.json if available
     if(namedAccts.length>0){
       if(!appJson)return namedAccts;
       return namedAccts.map(a=>{
@@ -3272,7 +2963,6 @@ function CustomerView({logData,appJson,onAppJson}){
           ajStarred:match.starred};
       });
     }
-    // Case 2: No log accounts but app.json available — build from app.json
     if(appJson&&appJson.accounts.length>0){
       const counts={};
       appJson.accounts.forEach(a=>{const ch=getChain(a.currencyId);counts[ch.name]=(counts[ch.name]||0)+1;});
@@ -3291,7 +2981,6 @@ function CustomerView({logData,appJson,onAppJson}){
           ajOperations:a.operations,ajSubAccounts:a.subAccounts,ajBlockHeight:a.blockHeight,ajStarred:a.starred};
       });
     }
-    // Case 3: No log accounts and no app.json
     return namedAccts;
   },[namedAccts,appJson]);
   const copyCustomerSummary=useCallback(()=>{
@@ -3351,7 +3040,6 @@ function CustomerView({logData,appJson,onAppJson}){
     setSummCopied(true);
     setTimeout(()=>setSummCopied(false),2000);
   },[logData,appJson,enrichedAccts]);
-
   const readAppJsonFile=useCallback(file=>{
     setAjError('');
     const reader=new FileReader();
@@ -3384,46 +3072,78 @@ function CustomerView({logData,appJson,onAppJson}){
     ev.target.value='';
     readAppJsonFile(file);
   },[readAppJsonFile]);
-  const selData=selectedAcct!==null?enrichedAccts[selectedAcct]:null;
-  return <div className="cv-layout">
-    <CVSidebar accts={enrichedAccts} namedAccts={enrichedAccts} selected={selectedAcct} onSelect={setSelectedAcct} errs={logData.errs} as={logData.analytics&&logData.analytics.appStarts} appJson={appJson}/>
-    <div className="cv-main">
+  const filteredAccts=useMemo(()=>{
+    let accts=[...enrichedAccts];
+    if(cvAcctSearch){
+      const q=cvAcctSearch.toLowerCase();
+      accts=accts.filter(a=>(a.displayName||'').toLowerCase().includes(q)||(a.ch.name||'').toLowerCase().includes(q)||(a.ch.ticker||'').toLowerCase().includes(q));
+    }
+    accts.sort((a,b)=>{
+      if(cvAcctSort==='name')return(a.displayName||'').localeCompare(b.displayName||'');
+      const aB=a.enriched?parseFloat(a.ajBalance||0):0;
+      const bB=b.enriched?parseFloat(b.ajBalance||0):0;
+      if(aB!==bB)return bB-aB;
+      const aF=a.enriched?a.ajBalance!=='0':a.ops>0;
+      const bF=b.enriched?b.ajBalance!=='0':b.ops>0;
+      return aF===bF?0:aF?-1:1;
+    });
+    return accts;
+  },[enrichedAccts,cvAcctSearch,cvAcctSort]);
+  const selAcctData=selectedAcct!==null?enrichedAccts[selectedAcct]:null;
+  const navItems=[
+    {id:'portfolio',label:'Portfolio',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>},
+    {id:'accounts',label:'Accounts',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>},
+    {id:'myLedger',label:'My Ledger',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1.5" fill="currentColor"/></svg>},
+  ];
+  return <div className="cv-frame">
+    <div className="cv-nav">
+      <div style={{padding:'16px 16px 12px',borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#BBB0FF" fillOpacity="0.15"/><path d="M8 10h16v2H8zm0 5h16v2H8zm0 5h10v2H8z" fill="#BBB0FF"/></svg>
+          <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF'}}>Ledger Wallet</span>
+        </div>
+      </div>
+      {navItems.map(item=><div key={item.id} className={`cv-nav-item${cvSection===item.id?' cv-nav-active':''}`} onClick={()=>{setCvSection(item.id);setSelectedAcct(null);}}>{item.icon}<span>{item.label}</span></div>)}
+      <div style={{flex:1}}/>
+      <div style={{height:1,background:'rgba(255,255,255,0.06)',margin:'4px 16px'}}/>
+      <div className={`cv-nav-item${cvSection==='agentInsights'?' cv-nav-active':''}`}
+        style={cvSection==='agentInsights'?{color:'#BBB0FF',margin:'2px 8px'}:{color:'rgba(187,176,255,0.65)',margin:'2px 8px'}}
+        onClick={()=>setCvSection('agentInsights')}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span style={{fontWeight:600}}>Agent Insights</span>
+      </div>
+      <div style={{padding:'12px 16px',borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4FC46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span style={{fontSize:11,color:'#4FC46B',fontWeight:500}}>Synchronized</span>
+        </div>
+        {logData.dev&&(logData.dev.modelName||logData.dev.fw)&&<div style={{fontSize:11,color:'#8A8A8E',marginBottom:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{[logData.dev.modelName,logData.dev.fw].filter(Boolean).join(' · ')}</div>}
+        <button onClick={copyCustomerSummary} style={{width:'100%',padding:'7px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:summCopied?'rgba(79,196,107,0.12)':'rgba(187,176,255,0.08)',color:summCopied?'#4FC46B':'#BBB0FF',border:`1px solid ${summCopied?'rgba(79,196,107,0.25)':'rgba(187,176,255,0.15)'}`,cursor:'pointer',transition:'all 150ms ease',textAlign:'center'}}>
+          {summCopied?'✓ Copied!':'Copy Customer Summary'}
+        </button>
+      </div>
+    </div>
+    <div className="cv-content">
       <input key={ajKey} type="file" accept=".json" style={{display:'none'}} ref={appJsonRef} onChange={handleAppJsonPick}/>
       {appJson
         ?appJson.encrypted
-          ?<div className="cv-sim-banner">
-              <span>⚠ This customer has Ledger Sync enabled, which encrypts their account data. Balances and transactions can't be read from this file — only device info and token preferences. For full data, the customer would need to disable Ledger Sync and re-export.</span>
-              <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+          ?<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'10px 16px',fontSize:12,color:T.warning,margin:'16px 24px 0',display:'flex',alignItems:'flex-start',gap:8}}>
+              <span style={{flexShrink:0}}>⚠</span>
+              <span>This customer has Ledger Sync enabled, which encrypts their account data. Balances and transactions can't be read from this file — only device info and token preferences. For full data, the customer would need to disable Ledger Sync and re-export.</span>
+              <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7,flexShrink:0}}>✕</button>
             </div>
           :bannerExpanded
-            ?<div className="cv-enriched-banner">
-                <span>{logData.accts.length===0
-                  ?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`
-                  :`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}
-                </span>
-                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.success,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+            ?<div style={{background:'rgba(79,196,107,0.06)',border:'1px solid rgba(79,196,107,0.2)',borderRadius:6,padding:'10px 16px',fontSize:12,color:'#4FC46B',margin:'16px 24px 0',display:'flex',alignItems:'center',gap:8}}>
+                <span>{logData.accts.length===0?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`:`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}</span>
+                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#4FC46B',cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
               </div>
-            :<div className="cv-enriched-banner" style={{padding:'4px 12px',fontSize:11,display:'flex',alignItems:'center',gap:6}}>
-                <span style={{color:'#7AC26C'}}>✓ app.json loaded</span>
-                <span onClick={()=>setBannerExpanded(true)} style={{color:'#949494',cursor:'pointer',fontSize:10}}>details ▸</span>
-                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#949494',cursor:'pointer',fontSize:11,padding:'0 4px'}}>✕</button>
+            :<div style={{background:'rgba(79,196,107,0.04)',border:'1px solid rgba(79,196,107,0.15)',borderRadius:6,padding:'6px 16px',fontSize:11,color:'#4FC46B',margin:'12px 24px 0',display:'flex',alignItems:'center',gap:8}}>
+                <span>✓ app.json loaded</span>
+                <span onClick={()=>setBannerExpanded(true)} style={{color:'#8A8A8E',cursor:'pointer',fontSize:10}}>details ▸</span>
+                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#8A8A8E',cursor:'pointer',fontSize:11,padding:'0 4px'}}>✕</button>
               </div>
-        :<div className="cv-drop-banner"
-            onDrop={handleAppJsonDrop}
-            onDragOver={e=>{e.preventDefault();setAjDragOver(true);}}
-            onDragLeave={()=>setAjDragOver(false)}
-            style={{
-              border:`2px dashed ${ajDragOver?T.orange:T.warning+'60'}`,
-              borderRadius:8,
-              padding:'14px 20px',
-              display:'flex',
-              alignItems:'center',
-              gap:14,
-              cursor:'pointer',
-              transition:I.medium,
-              background:ajDragOver?`${T.orange}08`:'rgba(255,189,66,0.04)',
-              marginBottom:14
-            }}
+        :<div onDrop={handleAppJsonDrop} onDragOver={e=>{e.preventDefault();setAjDragOver(true);}} onDragLeave={()=>setAjDragOver(false)}
+            style={{border:`2px dashed ${ajDragOver?T.orange:T.warning+'60'}`,borderRadius:8,padding:'14px 20px',display:'flex',alignItems:'center',gap:14,cursor:'pointer',transition:I.medium,background:ajDragOver?`${T.orange}08`:'rgba(255,189,66,0.03)',margin:'16px 24px 0'}}
             onClick={()=>{if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}}>
             <div style={{width:32,height:32,borderRadius:8,background:'rgba(255,189,66,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico.Upload/></div>
             <div style={{flex:1}}>
@@ -3433,22 +3153,182 @@ function CustomerView({logData,appJson,onAppJson}){
             <button onClick={e=>{e.stopPropagation();if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.warning}40`,background:T.warning+'12',color:T.warning,fontSize:11,fontWeight:600,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>Browse</button>
           </div>
       }
-      {ajError&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',marginBottom:12,fontSize:12,color:T.error}}>{ajError}</div>}
-      {appJsonMismatch&&(
-        <div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',marginBottom:12,fontSize:12,color:T.error,display:'flex',alignItems:'center',gap:8}}>
-          <span>⚠</span>
-          <span>This app.json doesn't match the loaded log file — no matching account IDs found. You may have loaded the wrong customer's app.json.</span>
+      {ajError&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',margin:'8px 24px 0',fontSize:12,color:T.error}}>{ajError}</div>}
+      {appJsonMismatch&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',margin:'8px 24px 0',fontSize:12,color:T.error,display:'flex',alignItems:'center',gap:8}}>
+        <span>⚠</span><span>This app.json doesn't match the loaded log file — no matching account IDs found. You may have loaded the wrong customer's app.json.</span>
+      </div>}
+      {cvSection==='accounts'&&(selectedAcct===null
+        ?<div>
+          <div className="cv-content-header">
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+              <span style={{fontSize:20,fontWeight:700,color:'#FFFFFF'}}>Accounts</span>
+              <span style={{fontSize:12,color:'#8A8A8E',background:'rgba(255,255,255,0.06)',borderRadius:10,padding:'2px 8px',fontWeight:500}}>{enrichedAccts.length}</span>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1,position:'relative'}}>
+                <svg style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8A8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input value={cvAcctSearch} onChange={e=>setCvAcctSearch(e.target.value)} placeholder="Search accounts..." style={{width:'100%',padding:'8px 10px 8px 32px',borderRadius:8,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'#FFFFFF',fontSize:13,outline:'none',fontFamily:"'Inter','Darker Grotesque',sans-serif"}}/>
+              </div>
+              <select value={cvAcctSort} onChange={e=>setCvAcctSort(e.target.value)} style={{padding:'8px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'#8A8A8E',fontSize:12,cursor:'pointer',fontFamily:"'Inter','Darker Grotesque',sans-serif"}}>
+                <option value="balance">Sort by Highest Balance</option>
+                <option value="name">Sort by Name</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            {filteredAccts.length===0
+              ?<div style={{padding:'40px 32px',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>No accounts match your search</div>
+              :filteredAccts.map((a,i)=>{
+                const ch=a.ch;
+                const originalIdx=enrichedAccts.indexOf(a);
+                const enriched=a.enriched;
+                const bal=enriched&&a.ajBalance!=null?fmtBal(a.ajBalance,a.cid,ch.ticker):null;
+                const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
+                const subs=enriched?(a.ajSubAccounts||[]):(a.toks||[]);
+                const iconUrl=chainIconUrl(a.cid);
+                return <div key={i} className="cv-acct-list-row" onClick={()=>setSelectedAcct(originalIdx)}>
+                  <div style={{width:40,height:40,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
+                    {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:24,height:24,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:12,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{ch.name}</span>
+                      {funded&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4FC46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
+                      <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}</span>
+                      {a.ajStarred&&<span style={{color:'#FFB800',fontSize:12}}>★</span>}
+                      {a.dm&&<span className="cv-dm-badge">{a.dm}</span>}
+                    </div>
+                    {subs.length>0&&<div style={{fontSize:11,color:'rgba(187,176,255,0.6)',marginTop:2,cursor:'pointer'}}>Show tokens ({subs.length})</div>}
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    {bal?<div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{bal}</div>:<div style={{fontSize:14,fontWeight:500,color:'#8A8A8E'}}>—</div>}
+                    <div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>—</div>
+                  </div>
+                </div>;
+              })
+            }
+          </div>
         </div>
+        :(()=>{
+          const acct=selAcctData;
+          if(!acct)return null;
+          const ch=acct.ch;
+          const acctErrs=logData.errs.filter(e=>acct.addr&&acct.addr.length>4&&(e.det||e.msg||'').includes(acct.addr));
+          let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
+          const enriched=acct.enriched;
+          const ajOps=acct.ajOperations||[];
+          const displayOps=ajOps.slice(0,50);
+          const txDirStyle=type=>{
+            if(type==='IN')return{bg:'rgba(79,196,107,0.15)',color:'#4FC46B',arrow:'↓'};
+            if(type==='OUT')return{bg:'rgba(234,67,53,0.15)',color:'#EA4335',arrow:'↑'};
+            return{bg:'rgba(255,189,66,0.12)',color:T.warning,arrow:'↕'};
+          };
+          const ajSubs=acct.ajSubAccounts||[];
+          const logToks=(acct.toks||[]).filter(Boolean);
+          const iconUrl=chainIconUrl(acct.cid);
+          return <div>
+            <div className="cv-content-header" style={{paddingBottom:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:16}}>
+                <button onClick={()=>setSelectedAcct(null)} style={{background:'none',border:'none',color:'#8A8A8E',cursor:'pointer',fontSize:13,padding:0,display:'flex',alignItems:'center',gap:4}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                  Accounts
+                </button>
+                <span style={{color:'rgba(255,255,255,0.25)'}}>/</span>
+                <span style={{fontSize:13,color:'#FFFFFF',fontWeight:500}}>{acct.displayName}</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:32,height:32,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                  {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:20,height:20,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
+                </div>
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{ch.name}</span>
+                    {acct.dm&&<span className="cv-dm-badge">{acct.dm}</span>}
+                  </div>
+                  <div style={{fontSize:18,fontWeight:700,color:'#FFFFFF',marginTop:1}}>{acct.displayName}{acct.ajStarred&&<span style={{color:'#FFB800',fontSize:14,marginLeft:6}}>★</span>}</div>
+                </div>
+                {eUrl&&<a href={eUrl} target="_blank" rel="noopener noreferrer" style={{marginLeft:'auto',padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:(ch.color||T.primary)+'22',color:ch.color||T.primary,border:`1px solid ${ch.color||T.primary}33`,textDecoration:'none',display:'flex',alignItems:'center',gap:6,flexShrink:0}}><Ico.Link/>Explorer</a>}
+              </div>
+            </div>
+            {enriched&&acct.ajBalance!=null&&<div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+              <div style={{fontSize:28,fontWeight:700,color:'#FFFFFF',marginBottom:4}}>{fmtBal(acct.ajBalance,acct.cid,ch.ticker)||'0 '+ch.ticker}</div>
+              {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:6}}>Spendable: {fmtBal(acct.ajSpendable,acct.cid,ch.ticker)}</div>}
+              {acct.ajBlockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',marginTop:4,fontFamily:MF}}>Block: {Number(acct.ajBlockHeight).toLocaleString()}</div>}
+            </div>}
+            <div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Address</div>
+              <div style={{fontFamily:MF,fontSize:12,color:'#FFFFFF',wordBreak:'break-all'}}><CVCopyText text={acct.addr} mono={true}/></div>
+              {acct.fp&&<div style={{fontFamily:MF,fontSize:11,color:'#8A8A8E',marginTop:6}}>Path: {acct.fp}</div>}
+              <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:12}}>
+                <div style={{background:'rgba(255,255,255,0.04)',borderRadius:6,padding:'6px 14px',textAlign:'center',minWidth:70}}>
+                  <div style={{fontSize:10,color:'#8A8A8E',marginBottom:2}}>Operations</div>
+                  <div style={{fontSize:16,fontWeight:700}}>{enriched?acct.ajOps:acct.ops}</div>
+                </div>
+                {acct.isXpub&&<div style={{background:'rgba(187,176,255,0.08)',borderRadius:6,padding:'6px 14px',textAlign:'center'}}>
+                  <div style={{fontSize:10,color:T.primary,marginBottom:2}}>Type</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.primary,fontFamily:MF}}>xpub</div>
+                </div>}
+              </div>
+            </div>
+            {(enriched&&ajSubs.length>0||!enriched&&logToks.length>0)&&<div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Token Holdings ({enriched?ajSubs.length:logToks.length})</div>
+              {enriched?ajSubs.map((s,si)=>{
+                const rawName=(s.tokenId||'').split('/').pop()||s.tokenId||'?';
+                const name=rawName.replace(/__/g,' ').replace(/_/g,' ');
+                const bal=fmtBal(s.balance,'tezos',null);
+                return <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:si<ajSubs.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+                  <span style={{flex:1,fontSize:13,fontWeight:500,textTransform:'capitalize',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+                  {bal&&<span style={{fontSize:12,color:'#4FC46B',fontFamily:MF}}>{bal}</span>}
+                  <span style={{fontSize:11,color:'#8A8A8E'}}>{s.operationsCount} ops</span>
+                </div>;
+              })
+              :logToks.map((tk,ti)=>{
+                const lb=tk.ticker||tk.name||tk.id||'?';
+                return <span key={ti} style={{display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:T.primary+'22',color:T.primary,fontFamily:MF,marginRight:6,marginBottom:6}}>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></span>;
+              })}
+            </div>}
+            {enriched&&displayOps.length>0&&<div style={{padding:'16px 32px'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Latest Operations ({acct.ajOps})</div>
+              {ajOps.length>50&&<div style={{fontSize:11,color:'#8A8A8E',marginBottom:8}}>Showing 50 of {ajOps.length}</div>}
+              {displayOps.map((op,oi)=>{
+                const opType=(op.type||'').toUpperCase();
+                const ds=txDirStyle(opType);
+                const amtColor=opType==='IN'?'#4FC46B':opType==='OUT'?'#EA4335':T.text;
+                const counterparty=opType==='IN'?(op.senders||[])[0]:(op.recipients||[])[0];
+                const txUrl=op.hash&&TX_EXPLORERS[acct.cid]?TX_EXPLORERS[acct.cid](op.hash):null;
+                const isFailed=op.hasFailed||op.extra?.failed||(opType.includes('FAILED'));
+                return <div key={oi} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:oi<displayOps.length-1?'1px solid rgba(255,255,255,0.04)':'none',background:isFailed?'rgba(234,67,53,0.05)':'transparent',paddingLeft:isFailed?10:0,borderLeft:isFailed?'2px solid rgba(234,67,53,0.4)':'2px solid transparent'}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:ds.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <span style={{fontSize:13,fontWeight:700,color:ds.color}}>{ds.arrow}</span>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{fontSize:13,fontWeight:500,color:amtColor}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</span>
+                      {isFailed&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(234,67,53,0.2)',color:'#EA4335',fontWeight:700}}>FAILED</span>}
+                    </div>
+                    <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{fmtDate(op.date)} · {fmtTime(op.date)}{op.fee&&fmtBal(op.fee,acct.cid,null)?` · Fee: ${fmtBal(op.fee,acct.cid,null)}`:''}</div>
+                  </div>
+                  {counterparty&&<div style={{minWidth:0,maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(counterparty,16)} full={counterparty} mono={true}/></div>}
+                  <div style={{flexShrink:0}}>
+                    {txUrl?<a href={txUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:T.primary,fontFamily:MF,textDecoration:'none'}}>{trunc(op.hash,10)}</a>
+                    :op.hash?<span style={{fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(op.hash,10)} full={op.hash} mono={true}/></span>:null}
+                  </div>
+                </div>;
+              })}
+            </div>}
+            {acctErrs.length>0&&<div style={{padding:'16px 32px'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#EA4335',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Related Issues ({acctErrs.length})</div>
+              {acctErrs.map((err,i)=><div key={i} style={{fontSize:12,color:'#EA4335',padding:'6px 0',borderBottom:i<acctErrs.length-1?'1px solid rgba(234,67,53,0.1)':'none'}}>{err.dg?.t||err.msg||'Unknown error'}</div>)}
+            </div>}
+          </div>;
+        })()
       )}
-      <button onClick={copyCustomerSummary} style={{padding:'5px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:T.primary+'1E',color:T.primary,border:`1px solid ${T.primary}4D`,cursor:'pointer',marginBottom:12}}>
-        {summCopied?'Copied!':'Copy Customer Summary'}
-      </button>
-      {selectedAcct===null
-        ?<CVPortfolioView accts={enrichedAccts} namedAccts={enrichedAccts} port={port} as={as} appJson={appJson} onSelectAcct={setSelectedAcct}/>
-        :<CVAccountDetail acct={selData} errs={logData.errs} onBack={()=>setSelectedAcct(null)}/>
-      }
+      {cvSection==='portfolio'&&<CVPortfolio/>}
+      {cvSection==='myLedger'&&<CVMyLedger/>}
+      {cvSection==='agentInsights'&&<CVAgentInsights/>}
     </div>
-    <CVInfoBar dev={logData.dev} as={as} port={port} accts={enrichedAccts} appJson={appJson}/>
   </div>;
 }
 
@@ -6621,7 +6501,7 @@ function App(){
       </div>
       </div>}
     </div>
-  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson}/>}
+  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson} liveBalances={liveBalances}/>}
   {guideOpen&&<div onClick={()=>setGuideOpen(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 0.15s ease'}}>
     <div onClick={e=>e.stopPropagation()} style={{width:'min(900px, 90vw)',height:'85vh',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.6)'}}>
       <div style={{display:'flex',alignItems:'center',padding:'12px 20px',borderBottom:`1px solid ${T.border}`,flexShrink:0,gap:12}}>
