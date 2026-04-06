@@ -3352,10 +3352,7 @@ function CustomerView({logData,appJson,onAppJson}){
     setTimeout(()=>setSummCopied(false),2000);
   },[logData,appJson,enrichedAccts]);
 
-  const handleAppJsonDrop=useCallback(e=>{
-    e.preventDefault();e.stopPropagation();setAjDragOver(false);
-    const file=e.dataTransfer?.files?.[0];
-    if(!file)return;
+  const readAppJsonFile=useCallback(file=>{
     setAjError('');
     const reader=new FileReader();
     reader.onload=ev=>{
@@ -3376,30 +3373,17 @@ function CustomerView({logData,appJson,onAppJson}){
     reader.onerror=()=>setAjError('The file couldn\'t be opened. Try downloading it again from the customer\'s ticket.');
     reader.readAsText(file);
   },[onAppJson]);
+  const handleAppJsonDrop=useCallback(e=>{
+    e.preventDefault();e.stopPropagation();setAjDragOver(false);
+    const file=e.dataTransfer?.files?.[0];
+    if(file)readAppJsonFile(file);
+  },[readAppJsonFile]);
   const handleAppJsonPick=useCallback(ev=>{
     const file=ev.target.files?.[0];
     if(!file)return;
     ev.target.value='';
-    setAjError('');
-    const reader=new FileReader();
-    reader.onload=e=>{
-      setAjError('');
-      try{
-        const parsed=parseAppJson(e.target.result);
-        if(!parsed||(parsed.accounts.length===0&&!parsed.encrypted)){
-          try{const cleaned=Array.from(e.target.result).filter(ch=>{const c=ch.charCodeAt(0);return c>=0x20||c===0x0a||c===0x09;}).join('');const raw=JSON.parse(cleaned);const keys=Object.keys(raw).join(', ');const dataKeys=raw.data?Object.keys(raw.data).join(', '):'no .data key';console.error('parseAppJson diagnostic — top keys:',keys,'data keys:',dataKeys);setAjError('This app.json doesn\'t contain account data. It may be from a different version of Ledger Wallet or an incomplete export. Ask the customer to re-export.');}catch(err){console.error('parseAppJson diagnostic:', err.message);setAjError('This file couldn\'t be read. It may be corrupted or not a valid app.json file. Ask the customer to re-export from Ledger Wallet → Settings → Help → View user data.');}
-        }else{
-          setAjError('');
-          onAppJson(parsed);
-          setAjKey(k=>k+1);
-        }
-      }catch(err){
-        console.error('parseAppJson diagnostic:', err.message);setAjError('This file couldn\'t be read. It may be corrupted or not a valid app.json file. Ask the customer to re-export from Ledger Wallet → Settings → Help → View user data.');
-      }
-    };
-    reader.onerror=()=>setAjError('The file couldn\'t be opened. Try downloading it again from the customer\'s ticket.');
-    reader.readAsText(file);
-  },[onAppJson]);
+    readAppJsonFile(file);
+  },[readAppJsonFile]);
   const selData=selectedAcct!==null?enrichedAccts[selectedAcct]:null;
   return <div className="cv-layout">
     <CVSidebar accts={enrichedAccts} namedAccts={enrichedAccts} selected={selectedAcct} onSelect={setSelectedAcct} errs={logData.errs} as={logData.analytics&&logData.analytics.appStarts} appJson={appJson}/>
