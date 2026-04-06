@@ -5551,7 +5551,7 @@ function App(){
                 </div>
               </div>
               <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden'}}>
-                <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards'}}
+                <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:`linear-gradient(180deg, rgba(69,57,92,0.08) 0%, ${T.bg} 40%)`,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards',boxShadow:'inset 0 -3px 8px rgba(0,0,0,0.25)'}}
                   onMouseDown={ev=>{const rect=ev.currentTarget.getBoundingClientRect();const start=(ev.clientX-rect.left)/rect.width;tlBrushRef.current={start,end:start,rect};setTlBrushing(true);setTlBrush({start,end:start});ev.preventDefault();}}
                   onMouseMove={handleBarHover}
                   onMouseLeave={()=>setTlHoveredBucket(null)}>
@@ -5589,7 +5589,7 @@ function App(){
                         for(const tp of sortedTypes){
                           if(b.types[tp]){segs.push({type:tp,count:b.types[tp],pct:(b.types[tp]/b.total)*100});}
                         }
-                        return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',opacity:isHov?1:(tlHighlightType&&!b.types[tlHighlightType])?0.15:0.85,transition:I.fast}}>
+                        return <div key={i} style={{flex:1,height:h,alignSelf:'flex-end',display:'flex',flexDirection:'column',opacity:isHov?1:(tlHighlightType&&!b.types[tlHighlightType])?0.15:0.92,transition:I.fast,borderRadius:'2px 2px 0 0',overflow:'hidden',boxShadow:(tlHighlightType&&b.types[tlHighlightType])?`0 0 8px ${TC[tlHighlightType.toLowerCase()]||'#717070'}50`:'none'}}>
                           {segs.map((s,si)=>{
                             const color=TC[s.type.toLowerCase()]||'#717070';
                             const dimmed=tlHighlightType&&s.type!==tlHighlightType;
@@ -5671,8 +5671,8 @@ function App(){
                     onClick={()=>setTypeFilter(isActive?'all':tp)}
                     onMouseEnter={()=>setTlHighlightType(tp)}
                     onMouseLeave={()=>setTlHighlightType(null)}
-                    style={{display:'flex',alignItems:'center',gap:5,padding:'3px 8px',borderRadius:4,cursor:'pointer',background:isActive?color+'25':'rgba(255,255,255,0.03)',border:`1px solid ${isActive?color+'60':I.interactiveBorder}`,transition:`all ${I.fast}`,animation:isActive?(sectionChanged?'filterRemind 0.6s ease-out':I.pulse):'none','--pulse-color':color+'40','--remind-color':color+'40'}}>
-                    <div style={{width:7,height:7,borderRadius:2,background:color,flexShrink:0}}/>
+                    style={{display:'flex',alignItems:'center',gap:5,padding:'3px 8px',borderRadius:4,cursor:'pointer',background:isActive?color+'25':color+'0A',border:`1px solid ${isActive?color+'60':color+'18'}`,transition:`all ${I.fast}`,animation:isActive?(sectionChanged?'filterRemind 0.6s ease-out':I.pulse):'none','--pulse-color':color+'40','--remind-color':color+'40'}}>
+                    <div style={{width:8,height:8,borderRadius:2,background:color,flexShrink:0,boxShadow:`0 0 4px ${color}40`}}/>
                     <span style={{fontFamily:MF,fontSize:10,color:isActive?color:T.muted,fontWeight:isActive?700:400,letterSpacing:'0.02em'}}>{tp}</span>
                     <span style={{fontFamily:MF,fontSize:9,color:T.muted,opacity:0.6}}>{count}</span>
                   </div>;
