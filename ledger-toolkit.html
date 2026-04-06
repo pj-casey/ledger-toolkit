@@ -2896,46 +2896,47 @@ function ModeToggle({mode,onChange}){
 }
 
 function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
-  const lb=liveBalances||{};
-  const total=Object.values(lb).reduce((s,v)=>s+(v?.fiat||0),0);
-  const fmtFiat=v=>v==null?'—':'$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   const accts=enrichedAccts||[];
   const chainCount=[...new Set(accts.map(a=>a.cid))].length;
-  const withFiat=[],noFiat=[];
-  accts.forEach((a,i)=>{const fiat=lb[a.id]?.fiat||0;if(fiat>0)withFiat.push({a,i,fiat});else noFiat.push({a,i});});
-  withFiat.sort((x,y)=>y.fiat-x.fiat);
-  // Group by chain for portfolio allocation display
+  const hasAppJson=accts.some(a=>a.enriched);
+  if(!hasAppJson){
+    return <div style={{padding:'40px 32px',textAlign:'center'}}>
+      <div style={{fontSize:32,marginBottom:16,opacity:0.3}}>📊</div>
+      <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:8}}>Customer portfolio not available</div>
+      <div style={{fontSize:13,color:'#8A8A8E',maxWidth:400,margin:'0 auto',lineHeight:1.6}}>Load the customer's <strong style={{color:'#FFFFFF'}}>app.json</strong> to see their portfolio as they see it. This file contains their synced balances, account names, and transaction history.</div>
+      <div style={{fontSize:12,color:'#8A8A8E',marginTop:16,opacity:0.6}}>Ask the customer to export from Ledger Wallet → Settings → Help → View user data</div>
+    </div>;
+  }
   const chainGroups={};
-  withFiat.forEach(({a,i,fiat})=>{
+  accts.forEach((a,i)=>{
+    if(!a.enriched||!a.ajBalance)return;
     const key=a.cid;
-    if(!chainGroups[key])chainGroups[key]={ch:a.ch,cid:a.cid,fiat:0,bal:0,accts:[],firstIdx:i};
-    chainGroups[key].fiat+=fiat;
-    chainGroups[key].bal+=(lb[a.id]?.bal||0);
-    chainGroups[key].accts.push({a,i,fiat});
+    const dec=DECIMALS[a.cid]||18;
+    const rawBal=parseFloat(a.ajBalance)||0;
+    const humanBal=rawBal/Math.pow(10,dec);
+    if(!chainGroups[key])chainGroups[key]={ch:a.ch,cid:a.cid,bal:0,accts:[],firstIdx:i};
+    chainGroups[key].bal+=humanBal;
+    chainGroups[key].accts.push({a,i,humanBal});
   });
-  const chainAlloc=Object.values(chainGroups).sort((a,b)=>b.fiat-a.fiat);
-  if(accts.length===0)return <div style={{padding:'40px 32px',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>No portfolio data available. Load the customer's app.json for account details.</div>;
+  const chainAlloc=Object.values(chainGroups).filter(g=>g.bal>0).sort((a,b)=>b.bal-a.bal);
+  const zeroChains=Object.values(chainGroups).filter(g=>g.bal===0);
+  const noDataAccts=accts.filter(a=>!a.enriched||!a.ajBalance);
   return <div>
     <div className="cv-content-header">
       <div style={{fontSize:14,color:'#8A8A8E',fontWeight:500,marginBottom:4}}>Portfolio balance</div>
-      <div style={{fontSize:36,fontWeight:700,color:'#FFFFFF',lineHeight:1.1,marginBottom:6}}>
-        {total>0?'$'+total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'$0.00'}
-      </div>
-      <div style={{fontSize:13,color:'#8A8A8E'}}>{accts.length} account{accts.length!==1?'s':''} · {chainCount} chain{chainCount!==1?'s':''}</div>
+      <div style={{fontSize:36,fontWeight:700,color:'#FFFFFF',lineHeight:1.1,marginBottom:6}}>{accts.length} accounts</div>
+      <div style={{fontSize:13,color:'#8A8A8E'}}>{accts.length} account{accts.length!==1?'s':''} · {chainCount} chain{chainCount!==1?'s':''} · from app.json</div>
     </div>
     <div style={{padding:'0 32px'}}>
       <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:16}}>Asset allocation ({chainAlloc.length})</div>
-      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2.5fr 1fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
-        {['Asset','Price','Allocation','Amount','Value'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
+      <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
+        {['Asset','Balance','Accounts'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
       </div>
       {chainAlloc.map(grp=>{
         const ch=grp.ch;
-        const pct=total>0?grp.fiat/total*100:0;
-        const price=grp.bal>0?grp.fiat/grp.bal:null;
-        const balStr=grp.bal>0?grp.bal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ch.ticker:'—';
         const iconUrl=chainIconUrl(grp.cid);
         const acctCount=grp.accts.length;
-        return <div key={grp.cid} style={{display:'grid',gridTemplateColumns:'2fr 1fr 2.5fr 1fr 1fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
+        return <div key={grp.cid} style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
           onClick={()=>{if(acctCount===1){setCvSection('accounts');onSelectAcct(grp.accts[0].i);}else{setCvSection('accounts');}}}
           onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'}
           onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
@@ -2943,24 +2944,15 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
             <div style={{width:32,height:32,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
               {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:20,height:20,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
             </div>
-            <div>
-              <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{ch.name}</span>
-              {acctCount>1&&<div style={{fontSize:11,color:'#8A8A8E'}}>{acctCount} accounts</div>}
-            </div>
+            <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{ch.name}</span>
           </div>
-          <div style={{fontSize:13,color:'#FFFFFF'}}>{price!=null?'$'+price.toLocaleString(undefined,{maximumFractionDigits:price>=1?2:6}):'—'}</div>
-          <div style={{paddingRight:16}}>
-            <div style={{fontSize:12,color:'#FFFFFF',marginBottom:4}}>{pct.toFixed(2)}%</div>
-            <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.06)',overflow:'hidden',maxWidth:200}}>
-              <div style={{height:'100%',width:pct+'%',background:(ch.color||'#BBB0FF')+'CC',borderRadius:3}}/>
-            </div>
-          </div>
-          <div style={{fontSize:12,color:'#FFFFFF',fontFamily:MF,textAlign:'right'}}>{balStr}</div>
-          <div style={{fontSize:13,fontWeight:500,color:'#FFFFFF',textAlign:'right'}}>{fmtFiat(grp.fiat)}</div>
+          <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF}}>{grp.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}</div>
+          <div style={{fontSize:12,color:'#8A8A8E'}}>{acctCount} account{acctCount!==1?'s':''}</div>
         </div>;
       })}
-      {noFiat.length>0&&<div style={{padding:'14px 0',color:'#8A8A8E',fontSize:12,borderTop:withFiat.length?'none':'1px solid rgba(255,255,255,0.06)',marginTop:withFiat.length?0:8}}>
-        {noFiat.length} account{noFiat.length!==1?'s':''} with no balance data
+      {(zeroChains.length+noDataAccts.length)>0&&<div style={{padding:'14px 0',color:'#8A8A8E',fontSize:12}}>
+        {zeroChains.length>0&&<span>{zeroChains.reduce((s,g)=>s+g.accts.length,0)} empty account{zeroChains.reduce((s,g)=>s+g.accts.length,0)!==1?'s':''}</span>}
+        {noDataAccts.length>0&&<span>{zeroChains.length>0?' · ':''}{noDataAccts.length} without balance data</span>}
       </div>}
       <div style={{height:32}}/>
     </div>
@@ -3147,6 +3139,54 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         <div style={{fontSize:12,color:'#8A8A8E'}}>Data sources: {[hasAppJson&&'app.json',fetchedCount>0&&'live balances','log'].filter(Boolean).join(' + ')}</div>
       </div>
     </>)}
+    {enrichedAccts.some(a=>a.enriched)&&<div style={{background:'#242428',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,padding:'16px 20px',marginBottom:12}}>
+      <div style={{fontFamily:MF,fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'#BBB0FF',marginBottom:8}}>Balance Comparison</div>
+      <div style={{fontSize:12,color:'#8A8A8E',marginBottom:12}}>Comparing what the customer sees (app.json) against live on-chain balances. Mismatches indicate sync issues.</div>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+        {['Account','Customer sees','On-chain','Status'].map(h=><div key={h} style={{fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</div>)}
+      </div>
+      {enrichedAccts.filter(a=>a.enriched).map((a,i)=>{
+        const ch=a.ch;
+        const lb=liveBalances[a.id];
+        const dec=DECIMALS[a.cid]||18;
+        const custBal=a.ajBalance?parseFloat(a.ajBalance)/Math.pow(10,dec):null;
+        const liveBal=lb?.bal!=null?lb.bal:null;
+        const liveFiat=lb?.fiat!=null?lb.fiat:null;
+        const hasBoth=custBal!=null&&liveBal!=null;
+        const delta=hasBoth?liveBal-custBal:null;
+        const isMatch=hasBoth&&Math.abs(delta)<0.000001;
+        const isMismatch=hasBoth&&!isMatch;
+        const statusColor=lb?.status==='loading'?'#8A8A8E':lb?.status==='error'?T.warning:isMatch?'#4FC46B':isMismatch?T.error:'#8A8A8E';
+        const statusText=lb?.status==='loading'?'···':lb?.status==='error'?'fetch failed':lb?.status==='unsupported'?'unsupported':isMatch?'✓ match':isMismatch?(delta>0?'▲ higher on-chain':'▼ lower on-chain'):'—';
+        return <div key={a.id} style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr',gap:0,padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',alignItems:'center',background:isMismatch?'rgba(228,0,70,0.04)':'transparent'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{width:8,height:8,borderRadius:'50%',background:ch.color,flexShrink:0,display:'inline-block'}}/>
+            <span style={{fontSize:12,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}</span>
+          </div>
+          <div style={{fontSize:12,fontFamily:MF,color:custBal!=null?'#FFFFFF':'#8A8A8E'}}>{custBal!=null?custBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ch.ticker:'no data'}</div>
+          <div>
+            <div style={{fontSize:12,fontFamily:MF,color:liveBal!=null?'#FFFFFF':'#8A8A8E'}}>{liveBal!=null?liveBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ch.ticker:(lb?.status==='loading'?'···':'—')}</div>
+            {liveFiat!=null&&<div style={{fontSize:10,color:'#8A8A8E'}}>{'$'+liveFiat.toLocaleString(undefined,{maximumFractionDigits:2})}</div>}
+          </div>
+          <div style={{fontSize:11,fontWeight:600,color:statusColor}}>{statusText}</div>
+        </div>;
+      })}
+      {(()=>{
+        const compared=enrichedAccts.filter(a=>a.enriched&&liveBalances[a.id]?.bal!=null&&a.ajBalance!=null);
+        const mismatches=compared.filter(a=>{
+          const dec=DECIMALS[a.cid]||18;
+          const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
+          const live=liveBalances[a.id].bal;
+          return Math.abs(live-cust)>=0.000001;
+        });
+        if(compared.length===0)return null;
+        return <div style={{marginTop:12,padding:'10px 14px',borderRadius:6,background:mismatches.length>0?'rgba(228,0,70,0.06)':'rgba(79,196,107,0.06)',border:`1px solid ${mismatches.length>0?'rgba(228,0,70,0.15)':'rgba(79,196,107,0.15)'}`,fontSize:12}}>
+          {mismatches.length>0
+            ?<span style={{color:T.error,fontWeight:600}}>⚠ {mismatches.length} balance mismatch{mismatches.length!==1?'es':''} detected — customer's app may have a sync issue</span>
+            :<span style={{color:'#4FC46B',fontWeight:600}}>✓ All {compared.length} compared balance{compared.length!==1?'s':''} match — no sync issues detected</span>}
+        </div>;
+      })()}
+    </div>}
     {accentCard(<>
       {cardTitle('Data Confidence')}
       {infoRow('Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E')}
@@ -3465,8 +3505,8 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                     {subs.length>0&&<div style={{fontSize:11,color:'rgba(187,176,255,0.6)',marginTop:2,cursor:'pointer'}}>Show tokens ({subs.length})</div>}
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
-                    {bal?<div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{bal}</div>:(liveBalances[a.id]?.bal!=null?<div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{liveBalances[a.id].bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}</div>:<div style={{fontSize:14,fontWeight:500,color:'#8A8A8E'}}>—</div>)}
-                    {liveBalances[a.id]?.fiat!=null?<div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>{'$'+liveBalances[a.id].fiat.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>:<div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>—</div>}
+                    {bal?<div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{bal}</div>:<div style={{fontSize:14,fontWeight:500,color:'#8A8A8E'}}>—</div>}
+                    {bal&&funded?<div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>{a.enriched&&a.ajOps!=null?a.ajOps+' ops':'—'}</div>:<div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>—</div>}
                   </div>
                 </div>;
               })
@@ -3519,8 +3559,6 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
             </div>
             {enriched&&acct.ajBalance!=null&&<div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
               <div style={{fontSize:28,fontWeight:700,color:'#FFFFFF',marginBottom:4}}>{fmtBal(acct.ajBalance,acct.cid,ch.ticker)||'0 '+ch.ticker}</div>
-              {(()=>{const lbEntry=liveBalances[acct.id];return lbEntry?.fiat!=null?<div style={{fontSize:16,color:'#8A8A8E'}}>{'$'+lbEntry.fiat.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>:null;})()}
-              {(()=>{const lbEntry=liveBalances[acct.id];const price=lbEntry?.fiat!=null&&lbEntry?.bal>0?lbEntry.fiat/lbEntry.bal:null;return price?<div style={{fontSize:13,color:'#8A8A8E',marginTop:6}}>✦ 1 {ch.ticker} = ${price.toLocaleString(undefined,{maximumFractionDigits:price>=1?2:6})}</div>:null;})()}
               {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:6}}>Spendable: {fmtBal(acct.ajSpendable,acct.cid,ch.ticker)}</div>}
               {acct.ajBlockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',marginTop:4,fontFamily:MF}}>Block: {Number(acct.ajBlockHeight).toLocaleString()}</div>}
             </div>}
