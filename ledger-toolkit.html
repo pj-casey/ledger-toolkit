@@ -240,6 +240,23 @@ const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',
 const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return '';}};
 const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Nano Gen5'};
+const DEVICE_CAPACITY={nanoS:320*1024,nanoSP:1.5*1024*1024,nanoX:1.8*1024*1024,stax:1.8*1024*1024,europa:1.8*1024*1024,apex:1.8*1024*1024};
+// Common Ledger device app sizes in bytes (from Nano X 2.6.1 catalog, April 2026)
+// Sizes are approximate and may vary slightly by device model and firmware version
+const COMMON_APP_SIZES={
+  'bitcoin':73728,'bitcoin cash':73728,'litecoin':73728,'dogecoin':73728,'dash':73728,
+  'zcash':73728,'bitcoin gold':73728,'digibyte':73728,'qtum':73728,'ravencoin':73728,
+  'decred':73728,
+  'ethereum':106496,
+  'solana':57344,'tron':57344,'cosmos':57344,'polkadot':57344,'tezos':57344,
+  'near':57344,'cardano ada':57344,'cardano':57344,'algorand':57344,'stellar':57344,
+  'hedera':57344,'filecoin':57344,'vechain':57344,'stacks':57344,'sui':57344,
+  'aptos':57344,'flow':57344,'ton':57344,'mina':57344,'casper':57344,
+  'internet computer':57344,'injective':57344,
+  'xrp':36864,'ripple':36864,
+  'coinbase':36864,'fido u2f':36864,'opensea':36864,'paraswap':36864,
+  'security key':36864,'recovery check':36864,'webauthn':36864,
+};
 const TARGET_MASKS=[[0x31100000,'nanoS'],[0x33000000,'nanoX'],[0x33100000,'nanoSP'],[0x33200000,'stax'],[0x33300000,'europa'],[0x33400000,'apex']];
 function identifyTargetId(tid){const n=typeof tid==='string'?parseInt(tid,10):tid;if(!n||isNaN(n))return null;const masked=(n&0xFFFF0000)>>>0;for(const[mask,id]of TARGET_MASKS){if(masked===mask)return id;}return null;}
 const TC={action:'#808080',analytics:'#B49AFF',countervalues:'#FFBD42',bridge:'#FF8C42',network:'#4FC3F7',persistence:'#7AC26C',walletsync:'#D4A0FF',error:'#E40046','live-dmk-logger':'#FF5300'};
@@ -1399,6 +1416,74 @@ const CURRENCY_TO_APP={
   neon_evm:'Ethereum',lukso:'Ethereum',sonic:'Ethereum',flare:'Ethereum',
   hyperevm:'Ethereum',
 };
+
+/* Countervalue helpers — read historical rates from app.json */
+const TOKEN_DECIMALS_PATTERNS=[
+  [/\/usd[_-]?coin$/i,6],[/\/usdc/i,6],[/\/tether$/i,6],[/\/usdt/i,6],
+  [/\/wrapped[_-]?bitcoin/i,8],[/\/wbtc/i,8],[/\/staked[_-]?ether/i,18],
+  [/\/dai$/i,18],[/\/shiba[_-]?inu/i,18],[/\/chainlink/i,18],[/\/uni[_-]?swap/i,18],
+];
+function getTokenDecimals(tokenId,parentCid){
+  if(!tokenId)return 18;
+  for(const[pat,dec]of TOKEN_DECIMALS_PATTERNS){if(pat.test(tokenId))return dec;}
+  if(parentCid==='solana')return 9;
+  return 18;
+}
+function cvGetRateMap(appJson){
+  return appJson?.raw?.countervalues||appJson?.data?.countervalues||{};
+}
+function cvFiatCurrency(appJson){
+  return appJson?.raw?.settings?.counterValue||appJson?.data?.settings?.counterValue||'USD';
+}
+function cvLatestRate(appJson,currencyId){
+  const rm=cvGetRateMap(appJson);
+  const fiat=cvFiatCurrency(appJson);
+  const key=fiat+' '+currencyId;
+  const dates=rm[key];
+  if(!dates)return null;
+  const sorted=Object.keys(dates).sort();
+  if(!sorted.length)return null;
+  const latestDate=sorted[sorted.length-1];
+  return{rate:dates[latestDate],date:latestDate};
+}
+function cvRateOnDate(appJson,currencyId,dateStr){
+  const rm=cvGetRateMap(appJson);
+  const fiat=cvFiatCurrency(appJson);
+  const key=fiat+' '+currencyId;
+  const dates=rm[key];
+  if(!dates)return null;
+  if(dates[dateStr])return dates[dateStr];
+  const allDates=Object.keys(dates).sort();
+  if(!allDates.length)return null;
+  let nearest=allDates[0];
+  for(const d of allDates){if(d<=dateStr)nearest=d;else break;}
+  return dates[nearest];
+}
+function cvFiatValue(appJson,currencyId,rawBalance){
+  if(!rawBalance||rawBalance==='0'||rawBalance===0)return null;
+  const ri=cvLatestRate(appJson,currencyId);
+  if(!ri)return null;
+  const dec=DECIMALS[currencyId]||18;
+  const humanBal=parseFloat(rawBalance)/Math.pow(10,dec);
+  if(isNaN(humanBal)||!isFinite(humanBal))return null;
+  return humanBal*ri.rate;
+}
+function cvTokenFiatValue(appJson,tokenId,rawBalance,parentCid){
+  if(!rawBalance||rawBalance==='0'||rawBalance===0)return null;
+  const ri=cvLatestRate(appJson,tokenId);
+  if(!ri)return null;
+  const dec=getTokenDecimals(tokenId,parentCid);
+  const humanBal=parseFloat(rawBalance)/Math.pow(10,dec);
+  if(isNaN(humanBal)||!isFinite(humanBal))return null;
+  return humanBal*ri.rate;
+}
+function cvFmtFiat(value,appJson){
+  if(value==null)return null;
+  const fiat=cvFiatCurrency(appJson);
+  const sym=fiat==='USD'?'$':fiat==='EUR'?'€':fiat==='GBP'?'£':fiat+' ';
+  return sym+value.toLocaleString(undefined,{maximumFractionDigits:2,minimumFractionDigits:2});
+}
+
 function fmtBal(raw,currencyId,ticker){
   if(raw==null||raw==='')return null;
   const d=DECIMALS[currencyId]||0;
@@ -2895,7 +2980,7 @@ function ModeToggle({mode,onChange}){
   </div>;
 }
 
-function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
+function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection,appJson}){
   const accts=enrichedAccts||[];
   const chainCount=[...new Set(accts.map(a=>a.cid))].length;
   const hasAppJson=accts.some(a=>a.enriched);
@@ -2907,6 +2992,7 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
       <div style={{fontSize:12,color:'#8A8A8E',marginTop:16,opacity:0.6}}>Ask the customer to export from Ledger Wallet → Settings → Help → View user data</div>
     </div>;
   }
+  const hasCVRates=appJson&&Object.keys(cvGetRateMap(appJson)).length>0;
   const chainGroups={};
   accts.forEach((a,i)=>{
     if(!a.enriched||!a.ajBalance)return;
@@ -2914,29 +3000,54 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
     const dec=DECIMALS[a.cid]||18;
     const rawBal=parseFloat(a.ajBalance)||0;
     const humanBal=rawBal/Math.pow(10,dec);
-    if(!chainGroups[key])chainGroups[key]={ch:a.ch,cid:a.cid,bal:0,accts:[],firstIdx:i};
+    const fiatVal=hasCVRates?cvFiatValue(appJson,a.cid,a.ajBalance):null;
+    if(!chainGroups[key]){
+      const ri=hasCVRates?cvLatestRate(appJson,a.cid):null;
+      chainGroups[key]={ch:a.ch,cid:a.cid,bal:0,fiat:0,hasFiat:false,accts:[],firstIdx:i,rateInfo:ri};
+    }
     chainGroups[key].bal+=humanBal;
-    chainGroups[key].accts.push({a,i,humanBal});
+    if(fiatVal!=null){chainGroups[key].fiat+=fiatVal;chainGroups[key].hasFiat=true;}
+    chainGroups[key].accts.push({a,i,humanBal,fiatVal});
   });
-  const chainAlloc=Object.values(chainGroups).filter(g=>g.bal>0).sort((a,b)=>b.bal-a.bal);
+  const chainAlloc=Object.values(chainGroups).filter(g=>g.bal>0).sort((a,b)=>{
+    if(a.hasFiat&&b.hasFiat)return b.fiat-a.fiat;
+    if(a.hasFiat)return-1;
+    if(b.hasFiat)return 1;
+    return b.bal-a.bal;
+  });
   const zeroChains=Object.values(chainGroups).filter(g=>g.bal===0);
   const noDataAccts=accts.filter(a=>!a.enriched||!a.ajBalance);
+  const totalFiat=chainAlloc.reduce((s,g)=>g.hasFiat?s+g.fiat:s,0);
+  const hasTotalFiat=chainAlloc.some(g=>g.hasFiat);
+  const latestRateDate=(()=>{
+    if(!hasCVRates)return null;
+    const rm=cvGetRateMap(appJson);
+    const allDates=Object.values(rm).flatMap(d=>typeof d==='object'?Object.keys(d):[]).filter(k=>/^\d{4}-\d{2}/.test(k));
+    if(!allDates.length)return null;
+    return allDates.sort()[allDates.length-1];
+  })();
   return <div>
     <div className="cv-content-header">
       <div style={{fontSize:14,color:'#8A8A8E',fontWeight:500,marginBottom:4}}>Portfolio balance</div>
-      <div style={{fontSize:36,fontWeight:700,color:'#FFFFFF',lineHeight:1.1,marginBottom:6}}>{accts.length} accounts</div>
-      <div style={{fontSize:13,color:'#8A8A8E'}}>{accts.length} account{accts.length!==1?'s':''} · {chainCount} chain{chainCount!==1?'s':''} · from app.json</div>
+      {hasTotalFiat
+        ?<div style={{fontSize:36,fontWeight:700,color:'#FFFFFF',lineHeight:1.1,marginBottom:6}}>{cvFmtFiat(totalFiat,appJson)}</div>
+        :<div style={{fontSize:36,fontWeight:700,color:'#FFFFFF',lineHeight:1.1,marginBottom:6}}>{accts.length} accounts</div>}
+      <div style={{fontSize:13,color:'#8A8A8E',display:'flex',alignItems:'center',gap:10}}>
+        <span>{accts.length} account{accts.length!==1?'s':''} · {chainCount} chain{chainCount!==1?'s':''} · from app.json</span>
+        {latestRateDate&&<span style={{fontFamily:MF,fontSize:10,color:'rgba(187,176,255,0.5)',background:'rgba(187,176,255,0.06)',borderRadius:4,padding:'2px 6px'}}>rates as of {latestRateDate}</span>}
+      </div>
     </div>
     <div style={{padding:'0 32px'}}>
       <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:16}}>Asset allocation ({chainAlloc.length})</div>
-      <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
-        {['Asset','Balance','Accounts'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1.2fr 0.8fr 1.5fr 1.5fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
+        {['Asset','Price','Allocation','Balance','Value'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
       </div>
       {chainAlloc.map(grp=>{
         const ch=grp.ch;
         const iconUrl=chainIconUrl(grp.cid);
         const acctCount=grp.accts.length;
-        return <div key={grp.cid} style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
+        const allocPct=hasTotalFiat&&grp.hasFiat&&totalFiat>0?(grp.fiat/totalFiat*100):null;
+        return <div key={grp.cid} style={{display:'grid',gridTemplateColumns:'2fr 1.2fr 0.8fr 1.5fr 1.5fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
           onClick={()=>{if(acctCount===1){setCvSection('accounts');onSelectAcct(grp.accts[0].i);}else{setCvSection('accounts');}}}
           onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'}
           onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
@@ -2944,68 +3055,201 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection}){
             <div style={{width:32,height:32,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
               {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:20,height:20,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
             </div>
-            <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{ch.name}</span>
+            <div>
+              <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{ch.name}</span>
+              {acctCount>1&&<div style={{fontSize:11,color:'#8A8A8E'}}>{acctCount} accounts</div>}
+            </div>
           </div>
+          <div style={{fontSize:12,color:'#8A8A8E',fontFamily:MF}}>{grp.rateInfo?cvFmtFiat(grp.rateInfo.rate,appJson)+'/'+(ch.ticker||'?'):'—'}</div>
+          <div style={{fontSize:12,color:allocPct!=null?'#FFFFFF':'#8A8A8E'}}>{allocPct!=null?allocPct.toFixed(1)+'%':'—'}</div>
           <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF}}>{grp.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}</div>
-          <div style={{fontSize:12,color:'#8A8A8E'}}>{acctCount} account{acctCount!==1?'s':''}</div>
+          <div style={{fontSize:13,color:grp.hasFiat?'#FFFFFF':'#8A8A8E'}}>{grp.hasFiat?cvFmtFiat(grp.fiat,appJson):'—'}</div>
         </div>;
       })}
       {(zeroChains.length+noDataAccts.length)>0&&<div style={{padding:'14px 0',color:'#8A8A8E',fontSize:12}}>
         {zeroChains.length>0&&<span>{zeroChains.reduce((s,g)=>s+g.accts.length,0)} empty account{zeroChains.reduce((s,g)=>s+g.accts.length,0)!==1?'s':''}</span>}
         {noDataAccts.length>0&&<span>{zeroChains.length>0?' · ':''}{noDataAccts.length} without balance data</span>}
       </div>}
+      {(()=>{
+        const recentlyUsed=appJson?.raw?.discover?.recentlyUsed;
+        if(!Array.isArray(recentlyUsed)||recentlyUsed.length===0)return null;
+        const hist=appJson.raw.discover?.currentAccountHist||{};
+        const fmtDAppName=id=>id.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+        const shown=recentlyUsed.slice(0,8);
+        return(
+          <div style={{marginTop:24,paddingTop:16,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+            <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:12}}>Recent dApp activity</div>
+            {shown.map((entry,i)=>{
+              const histKey=Object.keys(hist).find(k=>k.includes(entry.id));
+              const acctId=histKey?hist[histKey]:null;
+              return(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<shown.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <span style={{fontSize:11}}>🔗</span>
+                  </div>
+                  <span style={{flex:1,fontSize:13,fontWeight:500,color:'#FFFFFF'}}>{fmtDAppName(entry.id)}</span>
+                  <span style={{fontSize:11,color:'#8A8A8E'}}>{entry.usedAt?new Date(entry.usedAt).toLocaleDateString():''}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
       <div style={{height:32}}/>
     </div>
   </div>;
 }
 
-function CVMyLedger({logData,versionCheck,firmwareCheck,appVersionCheck}){
+function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}){
   const[appsTab,setAppsTab]=useState('installed');
   const dev=logData.dev||{};
   const da=logData.deviceApps;
-  const modelName=dev.modelName||DN[dev.modelId]||'Unknown Device';
-  const installedApps=React.useMemo(()=>{
-    if(!da)return[];
-    if(da.source==='manager-result')return da.installed||[];
-    if(da.source==='apdu-only')return da.openedApps||[];
-    if(da.source==='catalog-only')return da.sessionInstalls||[];
-    return[];
-  },[da]);
+
+  // Extract device data from app.json settings
+  const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
+  const lastDevice=ajSettings.lastSeenDevice||{};
+  const lastDeviceInfo=lastDevice.deviceInfo||{};
+  const deviceModelList=ajSettings.devicesModelList||[];
+
+  // Merge device info: prefer log data, fall back to app.json
+  const modelId=dev.modelId||lastDevice.modelId||ajSettings.preferredDeviceModel||null;
+  const modelName=dev.modelName||DN[modelId]||(modelId?modelId.replace(/([A-Z])/g,' $1').trim():null)||'Unknown Device';
+  const firmware=dev.fw||lastDeviceInfo.version||lastDeviceInfo.seVersion||null;
+  const mcuVersion=lastDeviceInfo.mcuVersion||null;
+  const bootloaderVersion=lastDeviceInfo.bootloaderVersion||null;
+  const onboarded=lastDeviceInfo.onboarded;
+  const devMode=ajSettings.developerMode===true;
+  const llVersion=ajSettings.lastUsedVersion||dev.appVer||null;
+  const appLang=ajSettings.language||dev.lang||null;
+
   const appBarColors=['#6B8AFF','#FF8C42','#4ADE80','#FF4D6D','#FBBF24','#C084FC','#4FC3F7','#FF5300'];
   const chainForApp=name=>{
     const key=name.toLowerCase();
     return CHAINS[key]||Object.values(CHAINS).find(c=>(c.name||'').toLowerCase()===key||(c.ticker||'').toLowerCase()===key)||null;
   };
+  const modelDisplayName=id=>DN[id]||(id?id.replace(/([A-Z])/g,' $1').trim():'Unknown');
+
+  // Installed apps: prefer da, fall back to lastDevice.apps
+  const installedApps=React.useMemo(()=>{
+    let apps=[];
+    if(da){
+      if(da.source==='manager-result')apps=da.installed||[];
+      else if(da.source==='apdu-only')apps=da.openedApps||[];
+      else if(da.source==='catalog-only')apps=da.sessionInstalls||[];
+    }
+    if(apps.length===0&&lastDevice.apps&&lastDevice.apps.length>0){
+      apps=lastDevice.apps.map(a=>typeof a==='string'?{name:a}:{name:a.name||a,version:a.version||null});
+    }
+    // Enrich with catalog bytes when available
+    if(versionCheck?.status==='ok'&&versionCheck.apps){
+      apps=apps.map(app=>{
+        if(app.bytes)return app;
+        const cat=versionCheck.apps.find(c=>c.name.toLowerCase()===app.name.toLowerCase());
+        if(cat&&cat.bytes)return{...app,bytes:cat.bytes};
+        return app;
+      });
+    }
+    // Fallback: look up common app sizes by name
+    apps=apps.map(app=>{
+      if(app.bytes)return app;
+      const knownSize=COMMON_APP_SIZES[app.name.toLowerCase()];
+      if(knownSize)return{...app,bytes:knownSize};
+      return app;
+    });
+    return apps;
+  },[da,lastDevice.apps,versionCheck]);
+
   return <div>
     <div className="cv-content-header">
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
         <span style={{fontSize:20,fontWeight:700,color:'#FFFFFF'}}>{modelName}</span>
-        {dev.fw&&<span style={{fontSize:12,color:'#4FC46B',display:'flex',alignItems:'center',gap:4}}>
+        {(onboarded===true||dev.fw)&&<span style={{fontSize:12,color:'#4FC46B',display:'flex',alignItems:'center',gap:4}}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Ledger Genuine check
         </span>}
       </div>
       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
         <span style={{fontSize:13,color:'#8A8A8E'}}>OS version</span>
-        <span style={{fontSize:12,background:'rgba(255,255,255,0.08)',borderRadius:4,padding:'2px 8px',fontFamily:MF,color:'#FFFFFF'}}>{dev.fw||'?'}</span>
+        <span style={{fontSize:12,background:'rgba(255,255,255,0.08)',borderRadius:4,padding:'2px 8px',fontFamily:MF,color:'#FFFFFF'}}>{firmware||'?'}</span>
         {firmwareCheck?.status==='ok'&&(firmwareCheck.outdated
           ?<span style={{fontSize:12,background:'rgba(255,189,66,0.12)',borderRadius:4,padding:'2px 8px',color:T.warning}}>⬆ Update: {firmwareCheck.latest}</span>
           :<span style={{fontSize:12,color:'#4FC46B'}}>✓ Up to date</span>)}
         {firmwareCheck?.status==='loading'&&<span style={{fontSize:12,color:'#8A8A8E'}}>Checking firmware…</span>}
       </div>
       <div style={{fontSize:12,color:'#8A8A8E',marginBottom:2}}>
-        {llLabel(dev)}: {dev.appVer||'?'}
+        {llLabel(dev)}: {llVersion||'?'}
         {appVersionCheck?.status==='ok'&&(appVersionCheck.outdated?<span style={{color:T.warning,marginLeft:6}}>⬆ {appVersionCheck.latest} available</span>:<span style={{color:'#4FC46B',marginLeft:6}}>✓ Latest</span>)}
       </div>
-      {dev.lang&&<div style={{fontSize:12,color:'#8A8A8E'}}>Language: {dev.lang}</div>}
+      {appLang&&<div style={{fontSize:12,color:'#8A8A8E',marginBottom:2}}>Language: {appLang}</div>}
+      {(mcuVersion||bootloaderVersion)&&<div style={{fontSize:11,color:'rgba(255,255,255,0.25)',fontFamily:MF}}>{[mcuVersion&&'MCU: '+mcuVersion,bootloaderVersion&&'Bootloader: '+bootloaderVersion].filter(Boolean).join(' · ')}</div>}
     </div>
-    {da?.source==='manager-result'&&installedApps.length>0&&<div style={{padding:'0 32px 24px'}}>
+    {devMode&&<div style={{background:'rgba(255,189,66,0.08)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:8,padding:'14px 20px',margin:'0 32px 16px',display:'flex',alignItems:'flex-start',gap:10}}>
+      <span style={{fontSize:16,flexShrink:0}}>ⓘ</span>
+      <span style={{fontSize:13,color:T.warning,lineHeight:1.5}}>The experimental setting "Developer mode" may show unreleased OS and apps, leading to compatibility issues. You can disable it in settings.</span>
+    </div>}
+    {installedApps.length>0&&<div style={{padding:'0 32px 24px'}}>
       <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Storage</div>
-      <div style={{height:24,borderRadius:6,background:'rgba(255,255,255,0.06)',display:'flex',overflow:'hidden',boxShadow:'inset 0 1px 3px rgba(0,0,0,0.3)'}}>
-        {installedApps.map((app,idx)=>{const ch=chainForApp(app.name);const color=ch?.color||appBarColors[idx%appBarColors.length];return <div key={app.name} style={{height:'100%',width:(100/installedApps.length)+'%',background:color+'CC',borderRight:'1px solid rgba(0,0,0,0.25)'}} title={app.name}/>;})
-        }
+      {(()=>{
+        const appsWithBytes=installedApps.filter(a=>a.bytes>0);
+        const appsWithoutBytes=installedApps.filter(a=>!a.bytes);
+        const totalBytes=appsWithBytes.reduce((s,a)=>s+a.bytes,0);
+        const hasAnyBytes=appsWithBytes.length>0;
+        const estimatedUnknown=appsWithoutBytes.length*57344;
+        const totalEstimated=totalBytes+estimatedUnknown;
+        const hasPartial=appsWithoutBytes.length>0&&appsWithBytes.length>0;
+        const hasNone=appsWithBytes.length===0;
+        const capacity=DEVICE_CAPACITY[modelId]||DEVICE_CAPACITY.nanoX;
+        const fmtKB=b=>b>=1024*1024?(b/1024/1024).toFixed(2)+' MB':Math.round(b/1024)+' KB';
+        const approx=hasPartial||hasNone;
+        const displayTotal=approx?totalEstimated:totalBytes;
+        const freeDisplay=Math.max(0,capacity-displayTotal);
+        return <>
+          {hasAnyBytes&&<div style={{display:'flex',gap:16,fontSize:12,color:'#FFFFFF',marginBottom:8,flexWrap:'wrap'}}>
+            <span>Used <strong>{approx?'~':''}{fmtKB(displayTotal)}</strong></span>
+            <span>Capacity <strong>{fmtKB(capacity)}</strong></span>
+            <span>Apps <strong>{installedApps.length}</strong></span>
+            <span><strong>{approx?'~':''}{fmtKB(freeDisplay)}</strong> free</span>
+          </div>}
+          <div style={{height:24,borderRadius:6,background:'rgba(255,255,255,0.06)',display:'flex',overflow:'hidden',boxShadow:'inset 0 1px 3px rgba(0,0,0,0.3)'}}>
+            {hasAnyBytes
+              ?<>
+                {appsWithBytes.map((app,idx)=>{
+                  const ch=chainForApp(app.name);
+                  const color=ch?.color||appBarColors[idx%appBarColors.length];
+                  const pct=(app.bytes/capacity)*100;
+                  return <div key={app.name} style={{height:'100%',width:pct+'%',minWidth:2,background:color+'CC',borderRight:'1px solid rgba(0,0,0,0.25)'}} title={app.name+' — '+Math.round(app.bytes/1024)+' KB'}/>;
+                })}
+                {appsWithoutBytes.length>0&&<div style={{height:'100%',width:(estimatedUnknown/capacity*100)+'%',minWidth:2,background:'rgba(255,255,255,0.15)',borderRight:'1px solid rgba(0,0,0,0.25)'}} title={appsWithoutBytes.length+' app'+(appsWithoutBytes.length!==1?'s':'')+' (size estimated)'}/>}
+              </>
+              :<div style={{width:Math.min(95,installedApps.length*5)+'%',height:'100%',display:'flex'}}>
+                {installedApps.map((app,idx)=>{
+                  const ch=chainForApp(app.name);
+                  const color=ch?.color||appBarColors[idx%appBarColors.length];
+                  return <div key={app.name} style={{height:'100%',flex:1,background:color+'CC',borderRight:'1px solid rgba(0,0,0,0.25)'}} title={app.name}/>;
+                })}
+              </div>
+            }
+          </div>
+          <div style={{fontSize:11,color:'#8A8A8E',marginTop:4}}>
+            {installedApps.length} app{installedApps.length!==1?'s':''} installed
+            {hasPartial&&` · ${appsWithoutBytes.length} size${appsWithoutBytes.length!==1?'s':''} estimated`}
+            {hasNone&&' · sizes unavailable'}
+          </div>
+        </>;
+      })()}
+    </div>}
+    {deviceModelList.length>1&&<div style={{padding:'0 32px 16px'}}>
+      <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Paired devices</div>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+        {deviceModelList.map((mid,i)=>{
+          const isLast=mid===(lastDevice.modelId||modelId);
+          return <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:6,background:isLast?'rgba(187,176,255,0.1)':'rgba(255,255,255,0.04)',border:`1px solid ${isLast?'rgba(187,176,255,0.25)':'rgba(255,255,255,0.06)'}`}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isLast?'#BBB0FF':'#8A8A8E'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1.5" fill={isLast?'#BBB0FF':'#8A8A8E'}/></svg>
+            <span style={{fontSize:12,color:isLast?'#FFFFFF':'#8A8A8E',fontWeight:isLast?600:400}}>{modelDisplayName(mid)}</span>
+            {isLast&&<span style={{fontSize:10,color:'#BBB0FF',fontFamily:MF}}>last used</span>}
+          </div>;
+        })}
       </div>
-      <div style={{fontSize:11,color:'#8A8A8E',marginTop:4}}>{installedApps.length} app{installedApps.length!==1?'s':''} installed</div>
     </div>}
     <div style={{padding:'0 32px'}}>
       <div style={{display:'flex',gap:0,marginBottom:16,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
@@ -3021,16 +3265,21 @@ function CVMyLedger({logData,versionCheck,firmwareCheck,appVersionCheck}){
           const ch=chainForApp(app.name);
           const iconUrl=chainIconUrl(ch?.id||null);
           const cat=versionCheck?.status==='ok'?versionCheck.apps?.find(a=>a.name.toLowerCase()===app.name.toLowerCase()):null;
+          const ticker=ch?.ticker||null;
           return <div key={app.name+i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:i<installedApps.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
             <div style={{width:36,height:36,borderRadius:'50%',background:ch?.color||'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
               {iconUrl?<img src={iconUrl} alt={app.name} style={{width:22,height:22,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{app.name.slice(0,3).toUpperCase()}</span>}
             </div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{app.name}</div>
-              {app.version&&<div style={{fontSize:11,color:'#8A8A8E',fontFamily:MF,marginTop:2}}>{app.version}</div>}
+              <div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{app.name}{ticker?<span style={{color:'#8A8A8E',fontWeight:400}}> ({ticker})</span>:''}</div>
+              <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{[app.version,'Ledger',app.bytes?Math.round(app.bytes/1024)+' KB':null].filter(Boolean).join(' · ')}</div>
+              <div style={{fontSize:11,color:'#4FC46B',marginTop:1,display:'flex',alignItems:'center',gap:3}}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4FC46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Ledger Wallet supported
+              </div>
             </div>
             <div style={{textAlign:'right',flexShrink:0}}>
-              {cat?(cat.outdated?<span style={{fontSize:12,color:T.warning}}>⬆ {cat.latest} available</span>:<span style={{fontSize:12,color:'#4FC46B'}}>✓ Installed</span>):<span style={{fontSize:12,color:'#8A8A8E'}}>Installed</span>}
+              {cat?(cat.outdated?<span style={{fontSize:12,color:T.warning}}>⬆ {cat.latest}</span>:<span style={{fontSize:12,color:'#4FC46B'}}>✓ Installed</span>):<span style={{fontSize:12,color:'#8A8A8E'}}>Installed</span>}
             </div>
           </div>;
         })
@@ -3059,8 +3308,13 @@ function CVMyLedger({logData,versionCheck,firmwareCheck,appVersionCheck}){
       {(logData.requiredApps||[]).length>0&&<div style={{marginTop:24,paddingTop:16,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Required by accounts</div>
         {logData.requiredApps.map((ra,i)=>{
+          const ch=chainForApp(ra.appName)||ra.chains?.[0];
+          const iconUrl=ch?chainIconUrl(ch.id||ch.cid||null):null;
           const cat=versionCheck?.apps?.find(a=>a.name.toLowerCase()===ra.appName.toLowerCase());
-          return <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:i<logData.requiredApps.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+          return <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<logData.requiredApps.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+            <div style={{width:24,height:24,borderRadius:'50%',background:ch?.color||'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+              {iconUrl?<img src={iconUrl} alt={ra.appName} style={{width:14,height:14,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:8,fontWeight:700,color:'#fff'}}>{ra.appName.slice(0,3).toUpperCase()}</span>}
+            </div>
             <span style={{fontSize:13,color:'#FFFFFF',flex:1}}>{ra.appName}</span>
             {ra.chains&&ra.chains.length>0&&<span style={{fontSize:11,color:'#8A8A8E'}}>{[...new Set(ra.chains.map(c=>c.ticker))].join(', ')}</span>}
             {cat?(cat.outdated?<span style={{fontSize:11,color:T.warning}}>⬆ Outdated</span>:cat.installed?<span style={{fontSize:11,color:'#4FC46B'}}>✓</span>:<span style={{fontSize:11,color:T.error}}>Missing</span>):null}
@@ -3072,7 +3326,7 @@ function CVMyLedger({logData,versionCheck,firmwareCheck,appVersionCheck}){
   </div>;
 }
 
-function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck}){
+function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson}){
   const errs=logData.errs||[];
   const highCount=errs.filter(e=>e.dg?.s==='high').length;
   const medCount=errs.filter(e=>e.dg?.s==='medium').length;
@@ -3120,6 +3374,14 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         {errs.length===0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:'rgba(79,196,107,0.12)',color:'#4FC46B',fontWeight:600}}>No errors</span>}
       </div>
       {q&&<div style={{fontSize:13,color:'#8A8A8E'}}>Log quality: <span style={{color:q.color,fontWeight:600}}>{q.score}/100 — {q.label}</span></div>}
+      {(()=>{
+        const failedOps=(enrichedAccts||[]).reduce((sum,a)=>{
+          const ops=a.operations||a.ops||[];
+          return sum+ops.filter(op=>op.status==='failed'||op.status==='error').length;
+        },0);
+        if(failedOps===0)return null;
+        return <div style={{fontSize:13,color:T.warning,marginTop:8}}>⚠ {failedOps} failed operation{failedOps!==1?'s':''} in transaction history</div>;
+      })()}
     </>)}
     {accentCard(<>
       {cardTitle('Session Details')}
@@ -3187,6 +3449,50 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         </div>;
       })()}
     </div>}
+    {(()=>{
+      if(!hasAppJson)return null;
+      const rm=cvGetRateMap(appJson);
+      const fiat=cvFiatCurrency(appJson);
+      const keys=Object.keys(rm);
+      if(!keys.length)return null;
+      const analyses=keys.slice(0,12).map(key=>{
+        const dates=rm[key];
+        const sortedDates=Object.keys(dates).sort();
+        if(sortedDates.length<2)return null;
+        const cachedDate=sortedDates[sortedDates.length-1];
+        const cachedRate=dates[cachedDate];
+        const currencyId=key.startsWith(fiat+' ')?key.slice(fiat.length+1):key.split(' ').slice(1).join(' ');
+        const liveRateInfo=cvLatestRate(appJson,currencyId);
+        // compare cached vs the earliest available as a proxy for "stale" comparison
+        const oldestDate=sortedDates[0];
+        const oldestRate=dates[oldestDate];
+        const drift=Math.abs((cachedRate-oldestRate)/oldestRate*100);
+        return{key,currencyId,cachedDate,cachedRate,drift,daysSpan:sortedDates.length};
+      }).filter(Boolean).sort((a,b)=>b.drift-a.drift);
+      const significantDrift=analyses.filter(a=>a.drift>5);
+      const fiatSym=fiat==='USD'?'$':fiat==='EUR'?'€':fiat==='GBP'?'£':fiat+' ';
+      return accentCard(<>
+        {cardTitle('Countervalue Analysis')}
+        <div style={{fontSize:12,color:'#8A8A8E',marginBottom:12}}>Cached exchange rates embedded in app.json. Rates may be stale — compare against current market to assess fiat accuracy.</div>
+        <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 0.8fr 0.8fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:4}}>
+          {['Currency','Cached rate','Last updated','Drift'].map(h=><div key={h} style={{fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</div>)}
+        </div>
+        {analyses.slice(0,8).map(a=>{
+          const isDrift=a.drift>5;
+          return <div key={a.key} style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 0.8fr 0.8fr',gap:0,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isDrift?'rgba(228,0,70,0.04)':'transparent'}}>
+            <div style={{fontSize:12,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.currencyId}</div>
+            <div style={{fontSize:12,fontFamily:MF,color:'#FFFFFF'}}>{fiatSym}{a.cachedRate.toLocaleString(undefined,{maximumFractionDigits:4})}</div>
+            <div style={{fontSize:12,color:'#8A8A8E',fontFamily:MF}}>{a.cachedDate}</div>
+            <div style={{fontSize:11,fontWeight:600,color:isDrift?T.error:a.drift>2?T.warning:'#4FC46B'}}>{isDrift?'⚠ ':''}{a.drift.toFixed(1)}%</div>
+          </div>;
+        })}
+        <div style={{marginTop:12,padding:'8px 12px',borderRadius:6,background:significantDrift.length>0?'rgba(228,0,70,0.06)':'rgba(79,196,107,0.06)',border:`1px solid ${significantDrift.length>0?'rgba(228,0,70,0.15)':'rgba(79,196,107,0.15)'}`,fontSize:12}}>
+          {significantDrift.length>0
+            ?<span style={{color:T.error,fontWeight:600}}>⚠ {significantDrift.length} currenc{significantDrift.length===1?'y':'ies'} with >5% cached rate drift — fiat values shown in Customer View may be inaccurate</span>
+            :<span style={{color:'#4FC46B',fontWeight:600}}>✓ All cached rates within 5% — fiat values should be reasonably accurate</span>}
+        </div>
+      </>);
+    })()}
     {accentCard(<>
       {cardTitle('Data Confidence')}
       {infoRow('Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E')}
@@ -3194,6 +3500,38 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       {infoRow('Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning)}
       {infoRow(llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning)}
     </>)}
+    {(()=>{
+      const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
+      if(Object.keys(ajSettings).length===0)return null;
+      const cv=ajSettings.counterValue||'USD';
+      const cvFirst=ajSettings.countervalueFirst;
+      const theme=ajSettings.theme;
+      const lang=ajSettings.language;
+      const order=ajSettings.orderAccounts;
+      const devMode=ajSettings.developerMode;
+      const hideEmpty=ajSettings.hideEmptyTokenAccounts;
+      const discreet=ajSettings.discreetMode;
+      const lastVer=ajSettings.lastUsedVersion;
+      const devList=ajSettings.devicesModelList||[];
+      const fmt=(v)=>v==null?null:v===true?'On':v===false?'Off':String(v);
+      const rows=[
+        ['Fiat currency',cv],
+        ['Countervalue first',cvFirst!=null?fmt(cvFirst):null],
+        ['Theme',theme],
+        ['Language',lang],
+        ['Account order',order],
+        ['Developer mode',devMode!=null?fmt(devMode):null],
+        ['Hide empty tokens',hideEmpty!=null?fmt(hideEmpty):null],
+        ['Discreet mode',discreet!=null?fmt(discreet):null],
+        ['Last app version',lastVer],
+        ['Paired devices',devList.length>0?String(devList.length):null],
+      ].filter(([,v])=>v!=null);
+      if(rows.length===0)return null;
+      return accentCard(<>
+        {cardTitle('Customer Settings')}
+        {rows.map(([label,value],i)=>infoRow(label,value,undefined))}
+      </>);
+    })()}
     {accentCard(<>
       {cardTitle('Quick Actions')}
       <div style={{fontSize:13,color:'#8A8A8E',lineHeight:1.5}}>To investigate errors, copy full reports, or use the Timeline — switch to <strong style={{color:'#FFFFFF'}}>Diagnostic mode</strong> using the toggle in the header bar.</div>
@@ -3224,6 +3562,8 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
   const[cvSection,setCvSection]=useState('accounts');
   const[cvAcctSearch,setCvAcctSearch]=useState('');
   const[cvAcctSort,setCvAcctSort]=useState('balance');
+  const[expandedTokens,setExpandedTokens]=useState({});
+  const cvFirst=appJson?.raw?.settings?.countervalueFirst||appJson?.settings?.countervalueFirst||false;
   useEffect(()=>{
     if(appJson&&!appJson.encrypted){
       setBannerExpanded(true);
@@ -3262,7 +3602,8 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
           ajBalance:match.balance,ajSpendable:match.spendableBalance,
           ajOps:match.operationsCount,ajOperations:match.operations,
           ajSubAccounts:match.subAccounts,ajBlockHeight:match.blockHeight,
-          ajStarred:match.starred};
+          ajStarred:match.starred,ajSwapHistory:match.swapHistory||a.swapHistory,
+          ajPendingOps:match.pendingOperations||[],ajFreshAddressPath:match.freshAddressPath||''};
       });
     }
     if(appJson&&appJson.accounts.length>0){
@@ -3280,7 +3621,8 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
           toks:(a.subAccounts||[]).map(s=>({tokenId:s.tokenId,tokenTicker:(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' '),operationsLength:s.operationsCount||0})),
           isXpub:isXpub,bal:null,spendBal:null,displayName:displayName,enriched:true,
           ajBalance:a.balance,ajSpendable:a.spendableBalance,ajOps:a.operationsCount,
-          ajOperations:a.operations,ajSubAccounts:a.subAccounts,ajBlockHeight:a.blockHeight,ajStarred:a.starred};
+          ajOperations:a.operations,ajSubAccounts:a.subAccounts,ajBlockHeight:a.blockHeight,ajStarred:a.starred,ajSwapHistory:a.swapHistory,
+          ajPendingOps:a.pendingOperations||[],ajFreshAddressPath:a.freshAddressPath||''};
       });
     }
     return namedAccts;
@@ -3382,9 +3724,14 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
     }
     accts.sort((a,b)=>{
       if(cvAcctSort==='name')return(a.displayName||'').localeCompare(b.displayName||'');
+      const ajOrder=appJson?.raw?.settings?.orderAccounts||appJson?.settings?.orderAccounts||'balance|desc';
+      if(ajOrder.startsWith('name')){
+        const cmp=(a.displayName||'').localeCompare(b.displayName||'');
+        return ajOrder.includes('desc')?-cmp:cmp;
+      }
       const aB=a.enriched?parseFloat(a.ajBalance||0):0;
       const bB=b.enriched?parseFloat(b.ajBalance||0):0;
-      if(aB!==bB)return bB-aB;
+      if(aB!==bB)return ajOrder.includes('asc')?aB-bB:bB-aB;
       const aF=a.enriched?a.ajBalance!=='0':a.ops>0;
       const bF=b.enriched?b.ajBalance!=='0':b.ops>0;
       return aF===bF?0:aF?-1:1;
@@ -3488,7 +3835,12 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                 const funded=enriched?(a.ajBalance!=='0'):a.ops>0;
                 const subs=enriched?(a.ajSubAccounts||[]):(a.toks||[]);
                 const iconUrl=chainIconUrl(a.cid);
-                return <div key={i} className="cv-acct-list-row" onClick={()=>setSelectedAcct(originalIdx)}>
+                const fiatVal=enriched&&a.ajBalance?cvFiatValue(appJson,a.cid,a.ajBalance):null;
+                const fiatStr=cvFmtFiat(fiatVal,appJson);
+                const tokExpKey=originalIdx;
+                const tokExpanded=expandedTokens[tokExpKey];
+                return <React.Fragment key={i}>
+                <div className="cv-acct-list-row" onClick={()=>setSelectedAcct(originalIdx)}>
                   <div style={{width:40,height:40,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
                     {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:24,height:24,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:12,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
                   </div>
@@ -3502,13 +3854,37 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                       {a.ajStarred&&<span style={{color:'#FFB800',fontSize:12}}>★</span>}
                       {a.dm&&<span className="cv-dm-badge">{a.dm}</span>}
                     </div>
-                    {subs.length>0&&<div style={{fontSize:11,color:'rgba(187,176,255,0.6)',marginTop:2,cursor:'pointer'}}>Show tokens ({subs.length})</div>}
+                    {subs.length>0&&<div style={{fontSize:11,color:'rgba(187,176,255,0.6)',marginTop:2,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3}}
+                      onClick={e=>{e.stopPropagation();setExpandedTokens(prev=>({...prev,[tokExpKey]:!prev[tokExpKey]}));}}>
+                      <span>{tokExpanded?'▴':'▾'} {subs.length} token{subs.length!==1?'s':''}</span>
+                    </div>}
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
-                    {bal?<div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{bal}</div>:<div style={{fontSize:14,fontWeight:500,color:'#8A8A8E'}}>—</div>}
-                    {bal&&funded?<div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>{a.enriched&&a.ajOps!=null?a.ajOps+' ops':'—'}</div>:<div style={{fontSize:13,color:'#8A8A8E',marginTop:2}}>—</div>}
+                    {cvFirst&&fiatStr
+                      ?<><div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{fiatStr}</div>{bal&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{bal}</div>}</>
+                      :<><div style={{fontSize:14,fontWeight:500,color:bal?'#FFFFFF':'#8A8A8E'}}>{bal||'—'}</div>{fiatStr?<div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{fiatStr}</div>:<div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{enriched&&a.ajOps!=null?a.ajOps+' ops':'—'}</div>}</>}
+                    {enriched&&a.ajBlockHeight!=null&&<div style={{fontSize:10,color:'rgba(255,255,255,0.2)',marginTop:2,fontFamily:MF}}>block {Number(a.ajBlockHeight).toLocaleString()}</div>}
                   </div>
-                </div>;
+                </div>
+                {tokExpanded&&subs.length>0&&<div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'4px 16px 8px 72px'}}>
+                  {subs.map((s,si)=>{
+                    const rawName=(s.tokenId||s.id||'').split('/').pop()||'?';
+                    const tName=rawName.replace(/__/g,' ').replace(/_/g,' ');
+                    const tId=s.tokenId||s.id||'';
+                    const tBal=s.balance||s.spendableBalance||null;
+                    const tDec=getTokenDecimals(tId,a.cid);
+                    const tHuman=tBal!=null?parseFloat(tBal)/Math.pow(10,tDec):null;
+                    const tFiat=tBal?cvTokenFiatValue(appJson,tId,tBal,a.cid):null;
+                    const tFiatStr=cvFmtFiat(tFiat,appJson);
+                    return <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 0',borderBottom:si<subs.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:'rgba(187,176,255,0.4)',flexShrink:0}}/>
+                      <span style={{flex:1,fontSize:12,color:'#FFFFFF',textTransform:'capitalize',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tName}</span>
+                      {tHuman!=null&&<span style={{fontSize:12,fontFamily:MF,color:'#8A8A8E'}}>{tHuman.toLocaleString(undefined,{maximumFractionDigits:4})}</span>}
+                      {tFiatStr&&<span style={{fontSize:12,color:'#FFFFFF',minWidth:60,textAlign:'right'}}>{tFiatStr}</span>}
+                    </div>;
+                  })}
+                </div>}
+                </React.Fragment>;
               })
             }
           </div>
@@ -3528,6 +3904,8 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
             return{bg:'rgba(255,189,66,0.12)',color:T.warning,arrow:'↕'};
           };
           const ajSubs=acct.ajSubAccounts||[];
+          const[expandedTokenOps,setExpandedTokenOps]=React.useState({});
+          const OP_LABELS={IN:'Received',OUT:'Sent',FEES:'Network fee',NONE:'Contract interaction',DELEGATE:'Delegated',UNDELEGATE:'Undelegated',REWARD:'Reward',STAKE:'Staked',UNSTAKE:'Unstaked',WITHDRAW_UNBONDED:'Withdrawn',WITHDRAW_UNSTAKED:'Withdrawn',VOTE:'Voted',FREEZE:'Frozen',REVEAL:'Revealed',OPT_IN:'Opted in',OPT_OUT:'Opted out',APPROVE:'Approved',SUPPLY:'Supplied',REDEEM:'Redeemed',BOND:'Bonded',UNBOND:'Unbonded',NOMINATE:'Nominated',CLAIM_REWARD:'Claimed reward',NFT_IN:'NFT received',NFT_OUT:'NFT sent'};
           const logToks=(acct.toks||[]).filter(Boolean);
           const iconUrl=chainIconUrl(acct.cid);
           return <div>
@@ -3557,15 +3935,23 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
             <div style={{display:'flex',gap:8,padding:'12px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
               {['Swap','Buy','Sell','Send','Receive'].map(action=><span key={action} style={{padding:'6px 16px',borderRadius:20,border:'1px solid rgba(255,255,255,0.12)',fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.4)',cursor:'default'}}>{action}</span>)}
             </div>
-            {enriched&&acct.ajBalance!=null&&<div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-              <div style={{fontSize:28,fontWeight:700,color:'#FFFFFF',marginBottom:4}}>{fmtBal(acct.ajBalance,acct.cid,ch.ticker)||'0 '+ch.ticker}</div>
-              {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:6}}>Spendable: {fmtBal(acct.ajSpendable,acct.cid,ch.ticker)}</div>}
-              {acct.ajBlockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',marginTop:4,fontFamily:MF}}>Block: {Number(acct.ajBlockHeight).toLocaleString()}</div>}
-            </div>}
+            {enriched&&acct.ajBalance!=null&&(()=>{
+              const detFiat=cvFiatValue(appJson,acct.cid,acct.ajBalance);
+              const detFiatStr=cvFmtFiat(detFiat,appJson);
+              const detRate=cvLatestRate(appJson,acct.cid);
+              const cryptoEl=<div style={{fontSize:cvFirst&&detFiatStr?16:28,fontWeight:700,color:cvFirst&&detFiatStr?'#8A8A8E':'#FFFFFF',marginBottom:4}}>{fmtBal(acct.ajBalance,acct.cid,ch.ticker)||'0 '+ch.ticker}</div>;
+              const fiatEl=detFiatStr?<div style={{fontSize:cvFirst?28:20,fontWeight:cvFirst?700:400,color:cvFirst?'#FFFFFF':'#8A8A8E',marginBottom:4}}>{detFiatStr}</div>:null;
+              return <div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                {cvFirst&&fiatEl?<>{fiatEl}{cryptoEl}</>:<>{cryptoEl}{fiatEl}</>}
+                {detRate&&<div style={{fontSize:11,color:'rgba(187,176,255,0.5)',marginBottom:6,fontFamily:MF}}>✦ 1 {ch.ticker} = {cvFmtFiat(detRate.rate,appJson)} · rate from {detRate.date}</div>}
+                {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:6}}>Spendable: {fmtBal(acct.ajSpendable,acct.cid,ch.ticker)}</div>}
+                {acct.ajBlockHeight!=null&&<div style={{fontSize:11,color:'rgba(255,255,255,0.25)',marginTop:6,fontFamily:MF}}>Last synced at block {Number(acct.ajBlockHeight).toLocaleString()}</div>}
+              </div>;
+            })()}
             <div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
               <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Address</div>
               <div style={{fontFamily:MF,fontSize:12,color:'#FFFFFF',wordBreak:'break-all'}}><CVCopyText text={acct.addr} mono={true}/></div>
-              {acct.fp&&<div style={{fontFamily:MF,fontSize:11,color:'#8A8A8E',marginTop:6}}>Path: {acct.fp}</div>}
+              {(acct.fp||acct.ajFreshAddressPath)&&<div style={{fontFamily:MF,fontSize:11,color:'#8A8A8E',marginTop:6}}>Path: {acct.ajFreshAddressPath||acct.fp}</div>}
               <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:12}}>
                 <div style={{background:'rgba(255,255,255,0.04)',borderRadius:6,padding:'6px 14px',textAlign:'center',minWidth:70}}>
                   <div style={{fontSize:10,color:'#8A8A8E',marginBottom:2}}>Operations</div>
@@ -3580,13 +3966,43 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
             {(enriched&&ajSubs.length>0||!enriched&&logToks.length>0)&&<div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
               <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Token Holdings ({enriched?ajSubs.length:logToks.length})</div>
               {enriched?ajSubs.map((s,si)=>{
-                const rawName=(s.tokenId||'').split('/').pop()||s.tokenId||'?';
+                const rawName=(s.tokenId||s.id||'').split('/').pop()||s.tokenId||'?';
                 const name=rawName.replace(/__/g,' ').replace(/_/g,' ');
-                const bal=fmtBal(s.balance,'tezos',null);
-                return <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:si<ajSubs.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
-                  <span style={{flex:1,fontSize:13,fontWeight:500,textTransform:'capitalize',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
-                  {bal&&<span style={{fontSize:12,color:'#4FC46B',fontFamily:MF}}>{bal}</span>}
-                  <span style={{fontSize:11,color:'#8A8A8E'}}>{s.operationsCount} ops</span>
+                const tId=s.tokenId||s.id||'';
+                const tDec=getTokenDecimals(tId,acct.cid);
+                const tRaw=s.balance||s.spendableBalance||null;
+                const tHuman=tRaw!=null?parseFloat(tRaw)/Math.pow(10,tDec):null;
+                const tFiat=tRaw?cvTokenFiatValue(appJson,tId,tRaw,acct.cid):null;
+                const tFiatStr=cvFmtFiat(tFiat,appJson);
+                const hasOps=(s.operations&&s.operations.length>0)||(s.operationsCount>0);
+                return <div key={si} style={{borderBottom:si<ajSubs.length-1?'1px solid rgba(255,255,255,0.04)':'none',paddingBottom:4}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0'}}>
+                    <span style={{flex:1,fontSize:13,fontWeight:500,textTransform:'capitalize',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+                    {tHuman!=null&&<span style={{fontSize:12,color:'#FFFFFF',fontFamily:MF}}>{tHuman.toLocaleString(undefined,{maximumFractionDigits:4})}</span>}
+                    {tFiatStr&&<span style={{fontSize:12,color:'#4FC46B'}}>{tFiatStr}</span>}
+                    <span style={{fontSize:11,color:'#8A8A8E'}}>{s.operationsCount||0} ops</span>
+                    {s.operations&&s.operations.length>0&&<span style={{fontSize:10,color:'rgba(187,176,255,0.5)',cursor:'pointer',userSelect:'none'}}
+                      onClick={()=>setExpandedTokenOps(prev=>({...prev,[si]:!prev[si]}))}>
+                      {expandedTokenOps[si]?'hide':'show'} ops
+                    </span>}
+                  </div>
+                  {s.operations&&s.operations.length>0&&expandedTokenOps[si]&&<div style={{marginBottom:8,paddingLeft:12,borderLeft:'1px solid rgba(255,255,255,0.06)'}}>
+                    {s.operations.slice(0,20).map((top,toi)=>{
+                      const topType=(top.type||'').toUpperCase();
+                      const topLabel=OP_LABELS[topType]||topType;
+                      const topDec=getTokenDecimals(tId,acct.cid);
+                      const topHuman=top.value!=null?parseFloat(top.value)/Math.pow(10,topDec):null;
+                      const topRate=top.date?cvRateOnDate(appJson,tId,top.date.slice(0,10)):null;
+                      const topFiat=topHuman!=null&&topRate!=null?topHuman*topRate:null;
+                      return <div key={toi} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0',fontSize:11}}>
+                        <span style={{color:topType==='IN'?'#4FC46B':topType==='OUT'?'#EA4335':'#8A8A8E',fontWeight:600,minWidth:60}}>{topLabel}</span>
+                        <span style={{color:'#FFFFFF',fontFamily:MF}}>{topHuman!=null?topHuman.toLocaleString(undefined,{maximumFractionDigits:4}):'-'}</span>
+                        {topFiat!=null&&<span style={{color:'#8A8A8E'}}>{cvFmtFiat(topFiat,appJson)}</span>}
+                        <span style={{color:'#8A8A8E',marginLeft:'auto'}}>{fmtDate(top.date)}</span>
+                      </div>;
+                    })}
+                    {s.operations.length>20&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:4}}>{s.operations.length-20} more operations</div>}
+                  </div>}
                 </div>;
               })
               :logToks.map((tk,ti)=>{
@@ -3594,26 +4010,38 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                 return <span key={ti} style={{display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:T.primary+'22',color:T.primary,fontFamily:MF,marginRight:6,marginBottom:6}}>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></span>;
               })}
             </div>}
-            {enriched&&displayOps.length>0&&<div style={{padding:'16px 32px'}}>
-              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Latest Operations ({acct.ajOps})</div>
-              {ajOps.length>50&&<div style={{fontSize:11,color:'#8A8A8E',marginBottom:8}}>Showing 50 of {ajOps.length}</div>}
-              {displayOps.map((op,oi)=>{
+            {enriched&&displayOps.length>0&&(()=>{
+              const groups={};
+              displayOps.forEach((op,oi)=>{
+                const dk=op.date?op.date.slice(0,10):'Unknown';
+                if(!groups[dk])groups[dk]=[];
+                groups[dk].push({op,oi});
+              });
+              const renderOp=({op,oi})=>{
                 const opType=(op.type||'').toUpperCase();
                 const ds=txDirStyle(opType);
                 const amtColor=opType==='IN'?'#4FC46B':opType==='OUT'?'#EA4335':T.text;
                 const counterparty=opType==='IN'?(op.senders||[])[0]:(op.recipients||[])[0];
                 const txUrl=op.hash&&TX_EXPLORERS[acct.cid]?TX_EXPLORERS[acct.cid](op.hash):null;
                 const isFailed=op.hasFailed||op.extra?.failed||(opType.includes('FAILED'));
-                return <div key={oi} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:oi<displayOps.length-1?'1px solid rgba(255,255,255,0.04)':'none',background:isFailed?'rgba(234,67,53,0.05)':'transparent',paddingLeft:isFailed?10:0,borderLeft:isFailed?'2px solid rgba(234,67,53,0.4)':'2px solid transparent'}}>
+                const opDateStr=op.date?op.date.slice(0,10):null;
+                const opRate=opDateStr?cvRateOnDate(appJson,acct.cid,opDateStr):null;
+                const opDec=DECIMALS[acct.cid]||18;
+                const opHuman=op.value!=null?parseFloat(op.value)/Math.pow(10,opDec):null;
+                const opFiat=opHuman!=null&&opRate!=null?opHuman*opRate:null;
+                const opFiatStr=cvFmtFiat(opFiat,appJson);
+                const opLabel=OP_LABELS[opType]||opType;
+                return <div key={oi} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isFailed?'rgba(234,67,53,0.05)':'transparent',paddingLeft:isFailed?10:0,borderLeft:isFailed?'2px solid rgba(234,67,53,0.4)':'2px solid transparent'}}>
                   <div style={{width:28,height:28,borderRadius:'50%',background:ds.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     <span style={{fontSize:13,fontWeight:700,color:ds.color}}>{ds.arrow}</span>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
                       <span style={{fontSize:13,fontWeight:500,color:amtColor}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</span>
+                      {opFiatStr&&<span style={{fontSize:11,color:'#8A8A8E'}}>≈ {opFiatStr}</span>}
                       {isFailed&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(234,67,53,0.2)',color:'#EA4335',fontWeight:700}}>FAILED</span>}
                     </div>
-                    <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{fmtDate(op.date)} · {fmtTime(op.date)}{op.fee&&fmtBal(op.fee,acct.cid,null)?` · Fee: ${fmtBal(op.fee,acct.cid,null)}`:''}</div>
+                    <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{opLabel} · {fmtTime(op.date)}{op.fee&&fmtBal(op.fee,acct.cid,null)?` · Fee: ${fmtBal(op.fee,acct.cid,null)}`:''}</div>
                   </div>
                   {counterparty&&<div style={{minWidth:0,maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(counterparty,16)} full={counterparty} mono={true}/></div>}
                   <div style={{flexShrink:0}}>
@@ -3621,7 +4049,53 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                     :op.hash?<span style={{fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(op.hash,10)} full={op.hash} mono={true}/></span>:null}
                   </div>
                 </div>;
-              })}
+              };
+              return <div style={{padding:'16px 32px'}}>
+                <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Latest Operations ({acct.ajOps})</div>
+                {acct.ajPendingOps&&acct.ajPendingOps.length>0&&<div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.warning,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>⏳ Pending ({acct.ajPendingOps.length})</div>
+                  {acct.ajPendingOps.map((op,pi)=>{
+                    const opType=(op.type||'').toUpperCase();
+                    const opLabel=OP_LABELS[opType]||opType;
+                    return <div key={'pending-'+pi} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 10px',borderBottom:'1px solid rgba(255,189,66,0.15)',background:'rgba(255,189,66,0.04)',borderLeft:'2px solid rgba(255,189,66,0.4)',marginBottom:2}}>
+                      <div style={{width:28,height:28,borderRadius:'50%',background:'rgba(255,189,66,0.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <span style={{fontSize:13,fontWeight:700,color:T.warning}}>⏳</span>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',alignItems:'center',gap:6}}>
+                          <span style={{fontSize:13,fontWeight:500,color:T.warning}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</span>
+                          <span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(255,189,66,0.2)',color:T.warning,fontWeight:700}}>PENDING</span>
+                        </div>
+                        <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{opLabel} · {fmtDate(op.date)} {fmtTime(op.date)}</div>
+                      </div>
+                      {op.hash&&<span style={{fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(op.hash,10)} full={op.hash} mono={true}/></span>}
+                    </div>;
+                  })}
+                </div>}
+                {ajOps.length>50&&<div style={{fontSize:11,color:'#8A8A8E',marginBottom:8}}>Showing 50 of {ajOps.length}</div>}
+                {Object.entries(groups).map(([dk,ops])=>(
+                  <div key={dk}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#FFFFFF',padding:'12px 0 6px',borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:4}}>
+                      {dk!=='Unknown'?new Date(dk+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}):dk}
+                    </div>
+                    {ops.map(renderOp)}
+                  </div>
+                ))}
+              </div>;
+            })()}
+            {enriched&&acct.ajSwapHistory&&acct.ajSwapHistory.length>0&&<div style={{padding:'16px 32px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Swap History ({acct.ajSwapHistory.length})</div>
+              {acct.ajSwapHistory.map((sw,si)=>(
+                <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:si<acct.ajSwapHistory.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:'rgba(187,176,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <span style={{fontSize:12,color:'#BBB0FF'}}>⇄</span>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,color:'#FFFFFF'}}>{sw.provider||'Unknown'}</div>
+                    <div style={{fontSize:11,color:'#8A8A8E'}}>{sw.status||'—'}{sw.swapId?' · ID: '+sw.swapId.slice(0,12):''}</div>
+                  </div>
+                </div>
+              ))}
             </div>}
             {acctErrs.length>0&&<div style={{padding:'16px 32px'}}>
               <div style={{fontSize:11,fontWeight:600,color:'#EA4335',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Related Issues ({acctErrs.length})</div>
@@ -3630,9 +4104,9 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
           </div>;
         })()
       )}
-      {cvSection==='portfolio'&&<CVPortfolio enrichedAccts={enrichedAccts} liveBalances={liveBalances} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}} setCvSection={setCvSection}/>}
-      {cvSection==='myLedger'&&<CVMyLedger logData={logData} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
-      {cvSection==='agentInsights'&&<CVAgentInsights logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
+      {cvSection==='portfolio'&&<CVPortfolio enrichedAccts={enrichedAccts} liveBalances={liveBalances} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}} setCvSection={setCvSection} appJson={appJson}/>}
+      {cvSection==='myLedger'&&<CVMyLedger logData={logData} appJson={appJson} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
+      {cvSection==='agentInsights'&&<CVAgentInsights logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} appJson={appJson}/>}
     </div>
   </div>;
 }
@@ -4640,19 +5114,19 @@ function App(){
           for(const inst of da.installed){
             const key=(inst.name||'').toLowerCase();
             const cat=catalogMap[key];
-            if(cat)appResults.push({name:inst.name,installed:inst.version,latest:cat.version,outdated:inst.version!==cat.version});
+            if(cat)appResults.push({name:inst.name,installed:inst.version,latest:cat.version,outdated:inst.version!==cat.version,bytes:cat.bytes||inst.bytes||0});
           }
         } else if(da?.source==='catalog-only'&&da.sessionInstalls){
           for(const inst of da.sessionInstalls){
             const key=(inst.name||'').toLowerCase();
             const cat=catalogMap[key];
-            if(cat)appResults.push({name:inst.name,installed:inst.version,latest:cat.version,outdated:inst.version!=='?'&&inst.version!==cat.version});
+            if(cat)appResults.push({name:inst.name,installed:inst.version,latest:cat.version,outdated:inst.version!=='?'&&inst.version!==cat.version,bytes:cat.bytes||0});
           }
         } else if(da?.source==='apdu-only'&&da.openedApps){
           for(const app of da.openedApps){
             const key=(app.name||'').toLowerCase();
             const cat=catalogMap[key];
-            if(cat)appResults.push({name:app.name,installed:app.version,latest:cat.version,outdated:app.version!==cat.version});
+            if(cat)appResults.push({name:app.name,installed:app.version,latest:cat.version,outdated:app.version!==cat.version,bytes:cat.bytes||0});
           }
         }
         // Also surface latest versions for required apps not in the installed list
@@ -4661,7 +5135,7 @@ function App(){
             const key=(req.appName||'').toLowerCase();
             if(appResults.find(a=>a.name.toLowerCase()===key))continue;
             const cat=catalogMap[key];
-            if(cat)appResults.push({name:req.appName,installed:null,latest:cat.version,outdated:null,required:true});
+            if(cat)appResults.push({name:req.appName,installed:null,latest:cat.version,outdated:null,required:true,bytes:cat.bytes||0});
           }
         }
         setVersionCheck({status:'ok',apps:appResults,catalogSize:Object.keys(catalogMap).length});
