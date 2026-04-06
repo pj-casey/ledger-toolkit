@@ -3326,7 +3326,12 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
   </div>;
 }
 
-function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson}){
+function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
+  const[expandedFinding,setExpandedFinding]=useState(null);
+  const[copiedId,setCopiedId]=useState(null);
+  const[ttFilter,setTtFilter]=useState('issues');
+  const[ttSort,setTtSort]=useState('status');
+  const[ttExpanded,setTtExpanded]=useState(null);
   const errs=logData.errs||[];
   const highCount=errs.filter(e=>e.dg?.s==='high').length;
   const medCount=errs.filter(e=>e.dg?.s==='medium').length;
@@ -3337,205 +3342,438 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const lb=liveBalances||{};
   const lbVals=Object.values(lb);
   const fetchedCount=lbVals.filter(v=>v?.status==='ok'&&v.bal!=null).length;
-  const acctCount=logData.accts?.length||0;
+  const acctCount=Math.max(logData.accts?.length||0,(enrichedAccts||[]).length);
   const hasAppJson=(enrichedAccts||[]).some(a=>a.enriched&&a.ajBalance!=null);
-  const diagText=(()=>{
-    if(highCount>0){const topErr=errs.find(e=>e.dg?.s==='high');return{color:T.error,text:`${highCount} critical error${highCount!==1?'s':''} — ${topErr?.dg?.t||'Unknown'}. Start with Issues.`};}
-    if(medCount>0){return{color:T.warning,text:`${medCount} warning${medCount!==1?'s':''} — ${errs.find(e=>e.dg?.s==='medium')?.dg?.t||'Unknown'}.`};}
-    if(lowCount>0){return{color:'#BBB0FF',text:`${lowCount} informational event${lowCount!==1?'s':''} — routine activity.`};}
-    return{color:'#4FC46B',text:'Clean session — no errors detected.'};
-  })();
-  const sessionDur=(()=>{
-    const entries=logData.entries||[];
-    if(entries.length<2)return null;
-    const ms=new Date(entries[entries.length-1].timestamp)-new Date(entries[0].timestamp);
-    if(!ms||isNaN(ms))return null;
-    const m=Math.round(ms/60000);
-    return m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m}m`;
-  })();
+  // ── Triage engine ──────────────────────────────────────────────────────────
+  const findings=React.useMemo(()=>{
+    const f=[];
+    const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
+    // 1. Balance mismatches
+    const compared=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null&&liveBalances[a.id]?.bal!=null);
+    const mismatches=compared.filter(a=>{
+      const dec=DECIMALS[a.cid]||18;
+      const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
+      const live=liveBalances[a.id].bal;
+      const pct=cust>0?Math.abs(live-cust)/cust*100:0;
+      return pct>0.01;
+    });
+    if(mismatches.length>0){
+      const names=mismatches.slice(0,3).map(a=>a.displayName).join(', ')+(mismatches.length>3?`, +${mismatches.length-3} more`:'');
+      f.push({id:'balance-mismatch',severity:'red',
+        title:`${mismatches.length} balance mismatch${mismatches.length!==1?'es':''} detected`,
+        detail:`The customer's wallet app shows different balances than what's actually on-chain. This usually means the app hasn't synced recently. Affected: ${names}.`,
+        action:'Ask the customer to force-sync: Menu → My Accounts → swipe down to refresh. If it persists, try clearing the app cache.',
+        navigate:mismatches.length===1?{type:'account',idx:(enrichedAccts||[]).indexOf(mismatches[0])}:{type:'portfolio'},
+        copyText:`Balance mismatch detected on ${mismatches.length} account${mismatches.length!==1?'s':''}:\n${mismatches.map(a=>{const dec=DECIMALS[a.cid]||18;const cust=(parseFloat(a.ajBalance)/Math.pow(10,dec)).toLocaleString(undefined,{maximumFractionDigits:6});const live=liveBalances[a.id].bal.toLocaleString(undefined,{maximumFractionDigits:6});return`  ${a.displayName}: app shows ${cust} ${a.ch.ticker}, on-chain is ${live} ${a.ch.ticker}`;}).join('\n')}\nAction: Ask customer to force-sync wallet.`,
+        evidence:mismatches.slice(0,3).map(a=>{const dec=DECIMALS[a.cid]||18;const cust=(parseFloat(a.ajBalance)/Math.pow(10,dec)).toFixed(6);const live=liveBalances[a.id].bal.toFixed(6);return{label:a.displayName,detail:`app: ${cust} | on-chain: ${live} ${a.ch.ticker}`};})
+      });
+    } else if(compared.length>0){
+      f.push({id:'balance-ok',severity:'green',title:`All ${compared.length} compared balance${compared.length!==1?'s':''} match on-chain`,detail:'No sync issues detected for accounts with live balance data.',action:'No action needed.',navigate:null,copyText:`Balances verified: ${compared.length} account(s) match on-chain.`,evidence:[]});
+    }
+    // 2. Pending operations
+    const pendingAccts=(enrichedAccts||[]).filter(a=>(a.ajPendingOps||[]).length>0);
+    const totalPending=pendingAccts.reduce((s,a)=>s+(a.ajPendingOps||[]).length,0);
+    if(totalPending>0){
+      f.push({id:'pending-ops',severity:'red',
+        title:`${totalPending} pending/stuck transaction${totalPending!==1?'s':''}`,
+        detail:`${pendingAccts.length} account${pendingAccts.length!==1?'s have':' has'} unconfirmed transactions. These may be stuck due to low fees, network congestion, or nonce issues.`,
+        action:'Check if the transaction is visible on the chain explorer. If stuck, the customer may need to speed up (replace-by-fee) or cancel the transaction.',
+        navigate:pendingAccts.length===1?{type:'account',idx:(enrichedAccts||[]).indexOf(pendingAccts[0])}:{type:'portfolio'},
+        copyText:`${totalPending} pending transaction${totalPending!==1?'s':''} on ${pendingAccts.length} account${pendingAccts.length!==1?'s':''}:\n${pendingAccts.map(a=>`  ${a.displayName}: ${(a.ajPendingOps||[]).length} pending`).join('\n')}`,
+        evidence:pendingAccts.slice(0,3).map(a=>({label:a.displayName,detail:`${(a.ajPendingOps||[]).length} pending op${(a.ajPendingOps||[]).length!==1?'s':''}`}))
+      });
+    } else if(hasAppJson){
+      f.push({id:'pending-ok',severity:'green',title:'No pending transactions',detail:'No accounts have stuck or unconfirmed transactions.',action:'No action needed.',navigate:null,copyText:'Pending transactions: none.',evidence:[]});
+    }
+    // 3. Failed operations
+    const failedAccts=(enrichedAccts||[]).filter(a=>(a.ajOperations||[]).some(op=>op.hasFailed||op.status==='failed'));
+    const totalFailed=failedAccts.reduce((s,a)=>s+(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length,0);
+    if(totalFailed>0){
+      f.push({id:'failed-ops',severity:'amber',
+        title:`${totalFailed} failed transaction${totalFailed!==1?'s':''} in history`,
+        detail:`${failedAccts.length} account${failedAccts.length!==1?'s have':' has'} failed transactions on record. These could indicate past issues with gas, network, or rejected contract calls.`,
+        action:'Review the failed transactions in Customer View → Accounts for context. If recent, investigate the error reason.',
+        navigate:{type:'portfolio'},
+        copyText:`${totalFailed} failed transaction${totalFailed!==1?'s':''} found on ${failedAccts.length} account${failedAccts.length!==1?'s':''}.`,
+        evidence:failedAccts.slice(0,3).map(a=>({label:a.displayName,detail:`${(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length} failed`}))
+      });
+    } else if(hasAppJson){
+      f.push({id:'failed-ok',severity:'green',title:'No failed transactions in history',detail:'No accounts have failed operations on record.',action:'No action needed.',navigate:null,copyText:'Failed transactions: none.',evidence:[]});
+    }
+    // 4. Countervalue drift
+    if(hasAppJson&&fetchedCount>0){
+      const drifts=[];
+      const seenCids=new Set();
+      (enrichedAccts||[]).forEach(a=>{
+        if(!a.enriched||!a.ajBalance||a.ajBalance==='0'||seenCids.has(a.cid))return;
+        seenCids.add(a.cid);
+        const custRate=cvLatestRate(appJson,a.cid);
+        const lbEntry=liveBalances[a.id];
+        if(!custRate?.rate||!lbEntry?.bal||!lbEntry?.fiat||lbEntry.bal<=0)return;
+        const marketRate=lbEntry.fiat/lbEntry.bal;
+        const pctDrift=Math.abs(marketRate-custRate.rate)/custRate.rate*100;
+        if(pctDrift>2)drifts.push({cid:a.cid,ticker:a.ch.ticker,custRate:custRate.rate,marketRate,pctDrift,date:custRate.date||'?'});
+      });
+      if(drifts.length>0){
+        const top=drifts.sort((a,b)=>b.pctDrift-a.pctDrift);
+        const names=top.slice(0,3).map(d=>`${d.ticker} ${d.pctDrift.toFixed(1)}%`).join(', ');
+        f.push({id:'cv-drift',severity:top[0].pctDrift>10?'red':'amber',
+          title:`Countervalue drift on ${drifts.length} asset${drifts.length!==1?'s':''}: ${names}`,
+          detail:`The customer's cached fiat prices are out of date. Their ${top[0].ticker} rate is $${top[0].custRate.toFixed(2)} (from ${top[0].date}) but the current market rate is $${top[0].marketRate.toFixed(2)}. This means their portfolio total and per-account fiat values may be inaccurate.`,
+          action:'Fiat values update automatically when the customer opens the app and it syncs. No manual action needed — but be aware their displayed USD values may differ from current market prices.',
+          navigate:{type:'portfolio'},
+          copyText:`Countervalue drift detected:\n${top.map(d=>`  ${d.ticker}: customer sees $${d.custRate.toFixed(2)}, market is $${d.marketRate.toFixed(2)} (${d.pctDrift.toFixed(1)}% drift)`).join('\n')}\nNote: fiat values update on app restart.`,
+          evidence:top.slice(0,4).map(d=>({label:d.ticker,detail:`$${d.custRate.toFixed(2)} cached → $${d.marketRate.toFixed(2)} market (${d.pctDrift.toFixed(1)}%)`}))
+        });
+      }
+    }
+    // 5. Firmware
+    if(firmwareCheck?.status==='ok'){
+      if(firmwareCheck.outdated){
+        f.push({id:'firmware',severity:'red',
+          title:`Firmware outdated — ${firmwareCheck.current} → ${firmwareCheck.latest}`,
+          detail:`The customer's device is running firmware ${firmwareCheck.current}. The latest is ${firmwareCheck.latest}. Outdated firmware can cause app incompatibilities and missing features.`,
+          action:'Guide the customer to update: open Ledger Live/Wallet → My Ledger → Update firmware.',
+          navigate:{type:'myLedger'},
+          copyText:`Firmware outdated: current ${firmwareCheck.current}, latest ${firmwareCheck.latest}. Recommend updating via My Ledger.`,
+          evidence:[{label:'Current',detail:firmwareCheck.current},{label:'Latest',detail:firmwareCheck.latest}]
+        });
+      } else {
+        f.push({id:'firmware',severity:'green',title:`Firmware up to date (${firmwareCheck.current})`,detail:'Device firmware is current.',action:'No action needed.',navigate:{type:'myLedger'},copyText:`Firmware current: ${firmwareCheck.current}`,evidence:[]});
+      }
+    }
+    // 5. App versions
+    if(versionCheck?.status==='ok'&&versionCheck.apps){
+      const outdatedApps=versionCheck.apps.filter(a=>a.outdated);
+      const missingApps=versionCheck.apps.filter(a=>a.required&&!a.installed);
+      if(outdatedApps.length>0||missingApps.length>0){
+        const issues=[...missingApps.map(a=>`${a.name} (missing)`), ...outdatedApps.map(a=>`${a.name} (${a.installed}→${a.latest})`)];
+        f.push({id:'app-versions',severity:'amber',
+          title:`${outdatedApps.length+missingApps.length} device app${outdatedApps.length+missingApps.length!==1?'s':''} need attention`,
+          detail:`${outdatedApps.length} outdated, ${missingApps.length} missing. Outdated coin apps can cause signing errors or connectivity issues.`,
+          action:'Guide the customer to open My Ledger in Ledger Wallet to update apps. The device must be connected.',
+          navigate:{type:'myLedger'},
+          copyText:`Device app issues:\n${issues.map(i=>`  - ${i}`).join('\n')}`,
+          evidence:issues.slice(0,5).map(i=>({label:'App',detail:i}))
+        });
+      } else {
+        f.push({id:'app-versions',severity:'green',title:`All ${versionCheck.apps.filter(a=>a.installed).length} device apps up to date`,detail:'No app update issues detected.',action:'No action needed.',navigate:{type:'myLedger'},copyText:'Device apps: all current.',evidence:[]});
+      }
+    }
+    // 6. Desktop/mobile app version
+    if(appVersionCheck?.status==='ok'){
+      if(appVersionCheck.outdated){
+        f.push({id:'app-version',severity:'amber',
+          title:`${llLabel(dev)} outdated — ${appVersionCheck.current} → ${appVersionCheck.latest}`,
+          detail:`The customer is running an older version of the Ledger app. Some fixes and features require the latest version.`,
+          action:'Ask the customer to update the Ledger app from the official download page or their app store.',
+          navigate:null,
+          copyText:`Ledger app outdated: ${appVersionCheck.current} → ${appVersionCheck.latest}`,
+          evidence:[{label:'Current',detail:appVersionCheck.current},{label:'Latest',detail:appVersionCheck.latest}]
+        });
+      } else {
+        f.push({id:'app-version',severity:'green',title:`${llLabel(dev)} up to date (${appVersionCheck.current})`,detail:'The customer is running the latest version.',action:'No action needed.',navigate:null,copyText:`${llLabel(dev)} current: ${appVersionCheck.current}`,evidence:[]});
+      }
+    }
+    // 7. Developer mode
+    if(ajSettings.developerMode===true){
+      f.push({id:'devmode',severity:'amber',
+        title:'Developer mode is enabled',
+        detail:'Developer mode shows experimental/unreleased apps and firmware. This can cause compatibility issues and unexpected behaviour.',
+        action:'Confirm with the customer whether they intentionally enabled developer mode. If not, guide them to disable it in Settings → Experimental features.',
+        navigate:null,
+        copyText:'Developer mode is ON. May cause compatibility issues.',
+        evidence:[{label:'Setting',detail:'developerMode: true'}]
+      });
+    }
+    // 8. Log errors
+    if(highCount>0||medCount>0){
+      const topErr=errs.find(e=>e.dg?.s==='high')||errs.find(e=>e.dg?.s==='medium');
+      f.push({id:'log-errors',severity:'amber',
+        title:highCount>0?`${highCount} critical + ${medCount} warning log error${errs.length!==1?'s':''}`:`${medCount} warning log error${medCount!==1?'s':''}`,
+        detail:`The log contains ${highCount} critical, ${medCount} warning, and ${lowCount} informational events. Switch to Diagnostic mode for full error analysis.`,
+        action:'Use the mode toggle at the top of the page to switch to Diagnostic mode → Issues tab for full error analysis with breadcrumbs and timeline context.',
+        navigate:null,
+        copyText:`Log errors: ${highCount} critical, ${medCount} warning, ${lowCount} info. Top issue: ${topErr?.dg?.t||'Unknown'}.`,
+        evidence:errs.filter(e=>e.dg?.s==='high'||e.dg?.s==='medium').slice(0,3).map(e=>({label:e.dg?.s||'?',detail:e.dg?.t||e.msg||'Unknown'}))
+      });
+    } else if(errs.length===0){
+      f.push({id:'log-errors',severity:'green',title:'No log errors detected',detail:'The session log contains no errors.',action:'No action needed.',navigate:null,copyText:'Log: clean session, no errors.',evidence:[]});
+    }
+    // 9. Data confidence
+    const dataIssues=[];
+    if(fetchedCount===0&&acctCount>0)dataIssues.push('No live balances fetched');
+    if(versionCheck?.status==='error')dataIssues.push('App catalog unavailable');
+    if(firmwareCheck?.status==='error')dataIssues.push('Firmware check failed');
+    if(dataIssues.length>0){
+      f.push({id:'data-confidence',severity:'amber',
+        title:`${dataIssues.length} data source${dataIssues.length!==1?'s':''} unavailable`,
+        detail:`Some live data could not be fetched: ${dataIssues.join(', ')}. Findings may be incomplete.`,
+        action:'Results are based on log data only. Network issues or an older device firmware may prevent some checks.',
+        navigate:null,
+        copyText:`Data confidence issues: ${dataIssues.join(', ')}`,
+        evidence:dataIssues.map(d=>({label:'Unavailable',detail:d}))
+      });
+    } else if(fetchedCount>0){
+      f.push({id:'data-confidence',severity:'green',title:`${fetchedCount}/${acctCount} live balances fetched`,detail:'Live balance data is available for comparison.',action:'No action needed.',navigate:null,copyText:`Data: ${fetchedCount}/${acctCount} balances live.`,evidence:[]});
+    }
+    // Sort: red → amber → green
+    const order={red:0,amber:1,green:2};
+    return f.sort((a,b)=>order[a.severity]-order[b.severity]);
+  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount]);
+
+  const redCount=findings.filter(f=>f.severity==='red').length;
+  const amberCount=findings.filter(f=>f.severity==='amber').length;
+  const greenCount=findings.filter(f=>f.severity==='green').length;
+
+  const handleNavigate=nav=>{
+    if(!nav)return;
+    if(nav.type==='account'&&onViewAccount&&nav.idx>=0)onViewAccount(nav.idx);
+    if(nav.type==='portfolio'&&onViewPortfolio)onViewPortfolio();
+    if(nav.type==='myLedger'&&onViewMyLedger)onViewMyLedger();
+  };
+
+  const chipStyle={fontSize:12,padding:'3px 10px',borderRadius:4,fontWeight:600};
+  const severityConfig={
+    red:{color:'#EA4335',bg:'rgba(234,67,53,0.06)',border:'rgba(234,67,53,0.3)',icon:'🔴'},
+    amber:{color:T.warning,bg:'rgba(255,189,66,0.06)',border:'rgba(255,189,66,0.25)',icon:'🟡'},
+    green:{color:'#4FC46B',bg:'rgba(79,196,107,0.04)',border:'rgba(79,196,107,0.15)',icon:'🟢'},
+  };
+  const linkBtnStyle={fontSize:11,padding:'3px 8px',borderRadius:4,border:'1px solid rgba(255,255,255,0.12)',background:'transparent',color:'#8A8A8E',cursor:'pointer',fontWeight:500};
+  const copyBtnStyle={fontSize:11,padding:'3px 8px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'#8A8A8E',cursor:'pointer',fontWeight:500};
   const accentCard=(children)=><div style={{background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,padding:'16px 20px',marginBottom:12}}>{children}</div>;
   const cardTitle=(t)=><div style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12,fontFamily:MF}}>{t}</div>;
   const infoRow=(label,value,valueColor)=><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:13,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:13,color:valueColor||'#FFFFFF',fontWeight:500}}>{value}</span></div>;
-  return <div style={{padding:'24px 32px'}}>
-    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BBB0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <span style={{fontSize:18,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
-      <span style={{fontSize:11,fontFamily:MF,color:'#BBB0FF',background:'rgba(187,176,255,0.1)',borderRadius:4,padding:'2px 8px'}}>DIAGNOSTIC</span>
+
+  // ── Truth Table data ────────────────────────────────────────────────────────
+  const ttAccts=React.useMemo(()=>{
+    const all=(enrichedAccts||[]).map((a,globalIdx)=>{
+      const lbEntry=liveBalances[a.id];
+      const dec=DECIMALS[a.cid]||18;
+      const custBal=a.ajBalance!=null?parseFloat(a.ajBalance)/Math.pow(10,dec):null;
+      const liveBal=lbEntry?.bal!=null?lbEntry.bal:null;
+      const hasBoth=custBal!=null&&liveBal!=null;
+      const delta=hasBoth?liveBal-custBal:null;
+      const pct=hasBoth&&custBal>0?Math.abs(delta)/custBal*100:0;
+      const isMismatch=hasBoth&&pct>0.01;
+      const custFiat=custBal!=null?cvFiatValue(appJson,a.cid,a.ajBalance):null;
+      const liveFiat=lbEntry?.fiat!=null?lbEntry.fiat:null;
+      const status=lbEntry?.status==='loading'?'loading':lbEntry?.status==='error'?'error':isMismatch?'mismatch':hasBoth?'match':a.ajBalance!=null?'no-live':'no-data';
+      const hasPending=(a.ajPendingOps||[]).length>0;
+      const failedCount=(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length;
+      const hasFailedOps=failedCount>0;
+      const hasLogErrs=a.addr&&a.addr.length>4&&errs.some(e=>(e.det||e.msg||'').includes(a.addr));
+      const isIssue=isMismatch||hasPending||hasFailedOps||hasLogErrs;
+      return{...a,globalIdx,custBal,liveBal,delta,pct,isMismatch,custFiat,liveFiat,status,hasPending,hasFailedOps,failedCount,hasLogErrs,isIssue};
+    });
+    let filtered=ttFilter==='issues'?all.filter(a=>a.isIssue):all;
+    if(ttSort==='value')filtered=[...filtered].sort((a,b)=>(b.custFiat||0)-(a.custFiat||0));
+    else if(ttSort==='name')filtered=[...filtered].sort((a,b)=>(a.displayName||'').localeCompare(b.displayName||''));
+    else if(ttSort==='drift')filtered=[...filtered].sort((a,b)=>b.pct-a.pct);
+    else filtered=[...filtered].sort((a,b)=>{const o={mismatch:0,'error':1,'loading':2,'no-data':3,match:4,'no-live':5};return(o[a.status]||9)-(o[b.status]||9);});
+    return{all,filtered};
+  },[enrichedAccts,liveBalances,appJson,ttFilter,ttSort,errs]);
+
+  const issueCount=ttAccts.all.filter(a=>a.isIssue).length;
+  const customerTotal=ttAccts.all.reduce((s,a)=>s+(a.custFiat||0),0);
+  const onchainTotal=ttAccts.all.reduce((s,a)=>s+(a.liveFiat||0),0);
+  const portfolioDelta=onchainTotal-customerTotal;
+  const fmtFiat=v=>cvFmtFiat(v,appJson)||('$'+v.toLocaleString(undefined,{maximumFractionDigits:2}));
+
+  return <div style={{paddingBottom:32}}>
+    {/* ── Section A: Header + KPI ── */}
+    <div className="cv-content-header" style={{paddingBottom:12}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BBB0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span style={{fontSize:20,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
+        <span style={{fontSize:10,padding:'2px 8px',borderRadius:4,background:'rgba(187,176,255,0.15)',color:'#BBB0FF',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>Diagnostic</span>
+      </div>
+      <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.5,marginBottom:12}}>
+        Compares what the customer sees (app.json) to what's actually on-chain. <strong style={{color:'#FFFFFF'}}>Red items need action.</strong> Click any finding for details and the recommended fix.
+      </div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {redCount>0&&<span style={{...chipStyle,background:'rgba(234,67,53,0.12)',color:'#EA4335'}}>{redCount} issue{redCount!==1?'s':''}</span>}
+        {amberCount>0&&<span style={{...chipStyle,background:'rgba(255,189,66,0.12)',color:T.warning}}>{amberCount} warning{amberCount!==1?'s':''}</span>}
+        <span style={{...chipStyle,background:'rgba(79,196,107,0.08)',color:'#4FC46B'}}>{greenCount} healthy</span>
+      </div>
     </div>
-    {accentCard(<>
-      {cardTitle('Diagnostic Summary')}
-      <div style={{borderLeft:'3px solid '+diagText.color,paddingLeft:12,marginBottom:12}}>
-        <div style={{fontSize:14,color:'#FFFFFF',lineHeight:1.5}}>{diagText.text}</div>
-      </div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:q?12:0}}>
-        {highCount>0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:T.error+'18',color:T.error,fontWeight:600}}>{highCount} Critical</span>}
-        {medCount>0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:T.warning+'18',color:T.warning,fontWeight:600}}>{medCount} Warning</span>}
-        {lowCount>0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:'rgba(187,176,255,0.12)',color:'#BBB0FF',fontWeight:600}}>{lowCount} Info</span>}
-        {errs.length===0&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:4,background:'rgba(79,196,107,0.12)',color:'#4FC46B',fontWeight:600}}>No errors</span>}
-      </div>
-      {q&&<div style={{fontSize:13,color:'#8A8A8E'}}>Log quality: <span style={{color:q.color,fontWeight:600}}>{q.score}/100 — {q.label}</span></div>}
-      {(()=>{
-        const failedOps=(enrichedAccts||[]).reduce((sum,a)=>{
-          const ops=a.operations||a.ops||[];
-          return sum+ops.filter(op=>op.status==='failed'||op.status==='error').length;
-        },0);
-        if(failedOps===0)return null;
-        return <div style={{fontSize:13,color:T.warning,marginTop:8}}>⚠ {failedOps} failed operation{failedOps!==1?'s':''} in transaction history</div>;
-      })()}
-    </>)}
-    {accentCard(<>
-      {cardTitle('Session Details')}
-      {infoRow('Device',dev.modelName||DN[dev.modelId]||'Unknown')}
-      {infoRow('Firmware',dev.fw||'?')}
-      {infoRow(llLabel(dev),dev.appVer||'?')}
-      {sessionDur&&infoRow('Duration',sessionDur)}
-      {infoRow('Log entries',(logData.entries?.length||0).toLocaleString())}
-      {infoRow('Accounts',String(acctCount)+(hasAppJson?` (${(enrichedAccts||[]).length} with app.json)`:''))}
-      <div style={{marginTop:12,paddingTop:8,borderTop:'1px solid rgba(255,255,255,0.04)'}}>
-        <div style={{fontSize:12,color:'#8A8A8E',fontWeight:600,marginBottom:6}}>Activity flags</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:8}}>
-          {[['Manager',act.managerOpened],['Swap',act.swapBrowsed],['Device scan',act.deviceScan]].map(([label,active])=>(
-            <span key={label} style={{fontSize:12,padding:'2px 8px',borderRadius:4,background:active?'rgba(79,196,107,0.1)':'rgba(255,255,255,0.05)',color:active?'#4FC46B':'#8A8A8E'}}>{label} {active?'✓':'—'}</span>
-          ))}
-        </div>
-        <div style={{fontSize:12,color:'#8A8A8E'}}>Data sources: {[hasAppJson&&'app.json',fetchedCount>0&&'live balances','log'].filter(Boolean).join(' + ')}</div>
-      </div>
-    </>)}
-    {enrichedAccts.some(a=>a.enriched)&&<div style={{background:'#242428',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,padding:'16px 20px',marginBottom:12}}>
-      <div style={{fontFamily:MF,fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'#BBB0FF',marginBottom:8}}>Balance Comparison</div>
-      <div style={{fontSize:12,color:'#8A8A8E',marginBottom:12}}>Comparing what the customer sees (app.json) against live on-chain balances. Mismatches indicate sync issues.</div>
-      <div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-        {['Account','Customer sees','On-chain','Status'].map(h=><div key={h} style={{fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</div>)}
-      </div>
-      {enrichedAccts.filter(a=>a.enriched).map((a,i)=>{
-        const ch=a.ch;
-        const lb=liveBalances[a.id];
-        const dec=DECIMALS[a.cid]||18;
-        const custBal=a.ajBalance?parseFloat(a.ajBalance)/Math.pow(10,dec):null;
-        const liveBal=lb?.bal!=null?lb.bal:null;
-        const liveFiat=lb?.fiat!=null?lb.fiat:null;
-        const hasBoth=custBal!=null&&liveBal!=null;
-        const delta=hasBoth?liveBal-custBal:null;
-        const isMatch=hasBoth&&Math.abs(delta)<0.000001;
-        const isMismatch=hasBoth&&!isMatch;
-        const statusColor=lb?.status==='loading'?'#8A8A8E':lb?.status==='error'?T.warning:isMatch?'#4FC46B':isMismatch?T.error:'#8A8A8E';
-        const statusText=lb?.status==='loading'?'···':lb?.status==='error'?'fetch failed':lb?.status==='unsupported'?'unsupported':isMatch?'✓ match':isMismatch?(delta>0?'▲ higher on-chain':'▼ lower on-chain'):'—';
-        return <div key={a.id} style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr',gap:0,padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',alignItems:'center',background:isMismatch?'rgba(228,0,70,0.04)':'transparent'}}>
+
+    {!hasAppJson&&<div style={{margin:'12px 32px 0',padding:'10px 16px',borderRadius:8,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:12,color:T.warning,lineHeight:1.5}}>
+      <strong>Limited comparison:</strong> No app.json loaded. Showing findings from log data and live balances only. Load the customer's app.json for the full "what they see vs. reality" comparison.
+    </div>}
+
+    {/* ── Section B: Triage findings ── */}
+    <div style={{padding:'16px 32px 8px'}}>
+      <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',marginBottom:12}}>Triage</div>
+      {findings.map(f=>{
+        const sc=severityConfig[f.severity];
+        const isOpen=expandedFinding===f.id;
+        return <div key={f.id} style={{borderLeft:`3px solid ${sc.color}`,background:isOpen?sc.bg:'rgba(255,255,255,0.01)',border:`1px solid ${isOpen?sc.border:'rgba(255,255,255,0.06)'}`,borderLeftWidth:3,borderLeftColor:sc.color,borderRadius:8,padding:'12px 16px',marginBottom:8,cursor:'pointer',transition:'background 150ms'}}
+          onClick={()=>setExpandedFinding(isOpen?null:f.id)}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:ch.color,flexShrink:0,display:'inline-block'}}/>
-            <span style={{fontSize:12,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}</span>
+            <span style={{fontSize:13}}>{sc.icon}</span>
+            <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF',flex:1,lineHeight:1.4}}>{f.title}</span>
+            <div style={{display:'flex',gap:6,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+              {f.navigate&&<button onClick={()=>handleNavigate(f.navigate)} style={linkBtnStyle}>View ↗</button>}
+              <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{...copyBtnStyle,color:copiedId===f.id?'#4FC46B':'#8A8A8E'}}>{copiedId===f.id?'✓ Copied':'Copy'}</button>
+            </div>
           </div>
-          <div style={{fontSize:12,fontFamily:MF,color:custBal!=null?'#FFFFFF':'#8A8A8E'}}>{custBal!=null?custBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ch.ticker:'no data'}</div>
-          <div>
-            <div style={{fontSize:12,fontFamily:MF,color:liveBal!=null?'#FFFFFF':'#8A8A8E'}}>{liveBal!=null?liveBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ch.ticker:(lb?.status==='loading'?'···':'—')}</div>
-            {liveFiat!=null&&<div style={{fontSize:10,color:'#8A8A8E'}}>{'$'+liveFiat.toLocaleString(undefined,{maximumFractionDigits:2})}</div>}
-          </div>
-          <div style={{fontSize:11,fontWeight:600,color:statusColor}}>{statusText}</div>
+          {isOpen&&<div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+            <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.7,marginBottom:8}}>{f.detail}</div>
+            <div style={{fontSize:12,color:'#FFFFFF',fontWeight:600,marginBottom:8,borderLeft:'3px solid '+sc.color,paddingLeft:10}}>→ {f.action}</div>
+            {f.evidence&&f.evidence.length>0&&<div style={{borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:8}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Evidence</div>
+              {f.evidence.map((ev,i)=><div key={i} style={{display:'flex',gap:8,marginTop:3,paddingLeft:8,borderLeft:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'#8A8A8E'}}>
+                <span style={{color:'#FFFFFF',fontWeight:500,minWidth:80}}>{ev.label}:</span>
+                <span>{ev.detail}</span>
+              </div>)}
+            </div>}
+          </div>}
         </div>;
       })}
+    </div>
+
+    {/* ── Section C: Truth Table ── */}
+    <div style={{margin:'16px 32px 0',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,overflow:'hidden'}}>
+      <div style={{padding:'14px 20px 10px',display:'flex',alignItems:'center',gap:12,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+        <span style={{fontSize:14,fontWeight:600,color:'#FFFFFF'}}>Truth Table</span>
+        <div style={{display:'flex',gap:0,background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden',marginLeft:'auto'}}>
+          {[['issues',`Issues (${issueCount})`,'rgba(234,67,53,0.15)','#EA4335'],['all',`All (${(enrichedAccts||[]).length})`,'rgba(255,255,255,0.08)','#FFFFFF']].map(([v,label,bg,col])=>(
+            <button key={v} onClick={()=>setTtFilter(v)} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:ttFilter===v?bg:'transparent',color:ttFilter===v?col:'#8A8A8E'}}>{label}</button>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:0,background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden'}}>
+          {[['status','Status'],['drift','Drift'],['value','Value'],['name','Name']].map(([v,label])=>(
+            <button key={v} onClick={()=>setTtSort(v)} style={{padding:'4px 10px',fontSize:10,fontWeight:600,border:'none',cursor:'pointer',background:ttSort===v?'rgba(187,176,255,0.15)':'transparent',color:ttSort===v?'#BBB0FF':'#8A8A8E'}}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr 0.8fr',padding:'8px 20px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>
+        <span>Account</span>
+        <span title="The balance stored in the customer's Ledger Wallet app — what they see when they open their wallet" style={{cursor:'help'}}>Customer sees ⓘ</span>
+        <span title="The actual balance on the blockchain right now, fetched live from a public node" style={{cursor:'help'}}>On-chain ⓘ</span>
+        <span title="The difference between the customer's view and reality. Non-zero indicates a sync issue." style={{cursor:'help'}}>Delta ⓘ</span>
+        <span>Status</span>
+      </div>
+      {ttAccts.filtered.length===0&&<div style={{padding:'24px 20px',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>{ttFilter==='issues'?'No issues detected — all accounts look healthy.':'No accounts with app.json data.'}</div>}
+      {ttAccts.filtered.map(a=>{
+        const sc=a.isMismatch?{c:'#EA4335',bg:'rgba(234,67,53,0.03)'}:a.hasPending?{c:T.warning,bg:'rgba(255,189,66,0.02)'}:(a.hasFailedOps||a.hasLogErrs)?{c:T.warning,bg:'rgba(255,189,66,0.02)'}:{c:'#4FC46B',bg:'transparent'};
+        const isExpanded=ttExpanded===a.id;
+        const statusLabel=a.status==='loading'?'···':a.status==='error'?'unavailable':a.status==='mismatch'?(a.delta>0?'▲ on-chain higher':'▼ on-chain lower'):a.status==='match'?(a.hasFailedOps||a.hasLogErrs)?'⚠ review':'✓ match':a.status==='no-live'?'no live data':'—';
+        return <React.Fragment key={a.id}>
+          <div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr 0.8fr',padding:'10px 20px',borderBottom:'1px solid rgba(255,255,255,0.04)',cursor:'pointer',background:isExpanded?'rgba(255,255,255,0.03)':sc.bg,transition:'background 150ms'}}
+            onMouseEnter={e=>!isExpanded&&(e.currentTarget.style.background=a.isMismatch?'rgba(234,67,53,0.06)':'rgba(255,255,255,0.02)')}
+            onMouseLeave={e=>!isExpanded&&(e.currentTarget.style.background=sc.bg)}
+            onClick={()=>setTtExpanded(isExpanded?null:a.id)}>
+            <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:a.ch.color,flexShrink:0,display:'inline-block'}}/>
+              <span style={{fontSize:12,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}</span>
+              {a.hasPending&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(255,189,66,0.15)',color:T.warning,fontWeight:700,flexShrink:0}}>PENDING</span>}
+              {a.hasFailedOps&&!a.hasPending&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(234,67,53,0.12)',color:'#EA4335',fontWeight:700,flexShrink:0}}>{a.failedCount} FAILED</span>}
+              {a.hasLogErrs&&!a.hasPending&&!a.hasFailedOps&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(255,189,66,0.10)',color:T.warning,fontWeight:700,flexShrink:0}}>LOG ERRORS</span>}
+            </div>
+            <div>
+              <div style={{fontSize:12,fontFamily:MF,color:a.custBal!=null?'#FFFFFF':'#8A8A8E'}}>{a.custBal!=null?a.custBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:'—'}</div>
+              {a.custFiat!=null&&<div style={{fontSize:10,color:'#8A8A8E'}}>{fmtFiat(a.custFiat)}</div>}
+            </div>
+            <div>
+              <div style={{fontSize:12,fontFamily:MF,color:a.liveBal!=null?'#FFFFFF':'#8A8A8E'}}>{a.liveBal!=null?a.liveBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:(a.status==='loading'?'···':'—')}</div>
+              {a.liveFiat!=null&&<div style={{fontSize:10,color:'#8A8A8E'}}>{fmtFiat(a.liveFiat)}</div>}
+            </div>
+            <div style={{fontSize:11,fontFamily:MF,color:a.delta!=null?(a.delta>0.000001?'#EA4335':a.delta<-0.000001?'#EA4335':'#4FC46B'):'#8A8A8E'}}>
+              {a.delta!=null&&Math.abs(a.delta)>=0.000001?(a.delta>0?'+':'')+a.delta.toLocaleString(undefined,{maximumFractionDigits:6}):a.delta!=null?'0':'—'}
+            </div>
+            <div style={{fontSize:11,fontWeight:600,color:sc.c}}>{statusLabel}</div>
+          </div>
+          {isExpanded&&<div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 20px 14px 36px'}}>
+            {(a.ajSubAccounts||[]).length>0&&<div style={{marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Tokens ({(a.ajSubAccounts||[]).length})</div>
+              {(a.ajSubAccounts||[]).slice(0,6).map((s,si)=>{
+                const rawName=(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
+                const tDec=getTokenDecimals(s.tokenId||'',a.cid);
+                const tHuman=s.balance!=null?parseFloat(s.balance)/Math.pow(10,tDec):null;
+                return <div key={si} style={{display:'flex',gap:8,fontSize:11,color:'#8A8A8E',padding:'2px 0'}}>
+                  <span style={{color:'#FFFFFF',minWidth:80,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rawName}</span>
+                  <span style={{fontFamily:MF}}>{tHuman!=null?tHuman.toLocaleString(undefined,{maximumFractionDigits:4}):'-'}</span>
+                  <span style={{marginLeft:4}}>{s.operationsCount||0} ops</span>
+                </div>;
+              })}
+              {(a.ajSubAccounts||[]).length>6&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:3}}>+{(a.ajSubAccounts||[]).length-6} more tokens</div>}
+            </div>}
+            {(()=>{
+              const acctErrs=errs.filter(e=>a.addr&&a.addr.length>4&&(e.det||e.msg||'').includes(a.addr));
+              if(acctErrs.length===0)return null;
+              return <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#EA4335',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4,fontFamily:MF}}>Related log errors ({acctErrs.length})</div>
+                {acctErrs.slice(0,3).map((e,i)=><div key={i} style={{fontSize:11,color:'#EA4335',padding:'2px 0'}}>{e.dg?.t||e.msg||'Unknown error'}</div>)}
+              </div>;
+            })()}
+            {(a.ajPendingOps||[]).length>0&&<div style={{marginBottom:10,fontSize:11,color:T.warning}}>⏳ {(a.ajPendingOps||[]).length} pending transaction{(a.ajPendingOps||[]).length!==1?'s':''}</div>}
+            {a.hasFailedOps&&<div style={{marginBottom:10,fontSize:11,color:'#EA4335'}}>✕ {a.failedCount} failed transaction{a.failedCount!==1?'s':''} in history</div>}
+            {a.ajBlockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',marginBottom:8,fontFamily:MF}}>Last synced block: {Number(a.ajBlockHeight).toLocaleString()}</div>}
+            <div style={{display:'flex',gap:8,marginTop:4}}>
+              {onViewAccount&&<button onClick={()=>onViewAccount(a.globalIdx)} style={{...linkBtnStyle,color:'#BBB0FF',borderColor:'rgba(187,176,255,0.2)'}}>View in Customer View ↗</button>}
+              <button onClick={()=>{
+                const dec=DECIMALS[a.cid]||18;
+                const cust=a.custBal!=null?a.custBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:'no data';
+                const live=a.liveBal!=null?a.liveBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:'unavailable';
+                copyText(`Account: ${a.displayName} (${a.ch.name})\nAddress: ${a.addr||'—'}\nCustomer sees: ${cust}\nOn-chain: ${live}\nDelta: ${a.delta!=null?a.delta.toFixed(6):'—'}\nStatus: ${statusLabel}\nPending ops: ${(a.ajPendingOps||[]).length}`);
+              }} style={copyBtnStyle}>Copy comparison</button>
+            </div>
+          </div>}
+        </React.Fragment>;
+      })}
+      {(ttAccts.all.some(a=>a.custFiat!=null)||ttAccts.all.some(a=>a.liveFiat!=null))&&<div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr 0.8fr',padding:'10px 20px',borderTop:'2px solid rgba(255,255,255,0.08)',fontWeight:600}}>
+        <span style={{fontSize:12,color:'#FFFFFF'}}>Portfolio Total</span>
+        <span style={{fontSize:12,color:'#FFFFFF'}}>{customerTotal>0?fmtFiat(customerTotal):'—'}</span>
+        <span style={{fontSize:12,color:'#FFFFFF'}}>{onchainTotal>0?fmtFiat(onchainTotal):'—'}</span>
+        <span style={{fontSize:12,color:portfolioDelta>0.01?'#4FC46B':portfolioDelta<-0.01?'#EA4335':'#8A8A8E'}}>{onchainTotal>0&&customerTotal>0?(portfolioDelta>=0?'+':'')+fmtFiat(portfolioDelta):'—'}</span>
+        <span/>
+      </div>}
+    </div>
+
+    {/* ── Section D: Settings + Data Confidence ── */}
+    <div style={{padding:'16px 32px 0'}}>
       {(()=>{
-        const compared=enrichedAccts.filter(a=>a.enriched&&liveBalances[a.id]?.bal!=null&&a.ajBalance!=null);
-        const mismatches=compared.filter(a=>{
-          const dec=DECIMALS[a.cid]||18;
-          const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
-          const live=liveBalances[a.id].bal;
-          return Math.abs(live-cust)>=0.000001;
-        });
-        if(compared.length===0)return null;
-        return <div style={{marginTop:12,padding:'10px 14px',borderRadius:6,background:mismatches.length>0?'rgba(228,0,70,0.06)':'rgba(79,196,107,0.06)',border:`1px solid ${mismatches.length>0?'rgba(228,0,70,0.15)':'rgba(79,196,107,0.15)'}`,fontSize:12}}>
-          {mismatches.length>0
-            ?<span style={{color:T.error,fontWeight:600}}>⚠ {mismatches.length} balance mismatch{mismatches.length!==1?'es':''} detected — customer's app may have a sync issue</span>
-            :<span style={{color:'#4FC46B',fontWeight:600}}>✓ All {compared.length} compared balance{compared.length!==1?'s':''} match — no sync issues detected</span>}
-        </div>;
+        const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
+        if(Object.keys(ajSettings).length===0)return null;
+        const cv=ajSettings.counterValue||'USD';
+        const cvFirst=ajSettings.countervalueFirst;
+        const theme=ajSettings.theme;
+        const lang=ajSettings.language;
+        const order=ajSettings.orderAccounts;
+        const devMode=ajSettings.developerMode;
+        const hideEmpty=ajSettings.hideEmptyTokenAccounts;
+        const discreet=ajSettings.discreetMode;
+        const lastVer=ajSettings.lastUsedVersion;
+        const devList=ajSettings.devicesModelList||[];
+        const fmt=(v)=>v==null?null:v===true?'On':v===false?'Off':String(v);
+        const rows=[
+          ['Fiat currency',cv],
+          ['Countervalue first',cvFirst!=null?fmt(cvFirst):null],
+          ['Theme',theme],
+          ['Language',lang],
+          ['Account order',order],
+          ['Developer mode',devMode!=null?fmt(devMode):null,devMode===true?T.warning:null],
+          ['Hide empty tokens',hideEmpty!=null?fmt(hideEmpty):null],
+          ['Discreet mode',discreet!=null?fmt(discreet):null],
+          ['Last app version',lastVer],
+          ['Paired devices',devList.length>0?String(devList.length):null],
+        ].filter(([,v])=>v!=null);
+        if(rows.length===0)return null;
+        return accentCard(<>
+          {cardTitle('Customer Settings')}
+          {rows.map(([label,value,valCol],i)=>infoRow(label,value,valCol||undefined))}
+        </>);
       })()}
-    </div>}
-    {(()=>{
-      if(!hasAppJson)return null;
-      const rm=cvGetRateMap(appJson);
-      const fiat=cvFiatCurrency(appJson);
-      const keys=Object.keys(rm);
-      if(!keys.length)return null;
-      const analyses=keys.slice(0,12).map(key=>{
-        const dates=rm[key];
-        const sortedDates=Object.keys(dates).sort();
-        if(sortedDates.length<2)return null;
-        const cachedDate=sortedDates[sortedDates.length-1];
-        const cachedRate=dates[cachedDate];
-        const currencyId=key.startsWith(fiat+' ')?key.slice(fiat.length+1):key.split(' ').slice(1).join(' ');
-        const liveRateInfo=cvLatestRate(appJson,currencyId);
-        // compare cached vs the earliest available as a proxy for "stale" comparison
-        const oldestDate=sortedDates[0];
-        const oldestRate=dates[oldestDate];
-        const drift=Math.abs((cachedRate-oldestRate)/oldestRate*100);
-        return{key,currencyId,cachedDate,cachedRate,drift,daysSpan:sortedDates.length};
-      }).filter(Boolean).sort((a,b)=>b.drift-a.drift);
-      const significantDrift=analyses.filter(a=>a.drift>5);
-      const fiatSym=fiat==='USD'?'$':fiat==='EUR'?'€':fiat==='GBP'?'£':fiat+' ';
-      return accentCard(<>
-        {cardTitle('Countervalue Analysis')}
-        <div style={{fontSize:12,color:'#8A8A8E',marginBottom:12}}>Cached exchange rates embedded in app.json. Rates may be stale — compare against current market to assess fiat accuracy.</div>
-        <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 0.8fr 0.8fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:4}}>
-          {['Currency','Cached rate','Last updated','Drift'].map(h=><div key={h} style={{fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</div>)}
-        </div>
-        {analyses.slice(0,8).map(a=>{
-          const isDrift=a.drift>5;
-          return <div key={a.key} style={{display:'grid',gridTemplateColumns:'1.5fr 1fr 0.8fr 0.8fr',gap:0,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isDrift?'rgba(228,0,70,0.04)':'transparent'}}>
-            <div style={{fontSize:12,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.currencyId}</div>
-            <div style={{fontSize:12,fontFamily:MF,color:'#FFFFFF'}}>{fiatSym}{a.cachedRate.toLocaleString(undefined,{maximumFractionDigits:4})}</div>
-            <div style={{fontSize:12,color:'#8A8A8E',fontFamily:MF}}>{a.cachedDate}</div>
-            <div style={{fontSize:11,fontWeight:600,color:isDrift?T.error:a.drift>2?T.warning:'#4FC46B'}}>{isDrift?'⚠ ':''}{a.drift.toFixed(1)}%</div>
-          </div>;
-        })}
-        <div style={{marginTop:12,padding:'8px 12px',borderRadius:6,background:significantDrift.length>0?'rgba(228,0,70,0.06)':'rgba(79,196,107,0.06)',border:`1px solid ${significantDrift.length>0?'rgba(228,0,70,0.15)':'rgba(79,196,107,0.15)'}`,fontSize:12}}>
-          {significantDrift.length>0
-            ?<span style={{color:T.error,fontWeight:600}}>⚠ {significantDrift.length} currenc{significantDrift.length===1?'y':'ies'} with >5% cached rate drift — fiat values shown in Customer View may be inaccurate</span>
-            :<span style={{color:'#4FC46B',fontWeight:600}}>✓ All cached rates within 5% — fiat values should be reasonably accurate</span>}
-        </div>
-      </>);
-    })()}
-    {accentCard(<>
-      {cardTitle('Data Confidence')}
-      {infoRow('Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E')}
-      {infoRow('App catalog',versionCheck?.status==='ok'?`${versionCheck.catalogSize||versionCheck.apps?.length||0} apps loaded`:versionCheck?.status==='loading'?'Checking…':'Unavailable',versionCheck?.status==='ok'?'#4FC46B':versionCheck?.status==='loading'?'#8A8A8E':T.warning)}
-      {infoRow('Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning)}
-      {infoRow(llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning)}
-    </>)}
-    {(()=>{
-      const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
-      if(Object.keys(ajSettings).length===0)return null;
-      const cv=ajSettings.counterValue||'USD';
-      const cvFirst=ajSettings.countervalueFirst;
-      const theme=ajSettings.theme;
-      const lang=ajSettings.language;
-      const order=ajSettings.orderAccounts;
-      const devMode=ajSettings.developerMode;
-      const hideEmpty=ajSettings.hideEmptyTokenAccounts;
-      const discreet=ajSettings.discreetMode;
-      const lastVer=ajSettings.lastUsedVersion;
-      const devList=ajSettings.devicesModelList||[];
-      const fmt=(v)=>v==null?null:v===true?'On':v===false?'Off':String(v);
-      const rows=[
-        ['Fiat currency',cv],
-        ['Countervalue first',cvFirst!=null?fmt(cvFirst):null],
-        ['Theme',theme],
-        ['Language',lang],
-        ['Account order',order],
-        ['Developer mode',devMode!=null?fmt(devMode):null],
-        ['Hide empty tokens',hideEmpty!=null?fmt(hideEmpty):null],
-        ['Discreet mode',discreet!=null?fmt(discreet):null],
-        ['Last app version',lastVer],
-        ['Paired devices',devList.length>0?String(devList.length):null],
-      ].filter(([,v])=>v!=null);
-      if(rows.length===0)return null;
-      return accentCard(<>
-        {cardTitle('Customer Settings')}
-        {rows.map(([label,value],i)=>infoRow(label,value,undefined))}
-      </>);
-    })()}
-    {accentCard(<>
-      {cardTitle('Quick Actions')}
-      <div style={{fontSize:13,color:'#8A8A8E',lineHeight:1.5}}>To investigate errors, copy full reports, or use the Timeline — switch to <strong style={{color:'#FFFFFF'}}>Diagnostic mode</strong> using the toggle in the header bar.</div>
-    </>)}
+      {accentCard(<>
+        {cardTitle('Data Confidence')}
+        {infoRow('Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E')}
+        {infoRow('App catalog',versionCheck?.status==='ok'?`${versionCheck.catalogSize||versionCheck.apps?.length||0} apps loaded`:versionCheck?.status==='loading'?'Checking…':'Unavailable',versionCheck?.status==='ok'?'#4FC46B':versionCheck?.status==='loading'?'#8A8A8E':T.warning)}
+        {infoRow('Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning)}
+        {infoRow(llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning)}
+      </>)}
+    </div>
   </div>;
 }
 
@@ -4106,7 +4344,14 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
       )}
       {cvSection==='portfolio'&&<CVPortfolio enrichedAccts={enrichedAccts} liveBalances={liveBalances} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}} setCvSection={setCvSection} appJson={appJson}/>}
       {cvSection==='myLedger'&&<CVMyLedger logData={logData} appJson={appJson} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
-      {cvSection==='agentInsights'&&<CVAgentInsights logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} appJson={appJson}/>}
+      {cvSection==='agentInsights'&&<CVAgentInsights
+        logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts}
+        versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}
+        appJson={appJson}
+        onViewAccount={idx=>{setSelectedAcct(idx);setCvSection('accounts');}}
+        onViewPortfolio={()=>setCvSection('portfolio')}
+        onViewMyLedger={()=>setCvSection('myLedger')}
+      />}
     </div>
   </div>;
 }
