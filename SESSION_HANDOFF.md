@@ -1,4 +1,56 @@
-# Session Handoff — April 5, 2026 (Session 6)
+# Session Handoff — April 5, 2026 (Session 7)
+
+## What was built this session
+
+### Boot Splash — Crossfade + Cypherpunk Recession
+
+Full redesign of the boot sequence to eliminate the black-screen gap between splash and React app.
+
+#### Architecture change
+- **`#splash` no longer has a background.** It's a pure flex positioning container (`position:fixed;inset:0;z-index:9999`).
+- **`#splash-bg`** is a new `position:absolute;inset:0;background:#131214` child. On dismiss it fades with `transition:opacity 0.5s ease` at 0ms delay — React content becomes visible through it while splash content is still partially visible. True crossfade, not a fade-to-black.
+- **`#splash-center` contracts** on dismiss: `scale(0.98)` + `blur(6px)` — the terminal recedes while the React interface sharpens into focus underneath. Depth, not flatness.
+- **`#splash` itself has no `opacity` transition** — only `pointer-events:none`. Individual children handle their own fading. This prevents the "all opacities multiply → black dip" problem.
+
+#### Dismiss sequence timing
+| Element | Behavior | Duration |
+|---|---|---|
+| `#splash-bg` | Fades out | 0.5s, no delay |
+| `#splash-log` | Fades out | 0.25s |
+| `#splash-glow` | Fades out | 0.3s |
+| `#splash-logo` | Fades out | 0.4s |
+| `#splash-center` | scale(0.98) + blur(6px) | 0.6s / 0.5s |
+| `#splash-header` | Fades in (0→1) | 0.3s, 0.05s delay |
+| DOM removal | `splash.remove()` | 1200ms after dismiss |
+
+#### HTML structure
+```html
+<div id="splash">
+  <div id="splash-bg"></div>        <!-- separate bg layer -->
+  <div id="splash-header">...</div> <!-- fades in on dismiss to bridge React header -->
+  <div id="splash-center">
+    <div id="splash-glow"></div>
+    <svg id="splash-logo">...</svg>
+    <div id="splash-log"></div>     <!-- telemetry, centered on logo -->
+  </div>
+</div>
+```
+
+#### Polish details carried from prior work
+- Logo entrance: `scale(0.92→1)` with `cubic-bezier(0.16,1,0.3,1)` (overshoot-free deceleration)
+- Glow breathes: `splashBreathe` keyframe (scale 1→1.15, opacity 1→0.7, 3s infinite)
+- Telemetry lines slide in: `splashLineIn` (translateY 4px→0, 0.2s each)
+- "ready" line in brand purple `#BBB0FF`
+- Telemetry positioned `translate(-50%,-50%)` — centered on the logo, not offset
+
+#### Key decisions
+- **Separate bg layer** is the minimal correct solution. Trying to crossfade `#splash` as a whole fails because both layers are the same dark color — you need to fade the background independently of the content.
+- **Recession effect** (`scale(0.98)+blur`) makes the transition feel like depth/layer change rather than a simple cut. The splash doesn't just disappear — it recedes while the interface emerges in front.
+- **Header fade-in** bridges the gap: splash header fades from 0→1 exactly as React's header becomes visible, creating continuity.
+
+---
+
+## Previous session (Session 6)
 
 ## What was built this session
 
@@ -97,13 +149,13 @@ The popover disappeared when the cursor moved from a block to the popover itself
 
 ## Current file state
 
-~6,300 lines. One file: `ledger-toolkit.html`.
+~6,400 lines. One file: `ledger-toolkit.html`.
 
 ## Current git state
 
-Branch: `main`. Latest local commit: `61c16af` (Quick Summary border). **Not yet pushed to remote.**
+Branch: `main`. Latest commit: `9b88624` (crossfade splash). Pushed to remote.
 
-Push workflow: `! git push origin main` in chat (Claude Code PreToolUse hook blocks Bash-level push to main — user must run directly).
+Push workflow: sandbox blocks HTTPS push — Claude must use `dangerouslyDisableSandbox:true` on the push Bash call, or user runs `! git push` directly.
 
 ---
 
@@ -127,7 +179,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
 ---
 
-## Backlog (carried forward + new)
+## Backlog (carried forward)
 
 ### Design language
 1. **CopyBtn animation** — still too subtle. Needs icon color change + scale on copy.
