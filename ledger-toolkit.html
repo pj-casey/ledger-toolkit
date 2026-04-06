@@ -262,7 +262,7 @@ const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Nano Gen5'};
 const TARGET_MASKS=[[0x31100000,'nanoS'],[0x33000000,'nanoX'],[0x33100000,'nanoSP'],[0x33200000,'stax'],[0x33300000,'europa'],[0x33400000,'apex']];
 function identifyTargetId(tid){const n=typeof tid==='string'?parseInt(tid,10):tid;if(!n||isNaN(n))return null;const masked=(n&0xFFFF0000)>>>0;for(const[mask,id]of TARGET_MASKS){if(masked===mask)return id;}return null;}
-const TC={action:'#808080',analytics:'#857EA0',countervalues:'#A6896A',bridge:'#A6896A',network:'#A6896A',persistence:'#808080',walletsync:'#857EA0',error:'#E40046','live-dmk-logger':'#857EA0'};
+const TC={action:'#808080',analytics:'#B49AFF',countervalues:'#FFBD42',bridge:'#FF8C42',network:'#4FC3F7',persistence:'#7AC26C',walletsync:'#D4A0FF',error:'#E40046','live-dmk-logger':'#FF5300'};
 const GUIDE_AGENT=`<!-- Hero -->
 <div class="hero">
   <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
