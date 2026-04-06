@@ -262,7 +262,7 @@ const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Nano Gen5'};
 const TARGET_MASKS=[[0x31100000,'nanoS'],[0x33000000,'nanoX'],[0x33100000,'nanoSP'],[0x33200000,'stax'],[0x33300000,'europa'],[0x33400000,'apex']];
 function identifyTargetId(tid){const n=typeof tid==='string'?parseInt(tid,10):tid;if(!n||isNaN(n))return null;const masked=(n&0xFFFF0000)>>>0;for(const[mask,id]of TARGET_MASKS){if(masked===mask)return id;}return null;}
-const TC={action:'#808080',analytics:'#D4A0FF',countervalues:'#FFBD42',bridge:'#FF5300',network:'#3B82F6',persistence:'#6EC85C',walletsync:'#E545A0',error:'#E40046','live-dmk-logger':'#D4A0FF'};
+const TC={action:'#808080',analytics:'#857EA0',countervalues:'#A6896A',bridge:'#A6896A',network:'#A6896A',persistence:'#808080',walletsync:'#857EA0',error:'#E40046','live-dmk-logger':'#857EA0'};
 const GUIDE_AGENT=`<!-- Hero -->
 <div class="hero">
   <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1641,7 +1641,7 @@ const ERR_DB=[
   {m:'NetworkCongestionError',c:'server',s:'medium',t:'Network congestion',a:'Fees are elevated. Ask customer to retry later when congestion eases.',causes:['High blockchain network traffic','Gas price spike','Block space demand high']},
   {m:'SwapExchangeRateOutOfRange',c:'software',s:'medium',t:'Swap rate out of range',a:'Exchange rate shifted since quote. Ask customer to refresh the swap and retry.',causes:['Rate moved outside provider bounds','High market volatility','Quote expired']},
 ];
-const SEV={high:{l:'Critical',c:'#E40046',bg:'rgba(228,0,70,0.10)',bd:'rgba(228,0,70,0.3)'},medium:{l:'Warning',c:'#FFBD42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#3B82F6',bg:'rgba(59,130,246,0.08)',bd:'rgba(59,130,246,0.25)'}};
+const SEV={high:{l:'Critical',c:'#E40046',bg:'rgba(228,0,70,0.10)',bd:'rgba(228,0,70,0.3)'},medium:{l:'Warning',c:'#FFBD42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#8B84CC',bg:'rgba(139,132,204,0.08)',bd:'rgba(139,132,204,0.25)'}};
 const CAT={hardware:{l:'Hardware / Device',i:'🔌'},software:{l:'Software / Sync',i:'🔄'},server:{l:'Server / Network',i:'☁️'},unknown:{l:'Unknown',i:'❓'}};
 
 function errUrl(dg){const match=ERR_DB.find(r=>r.t===dg.t&&r.u);return match?match.u:null;}
@@ -2469,7 +2469,7 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
     {evidence&&<div style={{paddingLeft:34,marginTop:12}}>
       <div style={{fontFamily:MF,color:T.muted,marginBottom:6,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>Related evidence</div>
       <div style={{display:'flex',flexDirection:'column',gap:4}}>
-        {evidence.netFails.length>0&&<span onClick={()=>{if(onGoNetwork)onGoNetwork();}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.20)',color:'#3B82F6',transition:I.fast,width:'fit-content'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(59,130,246,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(59,130,246,0.08)'}>
+        {evidence.netFails.length>0&&<span onClick={()=>{if(onGoNetwork)onGoNetwork();}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(139,132,204,0.08)',border:'1px solid rgba(139,132,204,0.20)',color:'#8B84CC',transition:I.fast,width:'fit-content'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(139,132,204,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(139,132,204,0.08)'}>
           <span style={{fontSize:13}}>🌐</span>
           {evidence.netFails.length} network failure{evidence.netFails.length!==1?'s':''} in {evidence.windowLabel} before
           <span style={{color:T.muted,marginLeft:4}}>→</span>
@@ -2710,7 +2710,7 @@ function XpubView({xpub,coin,dm}){
       {results.map(r=>
         <div key={`${r.chain}-${r.index}`} className="mono" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:`1px solid ${T.border}`}}>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={bdg(r.chain===0?'#3B82F6':T.primary)}>{r.chain===0?'RX':'CH'}:{r.index}</span>
+            <span style={bdg(r.chain===0?'#8B84CC':T.primary)}>{r.chain===0?'RX':'CH'}:{r.index}</span>
             <a href={net.addrUrl(r.address)} target="_blank" rel="noopener noreferrer" style={{color:T.primary,textDecoration:'none'}}>{r.address}</a>
             <CopyBtn text={r.address}/>
           </div>
@@ -2806,7 +2806,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
         {ch.convert&&(()=>{
           const derived=ch.convert(acct.addr);
           if(!derived)return <div style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:8,padding:12,marginBottom:16,lineHeight:1.6,color:T.muted}}>Could not derive explorer address from stored credential. Ask the customer for their receive address.</div>;
-          return <div style={{background:'rgba(59,130,246,0.06)',border:'1px solid rgba(59,130,246,0.15)',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
+          return <div style={{background:'rgba(139,132,204,0.06)',border:'1px solid rgba(139,132,204,0.15)',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
             <div className="label" style={{color:T.muted,marginBottom:6}}>Derived Address</div>
             <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
               <span className="mono" style={{wordBreak:'break-all',flex:1}}>{derived}</span>
@@ -4897,7 +4897,7 @@ function App(){
           const highCount=logData.errs.filter(e=>e.dg?.s==='high').length;
           const medCount=logData.errs.filter(e=>e.dg?.s==='medium').length;
           const errLabel=logData.errs.length===0?'0 errors':highCount>0?`${highCount} critical`:medCount>0?`${medCount} warning`:`${logData.errs.length} info`;
-          const errColor=logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#3B82F6';
+          const errColor=logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#8B84CC';
           // Guidance
           const acctRefs={};logData.errs.forEach(e=>{if(e.dg&&e.dg.r){const a=logData.accts.find(a=>a.addr&&a.addr.length>8&&e.dg.r.includes(a.addr));if(a)acctRefs[a.addr]=(acctRefs[a.addr]||0)+1;}});
           const topAcct=Object.entries(acctRefs).sort((a,b)=>b[1]-a[1])[0];
@@ -4974,9 +4974,9 @@ function App(){
                   }
                 }
                 if(!overlapping.length)return null;
-                return(<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
-                  <span style={{color:'#3B82F6',fontWeight:700,fontSize:13,flexShrink:0}}>🕐</span>
-                  <div style={{color:'#3B82F6'}}>
+                return(<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(139,132,204,0.08)',border:'1px solid rgba(139,132,204,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
+                  <span style={{color:'#8B84CC',fontWeight:700,fontSize:13,flexShrink:0}}>🕐</span>
+                  <div style={{color:'#8B84CC'}}>
                     <strong>During this session</strong>, Ledger experienced:{' '}
                     {overlapping.map((inc,i)=>(
                       <span key={i}>{i>0&&'; '}<strong>{inc.chains.join(', ')}</strong> ({inc.impact} — {inc.resolved?`resolved ${inc.resolved}`:inc.status})</span>
@@ -5008,7 +5008,7 @@ function App(){
                     {[
                       {l:'Issues',
                        v:logData.errs.length===0?'None':(highCount>0?`${highCount} critical`:medCount>0?`${medCount} warning`:`${logData.errs.length} low`),
-                       c:logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#3B82F6',
+                       c:logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#8B84CC',
                        click:()=>setSection('errors'),
                        hero:true},
                       {l:noSync?'Accounts ⚠':'Accounts',
@@ -5389,7 +5389,7 @@ function App(){
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',gap:'var(--ov-gap-chips, 5px)',overflow:'hidden',alignContent:'start'}}>
                         {[...logData.errs].sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[(b.dg||{}).s]||0)-(r[(a.dg||{}).s]||0);}).slice(0,12).map(e=>{
                           const dg=e.dg||{};
-                          const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#3B82F6';
+                          const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#8B84CC';
                           const linkedAcct=logData.accts.find(a=>a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase()));
                           const errRelevant=focusedAcct?((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(focusedAcct.addr.toLowerCase()):true;
                           return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`,borderRadius:6,cursor:'pointer',borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:I.fast,display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.12}} onMouseEnter={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}14 0%, rgba(255,255,255,0.04) 40%)`} onMouseLeave={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`}>
@@ -6009,12 +6009,12 @@ function App(){
               const apduRejects=preceding.filter(ent=>{const msg=((ent.message||'')+(JSON.stringify(ent.data||''))).toLowerCase();return(ent.type||'').toLowerCase().includes('apdu')&&(/6985|6982|6a82|6984|5515/.test(msg));});
               const syncActive=preceding.some(ent=>(ent.message||'').toLowerCase().includes('sync'));
               const otherErrors=preceding.filter(ent=>ent.level==='error'&&ent.logIndex!==e.li);
-              if(netFails.length>0)triggers.push({type:'network',count:netFails.length,icon:'🌐',label:`${netFails.length} network failure${netFails.length>1?'s':''}`,color:'#3B82F6',go:()=>setSection('network')});
+              if(netFails.length>0)triggers.push({type:'network',count:netFails.length,icon:'🌐',label:`${netFails.length} network failure${netFails.length>1?'s':''}`,color:'#8B84CC',go:()=>setSection('network')});
               if(apduRejects.length>0)triggers.push({type:'apdu',count:apduRejects.length,icon:'📡',label:`${apduRejects.length} APDU rejection${apduRejects.length>1?'s':''}`,color:T.primary,go:()=>setSection('apdu')});
               if(syncActive)triggers.push({type:'sync',count:1,icon:'🔄',label:'Sync active',color:T.success,go:()=>jumpTo(preceding.find(ent=>(ent.message||'').toLowerCase().includes('sync'))?.logIndex||e.li)});
               if(otherErrors.length>0&&triggers.length===0)triggers.push({type:'error',count:otherErrors.length,icon:'⚠',label:`${otherErrors.length} prior error${otherErrors.length>1?'s':''}`,color:T.error,go:()=>{}});
             }
-            const sc=s=>s==='high'?T.error:s==='medium'?T.warning:'#3B82F6';
+            const sc=s=>s==='high'?T.error:s==='medium'?T.warning:'#8B84CC';
             return{error:e,triggers,account:errAcctMap.get(e.li)||null,sevColor:sc(e.dg.s)};
           });
           // Deduplicate errFlows by error title
@@ -6064,7 +6064,7 @@ function App(){
           const sorted=filteredErrs.slice().sort((a,b)=>{const rank={high:3,medium:2,low:1};return(rank[b.dg.s]||0)-(rank[a.dg.s]||0)});
           const effectiveSel=selectedErr!=null?selectedErr:(sorted[0]?.li??null);
           const detailErr=displayErrs.find(e=>e.li===effectiveSel)||null;
-          const sevColor=s=>s==='high'?T.error:s==='medium'?T.warning:'#3B82F6';
+          const sevColor=s=>s==='high'?T.error:s==='medium'?T.warning:'#8B84CC';
 
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
             {/* Fixed header */}
@@ -6074,7 +6074,7 @@ function App(){
                 <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                   {/* Severity chips */}
                   <span style={{...purposeLabel,marginRight:2,opacity:0.6}}>Severity · click to filter</span>
-                  {[{key:'high',label:'Critical',count:highCount,color:T.error},{key:'medium',label:'Warning',count:medCount,color:T.warning},{key:'low',label:'Info',count:lowCount,color:'#3B82F6'}].filter(item=>item.count>0).map(item=>(
+                  {[{key:'high',label:'Critical',count:highCount,color:T.error},{key:'medium',label:'Warning',count:medCount,color:T.warning},{key:'low',label:'Info',count:lowCount,color:'#8B84CC'}].filter(item=>item.count>0).map(item=>(
                     <div key={item.key}
                       onClick={()=>setErrSevFilter(errSevFilter===item.key?null:item.key)}
                       onMouseEnter={()=>setErrHoveredSev(item.key)}
@@ -6515,7 +6515,7 @@ function App(){
               return <div key={e.logIndex} style={{padding:'10px 14px',borderBottom:`1px solid ${T.border}`,fontSize:12,transition:I.fast}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={bdg('#3B82F6')}>{method}</span>
+                    <span style={bdg('#8B84CC')}>{method}</span>
                     {isUrl?<a href={url} target="_blank" rel="noopener noreferrer" className="mono" style={{color:T.primary,textDecoration:'none'}}>{url}</a>:<span className="mono">{url}</span>}
                   </div>
                   <span className="mono" style={{color:T.muted,fontSize:10}}>{fmtTime(e.timestamp)}</span>
@@ -6562,7 +6562,7 @@ function App(){
                   const status=decodeApduStatus(a.hex,a.dir);
                   const claLabel=a.dir==='in'&&a.hex?`CLA:${a.hex.replace(/\s/g,'').slice(0,2).toUpperCase()}`:null;
                   return<div key={i} className="mono" style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',borderBottom:`1px solid ${T.border}`,transition:I.fast}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
-                    <span style={bdg(a.dir==='in'?'#3B82F6':T.success)}>{a.dir==='in'?'→ IN':'← OUT'}</span>
+                    <span style={bdg(a.dir==='in'?'#8B84CC':T.success)}>{a.dir==='in'?'→ IN':'← OUT'}</span>
                     <span style={{color:T.muted,fontSize:10,flexShrink:0}}>{fmtTime(a.ts)}</span>
                     <span style={{width:100,flexShrink:0,fontWeight:600,fontSize:11,color:status?status.color:T.muted}}>{status?status.label:claLabel||'—'}</span>
                     <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:T.text}}>{a.hex||'—'}</span>
