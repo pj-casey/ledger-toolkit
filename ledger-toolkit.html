@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net; connect-src https://api.tzkt.io https://api.mainnet-beta.solana.com https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
 <title>Ledger Diagnostic Toolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1380,21 +1381,21 @@ const BALANCE_APIS={
   dogecoin:addr=>new Promise((res,rej)=>UTXO_NETS.DOGE.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   bitcoin_cash:addr=>new Promise((res,rej)=>UTXO_NETS.BCH.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   solana:async addr=>{const r=await fetch('https://api.mainnet-beta.solana.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'getBalance',params:[addr],id:1})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result.value/1e9;},
-  tezos:async addr=>{const r=await fetch(`https://api.tzkt.io/v1/accounts/${addr}/balance`);const t=await r.text();return Number(t)/1e6;},
+  tezos:async addr=>{const r=await fetch(`https://api.tzkt.io/v1/accounts/${encodeURIComponent(addr)}/balance`);const t=await r.text();return Number(t)/1e6;},
   ripple:async addr=>{const r=await fetch('https://xrplcluster.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'account_info',params:[{account:addr,ledger_index:'validated'}]})});const j=await r.json();return Number(j.result.account_data.Balance)/1e6;},
-  stellar:async addr=>{const r=await fetch(`https://horizon.stellar.org/accounts/${addr}`);const j=await r.json();const n=j.balances?.find(b=>b.asset_type==='native');return n?Number(n.balance):0;},
+  stellar:async addr=>{const r=await fetch(`https://horizon.stellar.org/accounts/${encodeURIComponent(addr)}`);const j=await r.json();const n=j.balances?.find(b=>b.asset_type==='native');return n?Number(n.balance):0;},
   cardano:async addr=>{const r=await fetch('https://api.koios.rest/api/v1/address_info',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({_addresses:[addr]})});const j=await r.json();return j[0]?Number(j[0].balance)/1e6:0;},
   near:async addr=>{const r=await fetch('https://rpc.mainnet.near.org',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'query',params:{request_type:'view_account',finality:'final',account_id:addr},id:1})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return Number(j.result.amount)/1e24;},
   tron:async addr=>{const r=await fetch('https://api.trongrid.io/wallet/getaccount',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:addr,visible:true})});const j=await r.json();return(j.balance||0)/1e6;},
   ton:async addr=>{const a=(typeof tonHexToAddr==='function'?tonHexToAddr(addr):null)||addr;const r=await fetch(`https://toncenter.com/api/v3/account?address=${encodeURIComponent(a)}`);const j=await r.json();return Number(j.balance||0)/1e9;},
-  aptos:async addr=>{const r=await fetch(`https://fullnode.mainnet.aptoslabs.com/v1/accounts/${addr}/resource/0x1::coin::CoinStore%3C0x1::aptos_coin::AptosCoin%3E`);const j=await r.json();return Number(j.data?.coin?.value||0)/1e8;},
+  aptos:async addr=>{const r=await fetch(`https://fullnode.mainnet.aptoslabs.com/v1/accounts/${encodeURIComponent(addr)}/resource/0x1::coin::CoinStore%3C0x1::aptos_coin::AptosCoin%3E`);const j=await r.json();return Number(j.data?.coin?.value||0)/1e8;},
   sui:async addr=>{const r=await fetch('https://fullnode.mainnet.sui.io',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'suix_getBalance',params:[addr,'0x2::sui::SUI'],id:1})});const j=await r.json();return Number(j.result?.totalBalance||0)/1e9;},
   stacks:async addr=>{const a=(typeof stacksPubkeyToAddr==='function'?stacksPubkeyToAddr(addr):null)||addr;const r=await fetch(`https://stacks-node-api.mainnet.stacks.co/v2/accounts/${encodeURIComponent(a)}`);const j=await r.json();return parseInt(j.balance||'0x0',16)/1e6;},
-  hedera:async addr=>{const r=await fetch(`https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${addr}`);const j=await r.json();return(j.balance?.balance||0)/1e8;},
-  elrond:async addr=>{const r=await fetch(`https://api.multiversx.com/accounts/${addr}`);const j=await r.json();return Number(j.balance||0)/1e18;},
-  kaspa:async addr=>{const r=await fetch(`https://api.kaspa.org/addresses/${addr}/balance`);const j=await r.json();return Number(j.balance||0)/1e8;},
-  cosmos:async addr=>{const r=await fetch(`https://cosmos-rest.publicnode.com/cosmos/bank/v1beta1/balances/${addr}`);const j=await r.json();const u=j.balances?.find(b=>b.denom==='uatom');return u?Number(u.amount)/1e6:0;},
-  algorand:async addr=>{const r=await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${addr}`);const j=await r.json();return(j.amount||0)/1e6;},
+  hedera:async addr=>{const r=await fetch(`https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${encodeURIComponent(addr)}`);const j=await r.json();return(j.balance?.balance||0)/1e8;},
+  elrond:async addr=>{const r=await fetch(`https://api.multiversx.com/accounts/${encodeURIComponent(addr)}`);const j=await r.json();return Number(j.balance||0)/1e18;},
+  kaspa:async addr=>{const r=await fetch(`https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/balance`);const j=await r.json();return Number(j.balance||0)/1e8;},
+  cosmos:async addr=>{const r=await fetch(`https://cosmos-rest.publicnode.com/cosmos/bank/v1beta1/balances/${encodeURIComponent(addr)}`);const j=await r.json();const u=j.balances?.find(b=>b.denom==='uatom');return u?Number(u.amount)/1e6:0;},
+  algorand:async addr=>{const r=await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${encodeURIComponent(addr)}`);const j=await r.json();return(j.amount||0)/1e6;},
   filecoin:async addr=>{const r=await fetch('https://api.node.glif.io/rpc/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'Filecoin.WalletBalance',params:[addr],id:1})});const j=await r.json();return Number(j.result||0)/1e18;},
 };
 
@@ -2542,7 +2543,7 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
 const UTXO_NETS={
   BTC:{bech32:'bc',pubKeyHash:0x00,scriptHash:0x05,wif:0x80,label:'Bitcoin',color:'#f7931a',delay:200,
     fetchBal:(addr,cb)=>{
-      fetch(`https://mempool.space/api/address/${addr}`)
+      fetch(`https://mempool.space/api/address/${encodeURIComponent(addr)}`)
         .then(r=>r.json())
         .then(d=>{
           const b=(d.chain_stats.funded_txo_sum-d.chain_stats.spent_txo_sum)/1e8;
@@ -2550,7 +2551,7 @@ const UTXO_NETS={
         })
         .catch(()=>{
           // Fallback to Blockchair
-          fetch(`https://api.blockchair.com/bitcoin/dashboards/address/${addr}`)
+          fetch(`https://api.blockchair.com/bitcoin/dashboards/address/${encodeURIComponent(addr)}`)
             .then(r=>r.json())
             .then(d=>{
               const stats=d.data?.[addr]?.address;
@@ -2563,17 +2564,17 @@ const UTXO_NETS={
     },
     addrUrl:a=>`https://mempool.space/address/${a}`},
   LTC:{bech32:'ltc',pubKeyHash:0x30,scriptHash:0x32,wif:0xb0,label:'Litecoin',color:'#345d9d',delay:650,
-    fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/ltc/main/addrs/${addr}/balance`).then(r=>{
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/ltc/main/addrs/${encodeURIComponent(addr)}/balance`).then(r=>{
       if(r.status===429){cb._retries=(cb._retries||0)+1;if(cb._retries>5){cb(new Error('Rate limited (429)'));return null;}if(cb._warn)cb._warn(`Rate limited — retrying ${cb._retries}/5…`);setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.LTC.fetchBal(addr,cb);},1500*cb._retries);return null;}return r.json();
     }).then(d=>{if(d){if(cb._warn)cb._warn('');cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}}).catch(e=>cb(e));},
     addrUrl:a=>`https://blockchair.com/litecoin/address/${a}`},
   DOGE:{bech32:'doge',pubKeyHash:0x1e,scriptHash:0x16,wif:0x9e,label:'Dogecoin',color:'#ba9f33',delay:650,
-    fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/doge/main/addrs/${addr}/balance`).then(r=>{
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockcypher.com/v1/doge/main/addrs/${encodeURIComponent(addr)}/balance`).then(r=>{
       if(r.status===429){cb._retries=(cb._retries||0)+1;if(cb._retries>5){cb(new Error('Rate limited (429)'));return null;}if(cb._warn)cb._warn(`Rate limited — retrying ${cb._retries}/5…`);setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.DOGE.fetchBal(addr,cb);},1500*cb._retries);return null;}return r.json();
     }).then(d=>{if(d){if(cb._warn)cb._warn('');cb(null,{bal:d.final_balance/1e8,txs:d.n_tx});}}).catch(e=>cb(e));},
     addrUrl:a=>`https://blockchair.com/dogecoin/address/${a}`},
   BCH:{bech32:'bitcoincash',pubKeyHash:0x00,scriptHash:0x05,wif:0x80,label:'Bitcoin Cash',color:'#8dc351',delay:100,
-    fetchBal:(addr,cb)=>{fetch(`https://api.blockchair.com/bitcoin-cash/dashboards/address/${addr}`).then(r=>r.json()).then(d=>{const s=d.data?.[addr]?.address;if(!s)return cb(new Error('no data'));cb(null,{bal:s.balance/1e8,txs:s.transaction_count||0});}).catch(e=>cb(e));},
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockchair.com/bitcoin-cash/dashboards/address/${encodeURIComponent(addr)}`).then(r=>r.json()).then(d=>{const s=d.data?.[addr]?.address;if(!s)return cb(new Error('no data'));cb(null,{bal:s.balance/1e8,txs:s.transaction_count||0});}).catch(e=>cb(e));},
     addrUrl:a=>`https://blockchair.com/bitcoin-cash/address/${a}`},
 };
 
@@ -6653,7 +6654,7 @@ function App(){
         {(()=>{
           const raw=guideOpen==='agent'?GUIDE_AGENT:GUIDE_TECHNICAL;
           let html=raw;
-          if(guideSearch.length>=2){const esc=guideSearch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const re=new RegExp(`(${esc})`,'gi');html=html.replace(re,'<mark style="background:rgba(187,176,255,0.35);color:#fff;padding:1px 2px;border-radius:2px">$1</mark>');}
+          if(guideSearch.length>=2){const esc=guideSearch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const re=new RegExp(`(${esc})`,'gi');html=html.replace(/(<[^>]*>)|([^<]+)/g,(m,tag,text)=>{if(tag)return tag;return text.replace(re,'<mark style="background:rgba(187,176,255,0.35);color:#fff;padding:1px 2px;border-radius:2px">$1</mark>');});}
           return <div className="guide-embed" dangerouslySetInnerHTML={{__html:html}}/>;
         })()}
       </div>
