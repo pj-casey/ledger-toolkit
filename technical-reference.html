@@ -205,6 +205,7 @@ ol.tech-list li strong{color:var(--text)}
       <a href="#export"><span class="toc-icon">📤</span> Export &amp; Integration</a>
       <a class="indent" href="#export-formats">Structured Export Formats</a>
       <a class="indent" href="#sovereignty">Data Sovereignty</a>
+      <a href="#about"><span class="toc-icon">🛠</span> About This Tool</a>
     </div>
   </div>
 </div>
@@ -293,6 +294,18 @@ ol.tech-list li strong{color:var(--text)}
 <h3 id="event-classification">Temporal Event Classification</h3>
 <div class="card">
   <p>Every log entry is classified by type: <span class="mono">action</span>, <span class="mono">analytics</span>, <span class="mono">bridge</span>, <span class="mono">countervalues</span>, <span class="mono">error</span>, <span class="mono">network</span>, <span class="mono">persistence</span>, <span class="mono">walletsync</span>, <span class="mono">live-dmk-logger</span>, and others. Each type is assigned a consistent color used identically across all visualizations — session strip bars, row type badges, legend chips, Issues strip, and ErrCard breadcrumbs.</p>
+  <p><strong>Type color palette (<span class="mono">TC</span> constant):</strong></p>
+  <ul class="def-list">
+    <li><strong style="color:#808080">action</strong> — <span class="mono">#808080</span> gray — app startup, user interactions, navigation events</li>
+    <li><strong style="color:#B49AFF">analytics</strong> — <span class="mono">#B49AFF</span> purple — session open, SyncSuccess, portfolio events</li>
+    <li><strong style="color:#FFBD42">countervalues</strong> — <span class="mono">#FFBD42</span> amber — fiat price fetching activity</li>
+    <li><strong style="color:#FF8C42">bridge</strong> — <span class="mono">#FF8C42</span> orange — wallet sync sessions, the dominant sync type</li>
+    <li><strong style="color:#4FC3F7">network</strong> — <span class="mono">#4FC3F7</span> blue — HTTP requests to Ledger and external APIs</li>
+    <li><strong style="color:#7AC26C">persistence</strong> — <span class="mono">#7AC26C</span> green — local storage reads and writes</li>
+    <li><strong style="color:#D4A0FF">walletsync</strong> — <span class="mono">#D4A0FF</span> lavender — Ledger Sync cloud operations</li>
+    <li><strong style="color:#E40046">error</strong> — <span class="mono">#E40046</span> crimson — all error-level log entries</li>
+    <li><strong style="color:#FF5300">live-dmk-logger</strong> — <span class="mono">#FF5300</span> orange-red — Ledger Wallet 4.0 DMK device events</li>
+  </ul>
   <p><strong>Per-entry metadata extraction:</strong> timestamp (normalized from <span class="mono">date</span> or <span class="mono">timestamp</span> field), type, log level, message string, structured data payload, query arguments, payload fields, and embedded error objects.</p>
   <p>Session boundary detection: first and last timestamps establish total session duration. Entry count and type diversity contribute to data quality scoring.</p>
 </div>
@@ -300,7 +313,8 @@ ol.tech-list li strong{color:var(--text)}
 <h3 id="session-viz">Session Visualization</h3>
 <div class="card">
   <p>The session is divided into 80 equal time buckets. Each bucket renders as a stacked bar where bar height represents event density (total entry count) and color segments represent event type distribution, using the same canonical color map as row badges.</p>
-  <p><strong>Legend chips:</strong> One chip per event type present in the session, showing type name, color, and entry count. Hovering a chip dims all non-matching bar segments to 15% opacity. Clicking a chip filters the entry list to that type. State is shared with the type dropdown filter — changes in either update both.</p>
+  <p><strong>Visual treatment:</strong> Bar tops have rounded corners (<span class="mono">border-radius: 2px 2px 0 0</span>). The strip container has an ambient gradient (brand purple at 8% opacity) with an inset shadow to convey depth. Bars render at 0.92 opacity with a subtle top-edge highlight glow. The strip reveals left-to-right via <span class="mono">clip-path: inset()</span> animation (<span class="mono">stripDraw</span>) on tab enter.</p>
+  <p><strong>Legend chips:</strong> One chip per event type present in the session, showing type name, color dot, and entry count. Each chip uses a tinted background and border in its own TC color at low opacity. Hovering a chip dims all non-matching bar segments to 15% opacity. Clicking a chip filters the entry list to that type. State is shared with the type dropdown filter — changes in either update both.</p>
   <p><strong>Error dot baseline:</strong> Error entries are rendered as individual colored dots on a dedicated baseline below the bars. Each dot is a clickable navigation target — click scrolls to and expands that entry in the list.</p>
   <p><strong>Bucket hover tooltip:</strong> Hovering any bar shows timestamp, total event count for that bucket, per-type breakdown, and sample message. Clicking the bar scrolls to and expands the nearest log entry to the bucket's midpoint.</p>
 </div>
@@ -372,7 +386,7 @@ ol.tech-list li strong{color:var(--text)}
 <div class="card">
   <p>Severity filter chips (Critical / Warning / Info) and category filter chips (Hardware / Software / Server) are rendered in the Issues section header. Clicking a chip applies that filter. Filters combine with AND logic — activating Critical + Hardware returns only errors that are simultaneously critical severity and hardware category.</p>
   <p><strong>Hover interaction:</strong> Hovering a severity chip dims non-matching error indicators on the session strip in real time, without applying a persistent filter. Hovering a category chip produces the same effect for the category dimension. This enables visual inspection of distribution before committing to a filter.</p>
-  <p><strong>Error session strip:</strong> Stacked bars using the same color and bucket system as the Timeline strip. Error entry segments are rendered at full opacity; non-error context segments are rendered at 25% opacity. Hovering any bar renders a tooltip showing the timestamp, error count, total event count, and error details for that bucket. Clicking selects the nearest error. When Focus Mode is active, non-focused error segments dim to 20% opacity.</p>
+  <p><strong>Error session strip:</strong> Stacked bars using the same 80-bucket system as the Timeline strip. Context (non-error) segments use the TC type color palette at 35% opacity — same orange for bridge, blue for network, purple for analytics. Error segments render at full opacity with a red (<span class="mono">T.error</span>) glow. This means the strip simultaneously shows where in the session errors occurred and what else was happening around them. Hovering any bar renders a tooltip showing the timestamp, error count, total event count, and error details for that bucket. Clicking selects the nearest error. When Focus Mode is active, non-focused error segments dim to 20% opacity.</p>
 </div>
 
 
@@ -422,7 +436,7 @@ ol.tech-list li strong{color:var(--text)}
 
 <h3 id="health-viz">Account Health Visualization</h3>
 <div class="card">
-  <p>Per-account health tile with chain-colored background derived from the chain registry color and a 3-letter ticker label. Tile opacity reflects account status: funded (full), empty (reduced), no sync data (amber border).</p>
+  <p>Per-account health tile with chain-colored background derived from the chain registry color. Each tile displays a brand icon loaded from CDN (<span class="mono">simplr-sh/coin-logos</span>, keyed by <span class="mono">COINGECKO_IDS</span>) with a 3-letter ticker label as fallback when no icon is available. Tile opacity reflects account status: funded (full), empty (reduced), no sync data (amber border).</p>
   <p><strong>Corner indicator system:</strong></p>
   <ul class="def-list">
     <li><strong>Red dot (top-right)</strong> — one or more errors are correlated to this account</li>
@@ -625,6 +639,27 @@ ol.tech-list li strong{color:var(--text)}
   </ul>
   <p>No cookies are set. No data is written to localStorage or sessionStorage. No analytics or telemetry of any kind. The tool can operate fully offline except for live balance fetching and fiat pricing — all other features function without network access.</p>
   <div class="tip">Log files may contain sensitive customer data including account addresses, device identifiers, and user IDs. Handle exported summaries and raw log data according to your organization's data handling and privacy policies.</div>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ ABOUT THIS TOOL ═══════════════ -->
+<h2 id="about">About This Tool</h2>
+
+<div class="card">
+  <p>The Ledger Diagnostic Toolkit is a single-file client-side web application (~6,600 lines of HTML, CSS, and JavaScript) that runs entirely in the browser with no build step, no server, and no installation. It opens as a local <span class="mono">file://</span> or from any static host.</p>
+  <p><strong>Architecture highlights:</strong></p>
+  <ul class="def-list">
+    <li><strong>Runtime</strong> — React 18.3.1 + Babel standalone 7.26.10 for JSX transpilation. No webpack, no npm, no dependencies to install. The HTML file is self-contained.</li>
+    <li><strong>Three-tier parser</strong> — structured JSON → recovery parser for malformed JSON → brace scanner for corrupted or partially-truncated files. Handles desktop and mobile Ledger Wallet log formats including the LLv4 (Ledger Wallet 4.0) format.</li>
+    <li><strong>82-pattern error knowledge base</strong> — <span class="mono">ERR_DB</span> with regex and substring matchers, severity classifications, agent action text, common causes, and direct support article links for 33 entries. Priority matching selects the highest-severity match; APDU subcode extraction escalates generic transport errors to specific rejection codes.</li>
+    <li><strong>60-chain registry</strong> — <span class="mono">CHAINS</span> constant with brand colors, ticker symbols, explorer URLs, and derivation metadata. Drives tile rendering, EVM grouping, address derivation, and on-chain verification across all sections.</li>
+    <li><strong>Live on-chain verification</strong> — 40+ chains fetched from public blockchain APIs (publicnode.com JSON-RPC for EVM, mempool.space, BlockCypher, chain-specific REST endpoints). USD pricing via CoinGecko batch fetch. No API keys required.</li>
+    <li><strong>Zero data transmission</strong> — all log parsing, analysis, and pattern matching runs client-side. Only account addresses leave the browser to query on-chain balances. No log content, error data, or user metadata is ever transmitted.</li>
+    <li><strong>Fixed viewport</strong> — <span class="mono">height:100vh, overflow:hidden</span>. The page never scrolls. Each section uses a fixed header zone + scrollable content panel. All features are accessible within one screen.</li>
+  </ul>
+  <div class="tip">For step-by-step investigation workflows, see Agent Guide → <a href="#quick-start" style="color:var(--primary)">Quick Start</a>.</div>
 </div>
 
 

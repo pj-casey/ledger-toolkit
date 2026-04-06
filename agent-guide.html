@@ -332,12 +332,12 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <h3 id="timeline-strip">Timeline: Session Strip &amp; Legend<span class="new-badge">New</span></h3>
 <div class="card">
-  <p>The <strong>Timeline</strong> header shows a stacked bar chart of the entire session. Bar height = event density. Bar color = event type, using the same colors as the type badges on every row. You read the session left to right: "gray startup, yellow sync burst, blue network calls, red errors at the end."</p>
+  <p>The <strong>Timeline</strong> header shows a stacked bar chart of the entire session. Bar height = event density. Bar color = event type, using the same colors as the type badges on every row. You read the session left to right: "gray startup, purple analytics, gold price fetching, orange sync burst, blue network calls, red errors at the end."</p>
   <p><strong>Legend chips</strong> below the strip show every event type with its color and count. Hover a chip to highlight matching segments — everything else dims. Click to filter the row list. Click again to clear. The type dropdown and chips share state.</p>
   <p><strong>Error dots</strong> sit on a baseline below the bars — click any dot to scroll to that error entry.</p>
   <p><strong>Smart grouping:</strong> Bursts of same-type events (40 bridge events during sync) collapse into expandable group headers. Toggle with the Grouped/Flat button. Errors never collapse.</p>
   <p><strong>Account filtering:</strong> When <strong>Focus Mode</strong> is active (Shift+click a tile, or use the Focus Investigation button), Timeline automatically filters to that account's events. A banner shows which account is focused with a "Show all" option to clear. You can also click the Timeline button on any account card for a quick filter.</p>
-  <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch yellow light up — next time you see yellow, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
+  <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch orange light up — next time you see orange, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
 </div>
 
 <h3 id="issues-interactive">Issues: Interactive Filters &amp; Breadcrumbs<span class="new-badge">New</span></h3>
@@ -352,7 +352,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <h3 id="account-tiles">Account Health Tiles<span class="new-badge">New</span></h3>
 <div class="card">
-  <p>At the top of <strong>Accounts</strong>, colored tiles give you a quick visual map. Each tile = one account, colored by chain, with a 3-letter ticker label.</p>
+  <p>At the top of <strong>Accounts</strong>, colored tiles give you a quick visual map. Each tile = one account, colored by chain, showing a chain icon or 3-letter ticker label as fallback.</p>
   <p><strong>Corner dots:</strong> Red (top-right) = errors for this account. Purple (bottom-right) = xpub/scannable. <strong>?</strong> = unsupported for live balance.</p>
   <p><strong>Hover</strong> any tile for a popover: chain name, address, live balance + fiat, status, error count, and xpub/explorer flags.</p>
   <p><strong>Click</strong> to filter the account list to that chain. <strong>Shift+click</strong> to activate <strong>Focus Mode</strong> — every section filters to that account, non-focused elements dim, and a Context Ribbon appears at the top of the content area.</p>
@@ -374,6 +374,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </p>
   <p><strong>What happens:</strong> A purple indicator appears in the sidebar showing which account is focused. The content area gets a colored left border matching the account's chain. A <strong>Context Ribbon</strong> appears at the top of the content area showing your investigation thread — click any segment to navigate (account → Accounts, error title → Issues, timestamp → Timeline). Every section filters to that account: Issues shows only related errors, Timeline shows only that account's events, and the sidebar account list highlights the focused row.</p>
   <p><strong>Adaptive Dimming:</strong> Everything not related to your focused account dims to 25% — tiles, account cards, sidebar rows, error strip segments, Overview error tiles. Your investigation path stays bright. The focused tile gently pulses so you always know which account you're looking at.</p>
+  <p><strong>EVM precision:</strong> For EVM chains sharing the same address (Ethereum + L2s like Polygon, Arbitrum, Base), focus is chain-specific. Focusing Ethereum shows only Ethereum activity — Polygon and Arbitrum stay dim even though they share the address.</p>
   <p><strong>How to clear:</strong> Click the <strong>✕</strong> on the sidebar focus indicator, press <kbd>Escape</kbd>, click ✕ on the Context Ribbon, or Shift+click the same tile again.</p>
   <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See Technical Reference → Account Focus System for implementation details.</em></div>
 </div>
@@ -462,7 +463,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts with live balances and fiat values, all errors, device apps. For escalation to Tier 2 or engineering.</p>
   <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Live balances, fiat values, and portfolio total. For describing what the wallet looks like. Available in the Overview action bar and as a button in Customer View.</p>
   <p><span class="badge badge-red">Copy Errors</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All four formats are in the <strong>📋 Copy report ▾</strong> button in the Overview action bar. Copy Errors is also available as a standalone button in the Issues section header. Each format is color-coded: <span style="color:#BBB0FF">purple</span> for summary/full, <span style="color:#7AC26C">green</span> for customer, <span style="color:#F57375">red</span> for errors.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All four formats are in the <strong>📋 Copy report ▾</strong> button in the Overview action bar. Copy Errors is also available as a standalone button in the Issues section header. Each format is color-coded: <span style="color:#BBB0FF">purple</span> for summary/full, <span style="color:#FF5300">orange</span> for customer, <span style="color:#E40046">red</span> for errors.</p>
 </div>
 
 
