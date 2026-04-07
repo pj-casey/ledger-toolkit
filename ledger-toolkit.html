@@ -58,9 +58,8 @@ button:active{transform:scale(0.98);}
 .cv-nav-item.cv-nav-active{background:rgba(255,255,255,0.06);color:#FFFFFF;}
 .cv-content{flex:1;overflow-y:auto;background:#1A1A1D;padding:0;}
 .cv-content-header{padding:24px 32px 16px;position:sticky;top:0;z-index:10;background:#1A1A1D;}
-.cv-acct-list-row{display:flex;align-items:center;gap:14px;padding:16px 32px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 150ms ease;}
+.cv-acct-list-row{cursor:pointer;transition:background 120ms;}
 .cv-acct-list-row:hover{background:rgba(255,255,255,0.03);}
-.cv-acct-list-row:last-child{border-bottom:none;}
 .cv-dm-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);margin-left:6px;vertical-align:middle;}
 .cv-mode-toggle{display:flex;align-items:stretch;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;overflow:hidden;gap:0;}
 .cv-mode-btn{padding:8px 20px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:0.03em;cursor:pointer;transition:background 150ms ease,color 150ms ease,box-shadow 150ms ease;position:relative;}
@@ -3039,7 +3038,7 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection,appJs
     </div>
     <div style={{padding:'0 32px'}}>
       <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:16}}>Asset allocation ({chainAlloc.length})</div>
-      <div style={{display:'grid',gridTemplateColumns:'2fr 1.2fr 0.8fr 1.5fr 1.5fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1.5fr 1.5fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
         {['Asset','Price','Allocation','Balance','Value'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
       </div>
       {chainAlloc.map(grp=>{
@@ -3047,7 +3046,7 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection,appJs
         const iconUrl=chainIconUrl(grp.cid);
         const acctCount=grp.accts.length;
         const allocPct=hasTotalFiat&&grp.hasFiat&&totalFiat>0?(grp.fiat/totalFiat*100):null;
-        return <div key={grp.cid} style={{display:'grid',gridTemplateColumns:'2fr 1.2fr 0.8fr 1.5fr 1.5fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
+        return <div key={grp.cid} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1.5fr 1.5fr 1fr',alignItems:'center',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'background 150ms ease'}}
           onClick={()=>{if(acctCount===1){setCvSection('accounts');onSelectAcct(grp.accts[0].i);}else{setCvSection('accounts');}}}
           onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'}
           onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
@@ -3061,7 +3060,10 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection,appJs
             </div>
           </div>
           <div style={{fontSize:12,color:'#8A8A8E',fontFamily:MF}}>{grp.rateInfo?cvFmtFiat(grp.rateInfo.rate,appJson)+'/'+(ch.ticker||'?'):'—'}</div>
-          <div style={{fontSize:12,color:allocPct!=null?'#FFFFFF':'#8A8A8E'}}>{allocPct!=null?allocPct.toFixed(1)+'%':'—'}</div>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:12,color:allocPct!=null?'#FFFFFF':'#8A8A8E',flexShrink:0,minWidth:36}}>{allocPct!=null?allocPct.toFixed(1)+'%':'—'}</span>
+            {allocPct!=null&&<div style={{flex:1,height:4,borderRadius:2,background:'rgba(255,255,255,0.08)',overflow:'hidden',minWidth:32,maxWidth:80}}><div style={{width:allocPct+'%',height:'100%',borderRadius:2,background:ch.color||'#BBB0FF'}}/></div>}
+          </div>
           <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF}}>{grp.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}</div>
           <div style={{fontSize:13,color:grp.hasFiat?'#FFFFFF':'#8A8A8E'}}>{grp.hasFiat?cvFmtFiat(grp.fiat,appJson):'—'}</div>
         </div>;
@@ -4397,33 +4399,43 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                 const tokExpKey=originalIdx;
                 const tokExpanded=expandedTokens[tokExpKey];
                 return <React.Fragment key={i}>
-                <div className="cv-acct-list-row" onClick={()=>setSelectedAcct(originalIdx)}>
+                <div className="cv-acct-list-row" onClick={()=>setSelectedAcct(originalIdx)}
+                  style={{display:'grid',gridTemplateColumns:'52px 1fr auto auto auto auto',alignItems:'center',gap:0,padding:'12px 16px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                  {/* Icon */}
                   <div style={{width:40,height:40,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
                     {iconUrl?<img src={iconUrl} alt={ch.ticker} style={{width:24,height:24,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:12,fontWeight:700,color:'#fff'}}>{(ch.ticker||'?').slice(0,3)}</span>}
                   </div>
-                  <div style={{flex:1,minWidth:0}}>
+                  {/* Chain + Name + tokens link */}
+                  <div style={{minWidth:0,paddingRight:16}}>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
                       <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{ch.name}</span>
+                      {a.dm&&<span className="cv-dm-badge">{a.dm}</span>}
                       {funded&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4FC46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
-                      <span style={{fontSize:14,fontWeight:500,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}</span>
-                      {a.ajStarred&&<span style={{color:'#FFB800',fontSize:12}}>★</span>}
-                      {a.dm&&<span className="cv-dm-badge">{a.dm}</span>}
-                    </div>
+                    <div style={{fontSize:14,fontWeight:500,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:1}}>{a.displayName}</div>
                     {subs.length>0&&<div style={{fontSize:11,color:'rgba(187,176,255,0.6)',marginTop:2,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3}}
                       onClick={e=>{e.stopPropagation();setExpandedTokens(prev=>({...prev,[tokExpKey]:!prev[tokExpKey]}));}}>
-                      <span>{tokExpanded?'▴':'▾'} {subs.length} token{subs.length!==1?'s':''}</span>
+                      <span>Show tokens ({subs.length}) {tokExpanded?'▴':'▾'}</span>
                     </div>}
                   </div>
-                  <div style={{textAlign:'right',flexShrink:0}}>
-                    {cvFirst&&fiatStr
-                      ?<><div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{fiatStr}</div>{bal&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{bal}</div>}</>
-                      :<><div style={{fontSize:14,fontWeight:500,color:bal?'#FFFFFF':'#8A8A8E'}}>{bal||'—'}</div>{fiatStr?<div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{fiatStr}</div>:<div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{enriched&&a.ajOps!=null?a.ajOps+' ops':'—'}</div>}</>}
-                    {enriched&&a.ajBlockHeight!=null&&<div style={{fontSize:10,color:'rgba(255,255,255,0.2)',marginTop:2,fontFamily:MF}}>block {Number(a.ajBlockHeight).toLocaleString()}</div>}
+                  {/* Crypto balance */}
+                  <div style={{textAlign:'right',paddingRight:16,minWidth:100}}>
+                    <span style={{fontSize:14,fontWeight:500,color:bal?'#FFFFFF':'#8A8A8E',fontFamily:MF}}>{bal||'—'}</span>
+                  </div>
+                  {/* Fiat value */}
+                  <div style={{textAlign:'right',paddingRight:16,minWidth:70}}>
+                    <span style={{fontSize:14,color:fiatStr?'#FFFFFF':'#8A8A8E'}}>{fiatStr||'—'}</span>
+                  </div>
+                  {/* Change % */}
+                  <div style={{textAlign:'right',paddingRight:12,minWidth:50}}>
+                    <span style={{fontSize:12,color:'#8A8A8E'}}>—</span>
+                  </div>
+                  {/* Star */}
+                  <div style={{textAlign:'center',width:24}}>
+                    <span style={{fontSize:14,color:a.ajStarred?'#FFB800':'rgba(255,255,255,0.12)'}}>{a.ajStarred?'★':'☆'}</span>
                   </div>
                 </div>
-                {tokExpanded&&subs.length>0&&<div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'4px 16px 8px 72px'}}>
+                {tokExpanded&&subs.length>0&&<div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'4px 16px 8px 68px'}}>
                   {subs.map((s,si)=>{
                     const rawName=(s.tokenId||s.id||'').split('/').pop()||'?';
                     const tName=rawName.replace(/__/g,' ').replace(/_/g,' ');
@@ -4592,8 +4604,10 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
               const renderOp=({op,oi})=>{
                 const opType=(op.type||'').toUpperCase();
                 const ds=txDirStyle(opType);
-                const amtColor=opType==='IN'?'#4FC46B':opType==='OUT'?'#EA4335':T.text;
-                const counterparty=opType==='IN'?(op.senders||[])[0]:(op.recipients||[])[0];
+                const isIn=opType==='IN'||opType==='REWARD'||opType==='CLAIM_REWARD'||opType==='NFT_IN';
+                const amtColor=isIn?'#4FC46B':opType==='OUT'||opType==='FEES'?'#EA4335':'#FFFFFF';
+                const sign=isIn?'+':opType==='OUT'||opType==='FEES'?'-':'';
+                const counterparty=isIn?(op.senders||[])[0]:(op.recipients||[])[0];
                 const txUrl=op.hash&&TX_EXPLORERS[acct.cid]?TX_EXPLORERS[acct.cid](op.hash):null;
                 const isFailed=op.hasFailed||op.extra?.failed||(opType.includes('FAILED'));
                 const opDateStr=op.date?op.date.slice(0,10):null;
@@ -4601,24 +4615,28 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                 const opDec=DECIMALS[acct.cid]||18;
                 const opHuman=op.value!=null?parseFloat(op.value)/Math.pow(10,opDec):null;
                 const opFiat=opHuman!=null&&opRate!=null?opHuman*opRate:null;
-                const opFiatStr=cvFmtFiat(opFiat,appJson);
+                const opFiatStr=opFiat!=null?sign+cvFmtFiat(opFiat,appJson):null;
                 const opLabel=OP_LABELS[opType]||opType;
-                return <div key={oi} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isFailed?'rgba(234,67,53,0.05)':'transparent',paddingLeft:isFailed?10:0,borderLeft:isFailed?'2px solid rgba(234,67,53,0.4)':'2px solid transparent'}}>
-                  <div style={{width:28,height:28,borderRadius:'50%',background:ds.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                const opTime=op.date?fmtTime(op.date).slice(0,5):'';
+                const amtStr=opHuman!=null?sign+opHuman.toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:null;
+                return <div key={oi} style={{display:'grid',gridTemplateColumns:'40px 1fr auto',alignItems:'start',gap:8,padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isFailed?'rgba(234,67,53,0.03)':'transparent',borderLeft:isFailed?'2px solid rgba(234,67,53,0.4)':'2px solid transparent',paddingLeft:isFailed?8:0}}>
+                  <div style={{width:32,height:32,borderRadius:'50%',background:ds.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:2}}>
                     <span style={{fontSize:13,fontWeight:700,color:ds.color}}>{ds.arrow}</span>
                   </div>
-                  <div style={{flex:1,minWidth:0}}>
+                  <div style={{minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <span style={{fontSize:13,fontWeight:500,color:amtColor}}>{fmtBal(op.value,acct.cid,ch.ticker)||'—'}</span>
-                      {opFiatStr&&<span style={{fontSize:11,color:'#8A8A8E'}}>≈ {opFiatStr}</span>}
+                      <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF'}}>{opLabel}</span>
                       {isFailed&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(234,67,53,0.2)',color:'#EA4335',fontWeight:700}}>FAILED</span>}
                     </div>
-                    <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{opLabel} · {fmtTime(op.date)}{op.fee&&fmtBal(op.fee,acct.cid,null)?` · Fee: ${fmtBal(op.fee,acct.cid,null)}`:''}</div>
+                    <div style={{fontSize:11,color:'#8A8A8E',marginTop:2}}>{opTime}{op.fee&&fmtBal(op.fee,acct.cid,null)?' · Fee: '+fmtBal(op.fee,acct.cid,null):''}</div>
+                    {counterparty&&<div style={{fontSize:11,color:'#8A8A8E',fontFamily:MF,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:300}}>
+                      {txUrl?<a href={txUrl} target="_blank" rel="noopener noreferrer" style={{color:'#8A8A8E',textDecoration:'none'}}>{trunc(counterparty,32)}</a>:<CVCopyText text={trunc(counterparty,32)} full={counterparty} mono={true}/>}
+                    </div>}
                   </div>
-                  {counterparty&&<div style={{minWidth:0,maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(counterparty,16)} full={counterparty} mono={true}/></div>}
-                  <div style={{flexShrink:0}}>
-                    {txUrl?<a href={txUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:T.primary,fontFamily:MF,textDecoration:'none'}}>{trunc(op.hash,10)}</a>
-                    :op.hash?<span style={{fontSize:11,color:'#8A8A8E',fontFamily:MF}}><CVCopyText text={trunc(op.hash,10)} full={op.hash} mono={true}/></span>:null}
+                  <div style={{textAlign:'right',flexShrink:0,minWidth:120}}>
+                    {amtStr&&<div style={{fontSize:13,fontWeight:600,color:amtColor,fontFamily:MF}}>{amtStr}</div>}
+                    {opFiatStr&&<div style={{fontSize:11,color:amtColor==='#4FC46B'?'rgba(79,196,107,0.6)':amtColor==='#EA4335'?'rgba(234,67,53,0.6)':'#8A8A8E',marginTop:1}}>{opFiatStr}</div>}
+                    {!amtStr&&<div style={{fontSize:12,color:'#8A8A8E'}}>—</div>}
                   </div>
                 </div>;
               };
