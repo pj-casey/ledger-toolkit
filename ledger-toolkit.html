@@ -3567,6 +3567,41 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{fontSize:11,padding:'4px 10px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:copiedId===f.id?'#4FC46B':'#8A8A8E',cursor:'pointer'}}>{copiedId===f.id?'✓ Copied':'Copy'}</button>
         </div>
       </div>
+      {f.kind==='account'&&f.custBal&&(()=>{
+        const custNum=parseFloat(f.custBal)||0;
+        const liveNum=parseFloat(f.liveBal)||0;
+        const maxVal=Math.max(custNum,liveNum,0.000001);
+        const custPct=Math.min((custNum/maxVal)*100,100);
+        const livePct=Math.min((liveNum/maxVal)*100,100);
+        if(maxVal===0.000001&&custNum===0&&liveNum===0)return null;
+        const chainGrad=f.severity==='red'?'linear-gradient(90deg,rgba(234,67,53,0.4),rgba(234,67,53,0.7))':f.severity==='amber'?'linear-gradient(90deg,rgba(255,189,66,0.4),rgba(255,189,66,0.6))':'linear-gradient(90deg,rgba(79,196,107,0.4),rgba(79,196,107,0.6))';
+        return <div style={{marginBottom:14,padding:'12px 16px',background:'rgba(0,0,0,0.15)',borderRadius:8}}>
+          <div style={{marginBottom:10}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>Customer sees</span>
+              <span style={{fontSize:11,color:'#FFFFFF',fontFamily:MF}}>{f.custBal}</span>
+            </div>
+            <div style={{height:20,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
+              <div style={{height:'100%',width:custPct+'%',background:'linear-gradient(90deg,rgba(187,176,255,0.4),rgba(187,176,255,0.6))',borderRadius:4,transition:'width 400ms ease',minWidth:custNum>0?2:0}}/>
+            </div>
+            {f.custFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2,textAlign:'right'}}>{f.custFiat}</div>}
+          </div>
+          <div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>On-chain</span>
+              <span style={{fontSize:11,color:'#FFFFFF',fontFamily:MF}}>{f.liveBal||'—'}</span>
+            </div>
+            <div style={{height:20,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
+              <div style={{height:'100%',width:livePct+'%',background:chainGrad,borderRadius:4,transition:'width 400ms ease',minWidth:liveNum>0?2:0}}/>
+            </div>
+            {f.liveFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2,textAlign:'right'}}>{f.liveFiat}</div>}
+          </div>
+          {f.severity!=='green'&&custNum>0&&liveNum>0&&<div style={{marginTop:8,padding:'4px 0',borderTop:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:10,color:f.severity==='red'?'#EA4335':T.warning,fontWeight:600}}>Δ {f.delta}</span>
+            {f.deltaFiat&&<span style={{fontSize:10,color:'#8A8A8E'}}>{f.deltaFiat}</span>}
+          </div>}
+        </div>;
+      })()}
       {f.kind==='account'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(0,0,0,0.2)',borderRadius:6,overflow:'hidden',marginBottom:14}}>
         {[['Customer sees',f.custBal,f.custFiat,null],['On-chain',f.liveBal,f.liveFiat,null],['Delta',f.delta,f.deltaFiat,f.severity==='green'?'#4FC46B':f.delta&&f.delta!=='0'?'#EA4335':'#8A8A8E']].map(([label,main,sub,col],ci)=>(
           <div key={ci} style={{padding:'10px 12px',borderRight:ci<2?'1px solid rgba(255,255,255,0.05)':'none'}}>
@@ -3620,12 +3655,38 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     </div>
     {/* Row 2 — Stat cards */}
     <div style={{flexShrink:0,display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,padding:'10px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
-        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Portfolio</div>
-        <div style={{fontSize:14,fontWeight:700,color:'#FFFFFF',marginBottom:2}}>{customerTotal>0?fmtFiat(customerTotal):'—'}</div>
-        {portfolioDelta!==0&&customerTotal>0
-          ?<div style={{fontSize:10,color:portfolioDelta>0.01?'#4FC46B':portfolioDelta<-0.01?'#EA4335':'#8A8A8E'}}>{portfolioDelta>=0?'+':''}{fmtFiat(Math.abs(portfolioDelta))} on-chain</div>
-          :<div style={{fontSize:10,color:'#8A8A8E'}}>{totalAcctCount} account{totalAcctCount!==1?'s':''}</div>}
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:6,padding:'8px 12px',display:'flex',alignItems:'center',gap:10}}>
+        {(()=>{
+          const total=Math.max(customerTotal,onchainTotal,0.01);
+          const custAngle=Math.min((customerTotal/total)*360,360);
+          const chainAngle=Math.min((onchainTotal/total)*360,360);
+          const r=18,cx=22,cy=22,sw=6;
+          const arc=(startDeg,endDeg,color)=>{
+            if(endDeg-startDeg<0.5)return null;
+            const startRad=(startDeg-90)*Math.PI/180;
+            const endRad=(endDeg-90)*Math.PI/180;
+            const x1=cx+r*Math.cos(startRad),y1=cy+r*Math.sin(startRad);
+            const x2=cx+r*Math.cos(endRad),y2=cy+r*Math.sin(endRad);
+            const largeArc=endDeg-startDeg>180?1:0;
+            return <path d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`} stroke={color} strokeWidth={sw} fill="none" strokeLinecap="round"/>;
+          };
+          const match=customerTotal>0&&onchainTotal>0&&Math.abs(portfolioDelta)/customerTotal<0.05;
+          const chainColor=match?'rgba(79,196,107,0.6)':portfolioDelta<0?'rgba(234,67,53,0.6)':'rgba(79,196,107,0.6)';
+          return <svg width="44" height="44" viewBox="0 0 44 44" style={{flexShrink:0}}>
+            <circle cx={cx} cy={cy} r={r} stroke="rgba(255,255,255,0.06)" strokeWidth={sw} fill="none"/>
+            {customerTotal>0&&arc(0,custAngle,'rgba(187,176,255,0.6)')}
+            {onchainTotal>0&&arc(0,chainAngle,chainColor)}
+            {!match&&customerTotal>0&&onchainTotal>0&&<text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle" style={{fontSize:8,fill:'#EA4335',fontWeight:700,fontFamily:'sans-serif'}}>Δ</text>}
+            {match&&<text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle" style={{fontSize:9,fill:'#4FC46B',fontWeight:700,fontFamily:'sans-serif'}}>✓</text>}
+          </svg>;
+        })()}
+        <div>
+          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:2}}>Portfolio</div>
+          <div style={{fontSize:13,fontWeight:700,color:'#FFFFFF',fontFamily:MF}}>{customerTotal>0?fmtFiat(customerTotal):'—'}</div>
+          <div style={{fontSize:10,color:portfolioDelta<-0.01?'#EA4335':portfolioDelta>0.01?'#4FC46B':'#8A8A8E'}}>
+            {onchainTotal>0?(portfolioDelta>=0?'▲ ':'▼ ')+fmtFiat(Math.abs(portfolioDelta))+' on-chain':totalAcctCount+' acct'+(totalAcctCount!==1?'s':'')}
+          </div>
+        </div>
       </div>
       <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
         <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Device</div>
@@ -3643,6 +3704,38 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         <div style={{fontSize:10,color:appVersionCheck?.outdated?T.warning:'#8A8A8E'}}>{hasAppJson?'app.json loaded':'no app.json'}{ajSettings.developerMode?' · dev mode':''}</div>
       </div>
     </div>
+    {/* Row 2.5 — Health dots */}
+    {(()=>{
+      const accts=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null);
+      if(accts.length===0)return null;
+      const matches=accts.filter(a=>{const lb=liveBalances[a.id];const dec=DECIMALS[a.cid]||18;const c=parseFloat(a.ajBalance)/Math.pow(10,dec);const l=lb?.bal;return c!=null&&l!=null&&(c===0||Math.abs(l-c)/c*100<=0.01);}).length;
+      return <div style={{flexShrink:0,padding:'6px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',alignItems:'center',gap:6}}>
+        <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',fontWeight:600,fontFamily:MF,marginRight:2}}>Accounts</span>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap',flex:1}}>
+          {accts.map((a,i)=>{
+            const lbEntry=liveBalances[a.id];
+            const dec=DECIMALS[a.cid]||18;
+            const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
+            const live=lbEntry?.bal!=null?lbEntry.bal:null;
+            const hasBoth=cust!=null&&live!=null;
+            const pct=hasBoth&&cust>0?Math.abs(live-cust)/cust*100:0;
+            const isMismatch=hasBoth&&pct>0.01;
+            const hasPending=(a.ajPendingOps||[]).length>0;
+            const hasFailedOps=(a.ajOperations||[]).some(op=>op.hasFailed||op.status==='failed');
+            const dotColor=isMismatch?'#EA4335':hasPending||hasFailedOps?T.warning:hasBoth?'#4FC46B':lbEntry?.status==='loading'?'#8A8A8E':'rgba(255,255,255,0.15)';
+            const findingId=`acct-${a.id}`;
+            const isSel=selectedId===findingId;
+            const status=isMismatch?'mismatch':hasPending?'pending':hasFailedOps?'failed ops':hasBoth?'match':'no data';
+            return <div key={i}
+              title={`${a.displayName}: ${status}`}
+              onClick={()=>{const f=displayFindings.find(f=>f.id===findingId);if(f)setSelectedId(findingId);}}
+              style={{width:isSel?10:7,height:isSel?10:7,borderRadius:'50%',background:dotColor,cursor:'pointer',transition:'all 120ms',outline:isSel?`2px solid ${dotColor}`:'none',outlineOffset:1,opacity:isSel?1:0.8,flexShrink:0}}
+            />;
+          })}
+        </div>
+        <span style={{fontSize:9,color:'#8A8A8E',fontFamily:MF,flexShrink:0}}>{matches}/{accts.length} ✓</span>
+      </div>;
+    })()}
     {!hasAppJson&&<div style={{flexShrink:0,margin:'6px 20px 0',padding:'6px 12px',borderRadius:5,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:11,color:T.warning}}>
       <strong>Limited:</strong> Load customer's app.json to enable balance comparison.
     </div>}
