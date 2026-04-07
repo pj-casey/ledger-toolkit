@@ -3326,6 +3326,255 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
   </div>;
 }
 
+/* ─── CVEarn ─────────────────────────────────────────────────────────────── */
+const STAKING_APY={
+  solana:{min:5,max:7,label:'~5-7%'},cosmos:{min:15,max:20,label:'~15-20%'},
+  polkadot:{min:10,max:12,label:'~10-12%'},tezos:{min:4,max:6,label:'~5%'},
+  tron:{min:3,max:5,label:'~3-5%'},near:{min:8,max:12,label:'~8-12%'},
+  cardano:{min:3,max:5,label:'~3-5%'},algorand:{min:5,max:7,label:'~5-7%'},
+  ethereum:{min:3,max:4,label:'~3-3.5%'},
+};
+const STAKING_TYPE={
+  solana:'Delegation',cosmos:'Delegation',polkadot:'Nomination',
+  tezos:'Baking (delegation)',tron:'Freeze + Vote',near:'Staking',
+  cardano:'Delegation',algorand:'Governance',ethereum:'Liquid/Pooled',
+};
+const LST_PATTERNS=[
+  {match:'steth',name:'Lido Staked ETH',ticker:'stETH',provider:'Lido'},
+  {match:'coinbase_wrapped_staked_eth',name:'Coinbase Staked ETH',ticker:'cbETH',provider:'Coinbase'},
+  {match:'jupiter_staked_sol',name:'Jupiter Staked SOL',ticker:'JupSOL',provider:'Jupiter'},
+  {match:'lombard_staked_bitcoin',name:'Lombard Staked BTC',ticker:'LBTC',provider:'Lombard'},
+  {match:'lc_staked_shared_eth',name:'Liquid Collective Staked ETH',ticker:'LsETH',provider:'Liquid Collective'},
+  {match:'aave_ethereum_lido_weth',name:'Aave Lido WETH',ticker:'aWETH',provider:'Aave/Lido'},
+  {match:'reth',name:'Rocket Pool ETH',ticker:'rETH',provider:'Rocket Pool'},
+  {match:'staked_matic',name:'Staked MATIC',ticker:'stMATIC',provider:'Lido'},
+];
+const EARN_OP_LABELS={DELEGATE:'Delegated',UNDELEGATE:'Undelegated',STAKE:'Staked',UNSTAKE:'Unstaked',FREEZE:'Frozen',VOTE:'Voted',BOND:'Bonded',UNBOND:'Unbonded',NOMINATE:'Nominated',WITHDRAW_UNBONDED:'Withdrawn',WITHDRAW_UNSTAKED:'Withdrawn',REWARD:'Reward',CLAIM_REWARD:'Claimed reward'};
+
+function CVEarn({enrichedAccts,appJson,onSelectAcct}){
+  const[expandedAcct,setExpandedAcct]=useState(null);
+  const[earnTab,setEarnTab]=useState('rewards');
+
+  const positions=React.useMemo(()=>{
+    const pos=[];
+    (enrichedAccts||[]).forEach((a,idx)=>{
+      if(!a.enriched||!a.ajBalance)return;
+      const dec=DECIMALS[a.cid]||18;
+      const total=parseFloat(a.ajBalance)/Math.pow(10,dec);
+      const spendable=a.ajSpendable!=null?parseFloat(a.ajSpendable)/Math.pow(10,dec):total;
+      const staked=total-spendable;
+      if(Math.abs(staked)<0.000001)return;
+      const ticker=a.ch.ticker;
+      const fiatVal=cvFiatValue(appJson,a.cid,a.ajBalance);
+      const stakedFiat=fiatVal!=null?(staked/total)*fiatVal:null;
+      const apy=STAKING_APY[a.cid]||null;
+      const stakingType=STAKING_TYPE[a.cid]||'Staking';
+      const ops=(a.ajOperations||[]).filter(op=>['DELEGATE','UNDELEGATE','STAKE','UNSTAKE','FREEZE','VOTE','BOND','UNBOND','NOMINATE','WITHDRAW_UNBONDED','WITHDRAW_UNSTAKED','REWARD','CLAIM_REWARD'].includes((op.type||'').toUpperCase())).map(op=>({...op,type:(op.type||'').toUpperCase()}));
+      const rewardOps=ops.filter(op=>op.type==='REWARD'||op.type==='CLAIM_REWARD');
+      const totalReward=rewardOps.reduce((s,op)=>s+parseFloat(op.value||0),0)/Math.pow(10,dec);
+      const rewardFiat=totalReward>0&&fiatVal!=null&&total>0?totalReward*(fiatVal/total):null;
+      const validators=[];
+      const seen=new Set();
+      ops.forEach(op=>{
+        if(['DELEGATE','STAKE','NOMINATE'].includes(op.type)){
+          (op.recipients||[]).forEach(r=>{if(r&&!seen.has(r)){seen.add(r);validators.push(r);}});
+          const sa=op.extra?.stake?.address;
+          if(sa&&!seen.has(sa)){seen.add(sa);validators.push(sa);}
+        }
+        if(op.type==='VOTE'&&op.extra?.votes){
+          op.extra.votes.forEach(v=>{if(v.address&&!seen.has(v.address)){seen.add(v.address);validators.push(v.address);}});
+        }
+      });
+      const stakeDates=ops.filter(op=>['DELEGATE','STAKE','FREEZE','BOND'].includes(op.type)).map(op=>op.date).filter(Boolean).sort();
+      const sinceDate=stakeDates.length>0?stakeDates[0].slice(0,10):null;
+      pos.push({idx,id:a.id,displayName:a.displayName,cid:a.cid,ch:a.ch,ticker,total,spendable,staked,stakedFiat,apy,stakingType,rewardOps,totalReward,rewardFiat,validators:validators.slice(0,5),sinceDate,ops:ops.slice(0,20)});
+    });
+    return pos;
+  },[enrichedAccts,appJson]);
+
+  const lstPositions=React.useMemo(()=>{
+    const lst=[];
+    (enrichedAccts||[]).forEach((a,idx)=>{
+      if(!a.enriched)return;
+      (a.ajSubAccounts||[]).forEach(sub=>{
+        const tid=(sub.tokenId||sub.id||'').toLowerCase();
+        const bal=sub.balance||'0';
+        if(bal==='0'||bal===0)return;
+        const matched=LST_PATTERNS.find(p=>tid.includes(p.match));
+        if(!matched)return;
+        const tDec=getTokenDecimals(sub.tokenId||'',a.cid);
+        const tHuman=parseFloat(bal)/Math.pow(10,tDec);
+        if(tHuman<0.000001)return;
+        const tFiat=cvTokenFiatValue(appJson,sub.tokenId||'',bal,a.cid);
+        lst.push({parentName:a.displayName,parentIdx:idx,parentCid:a.cid,parentCh:a.ch,...matched,balance:tHuman,fiat:tFiat});
+      });
+    });
+    return lst;
+  },[enrichedAccts,appJson]);
+
+  const totalStakedFiat=positions.reduce((s,p)=>s+(p.stakedFiat||0),0);
+  const totalRewardFiat=positions.reduce((s,p)=>s+(p.rewardFiat||0),0);
+  const lstTotalFiat=lstPositions.reduce((s,l)=>s+(l.fiat||0),0);
+  const chainCount=[...new Set(positions.map(p=>p.cid))].length;
+  const hasPositions=positions.length>0||lstPositions.length>0;
+
+  if(!hasPositions)return <div style={{padding:'60px 32px',textAlign:'center'}}>
+    <div style={{fontSize:32,marginBottom:16,opacity:0.3}}>🥩</div>
+    <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:8}}>No staking positions found</div>
+    <div style={{fontSize:13,color:'#8A8A8E',maxWidth:400,margin:'0 auto',lineHeight:1.6}}>
+      This customer hasn't staked any assets, or the staking data isn't available in the app.json export.
+      <br/><br/>
+      Staking is available for SOL, ATOM, DOT, XTZ, TRX, NEAR, ADA, and ALGO directly in Ledger Wallet. ETH liquid staking is available via Lido, Kiln, and Coinbase.
+    </div>
+  </div>;
+
+  return <div>
+    {/* Tab bar */}
+    <div style={{padding:'0 32px',borderBottom:'2px solid rgba(255,255,255,0.06)',display:'flex'}}>
+      {['rewards','opportunities'].map(t=><div key={t} onClick={()=>setEarnTab(t)} style={{padding:'14px 24px',fontSize:14,fontWeight:600,cursor:'pointer',borderBottom:earnTab===t?'2px solid #FFFFFF':'2px solid transparent',marginBottom:-2,color:earnTab===t?'#FFFFFF':'#8A8A8E',transition:'color 150ms'}}>
+        {t==='rewards'?'My rewards':'Earn opportunities'}
+      </div>)}
+    </div>
+
+    {earnTab==='rewards'&&<div style={{padding:'0 32px'}}>
+      {/* Summary cards */}
+      <div style={{display:'flex',gap:16,marginTop:20,marginBottom:24}}>
+        <div style={{flex:1,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'16px 20px'}}>
+          <div style={{height:20,borderRadius:4,display:'flex',overflow:'hidden',marginBottom:12}}>
+            {(()=>{
+              const chains=[...new Set(positions.map(p=>p.cid))];
+              const tot=positions.reduce((s,p)=>s+(p.stakedFiat||0),0)||1;
+              return chains.map(cid=>{
+                const cf=positions.filter(p=>p.cid===cid).reduce((s,p)=>s+(p.stakedFiat||0),0);
+                const ch=positions.find(p=>p.cid===cid)?.ch;
+                return <div key={cid} style={{height:'100%',width:(cf/tot*100)+'%',minWidth:2,background:(ch?.color||'#666')+'CC'}} title={`${ch?.name||cid}: ${cvFmtFiat(cf,appJson)||''}`}/>;
+              });
+            })()}
+          </div>
+          <div style={{fontSize:13,color:'#8A8A8E',marginBottom:4}}>Total deposited</div>
+          <div style={{fontSize:28,fontWeight:700,color:'#FFFFFF'}}>{totalStakedFiat>0?cvFmtFiat(totalStakedFiat,appJson):positions.length+' positions'}</div>
+          <div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{positions.length} asset{positions.length!==1?'s':''} · {chainCount} chain{chainCount!==1?'s':''}</div>
+        </div>
+        <div style={{flex:1,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'16px 20px'}}>
+          <div style={{fontSize:13,color:'#8A8A8E',marginBottom:4}}>Total rewards</div>
+          <div style={{fontSize:28,fontWeight:700,color:'#4FC46B'}}>{totalRewardFiat>0?'+'+cvFmtFiat(totalRewardFiat,appJson):positions.some(p=>p.totalReward>0)?positions.filter(p=>p.totalReward>0).map(p=>'+'+p.totalReward.toFixed(4)+' '+p.ticker).join(', '):'No reward data'}</div>
+          <div style={{fontSize:12,color:'#8A8A8E',marginTop:2}}>{(()=>{const earliest=positions.map(p=>p.sinceDate).filter(Boolean).sort();return earliest.length>0?'Since '+earliest[0]:'Reward operations not available for all chains';})()}</div>
+          <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginTop:6}}>Note: Many chains auto-compound rewards without discrete reward operations. Actual rewards may be higher than shown.</div>
+        </div>
+      </div>
+
+      {/* Deposited assets table */}
+      <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:12}}>Deposited assets</div>
+      <div style={{display:'grid',gridTemplateColumns:'2.5fr 1.5fr 1fr 1.5fr',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:MF}}>
+        <span>Account</span><span>Invested</span><span title="Estimated APY — varies by validator and conditions">Rate ⓘ</span><span title="Rewards from staking operations recorded in app.json">Rewards ⓘ</span>
+      </div>
+      {positions.map(p=>{
+        const iconUrl=chainIconUrl(p.cid);
+        const isExpanded=expandedAcct===p.id;
+        return <React.Fragment key={p.id}>
+          <div onClick={()=>setExpandedAcct(isExpanded?null:p.id)}
+            style={{display:'grid',gridTemplateColumns:'2.5fr 1.5fr 1fr 1.5fr',padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',cursor:'pointer',alignItems:'center',background:'transparent',transition:'background 120ms'}}
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.02)'}
+            onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:36,height:36,borderRadius:'50%',background:p.ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                {iconUrl?<img src={iconUrl} alt={p.ticker} style={{width:22,height:22,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:11,fontWeight:700,color:'#fff'}}>{p.ticker.slice(0,3)}</span>}
+              </div>
+              <div>
+                <div style={{fontSize:14,fontWeight:500,color:'#FFFFFF'}}>{p.displayName}</div>
+                <div style={{fontSize:11,color:'#8A8A8E'}}>{p.ticker} · {p.stakingType}</div>
+              </div>
+            </div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',fontFamily:MF}}>{p.staked.toLocaleString(undefined,{maximumFractionDigits:4})} {p.ticker}</div>
+              {p.stakedFiat!=null&&<div style={{fontSize:11,color:'#8A8A8E'}}>{cvFmtFiat(p.stakedFiat,appJson)}</div>}
+            </div>
+            <div>
+              <div style={{fontSize:13,color:p.apy?'#4FC46B':'#8A8A8E'}}>{p.apy?p.apy.label:'—'}</div>
+              {p.apy&&<div style={{fontSize:9,color:'#8A8A8E'}}>APY est.</div>}
+            </div>
+            <div>
+              {p.totalReward>0?<>
+                <div style={{fontSize:13,fontWeight:600,color:'#4FC46B',fontFamily:MF}}>{p.totalReward.toLocaleString(undefined,{maximumFractionDigits:6})} {p.ticker}</div>
+                {p.rewardFiat!=null&&<div style={{fontSize:11,color:'#8A8A8E'}}>{cvFmtFiat(p.rewardFiat,appJson)}</div>}
+              </>:<div style={{fontSize:13,color:'#8A8A8E'}}>—</div>}
+            </div>
+          </div>
+          {isExpanded&&<div style={{padding:'12px 0 16px 46px',borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(255,255,255,0.01)'}}>
+            {p.validators.length>0&&<div style={{marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Validator{p.validators.length>1?'s':''}</div>
+              {p.validators.map((v,i)=>{
+                const isReadable=v.includes('.')&&!v.startsWith('0x')&&v.length<60;
+                return <div key={i} style={{fontSize:12,color:'#FFFFFF',padding:'3px 0',fontFamily:isReadable?'inherit':MF,display:'flex',alignItems:'center',gap:6}}>
+                  {isReadable?v:<CVCopyText text={trunc(v,28)} full={v} mono={true}/>}
+                  {(v.includes('figment')||v.includes('ledger'))&&<span style={{fontSize:9,color:'#BBB0FF',padding:'1px 5px',borderRadius:3,background:'rgba(187,176,255,0.1)'}}>Ledger</span>}
+                </div>;
+              })}
+            </div>}
+            <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:10}}>
+              <div style={{fontSize:11,color:'#8A8A8E'}}>Total: <span style={{color:'#FFFFFF',fontFamily:MF}}>{p.total.toLocaleString(undefined,{maximumFractionDigits:6})} {p.ticker}</span></div>
+              <div style={{fontSize:11,color:'#8A8A8E'}}>Available: <span style={{color:'#4FC46B',fontFamily:MF}}>{p.spendable.toLocaleString(undefined,{maximumFractionDigits:6})} {p.ticker}</span></div>
+              {p.sinceDate&&<div style={{fontSize:11,color:'#8A8A8E'}}>Since: <span style={{color:'#FFFFFF'}}>{p.sinceDate}</span></div>}
+            </div>
+            {p.ops.length>0&&<div style={{marginBottom:8}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Recent activity ({p.ops.length})</div>
+              {p.ops.slice(0,8).map((op,i)=>{
+                const opLabel=EARN_OP_LABELS[op.type]||op.type;
+                const val=parseFloat(op.value||0)/Math.pow(10,DECIMALS[p.cid]||18);
+                const isReward=op.type==='REWARD'||op.type==='CLAIM_REWARD';
+                const isUnstake=['UNDELEGATE','UNSTAKE','WITHDRAW_UNBONDED','WITHDRAW_UNSTAKED','UNBOND'].includes(op.type);
+                return <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0',fontSize:11}}>
+                  <span style={{color:isReward?'#4FC46B':isUnstake?T.warning:'#8A8A8E',fontWeight:600,minWidth:80}}>{opLabel}</span>
+                  {val>0.000001&&<span style={{color:'#FFFFFF',fontFamily:MF}}>{val.toLocaleString(undefined,{maximumFractionDigits:6})} {p.ticker}</span>}
+                  <span style={{color:'#8A8A8E',marginLeft:'auto'}}>{op.date?op.date.slice(0,10):''}</span>
+                </div>;
+              })}
+              {p.ops.length>8&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>+{p.ops.length-8} more</div>}
+            </div>}
+            {onSelectAcct&&<button onClick={()=>onSelectAcct(p.idx)} style={{fontSize:11,padding:'5px 12px',borderRadius:6,border:'1px solid rgba(187,176,255,0.2)',background:'transparent',color:'#BBB0FF',cursor:'pointer',fontWeight:500,marginTop:4}}>View account ↗</button>}
+          </div>}
+        </React.Fragment>;
+      })}
+
+      {/* Liquid staking tokens */}
+      {lstPositions.length>0&&<div style={{marginTop:24,marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:4}}>Liquid staking tokens</div>
+        <div style={{fontSize:12,color:'#8A8A8E',marginBottom:12}}>These tokens represent staked assets. They can be traded or used in DeFi while still earning staking rewards.</div>
+        {lstPositions.map((l,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:i<lstPositions.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+          <div style={{width:32,height:32,borderRadius:'50%',background:l.parentCh.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+            <span style={{fontSize:9,fontWeight:700,color:'#fff'}}>{l.ticker.slice(0,4)}</span>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:500,color:'#FFFFFF'}}>{l.name}<span style={{color:'#8A8A8E',fontWeight:400}}> ({l.ticker})</span></div>
+            <div style={{fontSize:11,color:'#8A8A8E'}}>via {l.provider} · {l.parentName}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',fontFamily:MF}}>{l.balance.toLocaleString(undefined,{maximumFractionDigits:6})}</div>
+            {l.fiat!=null&&<div style={{fontSize:11,color:'#8A8A8E'}}>{cvFmtFiat(l.fiat,appJson)}</div>}
+          </div>
+        </div>)}
+      </div>}
+
+      <div style={{marginTop:20,marginBottom:24,padding:'10px 14px',borderRadius:6,background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.04)',fontSize:10,color:'rgba(255,255,255,0.3)',lineHeight:1.6}}>
+        APY rates are estimates based on publicly available data and may vary. Rewards are not guaranteed. Actual returns depend on validator performance, network conditions, and commission rates. Data shown reflects the customer's app.json export — rewards that auto-compound (SOL, DOT) may not appear as discrete operations.
+      </div>
+    </div>}
+
+    {earnTab==='opportunities'&&<div style={{padding:'40px 32px',textAlign:'center'}}>
+      <div style={{fontSize:32,marginBottom:16,opacity:0.3}}>🔍</div>
+      <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:8}}>Earn opportunities</div>
+      <div style={{fontSize:13,color:'#8A8A8E',maxWidth:440,margin:'0 auto',lineHeight:1.6}}>
+        The customer can explore staking opportunities in Ledger Wallet → Earn tab.
+        <div style={{marginTop:12,textAlign:'left',display:'inline-block'}}>
+          {[['Ledger by Figment','SOL, ATOM, DOT, NEAR (native delegation)'],['Kiln','ETH pooled staking (min 0.001 ETH)'],['Lido','ETH → stETH (liquid staking)'],['Coinbase','ETH → cbETH (US users)'],['Yield.xyz','AVAX, DOT, TRX, POL, BNB, CRO'],['Native','XTZ, TRX, ATOM, ALGO, DOT (in-app delegation)']].map(([name,desc])=>
+            <div key={name} style={{padding:'4px 0'}}>• <strong style={{color:'#fff'}}>{name}</strong> — {desc}</div>
+          )}
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
 function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
   const[selectedId,setSelectedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
@@ -4046,6 +4295,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
   const navItems=[
     {id:'portfolio',label:'Portfolio',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>},
     {id:'accounts',label:'Accounts',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>},
+    {id:'earn',label:'Earn',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>},
     {id:'myLedger',label:'My Ledger',icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1.5" fill="currentColor"/></svg>},
   ];
   return <div className="cv-frame">
@@ -4427,6 +4677,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
         })()
       )}
       {cvSection==='portfolio'&&<CVPortfolio enrichedAccts={enrichedAccts} liveBalances={liveBalances} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}} setCvSection={setCvSection} appJson={appJson}/>}
+      {cvSection==='earn'&&<CVEarn enrichedAccts={enrichedAccts} appJson={appJson} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}}/>}
       {cvSection==='myLedger'&&<CVMyLedger logData={logData} appJson={appJson} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
       {cvSection==='agentInsights'&&<CVAgentInsights
         logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts}
