@@ -1,8 +1,53 @@
-# Session Handoff — April 5, 2026 (Session 8)
+# Session Handoff — April 6, 2026 (Session 9)
 
 ## What was built this session
 
-### Documentation Sync
+### CVAgentInsights — Fixed-Viewport Master-Detail Dashboard
+
+Complete overhaul of the `CVAgentInsights` component inside `CustomerView`. Six commits (`1e6af71` through `0ebbee5`).
+
+#### Architecture
+
+- **Fixed-viewport master-detail:** Left panel (findings list, 38%) + right panel (detail, 62%). Outer wrapper uses `flex:1,minHeight:0,overflow:'hidden'` — never scrolls.
+- **Flex containment for `.cv-content`:** Agent Insights is the only CV section needing exact viewport fill. When `cvSection==='agentInsights'`, `.cv-content` becomes a flex column with `overflowY:'hidden'`; the app.json banner is wrapped in `flexShrink:0`; the component uses `flex:1,minHeight:0`. Other CV sections unaffected.
+- **Unified findings engine:** Single `useMemo` produces per-account AND system findings, sorted red→amber→green. System findings all include `kind:'system'`; account findings include `kind:'account'`.
+
+#### Key features
+
+- **Health dots strip (Row 2.5):** Per-account colored dots in the stat bar row — visual quick-scan of account status. Shows snapshot date label when available.
+- **Comparison bars (detail panel):** 3-column grid: "Customer sees (YYYY-MM)" / "On-chain now" / "Δ Delta". Rate label ghost text on both fiat columns for transparency.
+- **Portfolio donut (stat card):** SVG arc donut showing filled/unfilled portfolio coverage; secondary `liveMarketFiat` ghost line when CoinGecko rate differs from customer rate by >$1.
+- **Scrollbar suppression:** Left panel uses `scrollbarWidth:'none'` — scrolling works if needed, track hidden when not.
+
+#### Balance comparison logic (consistent pricing)
+
+**Problem:** `liveFiat` was using CoinGecko rates while `custFiat` used the customer's cached rates. The delta conflated crypto balance change with price movement — even a matching balance would show a non-zero delta if prices moved.
+
+**Fix:**
+- `liveFiatAtCustRate = live * custRate.rate` — on-chain balance valued at customer's cached rate
+- `liveMarketFiat = lbEntry.fiat` — CoinGecko value, shown as secondary ghost text only
+- `deltaFiat = liveFiatAtCustRate - custFiatVal` — pure crypto balance signal, price-neutral
+- Same fix applied to `onchainTotal` (portfolio delta): uses `cvLatestRate(appJson, cid)` not CoinGecko
+- `onchainMarketTotal` preserved as separate CoinGecko aggregate for "at market" ghost line
+
+#### Time context for snapshot vs live
+
+- `snapshotDate` derived from latest date key in app.json rate map (`/^\d{4}-\d{2}/` pattern)
+- `daysSinceSnapshot` computed from snapshot date to today
+- Detail text: *"The data is N days old — differences may be from normal transactions since the export."*
+- Action text: *"Ask the customer if they made transactions since the export. If not, this is a sync issue…"*
+- Badge relabeled: `'MISMATCH'` → `'CHANGED'`; title: `Balance mismatch` → `Balance changed`
+- Snapshot date shown in "Customer sees" column header and health dots strip
+
+#### New helpers used
+- `cvLatestRate(appJson, cid)` — `{rate, date}` for currency from customer's cached rates
+- `cvGetRateMap(appJson)` — full rate map for date extraction
+- `cvFiatValue(appJson, cid, rawBalance)` — fiat from customer's cached rates
+- `cvFmtFiat(value, appJson)` — format fiat string
+
+---
+
+### Documentation Sync (Session 8)
 
 Both embedded guide constants (`GUIDE_AGENT`, `GUIDE_TECHNICAL`) and standalone files (`agent-guide.html`, `technical-reference.html`) updated to reflect the visual overhaul work done in sessions 7–8.
 
@@ -44,22 +89,21 @@ Changes from the session preceding this handoff (separate summarized conversatio
 
 ## Current file state
 
-~6,600 lines. One file: `ledger-toolkit.html`.
+~7,600 lines. One file: `ledger-toolkit.html`.
 
 ## Current git state
 
-Branch: `main`. Latest commit: `42e5978` (docs sync). 2 commits ahead of remote origin (`b853f1d`, `42e5978`).
+Branch: `main`. Latest commit: `0ebbee5` (balance comparison logic fix). 8 commits ahead of remote (pre-commit hook blocks sandbox push — use `! git push origin main` directly).
 
 Push workflow: sandbox blocks HTTPS push — use `! git push origin main` directly from prompt.
 
 ---
 
-## Key decisions made
+## Key decisions made (session 9)
 
-- **Darker Grotesque via CDN.** Saves ~160KB over base64-embedded Brut Grotesque; both fonts now CDN-dependent so no tradeoff in offline capability.
-- **`chainIconUrl` uses `COINGECKO_IDS`.** Rather than a separate icon map, the existing CoinGecko slug map doubles as the icon ID. One source of truth.
-- **Focus is chain-specific, not address-wide.** EVM accounts sharing an address are separate entities in the log. Focusing Ethereum should not dim Polygon, even though they have the same address.
-- **TC palette is bold, not muted.** Agents learn the color language by seeing it clearly. Pastel was soft enough to be ambiguous.
+- **Consistent pricing for delta.** `deltaFiat = live_balance × customer_cached_rate − customer_fiat`. This makes delta purely a crypto balance signal. CoinGecko rate preserved as secondary ghost text only.
+- **Snapshot date from rate map.** App.json cached rates use date keys (`YYYY-MM`). Latest date = when customer last synced prices. Used as `snapshotDate` for time context in mismatch detail.
+- **Flex containment per-section.** Agent Insights needs exact viewport fill; other CV sections scroll normally. Override `.cv-content` layout only when `cvSection==='agentInsights'` — zero impact on other sections.
 
 ---
 
@@ -72,10 +116,10 @@ Push workflow: sandbox blocks HTTPS push — use `! git push origin main` direct
 ### Tab-specific work
 3. **Accounts tab brand alignment** — prompt `accounts-brand-alignment.md` written, not yet run. 7 fixes.
 4. **Network/APDU/Raw JSON tab brand alignment** — not started.
-5. **Customer View overhaul** — backburner.
 
-### Documentation
-6. **Agent Guide + Technical Reference** — synced this session. May need further updates after Accounts/Network tab work.
+### Customer View
+5. **Agent Insights documentation** — guide overlays not yet updated to cover Agent Insights tab.
+6. **Agent Insights: real-data testing** — needs testing with actual app.json exports to verify snapshot date extraction and rate matching.
 
 ### Other
 7. **Responsiveness audit** — click-outside handlers may still have stopPropagation issues.
