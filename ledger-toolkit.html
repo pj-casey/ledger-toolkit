@@ -3343,6 +3343,14 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const acctCount=Math.max(logData.accts?.length||0,(enrichedAccts||[]).length);
   const hasAppJson=(enrichedAccts||[]).some(a=>a.enriched&&a.ajBalance!=null);
   const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
+  const snapshotDate=React.useMemo(()=>{
+    if(!appJson)return null;
+    const rm=cvGetRateMap(appJson);
+    const allDates=Object.values(rm).flatMap(d=>typeof d==='object'?Object.keys(d):[]).filter(k=>/^\d{4}-\d{2}/.test(k));
+    if(!allDates.length)return null;
+    return allDates.sort()[allDates.length-1];
+  },[appJson]);
+  const daysSinceSnapshot=snapshotDate?Math.round((Date.now()-new Date(snapshotDate+'T12:00:00').getTime())/(1000*60*60*24)):null;
   // ── Unified findings engine ─────────────────────────────────────────────────
   const findings=React.useMemo(()=>{
     const f=[];
@@ -3363,15 +3371,17 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       const isIssue=isMismatch||pendingCount>0||failedCount>0||hasLogErrs;
       if(!isIssue&&viewMode!=='all')return;
       const custFiatVal=cvFiatValue(appJson,a.cid,a.ajBalance);
-      const liveFiatVal=lbEntry?.fiat!=null?lbEntry.fiat:null;
+      const custRate=cvLatestRate(appJson,a.cid);
+      const liveFiatAtCustRate=(live!=null&&custRate?.rate)?live*custRate.rate:null;
+      const liveMarketFiat=lbEntry?.fiat!=null?lbEntry.fiat:null;
       const ticker=a.ch.ticker;
       const badges=[];
-      if(isMismatch)badges.push('MISMATCH');
+      if(isMismatch)badges.push('CHANGED');
       if(pendingCount>0)badges.push(`${pendingCount} PENDING`);
       if(failedCount>0)badges.push(`${failedCount} FAILED`);
       if(hasLogErrs&&!isMismatch&&pendingCount===0&&failedCount===0)badges.push('LOG ERRORS');
       const severity=isIssue?(isMismatch||pendingCount>0?'red':'amber'):'green';
-      const title=isMismatch?`Balance mismatch — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
+      const title=isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
       const statusLabel=lbEntry?.status==='loading'?'···':!live?'no live data':isMismatch?(delta>0?'▲ on-chain higher':'▼ on-chain lower'):hasBoth?'✓ match':'—';
       const acctErrs=a.addr&&a.addr.length>4?errs.filter(e=>(e.det||e.msg||'').includes(a.addr)).slice(0,2):[];
       f.push({
@@ -3379,14 +3389,17 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         custBal:cust!=null?cust.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custFiat:cvFmtFiat(custFiatVal,appJson),
         liveBal:live!=null?live.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:lbEntry?.status==='loading'?'···':null,
-        liveFiat:cvFmtFiat(liveFiatVal,appJson),
+        liveFiat:liveFiatAtCustRate!=null?cvFmtFiat(liveFiatAtCustRate,appJson):null,
+        liveMarketFiat:liveMarketFiat!=null?cvFmtFiat(liveMarketFiat,appJson):null,
         delta:delta!=null&&Math.abs(delta)>=0.000001?(delta>0?'+':'')+delta.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:hasBoth?'0':null,
-        deltaFiat:custFiatVal!=null&&liveFiatVal!=null?cvFmtFiat(liveFiatVal-custFiatVal,appJson):null,
+        deltaFiat:custFiatVal!=null&&liveFiatAtCustRate!=null?cvFmtFiat(liveFiatAtCustRate-custFiatVal,appJson):null,
         statusLabel,badges,
-        detail:isMismatch?`The customer's app shows ${cust.toFixed(4)} ${ticker} but the blockchain has ${live.toFixed(4)} ${ticker}. This usually means the app hasn't synced recently.`:pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':'Balance matches on-chain.',
-        action:isMismatch?'Ask customer to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.':pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
+        snapshotDate,daysSinceSnapshot,
+        rateLabel:custRate?.rate?`@ $${custRate.rate.toFixed(2)}/${ticker}`:null,
+        detail:isMismatch?`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`:pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':'Balance matches on-chain.',
+        action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
         navigate:{type:'account',idx},
-        copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatVal!=null?' ('+cvFmtFiat(liveFiatVal,appJson)+')':''}\n  Delta: ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}`,
+        copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatAtCustRate!=null?' ('+cvFmtFiat(liveFiatAtCustRate,appJson)+' at customer rate)':''}\n  Delta: ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}${snapshotDate?'\n  Snapshot: '+snapshotDate:''}`,
         evidence:[
           ...(a.ajSubAccounts||[]).slice(0,3).map(s=>({label:(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' '),detail:s.balance?(parseFloat(s.balance)/Math.pow(10,getTokenDecimals(s.tokenId||'',a.cid))).toLocaleString(undefined,{maximumFractionDigits:4}):'0'})),
           ...acctErrs.map(e=>({label:'Log error',detail:e.dg?.t||e.msg||'Unknown'})),
@@ -3517,7 +3530,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     const order={red:0,amber:1,green:2};
     f.sort((a,b)=>order[a.severity]-order[b.severity]);
     return f;
-  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode]);
+  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,snapshotDate,daysSinceSnapshot]);
 
   const redCount=findings.filter(f=>f.severity==='red').length;
   const amberCount=findings.filter(f=>f.severity==='amber').length;
@@ -3531,7 +3544,14 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     if(!a.enriched||a.ajBalance==null)return s;
     return s+(cvFiatValue(appJson,a.cid,a.ajBalance)||0);
   },0);
-  const onchainTotal=(enrichedAccts||[]).reduce((s,a)=>s+((liveBalances[a.id])?.fiat||0),0);
+  const onchainTotal=(enrichedAccts||[]).reduce((s,a)=>{
+    const lb=liveBalances[a.id];
+    if(!lb?.bal||!a.enriched||!a.cid)return s;
+    const rate=cvLatestRate(appJson,a.cid);
+    if(!rate?.rate)return s;
+    return s+lb.bal*rate.rate;
+  },0);
+  const onchainMarketTotal=(enrichedAccts||[]).reduce((s,a)=>s+((liveBalances[a.id])?.fiat||0),0);
   const portfolioDelta=onchainTotal-customerTotal;
   const fmtFiat=v=>cvFmtFiat(v,appJson)||('$'+v.toLocaleString(undefined,{maximumFractionDigits:2}));
 
@@ -3603,13 +3623,25 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         </div>;
       })()}
       {f.kind==='account'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(0,0,0,0.2)',borderRadius:6,overflow:'hidden',marginBottom:14}}>
-        {[['Customer sees',f.custBal,f.custFiat,null],['On-chain',f.liveBal,f.liveFiat,null],['Delta',f.delta,f.deltaFiat,f.severity==='green'?'#4FC46B':f.delta&&f.delta!=='0'?'#EA4335':'#8A8A8E']].map(([label,main,sub,col],ci)=>(
-          <div key={ci} style={{padding:'10px 12px',borderRight:ci<2?'1px solid rgba(255,255,255,0.05)':'none'}}>
-            <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{label}</div>
-            <div style={{fontSize:13,color:col||'#FFFFFF',fontFamily:MF,fontWeight:600}}>{main||'—'}</div>
-            {sub&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{sub}</div>}
-          </div>
-        ))}
+        {/* Customer sees */}
+        <div style={{padding:'10px 12px',borderRight:'1px solid rgba(255,255,255,0.05)'}}>
+          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>Customer sees{f.snapshotDate?` (${f.snapshotDate})`:''}</div>
+          <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF,fontWeight:600}}>{f.custBal||'—'}</div>
+          {f.custFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.custFiat}{f.rateLabel&&<span style={{fontSize:8,color:'rgba(255,255,255,0.25)',marginLeft:4}}>{f.rateLabel}</span>}</div>}
+        </div>
+        {/* On-chain now */}
+        <div style={{padding:'10px 12px',borderRight:'1px solid rgba(255,255,255,0.05)'}}>
+          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>On-chain now</div>
+          <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF,fontWeight:600}}>{f.liveBal||'—'}</div>
+          {f.liveFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.liveFiat}{f.rateLabel&&<span style={{fontSize:8,color:'rgba(255,255,255,0.25)',marginLeft:4}}>{f.rateLabel}</span>}</div>}
+          {f.liveMarketFiat&&f.liveMarketFiat!==f.liveFiat&&<div style={{fontSize:9,color:'rgba(255,255,255,0.25)',marginTop:1}}>{f.liveMarketFiat} market</div>}
+        </div>
+        {/* Delta */}
+        <div style={{padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>Delta</div>
+          <div style={{fontSize:13,color:f.severity==='green'?'#4FC46B':f.delta&&f.delta!=='0'?'#EA4335':'#8A8A8E',fontFamily:MF,fontWeight:600}}>{f.delta||'—'}</div>
+          {f.deltaFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.deltaFiat}</div>}
+        </div>
       </div>}
       <div style={{fontSize:13,color:'#8A8A8E',lineHeight:1.7,marginBottom:14}}>{f.detail}</div>
       <div style={{padding:'12px 14px',borderRadius:6,background:s.bg,border:`1px solid ${s.border}`,marginBottom:14}}>
@@ -3686,6 +3718,9 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           <div style={{fontSize:10,color:portfolioDelta<-0.01?'#EA4335':portfolioDelta>0.01?'#4FC46B':'#8A8A8E'}}>
             {onchainTotal>0?(portfolioDelta>=0?'▲ ':'▼ ')+fmtFiat(Math.abs(portfolioDelta))+' on-chain':totalAcctCount+' acct'+(totalAcctCount!==1?'s':'')}
           </div>
+          {onchainMarketTotal>0&&Math.abs(onchainMarketTotal-onchainTotal)>1&&<div style={{fontSize:9,color:'rgba(255,255,255,0.25)'}}>
+            {fmtFiat(onchainMarketTotal)} at market
+          </div>}
         </div>
       </div>
       <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
@@ -3734,6 +3769,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           })}
         </div>
         <span style={{fontSize:9,color:'#8A8A8E',fontFamily:MF,flexShrink:0}}>{matches}/{accts.length} ✓</span>
+        {snapshotDate&&<span style={{fontSize:9,color:'rgba(187,176,255,0.4)',fontFamily:MF,flexShrink:0}}>snapshot {snapshotDate}</span>}
       </div>;
     })()}
     {!hasAppJson&&<div style={{flexShrink:0,margin:'6px 20px 0',padding:'6px 12px',borderRadius:5,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:11,color:T.warning}}>
