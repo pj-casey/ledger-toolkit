@@ -11,7 +11,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~6,300 lines)
+- **ONE file**: `ledger-toolkit.html` (~7,600 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
@@ -316,7 +316,58 @@ Standardized hover behaviors (unified under the `I` interaction constants):
 
 ## Customer View
 
-Shares the same visual language as Diagnostic mode. CSS classes `.cv-sidebar`, `.cv-portfolio-card`, `.cv-detail-card`, `.cv-section-title`, `.cv-info-row`, `.cv-acct-row.cv-active`, `.cv-infobar` all use matching gradients, radii, and font treatments. CV sidebar header, stat card labels, info bar labels use `fontFamily:MF`. Portfolio cards have chain-colored left borders with inset glow (matching AcctCards). `.cv-layout` uses `height:calc(100vh - 52px)`.
+3-panel fixed-viewport layout (`.cv-frame`): left nav (200px) + main content (`.cv-content`, flex:1) + no info bar (removed). Four tabs via `cvSection` state: `'accounts'`, `'portfolio'`, `'myLedger'`, `'agentInsights'`.
+
+**Left nav:** Logo + section nav (Portfolio, Accounts, My Ledger, Agent Insights) + footer (device info + Copy Customer Summary).
+
+**`.cv-content` conditional layout:** When `cvSection==='agentInsights'`, gets `display:'flex',flexDirection:'column',overflowY:'hidden'` — enables Agent Insights to fill the pane exactly. All other sections use normal `overflowY:auto` scroll.
+
+**Enrichment (`enrichedAccts` useMemo):** Merges log accounts + app.json accounts + liveBalances into hybrid objects: log fields (`id,cid,ch,addr,dm,ops`) + app.json fields (`ajBalance,ajSpendable,ajOps,ajOperations,ajSubAccounts,ajBlockHeight,ajStarred,ajSwapHistory,ajPendingOps,ajFreshAddressPath`) + `enriched:true` flag.
+
+**Accounts tab:** List with search/sort → click opens account detail. Detail shows: balance hero (total + spendable), address + derivation path, ops, token holdings, latest operations grouped by date (pending ops highlighted), swap history, related log errors.
+
+**Portfolio tab:** Delegates to `CVPortfolio` (squarified treemap, proportional fiat).
+
+**My Ledger tab:** Delegates to `CVMyLedger` (firmware, apps, version info).
+
+**Agent Insights tab:** Delegates to `CVAgentInsights` (see below).
+
+CSS classes: `.cv-sidebar`, `.cv-portfolio-card`, `.cv-detail-card`, `.cv-section-title`, `.cv-info-row`, `.cv-acct-row.cv-active`, `.cv-infobar`. All use chain-colored left borders + inset glow matching Diagnostic mode. `fontFamily:MF` on labels/stats. `.cv-layout` uses `height:calc(100vh - 52px)`.
+
+---
+
+## CVAgentInsights
+
+Fixed-viewport master-detail panel inside Customer View. Requires `appJson` to be loaded for full comparison. Lines ~3329–3804.
+
+**Props:** `{logData, liveBalances, enrichedAccts, versionCheck, firmwareCheck, appVersionCheck, appJson, onViewAccount, onViewPortfolio, onViewMyLedger}`
+
+**State:** `selectedId` (active finding), `copiedId` (copy feedback), `viewMode` ('issues'|'all')
+
+**Unified findings engine (`useMemo`):** Produces a flat `findings[]` array sorted red→amber→green combining:
+- **Per-account findings:** For each enriched account with `ajBalance`, compares customer's cached balance to live on-chain. Flags mismatches >0.01% as 'red', log-error-only as 'amber', matches as 'green'. Each finding: `{id, kind:'account', severity, title, custBal, custFiat, liveBal, liveFiat, liveMarketFiat, delta, deltaFiat, snapshotDate, daysSinceSnapshot, rateLabel, badges, detail, action, navigate, evidence, _acctCid, ...}`
+- **System findings (`kind:'system'`):** Countervalue drift (>2% cache vs market), firmware status, device app status, desktop/mobile app version, developer mode warning, log error summary, data confidence.
+
+**Layout:** 2-row header + 4 stat cards + health dots strip + master-detail (left 38% list / right 62% detail panel).
+
+**Stat cards:** Portfolio (donut SVG + delta + account count), Device (model + firmware), Live Data (fetch coverage), Customer (app label + version + app.json status).
+
+**Health dots strip:** 7–10px circles per account, colored by finding severity. Click selects finding. Shows snapshot date label when available.
+
+**Detail panel:** For account findings — staking breakdown (when `hasStaking`), comparison bars, 3-column grid (Customer sees / On-chain now / Delta), rich detail text with time-gap context, recommended action box, evidence grid. For system findings — simplified summary + action.
+
+**Consistent pricing rule:** `liveFiat` uses customer's cached rate (`live × custRate.rate`), not CoinGecko, so `deltaFiat` reflects only crypto balance change. CoinGecko value stored as `liveMarketFiat` (ghost text only). Portfolio delta uses same principle — `onchainTotal` uses customer rates; `onchainMarketTotal` preserves CoinGecko aggregate.
+
+**Snapshot date:** Derived from latest date key in app.json rate map (`/^\d{4}-\d{2}/`). Used as `snapshotDate` throughout. `daysSinceSnapshot` adds time-gap context to mismatch descriptions.
+
+**cv* helpers (module scope, lines ~1432–1485):**
+- `cvGetRateMap(appJson)` — returns countervalues rate map
+- `cvFiatCurrency(appJson)` — returns user's fiat currency string (e.g., `'USD'`)
+- `cvLatestRate(appJson, currencyId)` — returns `{rate, date}` for latest cached rate
+- `cvRateOnDate(appJson, currencyId, dateStr)` — rate on a specific date (with fallback)
+- `cvFiatValue(appJson, currencyId, rawBalance)` — converts raw balance to fiat using cached rate
+- `cvTokenFiatValue(appJson, tokenId, rawBalance, parentCid)` — same for tokens
+- `cvFmtFiat(value, appJson)` — formats fiat value with currency symbol
 
 ---
 
@@ -354,7 +405,8 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 **App:** `logData`, `fileName`, `loadErr`, `section`, `searchTerm`, `typeFilter`, `expandedRow`, `dragOver`, `acctFilter`, `qualityOpen`, `otherAppsOpen`, `sumCopied`, `fullCopied`, `apduExportCopied`, `viewMode`, `appJson`, `parsing`, `fileKey`, `showMore`, `deviceExpanded`, `devDetailOpen`, `liveBalances`, `globalSearch`, `showGlobalResults`, `selectedErr`, `errSevFilter`, `errCatFilter`, `errPatternFilter`, `errHoveredSev`, `errHoveredCat`, `errStripHover`, `errAcctFilter`, `hoveredAcct`, `hoveredRef`, `acctMapOpen`, `tlHoveredBucket`, `tlHighlightType`, `tlAcctFilter`, `tlGrouping`, `expandedGroups`, `guideOpen`, `guideSearch`, `copyOpen`, `focusDropOpen`, `ledgerStatus`, `focusedAcct`, `versionCheck`, `firmwareCheck`, `desktopCheck`
 **Refs:** `hoverTimeoutRef` (treemap popover debounce — 150ms delay before clearing `hoveredAcct`/`hoveredTmRect`)
 **DiagSidebar:** `accountsOpen`, `advOpen`
-**CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`
+**CustomerView:** `selectedAcct`, `summCopied`, `ajDragOver`, `bannerExpanded`, `ajError`, `ajKey`, `cvSection`, `cvAcctSearch`, `cvAcctSort`, `expandedTokens`
+**CVAgentInsights:** `selectedId`, `copiedId`, `viewMode`
 **JTTree:** `expanded`, `search`, `copiedPath`, `matchPaths`, `currentMatch`, `scrollContainerRef`
 **ErrCard:** `detOpen`, `ctxOpen`
 
@@ -408,6 +460,13 @@ Ctrl+1 Overview | Ctrl+2 Issues | Ctrl+3 Accounts | Ctrl+4 Timeline | Ctrl+5 Net
 | `buildErrorText(logData)` | Error export with severity, actions, causes, help URLs |
 | `inferRequiredApps(accounts)` | Maps account currencies → required device apps via `CURRENCY_TO_APP` |
 | `chainIconUrl(id)` | Returns CDN URL for chain brand icon using `COINGECKO_IDS` mapping, or null if not found |
+| `cvGetRateMap(appJson)` | Returns app.json countervalues rate map (`raw.countervalues \|\| data.countervalues`) |
+| `cvFiatCurrency(appJson)` | Returns user's fiat currency string (e.g., `'USD'`) from app.json settings |
+| `cvLatestRate(appJson, cid)` | Returns `{rate, date}` for latest cached countervalue rate for a currency |
+| `cvRateOnDate(appJson, cid, dateStr)` | Returns rate for a specific date (falls back to nearest earlier date) |
+| `cvFiatValue(appJson, cid, rawBalance)` | Converts raw balance to fiat using latest cached rate + `DECIMALS[cid]` |
+| `cvTokenFiatValue(appJson, tokenId, rawBalance, parentCid)` | Same as `cvFiatValue` but for token accounts |
+| `cvFmtFiat(value, appJson)` | Formats fiat value with currency symbol ($, €, £, or prefix) |
 
 ---
 

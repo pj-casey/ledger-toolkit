@@ -3359,11 +3359,15 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       if(!a.enriched||a.ajBalance==null)return;
       const dec=DECIMALS[a.cid]||18;
       const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
+      const custSpendable=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;
+      const hasStaking=custSpendable!=null&&Math.abs(cust-custSpendable)>0.000001;
+      const stakedAmount=hasStaking?cust-custSpendable:0;
+      const compareBalance=hasStaking?custSpendable:cust;
       const lbEntry=liveBalances[a.id];
       const live=lbEntry?.bal!=null?lbEntry.bal:null;
-      const hasBoth=cust!=null&&live!=null;
-      const delta=hasBoth?live-cust:null;
-      const pct=hasBoth&&cust>0?Math.abs(delta)/cust*100:0;
+      const hasBoth=compareBalance!=null&&live!=null;
+      const delta=hasBoth?live-compareBalance:null;
+      const pct=hasBoth&&compareBalance>0?Math.abs(delta)/compareBalance*100:0;
       const isMismatch=hasBoth&&pct>0.01;
       const pendingCount=(a.ajPendingOps||[]).length;
       const failedCount=(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length;
@@ -3371,6 +3375,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       const isIssue=isMismatch||pendingCount>0||failedCount>0||hasLogErrs;
       if(!isIssue&&viewMode!=='all')return;
       const custFiatVal=cvFiatValue(appJson,a.cid,a.ajBalance);
+      const custSpendFiatVal=hasStaking&&a.ajSpendable!=null?cvFiatValue(appJson,a.cid,a.ajSpendable):custFiatVal;
       const custRate=cvLatestRate(appJson,a.cid);
       const liveFiatAtCustRate=(live!=null&&custRate?.rate)?live*custRate.rate:null;
       const liveMarketFiat=lbEntry?.fiat!=null?lbEntry.fiat:null;
@@ -3392,14 +3397,18 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         liveFiat:liveFiatAtCustRate!=null?cvFmtFiat(liveFiatAtCustRate,appJson):null,
         liveMarketFiat:liveMarketFiat!=null?cvFmtFiat(liveMarketFiat,appJson):null,
         delta:delta!=null&&Math.abs(delta)>=0.000001?(delta>0?'+':'')+delta.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:hasBoth?'0':null,
-        deltaFiat:custFiatVal!=null&&liveFiatAtCustRate!=null?cvFmtFiat(liveFiatAtCustRate-custFiatVal,appJson):null,
+        deltaFiat:custSpendFiatVal!=null&&liveFiatAtCustRate!=null?cvFmtFiat(liveFiatAtCustRate-custSpendFiatVal,appJson):null,
         statusLabel,badges,
         snapshotDate,daysSinceSnapshot,
         rateLabel:custRate?.rate?`@ $${custRate.rate.toFixed(2)}/${ticker}`:null,
-        detail:isMismatch?`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`:pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':'Balance matches on-chain.',
+        hasStaking,
+        stakedAmount:hasStaking?stakedAmount.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
+        custSpendableBal:custSpendable!=null?custSpendable.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
+        custTotalBal:cust.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker,
+        detail:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
         action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
         navigate:{type:'account',idx},
-        copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatAtCustRate!=null?' ('+cvFmtFiat(liveFiatAtCustRate,appJson)+' at customer rate)':''}\n  Delta: ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}${snapshotDate?'\n  Snapshot: '+snapshotDate:''}`,
+        copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}${hasStaking?' [staked: '+stakedAmount.toFixed(6)+' '+ticker+', available: '+custSpendable.toFixed(6)+' '+ticker+']':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatAtCustRate!=null?' ('+cvFmtFiat(liveFiatAtCustRate,appJson)+' at customer rate)':''}\n  Delta (vs available): ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}${snapshotDate?'\n  Snapshot: '+snapshotDate:''}`,
         evidence:[
           ...(a.ajSubAccounts||[]).slice(0,3).map(s=>({label:(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' '),detail:s.balance?(parseFloat(s.balance)/Math.pow(10,getTokenDecimals(s.tokenId||'',a.cid))).toLocaleString(undefined,{maximumFractionDigits:4}):'0'})),
           ...acctErrs.map(e=>({label:'Log error',detail:e.dg?.t||e.msg||'Unknown'})),
@@ -3587,8 +3596,34 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{fontSize:11,padding:'4px 10px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:copiedId===f.id?'#4FC46B':'#8A8A8E',cursor:'pointer'}}>{copiedId===f.id?'✓ Copied':'Copy'}</button>
         </div>
       </div>
+      {f.kind==='account'&&f.hasStaking&&(()=>{
+        const stakingLabel=cid=>{if(cid==='ripple'||cid==='stellar')return 'Network reserve';if(cid==='tron')return 'Frozen (bandwidth/energy)';return 'Staked / Delegated';};
+        return <div style={{padding:'10px 14px',marginBottom:12,borderRadius:8,background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+            <span style={{fontSize:13}}>🥩</span>
+            <span style={{fontSize:12,fontWeight:600,color:'#BBB0FF'}}>{stakingLabel(f._acctCid)}</span>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,fontSize:11,fontFamily:MF}}>
+            <div>
+              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',marginBottom:2}}>Total balance</div>
+              <div style={{color:'#FFFFFF'}}>{f.custTotalBal}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',marginBottom:2}}>{['ripple','stellar'].includes(f._acctCid)?'Reserved':'Staked / Frozen'}</div>
+              <div style={{color:'#BBB0FF'}}>{f.stakedAmount}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',marginBottom:2}}>Available</div>
+              <div style={{color:'#4FC46B'}}>{f.custSpendableBal}</div>
+            </div>
+          </div>
+          <div style={{fontSize:11,color:'#8A8A8E',marginTop:8,lineHeight:1.5}}>
+            The comparison below uses the <strong style={{color:'#FFFFFF'}}>available</strong> balance (not {['ripple','stellar'].includes(f._acctCid)?'reserved':'staked'}). {['ripple','stellar'].includes(f._acctCid)?'Network reserves are protocol-required minimums, not spendable funds.':f._acctCid==='tron'?'Frozen TRX is locked for bandwidth/energy and won\'t appear in the live balance.':'Staked funds are locked on-chain and won\'t appear in the live balance check.'}{f._acctCid==='solana'?' Solana staking uses separate stake accounts — the live balance only reflects the main account.':''}
+          </div>
+        </div>;
+      })()}
       {f.kind==='account'&&f.custBal&&(()=>{
-        const custNum=parseFloat(f.custBal)||0;
+        const custNum=parseFloat(f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal)||0;
         const liveNum=parseFloat(f.liveBal)||0;
         const maxVal=Math.max(custNum,liveNum,0.000001);
         const custPct=Math.min((custNum/maxVal)*100,100);
@@ -3598,8 +3633,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         return <div style={{marginBottom:14,padding:'12px 16px',background:'rgba(0,0,0,0.15)',borderRadius:8}}>
           <div style={{marginBottom:10}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-              <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>Customer sees</span>
-              <span style={{fontSize:11,color:'#FFFFFF',fontFamily:MF}}>{f.custBal}</span>
+              <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{f.hasStaking?'Available (excl. staked)':'Customer sees'}</span>
+              <span style={{fontSize:11,color:'#FFFFFF',fontFamily:MF}}>{f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal}</span>
             </div>
             <div style={{height:20,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
               <div style={{height:'100%',width:custPct+'%',background:'linear-gradient(90deg,rgba(187,176,255,0.4),rgba(187,176,255,0.6))',borderRadius:4,transition:'width 400ms ease',minWidth:custNum>0?2:0}}/>
@@ -3625,8 +3660,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       {f.kind==='account'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(0,0,0,0.2)',borderRadius:6,overflow:'hidden',marginBottom:14}}>
         {/* Customer sees */}
         <div style={{padding:'10px 12px',borderRight:'1px solid rgba(255,255,255,0.05)'}}>
-          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>Customer sees{f.snapshotDate?` (${f.snapshotDate})`:''}</div>
-          <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF,fontWeight:600}}>{f.custBal||'—'}</div>
+          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{f.hasStaking?'Available (excl. staked)':'Customer sees'}{f.snapshotDate?` (${f.snapshotDate})`:''}</div>
+          <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF,fontWeight:600}}>{f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal||'—'}</div>
           {f.custFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.custFiat}{f.rateLabel&&<span style={{fontSize:8,color:'rgba(255,255,255,0.25)',marginLeft:4}}>{f.rateLabel}</span>}</div>}
         </div>
         {/* On-chain now */}
@@ -3743,14 +3778,16 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     {(()=>{
       const accts=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null);
       if(accts.length===0)return null;
-      const matches=accts.filter(a=>{const lb=liveBalances[a.id];const dec=DECIMALS[a.cid]||18;const c=parseFloat(a.ajBalance)/Math.pow(10,dec);const l=lb?.bal;return c!=null&&l!=null&&(c===0||Math.abs(l-c)/c*100<=0.01);}).length;
+      const matches=accts.filter(a=>{const lb=liveBalances[a.id];const dec=DECIMALS[a.cid]||18;const total=parseFloat(a.ajBalance)/Math.pow(10,dec);const sp=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;const c=sp!=null&&Math.abs(total-sp)>0.000001?sp:total;const l=lb?.bal;return c!=null&&l!=null&&(c===0||Math.abs(l-c)/c*100<=0.01);}).length;
       return <div style={{flexShrink:0,padding:'6px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',alignItems:'center',gap:6}}>
         <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',fontWeight:600,fontFamily:MF,marginRight:2}}>Accounts</span>
         <div style={{display:'flex',gap:3,flexWrap:'wrap',flex:1}}>
           {accts.map((a,i)=>{
             const lbEntry=liveBalances[a.id];
             const dec=DECIMALS[a.cid]||18;
-            const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
+            const custTotal=parseFloat(a.ajBalance)/Math.pow(10,dec);
+            const custSp=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;
+            const cust=custSp!=null&&Math.abs(custTotal-custSp)>0.000001?custSp:custTotal;
             const live=lbEntry?.bal!=null?lbEntry.bal:null;
             const hasBoth=cust!=null&&live!=null;
             const pct=hasBoth&&cust>0?Math.abs(live-cust)/cust*100:0;
@@ -3787,7 +3824,10 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
             style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isSel?s.color+'0F':'transparent',borderLeft:isSel?`2px solid ${s.color}`:'2px solid transparent',transition:'background 120ms'}}>
             <div style={{width:7,height:7,borderRadius:'50%',background:s.dot,flexShrink:0}}/>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:isSel?600:400,color:isSel?'#FFFFFF':'#C0C0C0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.title}</div>
+              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                <div style={{fontSize:12,fontWeight:isSel?600:400,color:isSel?'#FFFFFF':'#C0C0C0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',flex:1}}>{f.title}</div>
+                {f.hasStaking&&<span style={{fontSize:9,flexShrink:0}} title="Has staked/frozen funds">🥩</span>}
+              </div>
               {f.kind==='account'&&(f.badges||[]).length>0&&<div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}>
                 {f.badges.map(b=><span key={b} style={{fontSize:9,padding:'1px 5px',borderRadius:2,background:s.color+'1A',color:s.color,fontWeight:700}}>{b}</span>)}
               </div>}
@@ -4210,7 +4250,23 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
               return <div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                 {cvFirst&&fiatEl?<>{fiatEl}{cryptoEl}</>:<>{cryptoEl}{fiatEl}</>}
                 {detRate&&<div style={{fontSize:11,color:'rgba(187,176,255,0.5)',marginBottom:6,fontFamily:MF}}>✦ 1 {ch.ticker} = {cvFmtFiat(detRate.rate,appJson)} · rate from {detRate.date}</div>}
-                {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&<div style={{fontSize:12,color:'#8A8A8E',marginTop:6}}>Spendable: {fmtBal(acct.ajSpendable,acct.cid,ch.ticker)}</div>}
+                {acct.ajSpendable!=null&&acct.ajSpendable!==acct.ajBalance&&(()=>{
+                  const sdec=DECIMALS[acct.cid]||18;
+                  const stotal=parseFloat(acct.ajBalance)/Math.pow(10,sdec);
+                  const sspendable=parseFloat(acct.ajSpendable)/Math.pow(10,sdec);
+                  const sstaked=stotal-sspendable;
+                  if(Math.abs(sstaked)<0.000001)return null;
+                  const spct=(sstaked/stotal*100).toFixed(1);
+                  const stakingLbl=acct.cid==='ripple'||acct.cid==='stellar'?'Reserved':acct.cid==='tron'?'Frozen':'Staked';
+                  return <div style={{display:'flex',gap:12,padding:'8px 0',marginTop:4,flexWrap:'wrap'}}>
+                    <div style={{fontSize:12,color:'#BBB0FF',display:'flex',alignItems:'center',gap:4}}>
+                      <span>🥩</span> {stakingLbl}: {sstaked.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker} ({spct}%)
+                    </div>
+                    <div style={{fontSize:12,color:'#4FC46B'}}>
+                      Available: {sspendable.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}
+                    </div>
+                  </div>;
+                })()}
                 {acct.ajBlockHeight!=null&&<div style={{fontSize:11,color:'rgba(255,255,255,0.25)',marginTop:6,fontFamily:MF}}>Last synced at block {Number(acct.ajBlockHeight).toLocaleString()}</div>}
               </div>;
             })()}
