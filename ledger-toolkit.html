@@ -3603,7 +3603,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     </div>;
   };
 
-  return <div style={{display:'flex',flexDirection:'column',height:'100%',maxHeight:'100%',overflow:'hidden'}}>
+  return <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden',minHeight:0}}>
     {/* Row 1 — Header */}
     <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:10,padding:'12px 20px 10px',borderBottom:'1px solid rgba(255,255,255,0.06)',flexWrap:'wrap'}}>
       <span style={{fontSize:15,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
@@ -3907,40 +3907,42 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
         </button>
       </div>
     </div>
-    <div className="cv-content">
+    <div className="cv-content" style={cvSection==='agentInsights'?{display:'flex',flexDirection:'column',overflowY:'hidden'}:undefined}>
       <input key={ajKey} type="file" accept=".json" style={{display:'none'}} ref={appJsonRef} onChange={handleAppJsonPick}/>
-      {appJson
-        ?appJson.encrypted
-          ?<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'10px 16px',fontSize:12,color:T.warning,margin:'16px 24px 0',display:'flex',alignItems:'flex-start',gap:8}}>
-              <span style={{flexShrink:0}}>⚠</span>
-              <span>This customer has Ledger Sync enabled, which encrypts their account data. Balances and transactions can't be read from this file — only device info and token preferences. For full data, the customer would need to disable Ledger Sync and re-export.</span>
-              <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7,flexShrink:0}}>✕</button>
-            </div>
-          :bannerExpanded
-            ?<div style={{background:'rgba(79,196,107,0.06)',border:'1px solid rgba(79,196,107,0.2)',borderRadius:6,padding:'10px 16px',fontSize:12,color:'#4FC46B',margin:'16px 24px 0',display:'flex',alignItems:'center',gap:8}}>
-                <span>{logData.accts.length===0?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`:`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}</span>
-                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#4FC46B',cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+      <div style={{flexShrink:0}}>
+        {appJson
+          ?appJson.encrypted
+            ?<div style={{background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,padding:'10px 16px',fontSize:12,color:T.warning,margin:'16px 24px 0',display:'flex',alignItems:'flex-start',gap:8}}>
+                <span style={{flexShrink:0}}>⚠</span>
+                <span>This customer has Ledger Sync enabled, which encrypts their account data. Balances and transactions can't be read from this file — only device info and token preferences. For full data, the customer would need to disable Ledger Sync and re-export.</span>
+                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:T.warning,cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7,flexShrink:0}}>✕</button>
               </div>
-            :<div style={{background:'rgba(79,196,107,0.04)',border:'1px solid rgba(79,196,107,0.15)',borderRadius:6,padding:'6px 16px',fontSize:11,color:'#4FC46B',margin:'12px 24px 0',display:'flex',alignItems:'center',gap:8}}>
-                <span>✓ app.json loaded</span>
-                <span onClick={()=>setBannerExpanded(true)} style={{color:'#8A8A8E',cursor:'pointer',fontSize:10}}>details ▸</span>
-                <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#8A8A8E',cursor:'pointer',fontSize:11,padding:'0 4px'}}>✕</button>
+            :bannerExpanded
+              ?<div style={{background:'rgba(79,196,107,0.06)',border:'1px solid rgba(79,196,107,0.2)',borderRadius:6,padding:'10px 16px',fontSize:12,color:'#4FC46B',margin:'16px 24px 0',display:'flex',alignItems:'center',gap:8}}>
+                  <span>{logData.accts.length===0?`✓ Showing ${appJson.accounts.length} accounts from app.json (log file contained no account data)`:`✓ Enriched with app.json — showing real balances and ${appJson.accounts.length} accounts`}</span>
+                  <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#4FC46B',cursor:'pointer',fontSize:11,fontWeight:600,padding:'0 4px',opacity:0.7}}>✕ Remove</button>
+                </div>
+              :<div style={{background:'rgba(79,196,107,0.04)',border:'1px solid rgba(79,196,107,0.15)',borderRadius:6,padding:'6px 16px',fontSize:11,color:'#4FC46B',margin:'12px 24px 0',display:'flex',alignItems:'center',gap:8}}>
+                  <span>✓ app.json loaded</span>
+                  <span onClick={()=>setBannerExpanded(true)} style={{color:'#8A8A8E',cursor:'pointer',fontSize:10}}>details ▸</span>
+                  <button onClick={()=>onAppJson(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#8A8A8E',cursor:'pointer',fontSize:11,padding:'0 4px'}}>✕</button>
+                </div>
+          :<div onDrop={handleAppJsonDrop} onDragOver={e=>{e.preventDefault();setAjDragOver(true);}} onDragLeave={()=>setAjDragOver(false)}
+              style={{border:`2px dashed ${ajDragOver?T.orange:T.warning+'60'}`,borderRadius:8,padding:'14px 20px',display:'flex',alignItems:'center',gap:14,cursor:'pointer',transition:I.medium,background:ajDragOver?`${T.orange}08`:'rgba(255,189,66,0.03)',margin:'16px 24px 0'}}
+              onClick={()=>{if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}}>
+              <div style={{width:32,height:32,borderRadius:8,background:'rgba(255,189,66,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico.Upload/></div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:2}}>Load customer's app.json</div>
+                <div style={{fontSize:11,color:T.muted}}>Drop here or click to browse — adds real balances, transaction history, and account names</div>
               </div>
-        :<div onDrop={handleAppJsonDrop} onDragOver={e=>{e.preventDefault();setAjDragOver(true);}} onDragLeave={()=>setAjDragOver(false)}
-            style={{border:`2px dashed ${ajDragOver?T.orange:T.warning+'60'}`,borderRadius:8,padding:'14px 20px',display:'flex',alignItems:'center',gap:14,cursor:'pointer',transition:I.medium,background:ajDragOver?`${T.orange}08`:'rgba(255,189,66,0.03)',margin:'16px 24px 0'}}
-            onClick={()=>{if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}}>
-            <div style={{width:32,height:32,borderRadius:8,background:'rgba(255,189,66,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico.Upload/></div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:2}}>Load customer's app.json</div>
-              <div style={{fontSize:11,color:T.muted}}>Drop here or click to browse — adds real balances, transaction history, and account names</div>
+              <button onClick={e=>{e.stopPropagation();if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.warning}40`,background:T.warning+'12',color:T.warning,fontSize:11,fontWeight:600,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>Browse</button>
             </div>
-            <button onClick={e=>{e.stopPropagation();if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.warning}40`,background:T.warning+'12',color:T.warning,fontSize:11,fontWeight:600,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>Browse</button>
-          </div>
-      }
-      {ajError&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',margin:'8px 24px 0',fontSize:12,color:T.error}}>{ajError}</div>}
-      {appJsonMismatch&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',margin:'8px 24px 0',fontSize:12,color:T.error,display:'flex',alignItems:'center',gap:8}}>
-        <span>⚠</span><span>This app.json doesn't match the loaded log file — no matching account IDs found. You may have loaded the wrong customer's app.json.</span>
-      </div>}
+        }
+        {ajError&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',margin:'8px 24px 0',fontSize:12,color:T.error}}>{ajError}</div>}
+        {appJsonMismatch&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.25)',borderRadius:6,padding:'8px 14px',margin:'8px 24px 0',fontSize:12,color:T.error,display:'flex',alignItems:'center',gap:8}}>
+          <span>⚠</span><span>This app.json doesn't match the loaded log file — no matching account IDs found. You may have loaded the wrong customer's app.json.</span>
+        </div>}
+      </div>
       {cvSection==='accounts'&&(selectedAcct===null
         ?<div>
           <div className="cv-content-header">
