@@ -3327,13 +3327,9 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
 }
 
 function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
-  const[expandedId,setExpandedId]=useState(null);
+  const[selectedId,setSelectedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
   const[viewMode,setViewMode]=useState('issues');
-  const[sortBy,setSortBy]=useState('severity');
-  const[showSettings,setShowSettings]=useState(false);
-  const[showConfidence,setShowConfidence]=useState(false);
-  const[showHealthy,setShowHealthy]=useState(false);
   const errs=logData.errs||[];
   const highCount=errs.filter(e=>e.dg?.s==='high').length;
   const medCount=errs.filter(e=>e.dg?.s==='medium').length;
@@ -3417,7 +3413,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       if(drifts.length>0){
         const top=drifts.sort((a,b)=>b.pctDrift-a.pctDrift);
         const names=top.slice(0,3).map(d=>`${d.ticker} ${d.pctDrift.toFixed(1)}%`).join(', ');
-        f.push({id:'cv-drift',severity:top[0].pctDrift>10?'red':'amber',
+        f.push({id:'cv-drift',kind:'system',severity:top[0].pctDrift>10?'red':'amber',
           title:`Countervalue drift on ${drifts.length} asset${drifts.length!==1?'s':''}: ${names}`,
           detail:`The customer's cached fiat prices are out of date. Their ${top[0].ticker} rate is $${top[0].custRate.toFixed(2)} (from ${top[0].date}) but the current market rate is $${top[0].marketRate.toFixed(2)}. This means their portfolio total and per-account fiat values may be inaccurate.`,
           action:'Fiat values update automatically when the customer opens the app and it syncs. No manual action needed — but be aware their displayed USD values may differ from current market prices.',
@@ -3427,10 +3423,10 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         });
       }
     }
-    // 5. Firmware
+    // Firmware
     if(firmwareCheck?.status==='ok'){
       if(firmwareCheck.outdated){
-        f.push({id:'firmware',severity:'red',
+        f.push({id:'firmware',kind:'system',severity:'red',
           title:`Firmware outdated — ${firmwareCheck.current} → ${firmwareCheck.latest}`,
           detail:`The customer's device is running firmware ${firmwareCheck.current}. The latest is ${firmwareCheck.latest}. Outdated firmware can cause app incompatibilities and missing features.`,
           action:'Guide the customer to update: open Ledger Live/Wallet → My Ledger → Update firmware.',
@@ -3439,16 +3435,16 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           evidence:[{label:'Current',detail:firmwareCheck.current},{label:'Latest',detail:firmwareCheck.latest}]
         });
       } else {
-        f.push({id:'firmware',severity:'green',title:`Firmware up to date (${firmwareCheck.current})`,detail:'Device firmware is current.',action:'No action needed.',navigate:{type:'myLedger'},copyText:`Firmware current: ${firmwareCheck.current}`,evidence:[]});
+        f.push({id:'firmware',kind:'system',severity:'green',title:`Firmware up to date (${firmwareCheck.current})`,detail:'Device firmware is current.',action:'No action needed.',navigate:{type:'myLedger'},copyText:`Firmware current: ${firmwareCheck.current}`,evidence:[]});
       }
     }
-    // 5. App versions
+    // App versions
     if(versionCheck?.status==='ok'&&versionCheck.apps){
       const outdatedApps=versionCheck.apps.filter(a=>a.outdated);
       const missingApps=versionCheck.apps.filter(a=>a.required&&!a.installed);
       if(outdatedApps.length>0||missingApps.length>0){
         const issues=[...missingApps.map(a=>`${a.name} (missing)`), ...outdatedApps.map(a=>`${a.name} (${a.installed}→${a.latest})`)];
-        f.push({id:'app-versions',severity:'amber',
+        f.push({id:'app-versions',kind:'system',severity:'amber',
           title:`${outdatedApps.length+missingApps.length} device app${outdatedApps.length+missingApps.length!==1?'s':''} need attention`,
           detail:`${outdatedApps.length} outdated, ${missingApps.length} missing. Outdated coin apps can cause signing errors or connectivity issues.`,
           action:'Guide the customer to open My Ledger in Ledger Wallet to update apps. The device must be connected.',
@@ -3457,13 +3453,13 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           evidence:issues.slice(0,5).map(i=>({label:'App',detail:i}))
         });
       } else {
-        f.push({id:'app-versions',severity:'green',title:`All ${versionCheck.apps.filter(a=>a.installed).length} device apps up to date`,detail:'No app update issues detected.',action:'No action needed.',navigate:{type:'myLedger'},copyText:'Device apps: all current.',evidence:[]});
+        f.push({id:'app-versions',kind:'system',severity:'green',title:`All ${versionCheck.apps.filter(a=>a.installed).length} device apps up to date`,detail:'No app update issues detected.',action:'No action needed.',navigate:{type:'myLedger'},copyText:'Device apps: all current.',evidence:[]});
       }
     }
-    // 6. Desktop/mobile app version
+    // Desktop/mobile app version
     if(appVersionCheck?.status==='ok'){
       if(appVersionCheck.outdated){
-        f.push({id:'app-version',severity:'amber',
+        f.push({id:'app-version',kind:'system',severity:'amber',
           title:`${llLabel(dev)} outdated — ${appVersionCheck.current} → ${appVersionCheck.latest}`,
           detail:`The customer is running an older version of the Ledger app. Some fixes and features require the latest version.`,
           action:'Ask the customer to update the Ledger app from the official download page or their app store.',
@@ -3472,12 +3468,12 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           evidence:[{label:'Current',detail:appVersionCheck.current},{label:'Latest',detail:appVersionCheck.latest}]
         });
       } else {
-        f.push({id:'app-version',severity:'green',title:`${llLabel(dev)} up to date (${appVersionCheck.current})`,detail:'The customer is running the latest version.',action:'No action needed.',navigate:null,copyText:`${llLabel(dev)} current: ${appVersionCheck.current}`,evidence:[]});
+        f.push({id:'app-version',kind:'system',severity:'green',title:`${llLabel(dev)} up to date (${appVersionCheck.current})`,detail:'The customer is running the latest version.',action:'No action needed.',navigate:null,copyText:`${llLabel(dev)} current: ${appVersionCheck.current}`,evidence:[]});
       }
     }
-    // 7. Developer mode
+    // Developer mode
     if(ajSettings.developerMode===true){
-      f.push({id:'devmode',severity:'amber',
+      f.push({id:'devmode',kind:'system',severity:'amber',
         title:'Developer mode is enabled',
         detail:'Developer mode shows experimental/unreleased apps and firmware. This can cause compatibility issues and unexpected behaviour.',
         action:'Confirm with the customer whether they intentionally enabled developer mode. If not, guide them to disable it in Settings → Experimental features.',
@@ -3486,10 +3482,10 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         evidence:[{label:'Setting',detail:'developerMode: true'}]
       });
     }
-    // 8. Log errors
+    // Log errors
     if(highCount>0||medCount>0){
       const topErr=errs.find(e=>e.dg?.s==='high')||errs.find(e=>e.dg?.s==='medium');
-      f.push({id:'log-errors',severity:'amber',
+      f.push({id:'log-errors',kind:'system',severity:'amber',
         title:highCount>0?`${highCount} critical + ${medCount} warning log error${errs.length!==1?'s':''}`:`${medCount} warning log error${medCount!==1?'s':''}`,
         detail:`The log contains ${highCount} critical, ${medCount} warning, and ${lowCount} informational events. Switch to Diagnostic mode for full error analysis.`,
         action:'Use the mode toggle at the top of the page to switch to Diagnostic mode → Issues tab for full error analysis with breadcrumbs and timeline context.',
@@ -3498,15 +3494,15 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         evidence:errs.filter(e=>e.dg?.s==='high'||e.dg?.s==='medium').slice(0,3).map(e=>({label:e.dg?.s||'?',detail:e.dg?.t||e.msg||'Unknown'}))
       });
     } else if(errs.length===0){
-      f.push({id:'log-errors',severity:'green',title:'No log errors detected',detail:'The session log contains no errors.',action:'No action needed.',navigate:null,copyText:'Log: clean session, no errors.',evidence:[]});
+      f.push({id:'log-errors',kind:'system',severity:'green',title:'No log errors detected',detail:'The session log contains no errors.',action:'No action needed.',navigate:null,copyText:'Log: clean session, no errors.',evidence:[]});
     }
-    // 9. Data confidence
+    // Data confidence
     const dataIssues=[];
     if(fetchedCount===0&&acctCount>0)dataIssues.push('No live balances fetched');
     if(versionCheck?.status==='error')dataIssues.push('App catalog unavailable');
     if(firmwareCheck?.status==='error')dataIssues.push('Firmware check failed');
     if(dataIssues.length>0){
-      f.push({id:'data-confidence',severity:'amber',
+      f.push({id:'data-confidence',kind:'system',severity:'amber',
         title:`${dataIssues.length} data source${dataIssues.length!==1?'s':''} unavailable`,
         detail:`Some live data could not be fetched: ${dataIssues.join(', ')}. Findings may be incomplete.`,
         action:'Results are based on log data only. Network issues or an older device firmware may prevent some checks.',
@@ -3515,30 +3511,21 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         evidence:dataIssues.map(d=>({label:'Unavailable',detail:d}))
       });
     } else if(fetchedCount>0){
-      f.push({id:'data-confidence',severity:'green',title:`${fetchedCount}/${acctCount} live balances fetched`,detail:'Live balance data is available for comparison.',action:'No action needed.',navigate:null,copyText:`Data: ${fetchedCount}/${acctCount} balances live.`,evidence:[]});
+      f.push({id:'data-confidence',kind:'system',severity:'green',title:`${fetchedCount}/${acctCount} live balances fetched`,detail:'Live balance data is available for comparison.',action:'No action needed.',navigate:null,copyText:`Data: ${fetchedCount}/${acctCount} balances live.`,evidence:[]});
     }
-    // Sort: red → amber → green, then by sortBy within tier
+    // Sort: red → amber → green
     const order={red:0,amber:1,green:2};
-    f.sort((a,b)=>{
-      const sd=order[a.severity]-order[b.severity];
-      if(sd!==0)return sd;
-      if(sortBy==='value'&&a.kind==='account'&&b.kind==='account'){
-        const av=parseFloat((a.custFiat||'0').replace(/[^0-9.-]/g,''))||0;
-        const bv=parseFloat((b.custFiat||'0').replace(/[^0-9.-]/g,''))||0;
-        return bv-av;
-      }
-      if(sortBy==='name')return(a.title||'').localeCompare(b.title||'');
-      return 0;
-    });
+    f.sort((a,b)=>order[a.severity]-order[b.severity]);
     return f;
-  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,sortBy]);
+  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode]);
 
   const redCount=findings.filter(f=>f.severity==='red').length;
   const amberCount=findings.filter(f=>f.severity==='amber').length;
   const greenCount=findings.filter(f=>f.severity==='green').length;
-  const issueFindings=findings.filter(f=>f.severity!=='green');
-  const greenFindings=findings.filter(f=>f.severity==='green');
-  const issueCount=findings.filter(f=>f.kind==='account'&&f.severity!=='green').length;
+  const issueCount=findings.filter(f=>f.severity!=='green').length;
+  const totalAcctCount=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null).length;
+  const displayFindings=viewMode==='issues'?findings.filter(f=>f.severity!=='green'):findings;
+  const selectedFinding=findings.find(f=>f.id===selectedId)||null;
 
   const customerTotal=(enrichedAccts||[]).reduce((s,a)=>{
     if(!a.enriched||a.ajBalance==null)return s;
@@ -3548,6 +3535,12 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const portfolioDelta=onchainTotal-customerTotal;
   const fmtFiat=v=>cvFmtFiat(v,appJson)||('$'+v.toLocaleString(undefined,{maximumFractionDigits:2}));
 
+  React.useEffect(()=>{
+    if(displayFindings.length>0&&!displayFindings.find(f=>f.id===selectedId)){
+      setSelectedId(displayFindings[0].id);
+    }
+  },[displayFindings]);
+
   const handleNavigate=nav=>{
     if(!nav)return;
     if(nav.type==='account'&&onViewAccount&&nav.idx>=0)onViewAccount(nav.idx);
@@ -3555,158 +3548,127 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     if(nav.type==='myLedger'&&onViewMyLedger)onViewMyLedger();
   };
 
-  const chipStyle={fontSize:12,padding:'3px 10px',borderRadius:4,fontWeight:600};
-  const severityConfig={
-    red:{color:'#EA4335',bg:'rgba(234,67,53,0.06)',border:'rgba(234,67,53,0.3)',icon:'🔴'},
-    amber:{color:T.warning,bg:'rgba(255,189,66,0.06)',border:'rgba(255,189,66,0.25)',icon:'🟡'},
-    green:{color:'#4FC46B',bg:'rgba(79,196,107,0.04)',border:'rgba(79,196,107,0.15)',icon:'🟢'},
-  };
-  const linkBtnStyle={fontSize:11,padding:'3px 8px',borderRadius:4,border:'1px solid rgba(255,255,255,0.12)',background:'transparent',color:'#8A8A8E',cursor:'pointer',fontWeight:500};
-  const copyBtnStyle={fontSize:11,padding:'3px 8px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'#8A8A8E',cursor:'pointer',fontWeight:500};
-  const filterBtnBase={padding:'5px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer'};
-  const sortBtnBase={padding:'4px 10px',fontSize:10,fontWeight:600,border:'none',cursor:'pointer'};
+  const sc=f=>({red:{color:'#EA4335',bg:'rgba(234,67,53,0.06)',border:'rgba(234,67,53,0.25)',dot:'#EA4335'},amber:{color:T.warning,bg:'rgba(255,189,66,0.06)',border:'rgba(255,189,66,0.2)',dot:T.warning},green:{color:'#4FC46B',bg:'rgba(79,196,107,0.04)',border:'rgba(79,196,107,0.12)',dot:'#4FC46B'}}[f.severity]||{color:'#8A8A8E',bg:'transparent',border:'rgba(255,255,255,0.06)',dot:'#8A8A8E'});
 
-  const renderFinding=f=>{
-    const sc=severityConfig[f.severity];
-    const isOpen=expandedId===f.id;
-    return <div key={f.id} style={{borderLeft:`3px solid ${sc.color}`,background:isOpen?sc.bg:'rgba(255,255,255,0.015)',border:`1px solid ${isOpen?sc.border:'rgba(255,255,255,0.06)'}`,borderLeftWidth:3,borderLeftColor:sc.color,borderRadius:8,marginBottom:8,cursor:'pointer',transition:'background 150ms',overflow:'hidden'}}
-      onClick={()=>setExpandedId(isOpen?null:f.id)}>
-      <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',paddingBottom:f.kind==='account'?6:12}}>
-        <span style={{fontSize:13,flexShrink:0}}>{sc.icon}</span>
-        <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF',flex:1,lineHeight:1.35}}>{f.title}</span>
-        {f.kind==='account'&&(f.badges||[]).map(b=><span key={b} style={{fontSize:9,padding:'1px 6px',borderRadius:3,background:sc.color+'22',color:sc.color,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{b}</span>)}
-        <div style={{display:'flex',gap:5,flexShrink:0}} onClick={e=>e.stopPropagation()}>
-          {f.navigate&&<button onClick={()=>handleNavigate(f.navigate)} style={linkBtnStyle}>View ↗</button>}
-          <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{...copyBtnStyle,color:copiedId===f.id?'#4FC46B':'#8A8A8E'}}>{copiedId===f.id?'✓':'Copy'}</button>
+  const renderDetail=f=>{
+    if(!f)return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#8A8A8E',fontSize:13}}>Select a finding to view details.</div>;
+    const s=sc(f);
+    return <div style={{height:'100%',overflowY:'auto',padding:'20px 24px'}}>
+      <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:16}}>
+        <div style={{width:10,height:10,borderRadius:'50%',background:s.dot,flexShrink:0,marginTop:4}}/>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',lineHeight:1.35,marginBottom:4}}>{f.title}</div>
+          {f.kind==='account'&&(f.badges||[]).length>0&&<div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+            {f.badges.map(b=><span key={b} style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:s.color+'22',color:s.color,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>{b}</span>)}
+          </div>}
+        </div>
+        <div style={{display:'flex',gap:6,flexShrink:0}}>
+          {f.navigate&&<button onClick={()=>handleNavigate(f.navigate)} style={{fontSize:11,padding:'4px 10px',borderRadius:4,border:'1px solid rgba(255,255,255,0.12)',background:'transparent',color:'#8A8A8E',cursor:'pointer'}}>View ↗</button>}
+          <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{fontSize:11,padding:'4px 10px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:copiedId===f.id?'#4FC46B':'#8A8A8E',cursor:'pointer'}}>{copiedId===f.id?'✓ Copied':'Copy'}</button>
         </div>
       </div>
+      {f.kind==='account'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(0,0,0,0.2)',borderRadius:6,overflow:'hidden',marginBottom:14}}>
+        {[['Customer sees',f.custBal,f.custFiat,null],['On-chain',f.liveBal,f.liveFiat,null],['Delta',f.delta,f.deltaFiat,f.severity==='green'?'#4FC46B':f.delta&&f.delta!=='0'?'#EA4335':'#8A8A8E']].map(([label,main,sub,col],ci)=>(
+          <div key={ci} style={{padding:'10px 12px',borderRight:ci<2?'1px solid rgba(255,255,255,0.05)':'none'}}>
+            <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{label}</div>
+            <div style={{fontSize:13,color:col||'#FFFFFF',fontFamily:MF,fontWeight:600}}>{main||'—'}</div>
+            {sub&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{sub}</div>}
+          </div>
+        ))}
+      </div>}
+      <div style={{fontSize:13,color:'#8A8A8E',lineHeight:1.7,marginBottom:14}}>{f.detail}</div>
+      <div style={{padding:'12px 14px',borderRadius:6,background:s.bg,border:`1px solid ${s.border}`,marginBottom:14}}>
+        <div style={{fontSize:10,color:s.color,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5,fontFamily:MF}}>Recommended action</div>
+        <div style={{fontSize:13,color:'#FFFFFF',lineHeight:1.5}}>→ {f.action}</div>
+      </div>
       {f.kind==='account'&&<>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',margin:'0 14px 8px',background:'rgba(0,0,0,0.18)',borderRadius:6,overflow:'hidden'}}>
-          {[['Customer sees',f.custBal,f.custFiat],['On-chain',f.liveBal,f.liveFiat],['Delta',f.delta,f.deltaFiat]].map(([label,main,sub],ci)=>(
-            <div key={ci} style={{padding:'8px 10px',borderRight:ci<2?'1px solid rgba(255,255,255,0.05)':'none'}}>
-              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:3,fontFamily:MF}}>{label}</div>
-              <div style={{fontSize:12,color:ci===2?(f.severity==='green'?'#4FC46B':main&&main!=='0'?'#EA4335':'#8A8A8E'):'#FFFFFF',fontFamily:MF,fontWeight:ci===2?600:400}}>{main||'—'}</div>
-              {sub&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:1}}>{sub}</div>}
-            </div>
-          ))}
-        </div>
-        <div style={{fontSize:12,color:'#FFFFFF',fontWeight:500,margin:'0 14px 12px',paddingLeft:2,lineHeight:1.4}}>→ {f.action}</div>
-      </>}
-      {f.kind==='system'&&!isOpen&&<div style={{fontSize:12,color:'#FFFFFF',fontWeight:500,padding:'0 14px 12px 36px',lineHeight:1.4}}>→ {f.action}</div>}
-      {isOpen&&<div style={{background:'rgba(0,0,0,0.12)',borderTop:'1px solid rgba(255,255,255,0.05)',padding:'12px 14px'}}>
-        <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.7,marginBottom:10}}>{f.detail}</div>
-        {f.kind==='system'&&<div style={{fontSize:12,color:'#FFFFFF',fontWeight:600,marginBottom:10,borderLeft:'3px solid '+sc.color,paddingLeft:10}}>→ {f.action}</div>}
-        {f.kind==='account'&&<>
-          {(f._subAccounts||[]).length>0&&<div style={{marginBottom:8}}>
-            <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,fontFamily:MF}}>Tokens ({f._subAccounts.length})</div>
-            {f._subAccounts.slice(0,5).map((s,i)=>{
-              const nm=(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
-              const td=getTokenDecimals(s.tokenId||'',f._acctCid||'');
-              const th=s.balance?parseFloat(s.balance)/Math.pow(10,td):0;
-              return <div key={i} style={{fontSize:11,color:'#8A8A8E',padding:'2px 0'}}>{nm}: <span style={{color:'#FFFFFF',fontFamily:MF}}>{th.toLocaleString(undefined,{maximumFractionDigits:4})}</span> · {s.operationsCount||0} ops</div>;
-            })}
-            {f._subAccounts.length>5&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>+{f._subAccounts.length-5} more tokens</div>}
-          </div>}
-          {(f._pendingOps||[]).length>0&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>⏳ {f._pendingOps.length} pending: {f._pendingOps.slice(0,3).map(op=>(op.type||'?').toUpperCase()).join(', ')}</div>}
-          {(f._failedCount||0)>0&&<div style={{fontSize:11,color:'#EA4335',marginBottom:6}}>✕ {f._failedCount} failed transaction{f._failedCount!==1?'s':''}</div>}
-          {f._blockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',fontFamily:MF,marginBottom:6}}>Last synced block: {Number(f._blockHeight).toLocaleString()}</div>}
-        </>}
-        {(f.evidence||[]).length>0&&<div style={{borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:8,marginTop:4}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Evidence</div>
-          {f.evidence.map((ev,i)=><div key={i} style={{fontSize:11,color:'#8A8A8E',padding:'2px 0 2px 8px',borderLeft:'1px solid rgba(255,255,255,0.06)'}}><span style={{color:'#FFFFFF',fontWeight:500}}>{ev.label}:</span> {ev.detail}</div>)}
+        {(f._subAccounts||[]).length>0&&<div style={{marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6,fontFamily:MF}}>Tokens ({f._subAccounts.length})</div>
+          {f._subAccounts.slice(0,5).map((sa,i)=>{
+            const nm=(sa.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
+            const td=getTokenDecimals(sa.tokenId||'',f._acctCid||'');
+            const th=sa.balance?parseFloat(sa.balance)/Math.pow(10,td):0;
+            return <div key={i} style={{fontSize:12,color:'#8A8A8E',padding:'3px 0',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>{nm}: <span style={{color:'#FFFFFF',fontFamily:MF}}>{th.toLocaleString(undefined,{maximumFractionDigits:4})}</span> · {sa.operationsCount||0} ops</div>;
+          })}
+          {f._subAccounts.length>5&&<div style={{fontSize:11,color:'#8A8A8E',marginTop:4}}>+{f._subAccounts.length-5} more</div>}
         </div>}
+        {(f._pendingOps||[]).length>0&&<div style={{fontSize:12,color:T.warning,marginBottom:8}}>⏳ {f._pendingOps.length} pending op{f._pendingOps.length!==1?'s':''}: {f._pendingOps.slice(0,3).map(op=>(op.type||'?').toUpperCase()).join(', ')}</div>}
+        {(f._failedCount||0)>0&&<div style={{fontSize:12,color:'#EA4335',marginBottom:8}}>✕ {f._failedCount} failed tx{f._failedCount!==1?'s':''}</div>}
+        {f._blockHeight!=null&&<div style={{fontSize:12,color:'#8A8A8E',fontFamily:MF,marginBottom:8}}>Last synced block: {Number(f._blockHeight).toLocaleString()}</div>}
+      </>}
+      {(f.evidence||[]).length>0&&<div>
+        <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8,fontFamily:MF}}>Evidence</div>
+        {f.evidence.map((ev,i)=><div key={i} style={{fontSize:12,color:'#8A8A8E',padding:'4px 0 4px 10px',borderLeft:'2px solid rgba(255,255,255,0.08)',marginBottom:3}}><span style={{color:'#FFFFFF',fontWeight:500}}>{ev.label}:</span> {ev.detail}</div>)}
       </div>}
     </div>;
   };
 
-  return <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
-    {/* ── Fixed header ── */}
-    <div className="cv-content-header" style={{flexShrink:0,paddingBottom:12}}>
-      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BBB0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span style={{fontSize:20,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
-        <span style={{fontSize:10,padding:'2px 8px',borderRadius:4,background:'rgba(187,176,255,0.15)',color:'#BBB0FF',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>Diagnostic</span>
+  return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+    {/* Row 1 — Header */}
+    <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:10,padding:'12px 20px 10px',borderBottom:'1px solid rgba(255,255,255,0.06)',flexWrap:'wrap'}}>
+      <span style={{fontSize:15,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
+      <span style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:'rgba(187,176,255,0.12)',color:'#BBB0FF',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',fontFamily:MF}}>DIAGNOSTIC</span>
+      <div style={{display:'flex',gap:5,marginLeft:2}}>
+        {redCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(234,67,53,0.12)',color:'#EA4335',fontWeight:600}}>{redCount} critical</span>}
+        {amberCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(255,189,66,0.1)',color:T.warning,fontWeight:600}}>{amberCount} warning</span>}
+        {greenCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(79,196,107,0.08)',color:'#4FC46B',fontWeight:600}}>{greenCount} ok</span>}
       </div>
-      <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.5,marginBottom:10}}>
-        Compares what the customer sees (app.json) to what's actually on-chain. <strong style={{color:'#FFFFFF'}}>Red items need action.</strong>
+      <div style={{marginLeft:'auto',display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:5,overflow:'hidden'}}>
+        <button onClick={()=>setViewMode('issues')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
+        <button onClick={()=>setViewMode('all')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All ({findings.length})</button>
       </div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
-        {redCount>0&&<span style={{...chipStyle,background:'rgba(234,67,53,0.12)',color:'#EA4335'}}>{redCount} issue{redCount!==1?'s':''}</span>}
-        {amberCount>0&&<span style={{...chipStyle,background:'rgba(255,189,66,0.12)',color:T.warning}}>{amberCount} warning{amberCount!==1?'s':''}</span>}
-        <span style={{...chipStyle,background:'rgba(79,196,107,0.08)',color:'#4FC46B'}}>{greenCount} healthy</span>
-      </div>
-      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-        <div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden'}}>
-          <button onClick={()=>setViewMode('issues')} style={{...filterBtnBase,background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
-          <button onClick={()=>setViewMode('all')} style={{...filterBtnBase,background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All accounts ({(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null).length})</button>
-        </div>
-        {viewMode==='all'&&<div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden'}}>
-          {[['severity','Status'],['value','Value'],['name','Name']].map(([v,label])=>(
-            <button key={v} onClick={()=>setSortBy(v)} style={{...sortBtnBase,background:sortBy===v?'rgba(187,176,255,0.15)':'transparent',color:sortBy===v?'#BBB0FF':'#8A8A8E'}}>{label}</button>
-          ))}
-        </div>}
-      </div>
-      {!hasAppJson&&<div style={{marginTop:10,padding:'8px 14px',borderRadius:6,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:12,color:T.warning,lineHeight:1.5}}>
-        <strong>Limited comparison:</strong> No app.json loaded. Load the customer's app.json for the full "what they see vs. reality" comparison.
-      </div>}
     </div>
-    {/* ── Scrollable feed ── */}
-    <div style={{flex:1,overflowY:'auto',padding:'8px 32px 32px'}}>
-      {issueFindings.length===0&&viewMode==='issues'&&<div style={{padding:'32px 0',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>No issues detected — all checks are healthy.</div>}
-      {issueFindings.map(f=>renderFinding(f))}
-      {greenFindings.length>0&&viewMode==='issues'&&<div style={{padding:'8px 14px',borderRadius:8,background:'rgba(79,196,107,0.03)',border:'1px solid rgba(79,196,107,0.1)',marginBottom:8,cursor:'pointer',display:'flex',alignItems:'center',gap:8}} onClick={()=>setShowHealthy(!showHealthy)}>
-        <span style={{fontSize:13}}>🟢</span>
-        <span style={{fontSize:12,color:'#4FC46B',fontWeight:600}}>{greenFindings.length} healthy check{greenFindings.length!==1?'s':''}</span>
-        <span style={{fontSize:10,color:'#8A8A8E',marginLeft:'auto'}}>{showHealthy?'▴ collapse':'▸ expand'}</span>
-      </div>}
-      {showHealthy&&viewMode==='issues'&&greenFindings.map(f=>renderFinding(f))}
-      {viewMode==='all'&&greenFindings.map(f=>renderFinding(f))}
-      {(customerTotal>0||onchainTotal>0)&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,marginTop:4,marginBottom:16,overflow:'hidden'}}>
-        {[['Customer Total',fmtFiat(customerTotal),'#FFFFFF'],['On-chain Total',fmtFiat(onchainTotal),'#FFFFFF'],['Portfolio Delta',(portfolioDelta>=0?'+':'')+fmtFiat(Math.abs(portfolioDelta)),portfolioDelta>0.01?'#4FC46B':portfolioDelta<-0.01?'#EA4335':'#8A8A8E']].map(([label,val,col],ci)=>(
-          <div key={ci} style={{padding:'12px 16px',borderRight:ci<2?'1px solid rgba(255,255,255,0.06)':'none'}}>
-            <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{label}</div>
-            <div style={{fontSize:15,fontWeight:700,color:col}}>{val}</div>
-          </div>
-        ))}
-      </div>}
-      <div style={{display:'flex',gap:10,marginBottom:16}}>
-        {Object.keys(ajSettings).length>0&&(()=>{
-          const fmt=v=>v==null?null:v===true?'On':v===false?'Off':String(v);
-          const rows=[
-            ['Fiat currency',ajSettings.counterValue||'USD'],
-            ['Countervalue first',ajSettings.countervalueFirst!=null?fmt(ajSettings.countervalueFirst):null],
-            ['Theme',ajSettings.theme],['Language',ajSettings.language],['Account order',ajSettings.orderAccounts],
-            ['Developer mode',ajSettings.developerMode!=null?fmt(ajSettings.developerMode):null,ajSettings.developerMode===true?T.warning:null],
-            ['Hide empty tokens',ajSettings.hideEmptyTokenAccounts!=null?fmt(ajSettings.hideEmptyTokenAccounts):null],
-            ['Discreet mode',ajSettings.discreetMode!=null?fmt(ajSettings.discreetMode):null],
-            ['Last app version',ajSettings.lastUsedVersion],
-            ['Paired devices',(ajSettings.devicesModelList||[]).length>0?String((ajSettings.devicesModelList||[]).length):null],
-          ].filter(([,v])=>v!=null);
-          if(rows.length===0)return null;
-          return <div style={{flex:1,background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,overflow:'hidden'}}>
-            <div style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setShowSettings(!showSettings)}>
-              <span style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:MF,flex:1}}>Customer Settings</span>
-              <span style={{fontSize:10,color:'#8A8A8E'}}>{showSettings?'▴':'▸'}</span>
+    {/* Row 2 — Stat cards */}
+    <div style={{flexShrink:0,display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,padding:'10px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
+        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Portfolio</div>
+        <div style={{fontSize:14,fontWeight:700,color:'#FFFFFF',marginBottom:2}}>{customerTotal>0?fmtFiat(customerTotal):'—'}</div>
+        {portfolioDelta!==0&&customerTotal>0
+          ?<div style={{fontSize:10,color:portfolioDelta>0.01?'#4FC46B':portfolioDelta<-0.01?'#EA4335':'#8A8A8E'}}>{portfolioDelta>=0?'+':''}{fmtFiat(Math.abs(portfolioDelta))} on-chain</div>
+          :<div style={{fontSize:10,color:'#8A8A8E'}}>{totalAcctCount} account{totalAcctCount!==1?'s':''}</div>}
+      </div>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
+        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Device</div>
+        <div style={{fontSize:14,fontWeight:700,color:'#FFFFFF',marginBottom:2}}>{dev.modelId?DN[dev.modelId]||dev.modelId:'—'}</div>
+        <div style={{fontSize:10,color:firmwareCheck?.outdated?T.warning:'#8A8A8E'}}>{firmwareCheck?.current?`FW ${firmwareCheck.current}`:`FW ${dev.fw||'—'}`}{firmwareCheck?.outdated?' ⬆':''}</div>
+      </div>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
+        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Live Data</div>
+        <div style={{fontSize:14,fontWeight:700,color:fetchedCount>0?'#FFFFFF':'#8A8A8E',marginBottom:2}}>{fetchedCount}/{acctCount}</div>
+        <div style={{fontSize:10,color:fetchedCount===acctCount&&acctCount>0?'#4FC46B':fetchedCount>0?T.warning:'#8A8A8E'}}>{fetchedCount===0?'None fetched':fetchedCount===acctCount?'All live':'Partial'}</div>
+      </div>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
+        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Customer</div>
+        <div style={{fontSize:14,fontWeight:700,color:'#FFFFFF',marginBottom:2}}>{llLabel(dev)} {dev.appVer||'—'}</div>
+        <div style={{fontSize:10,color:appVersionCheck?.outdated?T.warning:'#8A8A8E'}}>{hasAppJson?'app.json loaded':'no app.json'}{ajSettings.developerMode?' · dev mode':''}</div>
+      </div>
+    </div>
+    {!hasAppJson&&<div style={{flexShrink:0,margin:'6px 20px 0',padding:'6px 12px',borderRadius:5,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:11,color:T.warning}}>
+      <strong>Limited:</strong> Load customer's app.json to enable balance comparison.
+    </div>}
+    {/* Row 3 — Master-detail */}
+    <div style={{flex:1,overflow:'hidden',minHeight:0,display:'flex'}}>
+      {/* Left — findings list */}
+      <div style={{width:'38%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.06)',overflowY:'auto',padding:'6px 0'}}>
+        {displayFindings.length===0&&<div style={{padding:'24px 16px',color:'#8A8A8E',fontSize:12,textAlign:'center'}}>No issues — all checks healthy.</div>}
+        {displayFindings.map(f=>{
+          const s=sc(f);
+          const isSel=selectedId===f.id;
+          return <div key={f.id} onClick={()=>setSelectedId(f.id)}
+            style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isSel?s.color+'0F':'transparent',borderLeft:isSel?`2px solid ${s.color}`:'2px solid transparent',transition:'background 120ms'}}>
+            <div style={{width:7,height:7,borderRadius:'50%',background:s.dot,flexShrink:0}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:isSel?600:400,color:isSel?'#FFFFFF':'#C0C0C0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.title}</div>
+              {f.kind==='account'&&(f.badges||[]).length>0&&<div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}>
+                {f.badges.map(b=><span key={b} style={{fontSize:9,padding:'1px 5px',borderRadius:2,background:s.color+'1A',color:s.color,fontWeight:700}}>{b}</span>)}
+              </div>}
             </div>
-            {showSettings&&<div style={{padding:'0 14px 14px'}}>
-              {rows.map(([label,value,valCol],i)=><div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:12,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:12,color:valCol||'#FFFFFF',fontWeight:500}}>{value}</span></div>)}
-            </div>}
           </div>;
-        })()}
-        <div style={{flex:1,background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,overflow:'hidden'}}>
-          <div style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setShowConfidence(!showConfidence)}>
-            <span style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:MF,flex:1}}>Data Confidence</span>
-            <span style={{fontSize:10,color:'#8A8A8E'}}>{showConfidence?'▴':'▸'}</span>
-          </div>
-          {showConfidence&&<div style={{padding:'0 14px 14px'}}>
-            {[
-              ['Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E'],
-              ['App catalog',versionCheck?.status==='ok'?`${versionCheck.catalogSize||versionCheck.apps?.length||0} apps loaded`:versionCheck?.status==='loading'?'Checking…':'Unavailable',versionCheck?.status==='ok'?'#4FC46B':versionCheck?.status==='loading'?'#8A8A8E':T.warning],
-              ['Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning],
-              [llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning],
-            ].map(([label,value,col],i)=><div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:12,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:12,color:col,fontWeight:500}}>{value}</span></div>)}
-          </div>}
-        </div>
+        })}
+      </div>
+      {/* Right — detail panel */}
+      <div style={{flex:1,overflow:'hidden',minWidth:0}}>
+        {renderDetail(selectedFinding)}
       </div>
     </div>
   </div>;
