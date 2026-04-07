@@ -90,6 +90,25 @@ Push workflow: sandbox blocks HTTPS push — use `! git push origin main` direct
 
 ---
 
+### Documentation Sync — Guides Updated
+
+Both embedded guides (`GUIDE_AGENT`, `GUIDE_TECHNICAL` in `ledger-toolkit.html`) and standalone files (`agent-guide.html`, `technical-reference.html`) updated to reflect this session's work. 320 lines added across the three files.
+
+**Agent Guide additions:**
+- Customer View section expanded: 5-tab overview (Portfolio, Accounts, Earn, My Ledger, Agent Insights)
+- New section: Agent Insights how-to (layout, usage steps, consistent pricing note)
+- New section: Staking Awareness (detection, chain labels, SOL note, warn box)
+- New section: Earn Tab investigation guide (rewards sub-tab, validator expand, LSTs, Earn opportunities)
+- Investigation playbooks updated: `s-balance` references Agent Insights + Earn; `s-verify` replaced with 5-tab walkthrough + key flows
+- ToC: 4 new indent entries; Troubleshooting: CV empty state updated, staking false-positive entry added
+
+**Technical Reference additions:**
+- New major section: Customer View Architecture (6 subsections: Enrichment Pipeline, Countervalue System, Agent Insights Findings Engine, Staking Detection, Earn Data Extraction, Rendering Components)
+- ToC: 7 new entries before Network Analysis
+- Multi-Source Triangulation: paragraph added for three-layer balance comparison model
+
+---
+
 ## Backlog (carried forward)
 
 ### Design language
@@ -101,8 +120,8 @@ Push workflow: sandbox blocks HTTPS push — use `! git push origin main` direct
 4. **Network/APDU/Raw JSON tab brand alignment** — not started.
 
 ### Customer View
-5. **Agent Insights + Earn documentation** — guide overlays not yet updated to cover these tabs.
-6. **Agent Insights: real-data testing** — needs testing with actual app.json exports.
+5. **Agent Insights: real-data testing** — needs testing with actual app.json exports.
+6. **Earn tab: real-data testing** — verify staking position extraction and LST detection with real exports.
 
 ### Other
 7. **Responsiveness audit** — click-outside handlers may still have stopPropagation issues.
