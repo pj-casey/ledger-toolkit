@@ -3327,11 +3327,13 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
 }
 
 function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
-  const[expandedFinding,setExpandedFinding]=useState(null);
+  const[expandedId,setExpandedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
-  const[ttFilter,setTtFilter]=useState('issues');
-  const[ttSort,setTtSort]=useState('status');
-  const[ttExpanded,setTtExpanded]=useState(null);
+  const[viewMode,setViewMode]=useState('issues');
+  const[sortBy,setSortBy]=useState('severity');
+  const[showSettings,setShowSettings]=useState(false);
+  const[showConfidence,setShowConfidence]=useState(false);
+  const[showHealthy,setShowHealthy]=useState(false);
   const errs=logData.errs||[];
   const highCount=errs.filter(e=>e.dg?.s==='high').length;
   const medCount=errs.filter(e=>e.dg?.s==='medium').length;
@@ -3344,63 +3346,61 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const fetchedCount=lbVals.filter(v=>v?.status==='ok'&&v.bal!=null).length;
   const acctCount=Math.max(logData.accts?.length||0,(enrichedAccts||[]).length);
   const hasAppJson=(enrichedAccts||[]).some(a=>a.enriched&&a.ajBalance!=null);
-  // ── Triage engine ──────────────────────────────────────────────────────────
+  const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
+  // ── Unified findings engine ─────────────────────────────────────────────────
   const findings=React.useMemo(()=>{
     const f=[];
-    const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
-    // 1. Balance mismatches
-    const compared=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null&&liveBalances[a.id]?.bal!=null);
-    const mismatches=compared.filter(a=>{
+    // ── Per-account findings ──────────────────────────────────────────────────
+    (enrichedAccts||[]).forEach((a,idx)=>{
+      if(!a.enriched||a.ajBalance==null)return;
       const dec=DECIMALS[a.cid]||18;
       const cust=parseFloat(a.ajBalance)/Math.pow(10,dec);
-      const live=liveBalances[a.id].bal;
-      const pct=cust>0?Math.abs(live-cust)/cust*100:0;
-      return pct>0.01;
+      const lbEntry=liveBalances[a.id];
+      const live=lbEntry?.bal!=null?lbEntry.bal:null;
+      const hasBoth=cust!=null&&live!=null;
+      const delta=hasBoth?live-cust:null;
+      const pct=hasBoth&&cust>0?Math.abs(delta)/cust*100:0;
+      const isMismatch=hasBoth&&pct>0.01;
+      const pendingCount=(a.ajPendingOps||[]).length;
+      const failedCount=(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length;
+      const hasLogErrs=a.addr&&a.addr.length>4&&errs.some(e=>(e.det||e.msg||'').includes(a.addr));
+      const isIssue=isMismatch||pendingCount>0||failedCount>0||hasLogErrs;
+      if(!isIssue&&viewMode!=='all')return;
+      const custFiatVal=cvFiatValue(appJson,a.cid,a.ajBalance);
+      const liveFiatVal=lbEntry?.fiat!=null?lbEntry.fiat:null;
+      const ticker=a.ch.ticker;
+      const badges=[];
+      if(isMismatch)badges.push('MISMATCH');
+      if(pendingCount>0)badges.push(`${pendingCount} PENDING`);
+      if(failedCount>0)badges.push(`${failedCount} FAILED`);
+      if(hasLogErrs&&!isMismatch&&pendingCount===0&&failedCount===0)badges.push('LOG ERRORS');
+      const severity=isIssue?(isMismatch||pendingCount>0?'red':'amber'):'green';
+      const title=isMismatch?`Balance mismatch — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
+      const statusLabel=lbEntry?.status==='loading'?'···':!live?'no live data':isMismatch?(delta>0?'▲ on-chain higher':'▼ on-chain lower'):hasBoth?'✓ match':'—';
+      const acctErrs=a.addr&&a.addr.length>4?errs.filter(e=>(e.det||e.msg||'').includes(a.addr)).slice(0,2):[];
+      f.push({
+        id:`acct-${a.id}`,kind:'account',severity,title,acctIdx:idx,
+        custBal:cust!=null?cust.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
+        custFiat:cvFmtFiat(custFiatVal,appJson),
+        liveBal:live!=null?live.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:lbEntry?.status==='loading'?'···':null,
+        liveFiat:cvFmtFiat(liveFiatVal,appJson),
+        delta:delta!=null&&Math.abs(delta)>=0.000001?(delta>0?'+':'')+delta.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:hasBoth?'0':null,
+        deltaFiat:custFiatVal!=null&&liveFiatVal!=null?cvFmtFiat(liveFiatVal-custFiatVal,appJson):null,
+        statusLabel,badges,
+        detail:isMismatch?`The customer's app shows ${cust.toFixed(4)} ${ticker} but the blockchain has ${live.toFixed(4)} ${ticker}. This usually means the app hasn't synced recently.`:pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':'Balance matches on-chain.',
+        action:isMismatch?'Ask customer to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.':pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
+        navigate:{type:'account',idx},
+        copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatVal!=null?' ('+cvFmtFiat(liveFiatVal,appJson)+')':''}\n  Delta: ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}`,
+        evidence:[
+          ...(a.ajSubAccounts||[]).slice(0,3).map(s=>({label:(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' '),detail:s.balance?(parseFloat(s.balance)/Math.pow(10,getTokenDecimals(s.tokenId||'',a.cid))).toLocaleString(undefined,{maximumFractionDigits:4}):'0'})),
+          ...acctErrs.map(e=>({label:'Log error',detail:e.dg?.t||e.msg||'Unknown'})),
+          ...(a.ajBlockHeight!=null?[{label:'Last synced block',detail:Number(a.ajBlockHeight).toLocaleString()}]:[]),
+        ],
+        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,
+      });
     });
-    if(mismatches.length>0){
-      const names=mismatches.slice(0,3).map(a=>a.displayName).join(', ')+(mismatches.length>3?`, +${mismatches.length-3} more`:'');
-      f.push({id:'balance-mismatch',severity:'red',
-        title:`${mismatches.length} balance mismatch${mismatches.length!==1?'es':''} detected`,
-        detail:`The customer's wallet app shows different balances than what's actually on-chain. This usually means the app hasn't synced recently. Affected: ${names}.`,
-        action:'Ask the customer to force-sync: Menu → My Accounts → swipe down to refresh. If it persists, try clearing the app cache.',
-        navigate:mismatches.length===1?{type:'account',idx:(enrichedAccts||[]).indexOf(mismatches[0])}:{type:'portfolio'},
-        copyText:`Balance mismatch detected on ${mismatches.length} account${mismatches.length!==1?'s':''}:\n${mismatches.map(a=>{const dec=DECIMALS[a.cid]||18;const cust=(parseFloat(a.ajBalance)/Math.pow(10,dec)).toLocaleString(undefined,{maximumFractionDigits:6});const live=liveBalances[a.id].bal.toLocaleString(undefined,{maximumFractionDigits:6});return`  ${a.displayName}: app shows ${cust} ${a.ch.ticker}, on-chain is ${live} ${a.ch.ticker}`;}).join('\n')}\nAction: Ask customer to force-sync wallet.`,
-        evidence:mismatches.slice(0,3).map(a=>{const dec=DECIMALS[a.cid]||18;const cust=(parseFloat(a.ajBalance)/Math.pow(10,dec)).toFixed(6);const live=liveBalances[a.id].bal.toFixed(6);return{label:a.displayName,detail:`app: ${cust} | on-chain: ${live} ${a.ch.ticker}`};})
-      });
-    } else if(compared.length>0){
-      f.push({id:'balance-ok',severity:'green',title:`All ${compared.length} compared balance${compared.length!==1?'s':''} match on-chain`,detail:'No sync issues detected for accounts with live balance data.',action:'No action needed.',navigate:null,copyText:`Balances verified: ${compared.length} account(s) match on-chain.`,evidence:[]});
-    }
-    // 2. Pending operations
-    const pendingAccts=(enrichedAccts||[]).filter(a=>(a.ajPendingOps||[]).length>0);
-    const totalPending=pendingAccts.reduce((s,a)=>s+(a.ajPendingOps||[]).length,0);
-    if(totalPending>0){
-      f.push({id:'pending-ops',severity:'red',
-        title:`${totalPending} pending/stuck transaction${totalPending!==1?'s':''}`,
-        detail:`${pendingAccts.length} account${pendingAccts.length!==1?'s have':' has'} unconfirmed transactions. These may be stuck due to low fees, network congestion, or nonce issues.`,
-        action:'Check if the transaction is visible on the chain explorer. If stuck, the customer may need to speed up (replace-by-fee) or cancel the transaction.',
-        navigate:pendingAccts.length===1?{type:'account',idx:(enrichedAccts||[]).indexOf(pendingAccts[0])}:{type:'portfolio'},
-        copyText:`${totalPending} pending transaction${totalPending!==1?'s':''} on ${pendingAccts.length} account${pendingAccts.length!==1?'s':''}:\n${pendingAccts.map(a=>`  ${a.displayName}: ${(a.ajPendingOps||[]).length} pending`).join('\n')}`,
-        evidence:pendingAccts.slice(0,3).map(a=>({label:a.displayName,detail:`${(a.ajPendingOps||[]).length} pending op${(a.ajPendingOps||[]).length!==1?'s':''}`}))
-      });
-    } else if(hasAppJson){
-      f.push({id:'pending-ok',severity:'green',title:'No pending transactions',detail:'No accounts have stuck or unconfirmed transactions.',action:'No action needed.',navigate:null,copyText:'Pending transactions: none.',evidence:[]});
-    }
-    // 3. Failed operations
-    const failedAccts=(enrichedAccts||[]).filter(a=>(a.ajOperations||[]).some(op=>op.hasFailed||op.status==='failed'));
-    const totalFailed=failedAccts.reduce((s,a)=>s+(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length,0);
-    if(totalFailed>0){
-      f.push({id:'failed-ops',severity:'amber',
-        title:`${totalFailed} failed transaction${totalFailed!==1?'s':''} in history`,
-        detail:`${failedAccts.length} account${failedAccts.length!==1?'s have':' has'} failed transactions on record. These could indicate past issues with gas, network, or rejected contract calls.`,
-        action:'Review the failed transactions in Customer View → Accounts for context. If recent, investigate the error reason.',
-        navigate:{type:'portfolio'},
-        copyText:`${totalFailed} failed transaction${totalFailed!==1?'s':''} found on ${failedAccts.length} account${failedAccts.length!==1?'s':''}.`,
-        evidence:failedAccts.slice(0,3).map(a=>({label:a.displayName,detail:`${(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length} failed`}))
-      });
-    } else if(hasAppJson){
-      f.push({id:'failed-ok',severity:'green',title:'No failed transactions in history',detail:'No accounts have failed operations on record.',action:'No action needed.',navigate:null,copyText:'Failed transactions: none.',evidence:[]});
-    }
-    // 4. Countervalue drift
+    // ── System findings ───────────────────────────────────────────────────────
+    // Countervalue drift
     if(hasAppJson&&fetchedCount>0){
       const drifts=[];
       const seenCids=new Set();
@@ -3517,14 +3517,36 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     } else if(fetchedCount>0){
       f.push({id:'data-confidence',severity:'green',title:`${fetchedCount}/${acctCount} live balances fetched`,detail:'Live balance data is available for comparison.',action:'No action needed.',navigate:null,copyText:`Data: ${fetchedCount}/${acctCount} balances live.`,evidence:[]});
     }
-    // Sort: red → amber → green
+    // Sort: red → amber → green, then by sortBy within tier
     const order={red:0,amber:1,green:2};
-    return f.sort((a,b)=>order[a.severity]-order[b.severity]);
-  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount]);
+    f.sort((a,b)=>{
+      const sd=order[a.severity]-order[b.severity];
+      if(sd!==0)return sd;
+      if(sortBy==='value'&&a.kind==='account'&&b.kind==='account'){
+        const av=parseFloat((a.custFiat||'0').replace(/[^0-9.-]/g,''))||0;
+        const bv=parseFloat((b.custFiat||'0').replace(/[^0-9.-]/g,''))||0;
+        return bv-av;
+      }
+      if(sortBy==='name')return(a.title||'').localeCompare(b.title||'');
+      return 0;
+    });
+    return f;
+  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,sortBy]);
 
   const redCount=findings.filter(f=>f.severity==='red').length;
   const amberCount=findings.filter(f=>f.severity==='amber').length;
   const greenCount=findings.filter(f=>f.severity==='green').length;
+  const issueFindings=findings.filter(f=>f.severity!=='green');
+  const greenFindings=findings.filter(f=>f.severity==='green');
+  const issueCount=findings.filter(f=>f.kind==='account'&&f.severity!=='green').length;
+
+  const customerTotal=(enrichedAccts||[]).reduce((s,a)=>{
+    if(!a.enriched||a.ajBalance==null)return s;
+    return s+(cvFiatValue(appJson,a.cid,a.ajBalance)||0);
+  },0);
+  const onchainTotal=(enrichedAccts||[]).reduce((s,a)=>s+((liveBalances[a.id])?.fiat||0),0);
+  const portfolioDelta=onchainTotal-customerTotal;
+  const fmtFiat=v=>cvFmtFiat(v,appJson)||('$'+v.toLocaleString(undefined,{maximumFractionDigits:2}));
 
   const handleNavigate=nav=>{
     if(!nav)return;
@@ -3541,238 +3563,151 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   };
   const linkBtnStyle={fontSize:11,padding:'3px 8px',borderRadius:4,border:'1px solid rgba(255,255,255,0.12)',background:'transparent',color:'#8A8A8E',cursor:'pointer',fontWeight:500};
   const copyBtnStyle={fontSize:11,padding:'3px 8px',borderRadius:4,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'#8A8A8E',cursor:'pointer',fontWeight:500};
-  const accentCard=(children)=><div style={{background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,padding:'16px 20px',marginBottom:12}}>{children}</div>;
-  const cardTitle=(t)=><div style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12,fontFamily:MF}}>{t}</div>;
-  const infoRow=(label,value,valueColor)=><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:13,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:13,color:valueColor||'#FFFFFF',fontWeight:500}}>{value}</span></div>;
+  const filterBtnBase={padding:'5px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer'};
+  const sortBtnBase={padding:'4px 10px',fontSize:10,fontWeight:600,border:'none',cursor:'pointer'};
 
-  // ── Truth Table data ────────────────────────────────────────────────────────
-  const ttAccts=React.useMemo(()=>{
-    const all=(enrichedAccts||[]).map((a,globalIdx)=>{
-      const lbEntry=liveBalances[a.id];
-      const dec=DECIMALS[a.cid]||18;
-      const custBal=a.ajBalance!=null?parseFloat(a.ajBalance)/Math.pow(10,dec):null;
-      const liveBal=lbEntry?.bal!=null?lbEntry.bal:null;
-      const hasBoth=custBal!=null&&liveBal!=null;
-      const delta=hasBoth?liveBal-custBal:null;
-      const pct=hasBoth&&custBal>0?Math.abs(delta)/custBal*100:0;
-      const isMismatch=hasBoth&&pct>0.01;
-      const custFiat=custBal!=null?cvFiatValue(appJson,a.cid,a.ajBalance):null;
-      const liveFiat=lbEntry?.fiat!=null?lbEntry.fiat:null;
-      const status=lbEntry?.status==='loading'?'loading':lbEntry?.status==='error'?'error':isMismatch?'mismatch':hasBoth?'match':a.ajBalance!=null?'no-live':'no-data';
-      const hasPending=(a.ajPendingOps||[]).length>0;
-      const failedCount=(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length;
-      const hasFailedOps=failedCount>0;
-      const hasLogErrs=a.addr&&a.addr.length>4&&errs.some(e=>(e.det||e.msg||'').includes(a.addr));
-      const isIssue=isMismatch||hasPending||hasFailedOps||hasLogErrs;
-      return{...a,globalIdx,custBal,liveBal,delta,pct,isMismatch,custFiat,liveFiat,status,hasPending,hasFailedOps,failedCount,hasLogErrs,isIssue};
-    });
-    let filtered=ttFilter==='issues'?all.filter(a=>a.isIssue):all;
-    if(ttSort==='value')filtered=[...filtered].sort((a,b)=>(b.custFiat||0)-(a.custFiat||0));
-    else if(ttSort==='name')filtered=[...filtered].sort((a,b)=>(a.displayName||'').localeCompare(b.displayName||''));
-    else if(ttSort==='drift')filtered=[...filtered].sort((a,b)=>b.pct-a.pct);
-    else filtered=[...filtered].sort((a,b)=>{const o={mismatch:0,'error':1,'loading':2,'no-data':3,match:4,'no-live':5};return(o[a.status]||9)-(o[b.status]||9);});
-    return{all,filtered};
-  },[enrichedAccts,liveBalances,appJson,ttFilter,ttSort,errs]);
+  const renderFinding=f=>{
+    const sc=severityConfig[f.severity];
+    const isOpen=expandedId===f.id;
+    return <div key={f.id} style={{borderLeft:`3px solid ${sc.color}`,background:isOpen?sc.bg:'rgba(255,255,255,0.015)',border:`1px solid ${isOpen?sc.border:'rgba(255,255,255,0.06)'}`,borderLeftWidth:3,borderLeftColor:sc.color,borderRadius:8,marginBottom:8,cursor:'pointer',transition:'background 150ms',overflow:'hidden'}}
+      onClick={()=>setExpandedId(isOpen?null:f.id)}>
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',paddingBottom:f.kind==='account'?6:12}}>
+        <span style={{fontSize:13,flexShrink:0}}>{sc.icon}</span>
+        <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF',flex:1,lineHeight:1.35}}>{f.title}</span>
+        {f.kind==='account'&&(f.badges||[]).map(b=><span key={b} style={{fontSize:9,padding:'1px 6px',borderRadius:3,background:sc.color+'22',color:sc.color,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{b}</span>)}
+        <div style={{display:'flex',gap:5,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+          {f.navigate&&<button onClick={()=>handleNavigate(f.navigate)} style={linkBtnStyle}>View ↗</button>}
+          <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{...copyBtnStyle,color:copiedId===f.id?'#4FC46B':'#8A8A8E'}}>{copiedId===f.id?'✓':'Copy'}</button>
+        </div>
+      </div>
+      {f.kind==='account'&&<>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',margin:'0 14px 8px',background:'rgba(0,0,0,0.18)',borderRadius:6,overflow:'hidden'}}>
+          {[['Customer sees',f.custBal,f.custFiat],['On-chain',f.liveBal,f.liveFiat],['Delta',f.delta,f.deltaFiat]].map(([label,main,sub],ci)=>(
+            <div key={ci} style={{padding:'8px 10px',borderRight:ci<2?'1px solid rgba(255,255,255,0.05)':'none'}}>
+              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:3,fontFamily:MF}}>{label}</div>
+              <div style={{fontSize:12,color:ci===2?(f.severity==='green'?'#4FC46B':main&&main!=='0'?'#EA4335':'#8A8A8E'):'#FFFFFF',fontFamily:MF,fontWeight:ci===2?600:400}}>{main||'—'}</div>
+              {sub&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:1}}>{sub}</div>}
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:12,color:'#FFFFFF',fontWeight:500,margin:'0 14px 12px',paddingLeft:2,lineHeight:1.4}}>→ {f.action}</div>
+      </>}
+      {f.kind==='system'&&!isOpen&&<div style={{fontSize:12,color:'#FFFFFF',fontWeight:500,padding:'0 14px 12px 36px',lineHeight:1.4}}>→ {f.action}</div>}
+      {isOpen&&<div style={{background:'rgba(0,0,0,0.12)',borderTop:'1px solid rgba(255,255,255,0.05)',padding:'12px 14px'}}>
+        <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.7,marginBottom:10}}>{f.detail}</div>
+        {f.kind==='system'&&<div style={{fontSize:12,color:'#FFFFFF',fontWeight:600,marginBottom:10,borderLeft:'3px solid '+sc.color,paddingLeft:10}}>→ {f.action}</div>}
+        {f.kind==='account'&&<>
+          {(f._subAccounts||[]).length>0&&<div style={{marginBottom:8}}>
+            <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,fontFamily:MF}}>Tokens ({f._subAccounts.length})</div>
+            {f._subAccounts.slice(0,5).map((s,i)=>{
+              const nm=(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
+              const td=getTokenDecimals(s.tokenId||'',f._acctCid||'');
+              const th=s.balance?parseFloat(s.balance)/Math.pow(10,td):0;
+              return <div key={i} style={{fontSize:11,color:'#8A8A8E',padding:'2px 0'}}>{nm}: <span style={{color:'#FFFFFF',fontFamily:MF}}>{th.toLocaleString(undefined,{maximumFractionDigits:4})}</span> · {s.operationsCount||0} ops</div>;
+            })}
+            {f._subAccounts.length>5&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>+{f._subAccounts.length-5} more tokens</div>}
+          </div>}
+          {(f._pendingOps||[]).length>0&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>⏳ {f._pendingOps.length} pending: {f._pendingOps.slice(0,3).map(op=>(op.type||'?').toUpperCase()).join(', ')}</div>}
+          {(f._failedCount||0)>0&&<div style={{fontSize:11,color:'#EA4335',marginBottom:6}}>✕ {f._failedCount} failed transaction{f._failedCount!==1?'s':''}</div>}
+          {f._blockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',fontFamily:MF,marginBottom:6}}>Last synced block: {Number(f._blockHeight).toLocaleString()}</div>}
+        </>}
+        {(f.evidence||[]).length>0&&<div style={{borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:8,marginTop:4}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Evidence</div>
+          {f.evidence.map((ev,i)=><div key={i} style={{fontSize:11,color:'#8A8A8E',padding:'2px 0 2px 8px',borderLeft:'1px solid rgba(255,255,255,0.06)'}}><span style={{color:'#FFFFFF',fontWeight:500}}>{ev.label}:</span> {ev.detail}</div>)}
+        </div>}
+      </div>}
+    </div>;
+  };
 
-  const issueCount=ttAccts.all.filter(a=>a.isIssue).length;
-  const customerTotal=ttAccts.all.reduce((s,a)=>s+(a.custFiat||0),0);
-  const onchainTotal=ttAccts.all.reduce((s,a)=>s+(a.liveFiat||0),0);
-  const portfolioDelta=onchainTotal-customerTotal;
-  const fmtFiat=v=>cvFmtFiat(v,appJson)||('$'+v.toLocaleString(undefined,{maximumFractionDigits:2}));
-
-  return <div style={{paddingBottom:32}}>
-    {/* ── Section A: Header + KPI ── */}
-    <div className="cv-content-header" style={{paddingBottom:12}}>
-      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+  return <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
+    {/* ── Fixed header ── */}
+    <div className="cv-content-header" style={{flexShrink:0,paddingBottom:12}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BBB0FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span style={{fontSize:20,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
         <span style={{fontSize:10,padding:'2px 8px',borderRadius:4,background:'rgba(187,176,255,0.15)',color:'#BBB0FF',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>Diagnostic</span>
       </div>
-      <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.5,marginBottom:12}}>
-        Compares what the customer sees (app.json) to what's actually on-chain. <strong style={{color:'#FFFFFF'}}>Red items need action.</strong> Click any finding for details and the recommended fix.
+      <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.5,marginBottom:10}}>
+        Compares what the customer sees (app.json) to what's actually on-chain. <strong style={{color:'#FFFFFF'}}>Red items need action.</strong>
       </div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
         {redCount>0&&<span style={{...chipStyle,background:'rgba(234,67,53,0.12)',color:'#EA4335'}}>{redCount} issue{redCount!==1?'s':''}</span>}
         {amberCount>0&&<span style={{...chipStyle,background:'rgba(255,189,66,0.12)',color:T.warning}}>{amberCount} warning{amberCount!==1?'s':''}</span>}
         <span style={{...chipStyle,background:'rgba(79,196,107,0.08)',color:'#4FC46B'}}>{greenCount} healthy</span>
       </div>
-    </div>
-
-    {!hasAppJson&&<div style={{margin:'12px 32px 0',padding:'10px 16px',borderRadius:8,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:12,color:T.warning,lineHeight:1.5}}>
-      <strong>Limited comparison:</strong> No app.json loaded. Showing findings from log data and live balances only. Load the customer's app.json for the full "what they see vs. reality" comparison.
-    </div>}
-
-    {/* ── Section B: Triage findings ── */}
-    <div style={{padding:'16px 32px 8px'}}>
-      <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',marginBottom:12}}>Triage</div>
-      {findings.map(f=>{
-        const sc=severityConfig[f.severity];
-        const isOpen=expandedFinding===f.id;
-        return <div key={f.id} style={{borderLeft:`3px solid ${sc.color}`,background:isOpen?sc.bg:'rgba(255,255,255,0.01)',border:`1px solid ${isOpen?sc.border:'rgba(255,255,255,0.06)'}`,borderLeftWidth:3,borderLeftColor:sc.color,borderRadius:8,padding:'12px 16px',marginBottom:8,cursor:'pointer',transition:'background 150ms'}}
-          onClick={()=>setExpandedFinding(isOpen?null:f.id)}>
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <span style={{fontSize:13}}>{sc.icon}</span>
-            <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF',flex:1,lineHeight:1.4}}>{f.title}</span>
-            <div style={{display:'flex',gap:6,flexShrink:0}} onClick={e=>e.stopPropagation()}>
-              {f.navigate&&<button onClick={()=>handleNavigate(f.navigate)} style={linkBtnStyle}>View ↗</button>}
-              <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),1500);}} style={{...copyBtnStyle,color:copiedId===f.id?'#4FC46B':'#8A8A8E'}}>{copiedId===f.id?'✓ Copied':'Copy'}</button>
-            </div>
-          </div>
-          {isOpen&&<div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-            <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.7,marginBottom:8}}>{f.detail}</div>
-            <div style={{fontSize:12,color:'#FFFFFF',fontWeight:600,marginBottom:8,borderLeft:'3px solid '+sc.color,paddingLeft:10}}>→ {f.action}</div>
-            {f.evidence&&f.evidence.length>0&&<div style={{borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Evidence</div>
-              {f.evidence.map((ev,i)=><div key={i} style={{display:'flex',gap:8,marginTop:3,paddingLeft:8,borderLeft:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'#8A8A8E'}}>
-                <span style={{color:'#FFFFFF',fontWeight:500,minWidth:80}}>{ev.label}:</span>
-                <span>{ev.detail}</span>
-              </div>)}
-            </div>}
-          </div>}
-        </div>;
-      })}
-    </div>
-
-    {/* ── Section C: Truth Table ── */}
-    <div style={{margin:'16px 32px 0',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,overflow:'hidden'}}>
-      <div style={{padding:'14px 20px 10px',display:'flex',alignItems:'center',gap:12,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-        <span style={{fontSize:14,fontWeight:600,color:'#FFFFFF'}}>Truth Table</span>
-        <div style={{display:'flex',gap:0,background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden',marginLeft:'auto'}}>
-          {[['issues',`Issues (${issueCount})`,'rgba(234,67,53,0.15)','#EA4335'],['all',`All (${(enrichedAccts||[]).length})`,'rgba(255,255,255,0.08)','#FFFFFF']].map(([v,label,bg,col])=>(
-            <button key={v} onClick={()=>setTtFilter(v)} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:ttFilter===v?bg:'transparent',color:ttFilter===v?col:'#8A8A8E'}}>{label}</button>
-          ))}
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden'}}>
+          <button onClick={()=>setViewMode('issues')} style={{...filterBtnBase,background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
+          <button onClick={()=>setViewMode('all')} style={{...filterBtnBase,background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All accounts ({(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null).length})</button>
         </div>
-        <div style={{display:'flex',gap:0,background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden'}}>
-          {[['status','Status'],['drift','Drift'],['value','Value'],['name','Name']].map(([v,label])=>(
-            <button key={v} onClick={()=>setTtSort(v)} style={{padding:'4px 10px',fontSize:10,fontWeight:600,border:'none',cursor:'pointer',background:ttSort===v?'rgba(187,176,255,0.15)':'transparent',color:ttSort===v?'#BBB0FF':'#8A8A8E'}}>{label}</button>
+        {viewMode==='all'&&<div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:6,overflow:'hidden'}}>
+          {[['severity','Status'],['value','Value'],['name','Name']].map(([v,label])=>(
+            <button key={v} onClick={()=>setSortBy(v)} style={{...sortBtnBase,background:sortBy===v?'rgba(187,176,255,0.15)':'transparent',color:sortBy===v?'#BBB0FF':'#8A8A8E'}}>{label}</button>
           ))}
-        </div>
+        </div>}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr 0.8fr',padding:'8px 20px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>
-        <span>Account</span>
-        <span title="The balance stored in the customer's Ledger Wallet app — what they see when they open their wallet" style={{cursor:'help'}}>Customer sees ⓘ</span>
-        <span title="The actual balance on the blockchain right now, fetched live from a public node" style={{cursor:'help'}}>On-chain ⓘ</span>
-        <span title="The difference between the customer's view and reality. Non-zero indicates a sync issue." style={{cursor:'help'}}>Delta ⓘ</span>
-        <span>Status</span>
-      </div>
-      {ttAccts.filtered.length===0&&<div style={{padding:'24px 20px',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>{ttFilter==='issues'?'No issues detected — all accounts look healthy.':'No accounts with app.json data.'}</div>}
-      {ttAccts.filtered.map(a=>{
-        const sc=a.isMismatch?{c:'#EA4335',bg:'rgba(234,67,53,0.03)'}:a.hasPending?{c:T.warning,bg:'rgba(255,189,66,0.02)'}:(a.hasFailedOps||a.hasLogErrs)?{c:T.warning,bg:'rgba(255,189,66,0.02)'}:{c:'#4FC46B',bg:'transparent'};
-        const isExpanded=ttExpanded===a.id;
-        const statusLabel=a.status==='loading'?'···':a.status==='error'?'unavailable':a.status==='mismatch'?(a.delta>0?'▲ on-chain higher':'▼ on-chain lower'):a.status==='match'?(a.hasFailedOps||a.hasLogErrs)?'⚠ review':'✓ match':a.status==='no-live'?'no live data':'—';
-        return <React.Fragment key={a.id}>
-          <div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr 0.8fr',padding:'10px 20px',borderBottom:'1px solid rgba(255,255,255,0.04)',cursor:'pointer',background:isExpanded?'rgba(255,255,255,0.03)':sc.bg,transition:'background 150ms'}}
-            onMouseEnter={e=>!isExpanded&&(e.currentTarget.style.background=a.isMismatch?'rgba(234,67,53,0.06)':'rgba(255,255,255,0.02)')}
-            onMouseLeave={e=>!isExpanded&&(e.currentTarget.style.background=sc.bg)}
-            onClick={()=>setTtExpanded(isExpanded?null:a.id)}>
-            <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
-              <span style={{width:8,height:8,borderRadius:'50%',background:a.ch.color,flexShrink:0,display:'inline-block'}}/>
-              <span style={{fontSize:12,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.displayName}</span>
-              {a.hasPending&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(255,189,66,0.15)',color:T.warning,fontWeight:700,flexShrink:0}}>PENDING</span>}
-              {a.hasFailedOps&&!a.hasPending&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(234,67,53,0.12)',color:'#EA4335',fontWeight:700,flexShrink:0}}>{a.failedCount} FAILED</span>}
-              {a.hasLogErrs&&!a.hasPending&&!a.hasFailedOps&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:3,background:'rgba(255,189,66,0.10)',color:T.warning,fontWeight:700,flexShrink:0}}>LOG ERRORS</span>}
-            </div>
-            <div>
-              <div style={{fontSize:12,fontFamily:MF,color:a.custBal!=null?'#FFFFFF':'#8A8A8E'}}>{a.custBal!=null?a.custBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:'—'}</div>
-              {a.custFiat!=null&&<div style={{fontSize:10,color:'#8A8A8E'}}>{fmtFiat(a.custFiat)}</div>}
-            </div>
-            <div>
-              <div style={{fontSize:12,fontFamily:MF,color:a.liveBal!=null?'#FFFFFF':'#8A8A8E'}}>{a.liveBal!=null?a.liveBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:(a.status==='loading'?'···':'—')}</div>
-              {a.liveFiat!=null&&<div style={{fontSize:10,color:'#8A8A8E'}}>{fmtFiat(a.liveFiat)}</div>}
-            </div>
-            <div style={{fontSize:11,fontFamily:MF,color:a.delta!=null?(a.delta>0.000001?'#EA4335':a.delta<-0.000001?'#EA4335':'#4FC46B'):'#8A8A8E'}}>
-              {a.delta!=null&&Math.abs(a.delta)>=0.000001?(a.delta>0?'+':'')+a.delta.toLocaleString(undefined,{maximumFractionDigits:6}):a.delta!=null?'0':'—'}
-            </div>
-            <div style={{fontSize:11,fontWeight:600,color:sc.c}}>{statusLabel}</div>
-          </div>
-          {isExpanded&&<div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 20px 14px 36px'}}>
-            {(a.ajSubAccounts||[]).length>0&&<div style={{marginBottom:10}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Tokens ({(a.ajSubAccounts||[]).length})</div>
-              {(a.ajSubAccounts||[]).slice(0,6).map((s,si)=>{
-                const rawName=(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
-                const tDec=getTokenDecimals(s.tokenId||'',a.cid);
-                const tHuman=s.balance!=null?parseFloat(s.balance)/Math.pow(10,tDec):null;
-                return <div key={si} style={{display:'flex',gap:8,fontSize:11,color:'#8A8A8E',padding:'2px 0'}}>
-                  <span style={{color:'#FFFFFF',minWidth:80,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{rawName}</span>
-                  <span style={{fontFamily:MF}}>{tHuman!=null?tHuman.toLocaleString(undefined,{maximumFractionDigits:4}):'-'}</span>
-                  <span style={{marginLeft:4}}>{s.operationsCount||0} ops</span>
-                </div>;
-              })}
-              {(a.ajSubAccounts||[]).length>6&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:3}}>+{(a.ajSubAccounts||[]).length-6} more tokens</div>}
-            </div>}
-            {(()=>{
-              const acctErrs=errs.filter(e=>a.addr&&a.addr.length>4&&(e.det||e.msg||'').includes(a.addr));
-              if(acctErrs.length===0)return null;
-              return <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:700,color:'#EA4335',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4,fontFamily:MF}}>Related log errors ({acctErrs.length})</div>
-                {acctErrs.slice(0,3).map((e,i)=><div key={i} style={{fontSize:11,color:'#EA4335',padding:'2px 0'}}>{e.dg?.t||e.msg||'Unknown error'}</div>)}
-              </div>;
-            })()}
-            {(a.ajPendingOps||[]).length>0&&<div style={{marginBottom:10,fontSize:11,color:T.warning}}>⏳ {(a.ajPendingOps||[]).length} pending transaction{(a.ajPendingOps||[]).length!==1?'s':''}</div>}
-            {a.hasFailedOps&&<div style={{marginBottom:10,fontSize:11,color:'#EA4335'}}>✕ {a.failedCount} failed transaction{a.failedCount!==1?'s':''} in history</div>}
-            {a.ajBlockHeight!=null&&<div style={{fontSize:11,color:'#8A8A8E',marginBottom:8,fontFamily:MF}}>Last synced block: {Number(a.ajBlockHeight).toLocaleString()}</div>}
-            <div style={{display:'flex',gap:8,marginTop:4}}>
-              {onViewAccount&&<button onClick={()=>onViewAccount(a.globalIdx)} style={{...linkBtnStyle,color:'#BBB0FF',borderColor:'rgba(187,176,255,0.2)'}}>View in Customer View ↗</button>}
-              <button onClick={()=>{
-                const dec=DECIMALS[a.cid]||18;
-                const cust=a.custBal!=null?a.custBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:'no data';
-                const live=a.liveBal!=null?a.liveBal.toLocaleString(undefined,{maximumFractionDigits:6})+' '+a.ch.ticker:'unavailable';
-                copyText(`Account: ${a.displayName} (${a.ch.name})\nAddress: ${a.addr||'—'}\nCustomer sees: ${cust}\nOn-chain: ${live}\nDelta: ${a.delta!=null?a.delta.toFixed(6):'—'}\nStatus: ${statusLabel}\nPending ops: ${(a.ajPendingOps||[]).length}`);
-              }} style={copyBtnStyle}>Copy comparison</button>
-            </div>
-          </div>}
-        </React.Fragment>;
-      })}
-      {(ttAccts.all.some(a=>a.custFiat!=null)||ttAccts.all.some(a=>a.liveFiat!=null))&&<div style={{display:'grid',gridTemplateColumns:'2fr 1.5fr 1.5fr 1fr 0.8fr',padding:'10px 20px',borderTop:'2px solid rgba(255,255,255,0.08)',fontWeight:600}}>
-        <span style={{fontSize:12,color:'#FFFFFF'}}>Portfolio Total</span>
-        <span style={{fontSize:12,color:'#FFFFFF'}}>{customerTotal>0?fmtFiat(customerTotal):'—'}</span>
-        <span style={{fontSize:12,color:'#FFFFFF'}}>{onchainTotal>0?fmtFiat(onchainTotal):'—'}</span>
-        <span style={{fontSize:12,color:portfolioDelta>0.01?'#4FC46B':portfolioDelta<-0.01?'#EA4335':'#8A8A8E'}}>{onchainTotal>0&&customerTotal>0?(portfolioDelta>=0?'+':'')+fmtFiat(portfolioDelta):'—'}</span>
-        <span/>
+      {!hasAppJson&&<div style={{marginTop:10,padding:'8px 14px',borderRadius:6,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.15)',fontSize:12,color:T.warning,lineHeight:1.5}}>
+        <strong>Limited comparison:</strong> No app.json loaded. Load the customer's app.json for the full "what they see vs. reality" comparison.
       </div>}
     </div>
-
-    {/* ── Section D: Settings + Data Confidence ── */}
-    <div style={{padding:'16px 32px 0'}}>
-      {(()=>{
-        const ajSettings=appJson?.raw?.settings||appJson?.settings||{};
-        if(Object.keys(ajSettings).length===0)return null;
-        const cv=ajSettings.counterValue||'USD';
-        const cvFirst=ajSettings.countervalueFirst;
-        const theme=ajSettings.theme;
-        const lang=ajSettings.language;
-        const order=ajSettings.orderAccounts;
-        const devMode=ajSettings.developerMode;
-        const hideEmpty=ajSettings.hideEmptyTokenAccounts;
-        const discreet=ajSettings.discreetMode;
-        const lastVer=ajSettings.lastUsedVersion;
-        const devList=ajSettings.devicesModelList||[];
-        const fmt=(v)=>v==null?null:v===true?'On':v===false?'Off':String(v);
-        const rows=[
-          ['Fiat currency',cv],
-          ['Countervalue first',cvFirst!=null?fmt(cvFirst):null],
-          ['Theme',theme],
-          ['Language',lang],
-          ['Account order',order],
-          ['Developer mode',devMode!=null?fmt(devMode):null,devMode===true?T.warning:null],
-          ['Hide empty tokens',hideEmpty!=null?fmt(hideEmpty):null],
-          ['Discreet mode',discreet!=null?fmt(discreet):null],
-          ['Last app version',lastVer],
-          ['Paired devices',devList.length>0?String(devList.length):null],
-        ].filter(([,v])=>v!=null);
-        if(rows.length===0)return null;
-        return accentCard(<>
-          {cardTitle('Customer Settings')}
-          {rows.map(([label,value,valCol],i)=>infoRow(label,value,valCol||undefined))}
-        </>);
-      })()}
-      {accentCard(<>
-        {cardTitle('Data Confidence')}
-        {infoRow('Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E')}
-        {infoRow('App catalog',versionCheck?.status==='ok'?`${versionCheck.catalogSize||versionCheck.apps?.length||0} apps loaded`:versionCheck?.status==='loading'?'Checking…':'Unavailable',versionCheck?.status==='ok'?'#4FC46B':versionCheck?.status==='loading'?'#8A8A8E':T.warning)}
-        {infoRow('Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning)}
-        {infoRow(llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning)}
-      </>)}
+    {/* ── Scrollable feed ── */}
+    <div style={{flex:1,overflowY:'auto',padding:'8px 32px 32px'}}>
+      {issueFindings.length===0&&viewMode==='issues'&&<div style={{padding:'32px 0',color:'#8A8A8E',fontSize:13,textAlign:'center'}}>No issues detected — all checks are healthy.</div>}
+      {issueFindings.map(f=>renderFinding(f))}
+      {greenFindings.length>0&&viewMode==='issues'&&<div style={{padding:'8px 14px',borderRadius:8,background:'rgba(79,196,107,0.03)',border:'1px solid rgba(79,196,107,0.1)',marginBottom:8,cursor:'pointer',display:'flex',alignItems:'center',gap:8}} onClick={()=>setShowHealthy(!showHealthy)}>
+        <span style={{fontSize:13}}>🟢</span>
+        <span style={{fontSize:12,color:'#4FC46B',fontWeight:600}}>{greenFindings.length} healthy check{greenFindings.length!==1?'s':''}</span>
+        <span style={{fontSize:10,color:'#8A8A8E',marginLeft:'auto'}}>{showHealthy?'▴ collapse':'▸ expand'}</span>
+      </div>}
+      {showHealthy&&viewMode==='issues'&&greenFindings.map(f=>renderFinding(f))}
+      {viewMode==='all'&&greenFindings.map(f=>renderFinding(f))}
+      {(customerTotal>0||onchainTotal>0)&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,marginTop:4,marginBottom:16,overflow:'hidden'}}>
+        {[['Customer Total',fmtFiat(customerTotal),'#FFFFFF'],['On-chain Total',fmtFiat(onchainTotal),'#FFFFFF'],['Portfolio Delta',(portfolioDelta>=0?'+':'')+fmtFiat(Math.abs(portfolioDelta)),portfolioDelta>0.01?'#4FC46B':portfolioDelta<-0.01?'#EA4335':'#8A8A8E']].map(([label,val,col],ci)=>(
+          <div key={ci} style={{padding:'12px 16px',borderRight:ci<2?'1px solid rgba(255,255,255,0.06)':'none'}}>
+            <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{label}</div>
+            <div style={{fontSize:15,fontWeight:700,color:col}}>{val}</div>
+          </div>
+        ))}
+      </div>}
+      <div style={{display:'flex',gap:10,marginBottom:16}}>
+        {Object.keys(ajSettings).length>0&&(()=>{
+          const fmt=v=>v==null?null:v===true?'On':v===false?'Off':String(v);
+          const rows=[
+            ['Fiat currency',ajSettings.counterValue||'USD'],
+            ['Countervalue first',ajSettings.countervalueFirst!=null?fmt(ajSettings.countervalueFirst):null],
+            ['Theme',ajSettings.theme],['Language',ajSettings.language],['Account order',ajSettings.orderAccounts],
+            ['Developer mode',ajSettings.developerMode!=null?fmt(ajSettings.developerMode):null,ajSettings.developerMode===true?T.warning:null],
+            ['Hide empty tokens',ajSettings.hideEmptyTokenAccounts!=null?fmt(ajSettings.hideEmptyTokenAccounts):null],
+            ['Discreet mode',ajSettings.discreetMode!=null?fmt(ajSettings.discreetMode):null],
+            ['Last app version',ajSettings.lastUsedVersion],
+            ['Paired devices',(ajSettings.devicesModelList||[]).length>0?String((ajSettings.devicesModelList||[]).length):null],
+          ].filter(([,v])=>v!=null);
+          if(rows.length===0)return null;
+          return <div style={{flex:1,background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,overflow:'hidden'}}>
+            <div style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setShowSettings(!showSettings)}>
+              <span style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:MF,flex:1}}>Customer Settings</span>
+              <span style={{fontSize:10,color:'#8A8A8E'}}>{showSettings?'▴':'▸'}</span>
+            </div>
+            {showSettings&&<div style={{padding:'0 14px 14px'}}>
+              {rows.map(([label,value,valCol],i)=><div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:12,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:12,color:valCol||'#FFFFFF',fontWeight:500}}>{value}</span></div>)}
+            </div>}
+          </div>;
+        })()}
+        <div style={{flex:1,background:'rgba(187,176,255,0.03)',border:'1px solid rgba(187,176,255,0.12)',borderRadius:8,overflow:'hidden'}}>
+          <div style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setShowConfidence(!showConfidence)}>
+            <span style={{fontSize:11,fontWeight:700,color:'#BBB0FF',textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:MF,flex:1}}>Data Confidence</span>
+            <span style={{fontSize:10,color:'#8A8A8E'}}>{showConfidence?'▴':'▸'}</span>
+          </div>
+          {showConfidence&&<div style={{padding:'0 14px 14px'}}>
+            {[
+              ['Live balances',fetchedCount>0?`${fetchedCount}/${acctCount} fetched`:'Not fetched',fetchedCount>0?'#4FC46B':'#8A8A8E'],
+              ['App catalog',versionCheck?.status==='ok'?`${versionCheck.catalogSize||versionCheck.apps?.length||0} apps loaded`:versionCheck?.status==='loading'?'Checking…':'Unavailable',versionCheck?.status==='ok'?'#4FC46B':versionCheck?.status==='loading'?'#8A8A8E':T.warning],
+              ['Firmware check',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?'Outdated':'Current'):firmwareCheck?.status==='loading'?'Checking…':'Unavailable',firmwareCheck?.status==='ok'?(firmwareCheck.outdated?T.warning:'#4FC46B'):firmwareCheck?.status==='loading'?'#8A8A8E':T.warning],
+              [llLabel(dev)+' version',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?'Outdated':'Current'):appVersionCheck?.status==='loading'?'Checking…':'Unavailable',appVersionCheck?.status==='ok'?(appVersionCheck.outdated?T.warning:'#4FC46B'):appVersionCheck?.status==='loading'?'#8A8A8E':T.warning],
+            ].map(([label,value,col],i)=><div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}><span style={{fontSize:12,color:'#8A8A8E'}}>{label}</span><span style={{fontSize:12,color:col,fontWeight:500}}>{value}</span></div>)}
+          </div>}
+        </div>
+      </div>
     </div>
   </div>;
 }
