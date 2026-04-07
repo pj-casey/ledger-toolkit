@@ -1,3 +1,116 @@
+# Session Handoff — April 6, 2026 (Session 10)
+
+## What was built this session
+
+### Staking Awareness — False Positive Fix + Context UI
+
+Fixed false CHANGED alerts in CVAgentInsights caused by comparing total balance (including staked) vs live RPC data (liquid-only). Affected 18 of 96 accounts — worst case was SOL showing "-276 SOL missing" when funds were safely staked.
+
+**Core fix (CVAgentInsights findings engine):**
+- Added `custSpendable` (from `ajSpendable`), `hasStaking`, `stakedAmount`, `compareBalance`
+- Comparison now uses `compareBalance = hasStaking ? custSpendable : cust` — live RPC vs liquid-only
+- `deltaFiat` uses `custSpendFiatVal` (spendable-side fiat) so delta remains price-neutral
+- Health dots strip uses same spendable-vs-live logic to avoid false amber dots
+
+**Staking context UI added in 3 places:**
+1. Agent Insights detail panel: 3-column card (Total / Staked / Available) before comparison bars. Chain-specific labels: "Network reserve" (XRP/XLM), "Frozen (bandwidth/energy)" (TRX), "Staked / Delegated" (others). SOL note about separate stake accounts.
+2. Customer View account detail: Staked/frozen inline display (🥩 label + staked amount + %) below balance when `ajBalance ≠ ajSpendable`.
+3. Findings list: 🥩 icon next to account name when finding has `hasStaking`.
+
+---
+
+### CVEarn — New Earn Tab in Customer View
+
+New `CVEarn` component added as 4th Customer View tab ("Earn"). Shows staking positions and LST holdings — all from app.json, no live API calls.
+
+**Module-scope constants added:**
+- `STAKING_APY` — per-chain APY ranges (SOL, ATOM, DOT, MATIC, NEAR, ADA, TRX, XTZ, ETH)
+- `STAKING_TYPE` — per-chain delegation label
+- `LST_PATTERNS` — 8 liquid staking token patterns (stETH, cbETH, JITOSOL, LBTC, etc.)
+- `EARN_OP_LABELS` — DELEGATE/UNDELEGATE/REWARD/etc. → human labels
+
+**Component features:**
+- Summary: total staked fiat + total LST fiat, allocation bar
+- "My rewards" tab: staked positions from `ajBalance - ajSpendable`, expandable to show validators (Ledger badge for figment/ledger validators), recent rewards history
+- "Earn opportunities" tab: chains with native staking available (not yet staked), sorted by APY
+- Liquid staking tokens section: from `ajSubAccounts` pattern matching
+- Empty state when no positions and no LSTs
+
+---
+
+### React Hook Crash Fix
+
+`expandedTokenOps` useState was declared inside an IIFE in CustomerView's render body — Rules of Hooks violation causing crash on account click.
+
+**Fix:** Moved declaration to top of `CustomerView` function alongside other state. Deleted the misplaced `React.useState` call from inside the IIFE.
+
+---
+
+### Customer View — Final Visual Polish
+
+Three rendering improvements to match Ledger Wallet's UI language.
+
+**Change 1 — Accounts list grid:**
+- Layout: `gridTemplateColumns:'52px 1fr auto auto auto auto'` (icon | chain+name | crypto | fiat | % change | star)
+- Icon: 40px circle with chain brand icon
+- Chain name uppercase + account name below; DM badge + ✓ checkmark in header
+- Crypto + fiat right-aligned in `MF` font; star column (★ gold / ☆ dim)
+
+**Change 2 — Operation detail grid:**
+- `renderOp` rewritten: `gridTemplateColumns:'40px 1fr auto'` (icon | label+detail | amount)
+- Label ("Sent"/"Received") white + 600 weight, prominent
+- Amount right-aligned with +/- sign prefix in `MF` font; fiat below in muted version of amount color
+- Counterparty on own line below label; tx hash link integrated
+- Commit: `1616022`
+
+**Change 3 — Portfolio allocation bar:**
+- `gridTemplateColumns` updated: `'2fr 1.2fr 0.8fr 1.5fr 1.5fr'` → `'2fr 1fr 1.5fr 1.5fr 1fr'`
+- Allocation column: percentage + inline progress bar (chain color, 4px height, 80px max width, rounded)
+- Commit: `1616022`
+
+---
+
+## Current file state
+
+~7,700 lines. One file: `ledger-toolkit.html`.
+
+## Current git state
+
+Branch: `main`. Latest commit: `1616022` (visual polish). 11 commits ahead of remote.
+
+Push workflow: sandbox blocks HTTPS push — use `! git push origin main` directly from prompt.
+
+---
+
+## Key decisions made (session 10)
+
+- **Spendable as comparison baseline.** CVAgentInsights uses `ajSpendable` (not `ajBalance`) when staking detected. Live RPC only returns liquid balance — comparing against total would always flag staked funds as "missing".
+- **Earn tab data-only.** CVEarn makes no live API calls — all data from app.json `ajBalance`/`ajSpendable`/`ajSubAccounts`. Prevents API dependency and load time.
+- **Hook fix pattern.** All useState in CustomerView must be at top-level scope, never inside IIFEs or conditional branches. IIFE pattern for conditional rendering is fine — hooks must exit before the IIFE.
+
+---
+
+## Backlog (carried forward)
+
+### Design language
+1. **CopyBtn animation** — still too subtle. Needs icon color change + scale on copy.
+2. **Guide labels completeness** — Advanced, Network, APDU, Raw JSON have no purpose labels yet.
+
+### Tab-specific work
+3. **Accounts tab brand alignment** — prompt `accounts-brand-alignment.md` written, not yet run. 7 fixes.
+4. **Network/APDU/Raw JSON tab brand alignment** — not started.
+
+### Customer View
+5. **Agent Insights + Earn documentation** — guide overlays not yet updated to cover these tabs.
+6. **Agent Insights: real-data testing** — needs testing with actual app.json exports.
+
+### Other
+7. **Responsiveness audit** — click-outside handlers may still have stopPropagation issues.
+8. **Test with real logs** — especially firmware/desktop version checks end-to-end.
+9. **Focus Mode: treemap block label on hover** — consider a persistent ticker label inside each block.
+
+---
+
 # Session Handoff — April 6, 2026 (Session 9)
 
 ## What was built this session
