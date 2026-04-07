@@ -4116,6 +4116,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
   const[cvAcctSearch,setCvAcctSearch]=useState('');
   const[cvAcctSort,setCvAcctSort]=useState('balance');
   const[expandedTokens,setExpandedTokens]=useState({});
+  const[expandedTokenOps,setExpandedTokenOps]=useState({});
   const cvFirst=appJson?.raw?.settings?.countervalueFirst||appJson?.settings?.countervalueFirst||false;
   useEffect(()=>{
     if(appJson&&!appJson.encrypted){
@@ -4460,7 +4461,6 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
             return{bg:'rgba(255,189,66,0.12)',color:T.warning,arrow:'↕'};
           };
           const ajSubs=acct.ajSubAccounts||[];
-          const[expandedTokenOps,setExpandedTokenOps]=React.useState({});
           const OP_LABELS={IN:'Received',OUT:'Sent',FEES:'Network fee',NONE:'Contract interaction',DELEGATE:'Delegated',UNDELEGATE:'Undelegated',REWARD:'Reward',STAKE:'Staked',UNSTAKE:'Unstaked',WITHDRAW_UNBONDED:'Withdrawn',WITHDRAW_UNSTAKED:'Withdrawn',VOTE:'Voted',FREEZE:'Frozen',REVEAL:'Revealed',OPT_IN:'Opted in',OPT_OUT:'Opted out',APPROVE:'Approved',SUPPLY:'Supplied',REDEEM:'Redeemed',BOND:'Bonded',UNBOND:'Unbonded',NOMINATE:'Nominated',CLAIM_REWARD:'Claimed reward',NFT_IN:'NFT received',NFT_OUT:'NFT sent'};
           const logToks=(acct.toks||[]).filter(Boolean);
           const iconUrl=chainIconUrl(acct.cid);
