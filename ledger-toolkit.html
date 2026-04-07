@@ -3734,6 +3734,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const[selectedId,setSelectedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
   const[viewMode,setViewMode]=useState('issues');
+  const[chainFilter,setChainFilter]=useState(null);
   const errs=logData.errs||[];
   const highCount=errs.filter(e=>e.dg?.s==='high').length;
   const medCount=errs.filter(e=>e.dg?.s==='medium').length;
@@ -3772,12 +3773,11 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       const hasBoth=compareBalance!=null&&live!=null;
       const delta=hasBoth?live-compareBalance:null;
       const pct=hasBoth&&compareBalance>0?Math.abs(delta)/compareBalance*100:0;
-      const isMismatch=hasBoth&&pct>0.01;
+      const isMismatch=hasBoth&&(pct>0.01||(compareBalance===0&&Math.abs(live)>0.000001));
       const pendingCount=(a.ajPendingOps||[]).length;
       const failedCount=(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length;
       const hasLogErrs=a.addr&&a.addr.length>4&&errs.some(e=>(e.det||e.msg||'').includes(a.addr));
       const isIssue=isMismatch||pendingCount>0||failedCount>0||hasLogErrs;
-      if(!isIssue&&viewMode!=='all')return;
       const custFiatVal=cvFiatValue(appJson,a.cid,a.ajBalance);
       const custSpendFiatVal=hasStaking&&a.ajSpendable!=null?cvFiatValue(appJson,a.cid,a.ajSpendable):custFiatVal;
       const custRate=cvLatestRate(appJson,a.cid);
@@ -3790,7 +3790,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       if(failedCount>0)badges.push(`${failedCount} FAILED`);
       if(hasLogErrs&&!isMismatch&&pendingCount===0&&failedCount===0)badges.push('LOG ERRORS');
       const severity=isIssue?(isMismatch||pendingCount>0?'red':'amber'):'green';
-      const title=isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
+      const title=isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:hasBoth?`${a.displayName} — ✓ match`:`${a.displayName} — not compared`;
       const statusLabel=lbEntry?.status==='loading'?'···':!live?'no live data':isMismatch?(delta>0?'▲ on-chain higher':'▼ on-chain lower'):hasBoth?'✓ match':'—';
       const acctErrs=a.addr&&a.addr.length>4?errs.filter(e=>(e.det||e.msg||'').includes(a.addr)).slice(0,2):[];
       f.push({
@@ -3809,8 +3809,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         stakedAmount:hasStaking?stakedAmount.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custSpendableBal:custSpendable!=null?custSpendable.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custTotalBal:cust.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker,
-        detail:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
-        action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
+        detail:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':!hasBoth?'Live balance data was not fetched for this account. The balance shown is from the customer\'s app.json export only — it has not been verified on-chain.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
+        action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':!hasBoth?'Live balance could not be fetched for this chain. If the customer reports a balance issue, verify manually using a block explorer.':'No action needed.',
         navigate:{type:'account',idx},
         copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}${hasStaking?' [staked: '+stakedAmount.toFixed(6)+' '+ticker+', available: '+custSpendable.toFixed(6)+' '+ticker+']':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatAtCustRate!=null?' ('+cvFmtFiat(liveFiatAtCustRate,appJson)+' at customer rate)':''}\n  Delta (vs available): ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}${snapshotDate?'\n  Snapshot: '+snapshotDate:''}`,
         evidence:[
@@ -3818,7 +3818,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           ...acctErrs.map(e=>({label:'Log error',detail:e.dg?.t||e.msg||'Unknown'})),
           ...(a.ajBlockHeight!=null?[{label:'Last synced block',detail:Number(a.ajBlockHeight).toLocaleString()}]:[]),
         ],
-        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,
+        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,_rawCompareBalance:compareBalance,_rawLive:live,
       });
     });
     // ── System findings ───────────────────────────────────────────────────────
@@ -3943,14 +3943,19 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     const order={red:0,amber:1,green:2};
     f.sort((a,b)=>order[a.severity]-order[b.severity]);
     return f;
-  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,snapshotDate,daysSinceSnapshot]);
+  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,snapshotDate,daysSinceSnapshot]);
 
   const redCount=findings.filter(f=>f.severity==='red').length;
   const amberCount=findings.filter(f=>f.severity==='amber').length;
   const greenCount=findings.filter(f=>f.severity==='green').length;
   const issueCount=findings.filter(f=>f.severity!=='green').length;
   const totalAcctCount=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null).length;
-  const displayFindings=viewMode==='issues'?findings.filter(f=>f.severity!=='green'):findings;
+  const displayFindings=(()=>{
+    let ff=viewMode==='issues'?findings.filter(f=>f.severity!=='green'):findings;
+    if(chainFilter==='_system')ff=ff.filter(f=>f.kind==='system');
+    else if(chainFilter)ff=ff.filter(f=>f._acctCid===chainFilter);
+    return ff;
+  })();
   const selectedFinding=findings.find(f=>f.id===selectedId)||null;
 
   const customerTotal=(enrichedAccts||[]).reduce((s,a)=>{
@@ -4027,8 +4032,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         </div>;
       })()}
       {f.kind==='account'&&f.custBal&&(()=>{
-        const custNum=parseFloat(f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal)||0;
-        const liveNum=parseFloat(f.liveBal)||0;
+        const custNum=f._rawCompareBalance||0;
+        const liveNum=f._rawLive||0;
         const maxVal=Math.max(custNum,liveNum,0.000001);
         const custPct=Math.min((custNum/maxVal)*100,100);
         const livePct=Math.min((liveNum/maxVal)*100,100);
@@ -4120,8 +4125,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         {greenCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(79,196,107,0.08)',color:'#4FC46B',fontWeight:600}}>{greenCount} ok</span>}
       </div>
       <div style={{marginLeft:'auto',display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:5,overflow:'hidden'}}>
-        <button onClick={()=>setViewMode('issues')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
-        <button onClick={()=>setViewMode('all')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All ({findings.length})</button>
+        <button onClick={()=>{setViewMode('issues');setChainFilter(null);}} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
+        <button onClick={()=>{setViewMode('all');setChainFilter(null);}} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All ({findings.length})</button>
       </div>
     </div>
     {/* Row 2 — Stat cards */}
@@ -4178,38 +4183,81 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         <div style={{fontSize:10,color:appVersionCheck?.outdated?T.warning:'#8A8A8E'}}>{hasAppJson?'app.json loaded':'no app.json'}{ajSettings.developerMode?' · dev mode':''}</div>
       </div>
     </div>
-    {/* Row 2.5 — Health dots */}
+    {/* Row 2.5 — Chain summary chips */}
     {(()=>{
       const accts=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null);
       if(accts.length===0)return null;
+
+      // Group account findings by chain
+      const chainMap={};
+      findings.forEach(f=>{
+        if(f.kind!=='account'||!f._acctCid)return;
+        if(!chainMap[f._acctCid])chainMap[f._acctCid]={cid:f._acctCid,red:0,amber:0,green:0};
+        chainMap[f._acctCid][f.severity]=(chainMap[f._acctCid][f.severity]||0)+1;
+      });
+      const chains=Object.values(chainMap).sort((a,b)=>(b.red-a.red)||(b.amber-a.amber));
+
+      // System findings count
+      const sysFindingsAll=findings.filter(f=>f.kind==='system');
+      const sysRed=sysFindingsAll.filter(f=>f.severity==='red').length;
+      const sysAmber=sysFindingsAll.filter(f=>f.severity==='amber').length;
+      const sysGreen=sysFindingsAll.filter(f=>f.severity==='green').length;
+
       const matches=accts.filter(a=>{const lb=liveBalances[a.id];const dec=DECIMALS[a.cid]||18;const total=parseFloat(a.ajBalance)/Math.pow(10,dec);const sp=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;const c=sp!=null&&Math.abs(total-sp)>0.000001?sp:total;const l=lb?.bal;return c!=null&&l!=null&&(c===0||Math.abs(l-c)/c*100<=0.01);}).length;
-      return <div style={{flexShrink:0,padding:'6px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',alignItems:'center',gap:6}}>
-        <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',fontWeight:600,fontFamily:MF,marginRight:2}}>Accounts</span>
-        <div style={{display:'flex',gap:3,flexWrap:'wrap',flex:1}}>
-          {accts.map((a,i)=>{
-            const lbEntry=liveBalances[a.id];
-            const dec=DECIMALS[a.cid]||18;
-            const custTotal=parseFloat(a.ajBalance)/Math.pow(10,dec);
-            const custSp=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;
-            const cust=custSp!=null&&Math.abs(custTotal-custSp)>0.000001?custSp:custTotal;
-            const live=lbEntry?.bal!=null?lbEntry.bal:null;
-            const hasBoth=cust!=null&&live!=null;
-            const pct=hasBoth&&cust>0?Math.abs(live-cust)/cust*100:0;
-            const isMismatch=hasBoth&&pct>0.01;
-            const hasPending=(a.ajPendingOps||[]).length>0;
-            const hasFailedOps=(a.ajOperations||[]).some(op=>op.hasFailed||op.status==='failed');
-            const dotColor=isMismatch?'#EA4335':hasPending||hasFailedOps?T.warning:hasBoth?'#4FC46B':lbEntry?.status==='loading'?'#8A8A8E':'rgba(255,255,255,0.15)';
-            const findingId=`acct-${a.id}`;
-            const isSel=selectedId===findingId;
-            const status=isMismatch?'mismatch':hasPending?'pending':hasFailedOps?'failed ops':hasBoth?'match':'no data';
-            return <div key={i}
-              title={`${a.displayName}: ${status}`}
-              onClick={()=>{const f=displayFindings.find(f=>f.id===findingId);if(f)setSelectedId(findingId);}}
-              style={{width:isSel?10:7,height:isSel?10:7,borderRadius:'50%',background:dotColor,cursor:'pointer',transition:'all 120ms',outline:isSel?`2px solid ${dotColor}`:'none',outlineOffset:1,opacity:isSel?1:0.8,flexShrink:0}}
-            />;
-          })}
-        </div>
-        <span style={{fontSize:9,color:'#8A8A8E',fontFamily:MF,flexShrink:0}}>{matches}/{accts.length} ✓</span>
+
+      const chipStyle=(isActive)=>({
+        display:'inline-flex',alignItems:'center',gap:5,
+        padding:'4px 10px 4px 6px',borderRadius:12,cursor:'pointer',
+        transition:'all 120ms',flexShrink:0,
+        background:isActive?'rgba(187,176,255,0.12)':'rgba(255,255,255,0.04)',
+        border:isActive?'1px solid rgba(187,176,255,0.3)':'1px solid rgba(255,255,255,0.08)',
+      });
+
+      const sevDot=(color,count)=>count>0?
+        <span key={color} style={{display:'inline-flex',alignItems:'center',gap:2}}>
+          <span style={{width:6,height:6,borderRadius:'50%',background:color,flexShrink:0}}/>
+          <span style={{fontSize:10,fontWeight:600,color,fontFamily:MF}}>{count}</span>
+        </span>:null;
+
+      return <div style={{flexShrink:0,padding:'6px 16px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',alignItems:'center',gap:6,overflowX:'auto',scrollbarWidth:'none'}}>
+        <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',fontWeight:600,fontFamily:MF,flexShrink:0}}>Chains</span>
+
+        {chains.map(ch=>{
+          const info=CHAINS[ch.cid];
+          const ticker=info?.ticker||ch.cid.toUpperCase().slice(0,4);
+          const color=info?.color||'#949494';
+          const iconUrl=chainIconUrl(ch.cid);
+          const isActive=chainFilter===ch.cid;
+          return <div key={ch.cid}
+            onClick={()=>setChainFilter(isActive?null:ch.cid)}
+            style={chipStyle(isActive)}>
+            {iconUrl
+              ?<img src={iconUrl} alt="" width={14} height={14} style={{borderRadius:3,flexShrink:0}} onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='';}}/>
+              :null}
+            <span style={{display:iconUrl?'none':'',width:14,height:14,borderRadius:3,background:color+'30',fontSize:8,fontWeight:700,color,textAlign:'center',lineHeight:'14px',fontFamily:MF,flexShrink:0}}>{ticker.slice(0,2)}</span>
+            <span style={{fontSize:11,fontWeight:600,color:isActive?'#FFFFFF':'#C0C0C0',fontFamily:MF}}>{ticker}</span>
+            <span style={{display:'inline-flex',gap:4,alignItems:'center'}}>
+              {sevDot('#EA4335',ch.red)}
+              {sevDot(T.warning,ch.amber)}
+              {ch.red===0&&ch.amber===0&&sevDot('#4FC46B',ch.green)}
+            </span>
+          </div>;
+        })}
+
+        {/* System chip */}
+        {sysFindingsAll.length>0&&<div
+          onClick={()=>setChainFilter(chainFilter==='_system'?null:'_system')}
+          style={chipStyle(chainFilter==='_system')}>
+          <span style={{fontSize:11,flexShrink:0}}>⚙</span>
+          <span style={{fontSize:11,fontWeight:600,color:chainFilter==='_system'?'#FFFFFF':'#C0C0C0',fontFamily:MF}}>System</span>
+          <span style={{display:'inline-flex',gap:4,alignItems:'center'}}>
+            {sevDot('#EA4335',sysRed)}
+            {sevDot(T.warning,sysAmber)}
+            {sysRed===0&&sysAmber===0&&sevDot('#4FC46B',sysGreen)}
+          </span>
+        </div>}
+
+        <span style={{marginLeft:'auto',fontSize:9,color:'#8A8A8E',fontFamily:MF,flexShrink:0}}>{matches}/{accts.length} ✓</span>
         {snapshotDate&&<span style={{fontSize:9,color:'rgba(187,176,255,0.4)',fontFamily:MF,flexShrink:0}}>snapshot {snapshotDate}</span>}
       </div>;
     })()}
