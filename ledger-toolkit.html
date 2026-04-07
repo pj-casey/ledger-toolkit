@@ -297,6 +297,10 @@ const GUIDE_AGENT=`<!-- Hero -->
       <a class="indent" href="#mobile-logs">Mobile Log Support</a>
       <a class="indent" href="#no-sync">No-Sync Visibility</a>
       <a class="indent" href="#discoverability">Discoverability Hints</a>
+      <a class="indent" href="#customer-view">Customer View</a>
+      <a class="indent" href="#agent-insights-guide">Agent Insights</a>
+      <a class="indent" href="#staking-awareness">Staking Awareness</a>
+      <a class="indent" href="#earn-tab-guide">Earn Tab</a>
       <a href="#copy"><span class="toc-icon">📋</span> Copy &amp; Export</a>
       <a href="#shortcuts"><span class="toc-icon">⌨</span> Keyboard Shortcuts</a>
       <a href="#troubleshooting"><span class="toc-icon">🔧</span> Tips &amp; Troubleshooting</a>
@@ -352,6 +356,7 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p><strong>For deeper investigation:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for the balances their app was displaying. Compare app.json balances with the live balances shown in Diagnostic mode.</p>
   <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
+  <p><strong>In Customer View:</strong> Load the customer's <kbd>app.json</kbd> and go to <strong>Agent Insights</strong>. The dashboard compares what the customer sees to live on-chain balances and flags discrepancies. Check the staking card — if the customer has staked funds, the "missing" balance is likely frozen, not lost. Use the <strong>Earn</strong> tab to see their staking positions and validator details.</p>
   <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
 </div>
 
@@ -383,8 +388,15 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3 id="s-verify">I need to verify what the customer sees</h3>
 <div class="card">
   <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> using the prominent toggle in the top bar.</p>
-  <p><strong>Look for:</strong> Portfolio overview with all accounts. Click any account for full detail — address, tokens, transaction history.</p>
-  <p><strong>Next:</strong> Load the customer's <kbd>app.json</kbd> via the upload banner. Adds real balances, tx history, and account names. This shows exactly what the customer's Ledger Wallet was displaying.</p>
+  <p><strong>Load app.json:</strong> Upload the customer's <kbd>app.json</kbd> via the banner. This populates all tabs with the customer's actual data — balances, transactions, staking positions, device info, and app versions.</p>
+  <p><strong>Walk the tabs:</strong> Portfolio shows their total value and asset allocation. Accounts shows every account with full transaction history. Earn shows staking positions. My Ledger shows device storage and installed apps. Agent Insights compares their data to live on-chain reality.</p>
+  <p><strong>Key investigation flows:</strong></p>
+  <ul class="def-list">
+    <li><strong>Balance dispute</strong> → Agent Insights → click the flagged account → see comparison + action</li>
+    <li><strong>Staking issue</strong> → Earn tab → expand the position → check validator + operation timeline</li>
+    <li><strong>Missing transactions</strong> → Accounts → click the account → scroll operations timeline</li>
+    <li><strong>App/firmware issue</strong> → My Ledger → check versions, storage, installed apps</li>
+  </ul>
 </div>
 
 <h3 id="s-general">General investigation (no specific complaint)</h3>
@@ -567,11 +579,56 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p>These hints are always visible but unobtrusive (9px, muted, 50% opacity). New agents learn the interactions; experienced agents stop noticing them.</p>
 </div>
 
-<h3>Customer View — "See the customer's wallet"</h3>
+<h3 id="customer-view">Customer View — "See the customer's wallet"<span class="new-badge">Updated</span></h3>
 <div class="card">
-  <p>Read-only wallet simulation. Account list on the left, portfolio or account detail in the center, device info on the right. Load <kbd>app.json</kbd> via the upload banner for exact balances and transaction history.</p>
-  <p>Switch between Diagnostic and Customer View using the toggle in the top bar. The active mode is highlighted with a purple glow.</p>
-  <div class="warn">Red "mismatch" warning after loading app.json? You loaded the wrong customer's file. Click ✕ to remove and upload the correct one.</div>
+  <p>Customer View replicates the Ledger Wallet interface so you can see exactly what the customer sees. Switch to it using the <span class="badge badge-purple">Customer View</span> toggle in the top bar. Load the customer's <kbd>app.json</kbd> via the upload banner for full data.</p>
+  <p><strong>Five tabs</strong> in the left sidebar, matching the real Ledger Wallet layout:</p>
+  <ul class="def-list">
+    <li><strong>Portfolio</strong> — total balance, asset allocation table (Asset, Price, Allocation bar, Balance, Value), recent dApp activity. Click any asset row to jump to that account.</li>
+    <li><strong>Accounts</strong> — all accounts in a horizontal grid: icon, chain name, account name, ✓ checkmark, crypto balance, fiat value, star. Click any row to see account detail with full operations timeline, token balances, swap history, and staking split.</li>
+    <li><strong>Earn</strong> — staking positions, deposited amounts, estimated APY, rewards earned, validator names, and liquid staking tokens (stETH, JupSOL, LBTC, etc.). Two sub-tabs: "My rewards" and "Earn opportunities."</li>
+    <li><strong>My Ledger</strong> — device model, firmware version, storage bar showing app sizes, app catalog with version checks (installed, outdated, missing).</li>
+    <li><strong>Agent Insights</strong> — diagnostic dashboard comparing what the customer sees to what's actually on-chain. Fixed-viewport master-detail layout. This is your primary investigation tool for balance and sync tickets.</li>
+  </ul>
+</div>
+
+<h3 id="agent-insights-guide">Agent Insights — the diagnostic dashboard<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Agent Insights is a fixed-viewport dashboard at the bottom of the Customer View nav. It compares the customer's app.json data to live blockchain balances and flags discrepancies.</p>
+  <p><strong>Layout:</strong> Stat cards across the top (Portfolio delta, Device, Data confidence, Customer settings), then a master-detail split below. Compact findings list on the left, full detail panel on the right.</p>
+  <p><strong>How to use it:</strong></p>
+  <ul class="def-list">
+    <li><strong>Load app.json + wait for live balances</strong> — the tool fetches on-chain balances automatically. Agent Insights populates as data arrives.</li>
+    <li><strong>Read top to bottom</strong> — red findings first, then amber, then green. The first red finding is auto-selected and its detail appears on the right.</li>
+    <li><strong>Click any finding</strong> — the right panel shows the comparison grid (Customer sees vs On-chain), the recommended action, evidence trail, and copy button.</li>
+    <li><strong>"View in Customer View ↗"</strong> — navigates to the specific account in the Accounts tab for deeper investigation.</li>
+    <li><strong>"Copy to clipboard"</strong> — copies a formatted summary for pasting into your ticket.</li>
+  </ul>
+  <div class="tip">Agent Insights uses the customer's cached countervalue rate for BOTH columns in the comparison. This means the fiat delta purely reflects balance changes, not price movement. If you see a fiat difference, the crypto balance actually changed.</div>
+</div>
+
+<h3 id="staking-awareness">Staking awareness<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Many customers have staked or frozen funds. The tool detects this automatically when <kbd>balance ≠ spendableBalance</kbd> in the app.json and adjusts the comparison accordingly.</p>
+  <p><strong>What you'll see:</strong> A purple 🥩 staking card in the Agent Insights detail panel showing "Total: 276.34 SOL · Staked: 276.12 SOL · Available: 0.21 SOL." The comparison uses the <strong>available</strong> balance (not total) against the live balance — preventing false alarms on staked funds.</p>
+  <p><strong>Chain-specific labels:</strong></p>
+  <ul class="def-list">
+    <li><strong>SOL, ATOM, DOT, NEAR, ADA, ALGO</strong> — "Staked / Delegated"</li>
+    <li><strong>TRX</strong> — "Frozen (bandwidth/energy)"</li>
+    <li><strong>XRP, XLM</strong> — "Network reserve" (not staking — these are protocol-required minimums)</li>
+  </ul>
+  <p><strong>Solana note:</strong> Solana staking uses separate stake accounts. The live balance only reflects the main account, not stake accounts. The tool notes this explicitly so you don't mistake staked SOL for missing SOL.</p>
+  <div class="warn">If a customer says "my balance is wrong" and they have staked funds, check the Earn tab first. The "missing" balance is almost certainly staked, not lost.</div>
+</div>
+
+<h3 id="earn-tab-guide">Earn tab — staking investigation<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>The Earn tab shows all staking positions from the customer's app.json. Use it for "my staking isn't working," "I can't unstake," or "my rewards are wrong" tickets.</p>
+  <p><strong>"My rewards" sub-tab:</strong> Total deposited (fiat + allocation bar), total rewards earned, and a table of deposited assets with account name, invested amount, estimated APY, and rewards.</p>
+  <p><strong>Click any staking position</strong> to expand: validator names (NEAR shows readable names like "ledgerbyfigment.poolv1.near"), balance breakdown, and a timeline of staking operations (delegated, undelegated, withdrawn, rewards claimed).</p>
+  <p><strong>Liquid staking tokens</strong> section below the table shows stETH, JupSOL, LBTC, cbETH and other LSTs the customer holds, with the provider name and parent account.</p>
+  <p><strong>"Earn opportunities" sub-tab:</strong> Lists the staking providers available in Ledger Wallet (Ledger by Figment, Kiln, Lido, Coinbase, Yield.xyz) with which chains each supports.</p>
+  <div class="tip">Estimated APY rates are labeled "~est." and come from Ledger's public documentation. Actual rates vary by validator and network conditions. Many chains auto-compound rewards without discrete reward operations — so "0 rewards" doesn't always mean the customer isn't earning.</div>
 </div>
 
 
@@ -623,7 +680,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 <p>The error isn't in the tool's knowledge base (82 known patterns). Expand the error card's "Details" section for the raw data. Use <strong>Raw JSON</strong> search to find the error in the full log — the progressive search will take you right to it.</p>
 
 <h3>Customer View is empty</h3>
-<p>Make sure you've switched modes using the top bar toggle — the active mode glows purple. If no accounts appear, load the customer's <kbd>app.json</kbd>.</p>
+<p>Make sure you've switched modes using the top bar toggle. If no accounts appear, load the customer's <kbd>app.json</kbd>. Agent Insights and the Earn tab require app.json data — they'll show empty states with guidance until it's loaded.</p>
 
 <h3>App.json says "Ledger Sync encryption"</h3>
 <p>The file is encrypted by Ledger Sync. The tool extracts what it can (settings, paired devices, token preferences) but can't read balances or transaction history.</p>
@@ -633,6 +690,9 @@ const GUIDE_AGENT=`<!-- Hero -->
 
 <h3>I loaded the wrong app.json</h3>
 <p>Click ✕ on the green banner to remove it, then upload the correct file.</p>
+
+<h3>Agent Insights shows many red alerts on staking chains</h3>
+<p>This was a known issue that has been fixed. If you're seeing false "Balance changed" alerts on accounts with staked funds (SOL, TRX, NEAR, etc.), make sure you're on the latest version. The tool now compares the <strong>available</strong> balance (excluding staked) to the live balance.</p>
 
 <h3>The xpub scanner is slow</h3>
 <p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
@@ -704,6 +764,13 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
       <a class="indent" href="#adaptive-dimming">Adaptive Dimming</a>
       <a class="indent" href="#overview-arch">Overview Architecture</a>
       <a class="indent" href="#triangulation">Multi-Source Data Triangulation</a>
+      <a href="#customer-view-arch"><span class="toc-icon">🖥</span> Customer View Architecture</a>
+      <a class="indent" href="#enrichment-pipeline">Enrichment Pipeline</a>
+      <a class="indent" href="#countervalue-system">Countervalue System</a>
+      <a class="indent" href="#agent-insights-engine">Agent Insights Engine</a>
+      <a class="indent" href="#staking-detection">Staking Detection</a>
+      <a class="indent" href="#earn-data-extraction">Earn Tab Data Extraction</a>
+      <a class="indent" href="#cv-rendering">Rendering Components</a>
       <a href="#network-analysis"><span class="toc-icon">🌐</span> Network &amp; Protocol Analysis</a>
       <a class="indent" href="#http-analysis">HTTP Request Analysis</a>
       <a class="indent" href="#activity-detection">Session Activity Detection</a>
@@ -1087,8 +1154,94 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Missing accounts</strong> — accounts present in app.json but absent from the log</li>
     <li><strong>Unreported assets</strong> — live balance is positive but no sync data was captured</li>
   </ul>
+  <p><strong>Customer View balance comparison model:</strong> Agent Insights implements a three-layer comparison: (1) crypto comparison using <span class="mono">spendableBalance</span> vs live balance, (2) fiat comparison using the customer's cached rate for both columns, and (3) market value via CoinGecko shown as supplementary. Staking detection prevents false positives on 18+ account types. See <a href="#agent-insights-engine" style="color:var(--primary)">Agent Insights Engine</a> for details.</p>
 </div>
 
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ CUSTOMER VIEW ═══════════════ -->
+<h2 id="customer-view-arch">Customer View Architecture<span class="new-badge">New</span></h2>
+
+<h3 id="enrichment-pipeline">Account Enrichment Pipeline</h3>
+<div class="card">
+  <p>Customer View merges data from two sources: log-extracted accounts (<span class="mono">logData.accts</span>) and app.json accounts (<span class="mono">appJson.accounts</span>). The merge is performed in a <span class="mono">useMemo</span> inside the <span class="mono">CustomerView</span> component, producing <span class="mono">enrichedAccts</span>.</p>
+  <p><strong>Merge strategy:</strong> Log accounts are the base. For each log account, the pipeline searches for a matching app.json account by <span class="mono">id</span>. When matched, the following fields are overlaid:</p>
+  <ul class="def-list">
+    <li><strong>ajBalance</strong> — raw balance string from app.json (includes staked funds)</li>
+    <li><strong>ajSpendable</strong> — spendableBalance from app.json (excludes staked/frozen/reserved funds)</li>
+    <li><strong>ajOperations</strong> — full operation history array</li>
+    <li><strong>ajSubAccounts</strong> — token sub-accounts with balances and operation counts</li>
+    <li><strong>ajPendingOps</strong> — pending (unconfirmed) operations</li>
+    <li><strong>ajBlockHeight</strong> — last synced block number</li>
+    <li><strong>ajStarred</strong> — customer's star/favorite flag</li>
+    <li><strong>ajSwapHistory</strong> — swap operation history</li>
+    <li><strong>ajFreshAddressPath</strong> — latest receive address derivation path</li>
+  </ul>
+  <p>When app.json contains accounts not present in the log, they are appended as app.json-only accounts with <span class="mono">enriched:true</span> and synthetic chain metadata derived from the <span class="mono">currencyId</span>.</p>
+  <p><em>For investigation workflows, see Agent Guide → Customer View.</em></p>
+</div>
+
+<h3 id="countervalue-system">Countervalue System</h3>
+<div class="card">
+  <p>The countervalue system extracts cached exchange rates from the customer's app.json to display fiat values exactly as the customer saw them.</p>
+  <p><strong>Rate extraction:</strong> <span class="mono">cvGetRateMap(appJson)</span> builds a map of <span class="mono">{fiatCurrency} {cryptoId}</span> → <span class="mono">{date: rate}</span> from the app.json's countervalue cache. The latest rate per asset is retrieved by <span class="mono">cvLatestRate(appJson, cid)</span> which returns <span class="mono">{rate, date}</span>.</p>
+  <p><strong>Fiat conversion:</strong> <span class="mono">cvFiatValue(appJson, cid, rawBalance)</span> computes the fiat value using the customer's cached rate. This produces the exact dollar amount the customer saw in their app — not the current market price.</p>
+  <p><strong>Display formatting:</strong> <span class="mono">cvFmtFiat(value, appJson)</span> formats values using the customer's preferred fiat currency and locale settings. <span class="mono">countervalueFirst</span> setting is respected throughout — when enabled, fiat values appear above crypto values.</p>
+  <p><strong>Rate-on-date:</strong> <span class="mono">cvRateOnDate(appJson, cid, dateStr)</span> retrieves the rate for a specific date, enabling per-operation fiat valuation in the transactions timeline.</p>
+</div>
+
+<h3 id="agent-insights-engine">Agent Insights — Findings Engine</h3>
+<div class="card">
+  <p>The Agent Insights findings engine is a single <span class="mono">useMemo</span> that produces a severity-sorted array of diagnostic findings from all available data sources.</p>
+  <p><strong>Finding types:</strong></p>
+  <ul class="def-list">
+    <li><strong>Account findings</strong> (<span class="mono">kind:'account'</span>) — one per account with issues. Includes balance comparison data, staking context, pending/failed operation counts, and log error references.</li>
+    <li><strong>System findings</strong> (<span class="mono">kind:'system'</span>) — countervalue drift, firmware status, app versions, developer mode, log errors, data confidence.</li>
+  </ul>
+  <p><strong>Balance comparison model:</strong></p>
+  <ul class="def-list">
+    <li><strong>Crypto comparison:</strong> uses <span class="mono">spendableBalance</span> (not <span class="mono">balance</span>) when staking is detected. This prevents false positives on accounts with staked/frozen funds.</li>
+    <li><strong>Fiat comparison:</strong> both columns use the customer's cached countervalue rate. This isolates balance changes from price movement. The delta purely reflects crypto balance differences.</li>
+    <li><strong>Time context:</strong> snapshot date derived from the latest countervalue rate date. Days-since-snapshot shown in finding detail. Agents are informed that differences may be from normal transactions since the export.</li>
+    <li><strong>Market value:</strong> CoinGecko current price shown as secondary "at market" line. Useful for "what's it worth today?" but not used in the primary comparison.</li>
+  </ul>
+  <p><strong>Severity classification:</strong> <span class="mono">red</span> = balance mismatch or pending transactions. <span class="mono">amber</span> = failed transactions, log errors, developer mode, data issues. <span class="mono">green</span> = healthy checks. Sorted red → amber → green.</p>
+  <p><strong>Visual elements:</strong> Health dots strip (one dot per account, colored by status, clickable), comparison bars (proportional width showing customer vs on-chain), portfolio donut (44×44px SVG with overlapping arcs).</p>
+</div>
+
+<h3 id="staking-detection">Staking Detection &amp; Chain-Specific Handling</h3>
+<div class="card">
+  <p>Staking is detected when <span class="mono">ajBalance ≠ ajSpendable</span> for an account. The staked amount is <span class="mono">balance - spendableBalance</span>. This affects 18 of 96 accounts in the test dataset.</p>
+  <p><strong>Chain-specific handling:</strong></p>
+  <ul class="def-list">
+    <li><strong>Solana</strong> — staking uses separate stake accounts. Live <span class="mono">getBalance</span> RPC returns main account only. Label: "Staked / Delegated." Note: "Solana staking uses separate stake accounts — the live balance only reflects the main account."</li>
+    <li><strong>Tron</strong> — frozen TRX for bandwidth/energy. Live <span class="mono">getaccount</span> API returns liquid balance only. Label: "Frozen (bandwidth/energy)."</li>
+    <li><strong>NEAR</strong> — delegated to staking pools. Live <span class="mono">view_account</span> RPC returns liquid balance. Label: "Staked / Delegated."</li>
+    <li><strong>XRP, XLM</strong> — network reserves (10 XRP, 1.5 XLM). Not staking. Label: "Network reserve."</li>
+    <li><strong>Cosmos, Polkadot, Cardano, Algorand</strong> — delegation to validators. Label: "Staked / Delegated."</li>
+  </ul>
+  <p><strong>Comparison adjustment:</strong> when staking is detected, the findings engine compares <span class="mono">spendableBalance</span> to live balance instead of <span class="mono">balance</span>. This eliminates false positives. The staked amount is shown as informational context, not as a discrepancy.</p>
+</div>
+
+<h3 id="earn-data-extraction">Earn Tab — Data Extraction</h3>
+<div class="card">
+  <p>The Earn tab extracts staking data from <span class="mono">enrichedAccts</span> without any live API calls.</p>
+  <p><strong>Native staking positions:</strong> accounts where <span class="mono">balance ≠ spendableBalance</span>. Staked amount, fiat value, staking operation history (DELEGATE, STAKE, FREEZE, VOTE, UNDELEGATE, UNSTAKE, WITHDRAW, REWARD), validator addresses from <span class="mono">op.recipients</span> and <span class="mono">op.extra.stake.address</span>.</p>
+  <p><strong>Liquid staking tokens:</strong> detected by pattern-matching <span class="mono">tokenId</span> strings in sub-accounts against known LST identifiers: <span class="mono">steth</span>, <span class="mono">coinbase_wrapped_staked_eth</span>, <span class="mono">jupiter_staked_sol</span>, <span class="mono">lombard_staked_bitcoin</span>, <span class="mono">lc_staked_shared_eth</span>, <span class="mono">reth</span>.</p>
+  <p><strong>Estimated APY rates:</strong> stored in a constant <span class="mono">STAKING_APY</span> map derived from Ledger's public documentation. SOL ~5-7%, ATOM ~15-20%, DOT ~10-12%, XTZ ~5%, TRX ~3-5%, NEAR ~8-12%, ADA ~3-5%, ALGO ~5-7%, ETH ~3-3.5%.</p>
+  <p><strong>Known providers:</strong> Ledger by Figment (SOL, ATOM, DOT, NEAR), Kiln (ETH), Lido (ETH→stETH), Coinbase (ETH→cbETH), Yield.xyz (AVAX, DOT, TRX, POL, BNB, CRO).</p>
+</div>
+
+<h3 id="cv-rendering">Customer View Rendering Components</h3>
+<div class="card">
+  <p><strong>CVPortfolio</strong> — asset allocation table with 5-column grid (Asset, Price, Allocation with colored progress bar, Balance, Value). Chain groups sorted by fiat value. Clickable rows navigate to Accounts. Recent dApp activity from <span class="mono">discover.recentlyUsed</span>.</p>
+  <p><strong>CVAccounts (list)</strong> — horizontal grid rows: icon (52px), chain+name, ✓ checkmark, crypto balance, fiat value, change %, star ☆/★. Token expansion inline. Search + sort by balance/name.</p>
+  <p><strong>CVAccounts (detail)</strong> — balance hero (crypto + fiat, respects <span class="mono">countervalueFirst</span>), rate reference, action button pills, staking split display, operations timeline grouped by date (3-column grid: icon + label/time/counterparty + right-aligned amount/fiat), swap history, token balances with per-token operations.</p>
+  <p><strong>CVEarn</strong> — "My rewards"/"Earn opportunities" tab bar. Summary cards (total deposited + allocation bar, total rewards + since date). Deposited assets table (4-column grid). Expandable detail per position: validators, balance breakdown, staking operation timeline. Liquid staking tokens section. Provider list on "Earn opportunities" tab.</p>
+  <p><strong>CVMyLedger</strong> — device card with model/firmware/genuine check. Storage bar with proportional colored segments per app. App catalog with version comparison (installed/outdated/missing).</p>
+  <p><strong>CVAgentInsights</strong> — fixed-viewport master-detail dashboard. Row 1: header + KPI chips + filter toggle. Row 2: 4 stat cards. Row 2.5: health dots strip. Row 3: findings list (left 38%) + detail panel (right 62%). First finding auto-selected. <span class="mono">overflowY:'hidden'</span> on <span class="mono">.cv-content</span> when active.</p>
+</div>
 
 <div class="section-divider"></div>
 

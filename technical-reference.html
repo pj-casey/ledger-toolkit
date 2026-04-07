@@ -137,15 +137,6 @@ ol.tech-list li strong{color:var(--text)}
 </style>
 </head>
 <body>
-
-<div class="top-bar">
-  <svg width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
-  </svg>
-  <span class="top-bar-label">Diagnostic Toolkit — Technical Reference</span>
-  <span class="top-bar-ver">v4.1</span>
-</div>
-
 <!-- Hero -->
 <div class="hero">
   <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -199,6 +190,13 @@ ol.tech-list li strong{color:var(--text)}
       <a class="indent" href="#adaptive-dimming">Adaptive Dimming</a>
       <a class="indent" href="#overview-arch">Overview Architecture</a>
       <a class="indent" href="#triangulation">Multi-Source Data Triangulation</a>
+      <a href="#customer-view-arch"><span class="toc-icon">🖥</span> Customer View Architecture</a>
+      <a class="indent" href="#enrichment-pipeline">Enrichment Pipeline</a>
+      <a class="indent" href="#countervalue-system">Countervalue System</a>
+      <a class="indent" href="#agent-insights-engine">Agent Insights Engine</a>
+      <a class="indent" href="#staking-detection">Staking Detection</a>
+      <a class="indent" href="#earn-data-extraction">Earn Tab Data Extraction</a>
+      <a class="indent" href="#cv-rendering">Rendering Components</a>
       <a href="#network-analysis"><span class="toc-icon">🌐</span> Network &amp; Protocol Analysis</a>
       <a class="indent" href="#http-analysis">HTTP Request Analysis</a>
       <a class="indent" href="#activity-detection">Session Activity Detection</a>
@@ -582,8 +580,94 @@ ol.tech-list li strong{color:var(--text)}
     <li><strong>Missing accounts</strong> — accounts present in app.json but absent from the log</li>
     <li><strong>Unreported assets</strong> — live balance is positive but no sync data was captured</li>
   </ul>
+  <p><strong>Customer View balance comparison model:</strong> Agent Insights implements a three-layer comparison: (1) crypto comparison using <span class="mono">spendableBalance</span> vs live balance, (2) fiat comparison using the customer's cached rate for both columns, and (3) market value via CoinGecko shown as supplementary. Staking detection prevents false positives on 18+ account types. See <a href="#agent-insights-engine" style="color:var(--primary)">Agent Insights Engine</a> for details.</p>
 </div>
 
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════ CUSTOMER VIEW ═══════════════ -->
+<h2 id="customer-view-arch">Customer View Architecture<span class="new-badge">New</span></h2>
+
+<h3 id="enrichment-pipeline">Account Enrichment Pipeline</h3>
+<div class="card">
+  <p>Customer View merges data from two sources: log-extracted accounts (<span class="mono">logData.accts</span>) and app.json accounts (<span class="mono">appJson.accounts</span>). The merge is performed in a <span class="mono">useMemo</span> inside the <span class="mono">CustomerView</span> component, producing <span class="mono">enrichedAccts</span>.</p>
+  <p><strong>Merge strategy:</strong> Log accounts are the base. For each log account, the pipeline searches for a matching app.json account by <span class="mono">id</span>. When matched, the following fields are overlaid:</p>
+  <ul class="def-list">
+    <li><strong>ajBalance</strong> — raw balance string from app.json (includes staked funds)</li>
+    <li><strong>ajSpendable</strong> — spendableBalance from app.json (excludes staked/frozen/reserved funds)</li>
+    <li><strong>ajOperations</strong> — full operation history array</li>
+    <li><strong>ajSubAccounts</strong> — token sub-accounts with balances and operation counts</li>
+    <li><strong>ajPendingOps</strong> — pending (unconfirmed) operations</li>
+    <li><strong>ajBlockHeight</strong> — last synced block number</li>
+    <li><strong>ajStarred</strong> — customer's star/favorite flag</li>
+    <li><strong>ajSwapHistory</strong> — swap operation history</li>
+    <li><strong>ajFreshAddressPath</strong> — latest receive address derivation path</li>
+  </ul>
+  <p>When app.json contains accounts not present in the log, they are appended as app.json-only accounts with <span class="mono">enriched:true</span> and synthetic chain metadata derived from the <span class="mono">currencyId</span>.</p>
+  <p><em>For investigation workflows, see Agent Guide → Customer View.</em></p>
+</div>
+
+<h3 id="countervalue-system">Countervalue System</h3>
+<div class="card">
+  <p>The countervalue system extracts cached exchange rates from the customer's app.json to display fiat values exactly as the customer saw them.</p>
+  <p><strong>Rate extraction:</strong> <span class="mono">cvGetRateMap(appJson)</span> builds a map of <span class="mono">{fiatCurrency} {cryptoId}</span> → <span class="mono">{date: rate}</span> from the app.json's countervalue cache. The latest rate per asset is retrieved by <span class="mono">cvLatestRate(appJson, cid)</span> which returns <span class="mono">{rate, date}</span>.</p>
+  <p><strong>Fiat conversion:</strong> <span class="mono">cvFiatValue(appJson, cid, rawBalance)</span> computes the fiat value using the customer's cached rate. This produces the exact dollar amount the customer saw in their app — not the current market price.</p>
+  <p><strong>Display formatting:</strong> <span class="mono">cvFmtFiat(value, appJson)</span> formats values using the customer's preferred fiat currency and locale settings. <span class="mono">countervalueFirst</span> setting is respected throughout — when enabled, fiat values appear above crypto values.</p>
+  <p><strong>Rate-on-date:</strong> <span class="mono">cvRateOnDate(appJson, cid, dateStr)</span> retrieves the rate for a specific date, enabling per-operation fiat valuation in the transactions timeline.</p>
+</div>
+
+<h3 id="agent-insights-engine">Agent Insights — Findings Engine</h3>
+<div class="card">
+  <p>The Agent Insights findings engine is a single <span class="mono">useMemo</span> that produces a severity-sorted array of diagnostic findings from all available data sources.</p>
+  <p><strong>Finding types:</strong></p>
+  <ul class="def-list">
+    <li><strong>Account findings</strong> (<span class="mono">kind:'account'</span>) — one per account with issues. Includes balance comparison data, staking context, pending/failed operation counts, and log error references.</li>
+    <li><strong>System findings</strong> (<span class="mono">kind:'system'</span>) — countervalue drift, firmware status, app versions, developer mode, log errors, data confidence.</li>
+  </ul>
+  <p><strong>Balance comparison model:</strong></p>
+  <ul class="def-list">
+    <li><strong>Crypto comparison:</strong> uses <span class="mono">spendableBalance</span> (not <span class="mono">balance</span>) when staking is detected. This prevents false positives on accounts with staked/frozen funds.</li>
+    <li><strong>Fiat comparison:</strong> both columns use the customer's cached countervalue rate. This isolates balance changes from price movement. The delta purely reflects crypto balance differences.</li>
+    <li><strong>Time context:</strong> snapshot date derived from the latest countervalue rate date. Days-since-snapshot shown in finding detail. Agents are informed that differences may be from normal transactions since the export.</li>
+    <li><strong>Market value:</strong> CoinGecko current price shown as secondary "at market" line. Useful for "what's it worth today?" but not used in the primary comparison.</li>
+  </ul>
+  <p><strong>Severity classification:</strong> <span class="mono">red</span> = balance mismatch or pending transactions. <span class="mono">amber</span> = failed transactions, log errors, developer mode, data issues. <span class="mono">green</span> = healthy checks. Sorted red → amber → green.</p>
+  <p><strong>Visual elements:</strong> Health dots strip (one dot per account, colored by status, clickable), comparison bars (proportional width showing customer vs on-chain), portfolio donut (44×44px SVG with overlapping arcs).</p>
+</div>
+
+<h3 id="staking-detection">Staking Detection &amp; Chain-Specific Handling</h3>
+<div class="card">
+  <p>Staking is detected when <span class="mono">ajBalance ≠ ajSpendable</span> for an account. The staked amount is <span class="mono">balance - spendableBalance</span>. This affects 18 of 96 accounts in the test dataset.</p>
+  <p><strong>Chain-specific handling:</strong></p>
+  <ul class="def-list">
+    <li><strong>Solana</strong> — staking uses separate stake accounts. Live <span class="mono">getBalance</span> RPC returns main account only. Label: "Staked / Delegated." Note: "Solana staking uses separate stake accounts — the live balance only reflects the main account."</li>
+    <li><strong>Tron</strong> — frozen TRX for bandwidth/energy. Live <span class="mono">getaccount</span> API returns liquid balance only. Label: "Frozen (bandwidth/energy)."</li>
+    <li><strong>NEAR</strong> — delegated to staking pools. Live <span class="mono">view_account</span> RPC returns liquid balance. Label: "Staked / Delegated."</li>
+    <li><strong>XRP, XLM</strong> — network reserves (10 XRP, 1.5 XLM). Not staking. Label: "Network reserve."</li>
+    <li><strong>Cosmos, Polkadot, Cardano, Algorand</strong> — delegation to validators. Label: "Staked / Delegated."</li>
+  </ul>
+  <p><strong>Comparison adjustment:</strong> when staking is detected, the findings engine compares <span class="mono">spendableBalance</span> to live balance instead of <span class="mono">balance</span>. This eliminates false positives. The staked amount is shown as informational context, not as a discrepancy.</p>
+</div>
+
+<h3 id="earn-data-extraction">Earn Tab — Data Extraction</h3>
+<div class="card">
+  <p>The Earn tab extracts staking data from <span class="mono">enrichedAccts</span> without any live API calls.</p>
+  <p><strong>Native staking positions:</strong> accounts where <span class="mono">balance ≠ spendableBalance</span>. Staked amount, fiat value, staking operation history (DELEGATE, STAKE, FREEZE, VOTE, UNDELEGATE, UNSTAKE, WITHDRAW, REWARD), validator addresses from <span class="mono">op.recipients</span> and <span class="mono">op.extra.stake.address</span>.</p>
+  <p><strong>Liquid staking tokens:</strong> detected by pattern-matching <span class="mono">tokenId</span> strings in sub-accounts against known LST identifiers: <span class="mono">steth</span>, <span class="mono">coinbase_wrapped_staked_eth</span>, <span class="mono">jupiter_staked_sol</span>, <span class="mono">lombard_staked_bitcoin</span>, <span class="mono">lc_staked_shared_eth</span>, <span class="mono">reth</span>.</p>
+  <p><strong>Estimated APY rates:</strong> stored in a constant <span class="mono">STAKING_APY</span> map derived from Ledger's public documentation. SOL ~5-7%, ATOM ~15-20%, DOT ~10-12%, XTZ ~5%, TRX ~3-5%, NEAR ~8-12%, ADA ~3-5%, ALGO ~5-7%, ETH ~3-3.5%.</p>
+  <p><strong>Known providers:</strong> Ledger by Figment (SOL, ATOM, DOT, NEAR), Kiln (ETH), Lido (ETH→stETH), Coinbase (ETH→cbETH), Yield.xyz (AVAX, DOT, TRX, POL, BNB, CRO).</p>
+</div>
+
+<h3 id="cv-rendering">Customer View Rendering Components</h3>
+<div class="card">
+  <p><strong>CVPortfolio</strong> — asset allocation table with 5-column grid (Asset, Price, Allocation with colored progress bar, Balance, Value). Chain groups sorted by fiat value. Clickable rows navigate to Accounts. Recent dApp activity from <span class="mono">discover.recentlyUsed</span>.</p>
+  <p><strong>CVAccounts (list)</strong> — horizontal grid rows: icon (52px), chain+name, ✓ checkmark, crypto balance, fiat value, change %, star ☆/★. Token expansion inline. Search + sort by balance/name.</p>
+  <p><strong>CVAccounts (detail)</strong> — balance hero (crypto + fiat, respects <span class="mono">countervalueFirst</span>), rate reference, action button pills, staking split display, operations timeline grouped by date (3-column grid: icon + label/time/counterparty + right-aligned amount/fiat), swap history, token balances with per-token operations.</p>
+  <p><strong>CVEarn</strong> — "My rewards"/"Earn opportunities" tab bar. Summary cards (total deposited + allocation bar, total rewards + since date). Deposited assets table (4-column grid). Expandable detail per position: validators, balance breakdown, staking operation timeline. Liquid staking tokens section. Provider list on "Earn opportunities" tab.</p>
+  <p><strong>CVMyLedger</strong> — device card with model/firmware/genuine check. Storage bar with proportional colored segments per app. App catalog with version comparison (installed/outdated/missing).</p>
+  <p><strong>CVAgentInsights</strong> — fixed-viewport master-detail dashboard. Row 1: header + KPI chips + filter toggle. Row 2: 4 stat cards. Row 2.5: health dots strip. Row 3: findings list (left 38%) + detail panel (right 62%). First finding auto-selected. <span class="mono">overflowY:'hidden'</span> on <span class="mono">.cv-content</span> when active.</p>
+</div>
 
 <div class="section-divider"></div>
 
