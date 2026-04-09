@@ -5999,6 +5999,7 @@ function App(){
   const[sortDropOpen,setSortDropOpen]=useState(false);
   const[tmSize,setTmSize]=useState({w:300,h:400});
   const[diagTmSize,setDiagTmSize]=useState({w:300,h:300});
+  const[diagCatFilter,setDiagCatFilter]=useState(null);
   const[hoveredTmRect,setHoveredTmRect]=useState(null);
   const[qualityOpen,setQualityOpen]=useState(false);
   const[otherAppsOpen,setOtherAppsOpen]=useState(false);
@@ -6170,7 +6171,7 @@ function App(){
   },[focusedAcct]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setDiagCatFilter(null);
     const reader=new FileReader();
     reader.onload=ev=>{
       setTimeout(()=>{
@@ -6185,7 +6186,7 @@ function App(){
           setLoadErr('');
           setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
-          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);
+          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setDiagCatFilter(null);
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
         setParsing(false);
       },10);
@@ -6470,7 +6471,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setLiveBalances({});setAcctSort('fiat');setSortDropOpen(false);setNavigatedAcct(null);setHoveredTmRect(null);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setLiveBalances({});setAcctSort('fiat');setSortDropOpen(false);setNavigatedAcct(null);setHoveredTmRect(null);setDiagCatFilter(null);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -7192,75 +7193,123 @@ function App(){
                         {!topAcct&&logData.accts.length>0&&<>For account details, open <span style={{color:T.primary,cursor:'pointer',fontWeight:600}} onClick={()=>setSection('accounts')}>Accounts</span>.</>}
                       </span>
                     </div>}
-                    {/* Diagnostic Priority Map — squarify treemap */}
-                    <div ref={diagTreemapRef} style={{flex:1,position:'relative',borderTop:`1px solid ${T.border}`,borderRadius:8,overflow:'hidden',background:T.bg,minHeight:80,marginTop:8}}>
-                      {(()=>{
-                        if(diagTmSize.w<20||diagTmSize.h<20)return null;
-                        const errMap=new Map();
-                        for(const e of logData.errs){
-                          const dg=e.dg||diagnose(e.raw);
-                          const key=dg.t||e.msg||'Unknown';
-                          if(!errMap.has(key)){
-                            const sevWeight=dg.s==='high'?9:dg.s==='medium'?3:1;
-                            const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#8B84CC';
-                            const linkedAccts=[];
-                            for(const a of logData.accts){
-                              if(a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())){
-                                linkedAccts.push({ticker:a.ch.ticker,color:a.ch.color,addr:a.addr,cid:a.cid,name:a.ch.name});
-                              }
+                    {/* Diagnostic Priority Map */}
+                    {(()=>{
+                      // Deduplicate errors by title, compute priority weight
+                      const errMap=new Map();
+                      for(const e of logData.errs){
+                        const dg=e.dg||diagnose(e.raw);
+                        const key=dg.t||e.msg||'Unknown';
+                        if(!errMap.has(key)){
+                          const sevWeight=dg.s==='high'?9:dg.s==='medium'?3:1;
+                          const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#8B84CC';
+                          const linkedAccts=[];
+                          for(const a of logData.accts){
+                            if(a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())){
+                              if(!linkedAccts.find(la=>la.addr===a.addr))linkedAccts.push({ticker:a.ch.ticker,color:a.ch.color,addr:a.addr,cid:a.cid,name:a.ch.name});
                             }
-                            errMap.set(key,{title:key,sev:dg.s,sevWeight,color:sc,count:0,category:dg.c||'—',action:dg.a?llText(dg.a,logData.dev):'',linkedAccts,helpUrl:errUrl(dg),firstLi:e.li,firstTs:e.ts});
                           }
-                          errMap.get(key).count++;
+                          errMap.set(key,{title:key,sev:dg.s,sevWeight,color:sc,count:0,cat:dg.c||'unknown',action:dg.a?llText(dg.a,logData.dev):'',linkedAccts,helpUrl:errUrl(dg),firstLi:e.li,firstTs:e.ts});
                         }
-                        const items=[...errMap.values()].map(e=>({...e,value:e.sevWeight*e.count}));
-                        if(items.length===0)return null;
-                        const rects=squarify(items.sort((a,b)=>b.value-a.value),{x:0,y:0,w:diagTmSize.w,h:diagTmSize.h});
-                        return rects.map((rect,i)=>{
-                          const e=rect;
-                          const bw=rect.w-2,bh=rect.h-2;
-                          const showTitle=bw>80&&bh>30;
-                          const showMeta=bw>100&&bh>50;
-                          const showAccts=bw>80&&bh>70;
-                          const sevLabel=e.sev==='high'?'CRIT':e.sev==='medium'?'WARN':'INFO';
-                          const errRelevant=focusedAcct?e.linkedAccts.some(la=>la.addr===focusedAcct.addr&&la.cid===focusedAcct.cid):true;
-                          return <div key={e.title}
-                            onClick={()=>{
-                              if(e.linkedAccts.length>0){
-                                const la=e.linkedAccts[0];
-                                setFocusedAcct({addr:la.addr,cid:la.cid,ticker:la.ticker,name:la.name,color:la.color});
-                              }
-                              setSection('errors');
-                              setSelectedErr(e.firstLi);
-                            }}
-                            style={{
-                              position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,
-                              background:e.color+'18',
-                              borderLeft:`3px solid ${e.color}`,
-                              borderRadius:4,cursor:'pointer',overflow:'hidden',
-                              transition:I.fast,opacity:errRelevant?1:0.15,
-                              display:'flex',flexDirection:'column',justifyContent:'center',
-                              padding:'4px 8px',boxSizing:'border-box',
-                            }}
-                            onMouseEnter={ev=>{ev.currentTarget.style.background=e.color+'30';ev.currentTarget.style.boxShadow=`inset 0 0 20px ${e.color}25`;}}
-                            onMouseLeave={ev=>{ev.currentTarget.style.background=e.color+'18';ev.currentTarget.style.boxShadow='none';}}
-                            title={`${sevLabel}: ${e.title}\n${e.count}× · ${e.category}${e.action?'\nAction: '+e.action:''}`}
-                          >
-                            {showTitle&&<div style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
-                              <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:e.color+'30',color:e.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
-                              {e.count>1&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,flexShrink:0}}>×{e.count}</span>}
-                            </div>}
-                            {showTitle&&<div style={{fontSize:11,fontWeight:600,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.3}}>{e.title}</div>}
-                            {showMeta&&<div style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2,letterSpacing:'0.04em'}}>{e.category}</div>}
-                            {showAccts&&e.linkedAccts.length>0&&<div style={{display:'flex',alignItems:'center',gap:3,marginTop:3}}>
-                              {e.linkedAccts.slice(0,3).map((la,j)=><span key={j} style={{width:6,height:6,borderRadius:'50%',background:la.color,flexShrink:0}}/>)}
-                              {e.linkedAccts.length>3&&<span style={{fontSize:8,color:T.muted}}>+{e.linkedAccts.length-3}</span>}
-                            </div>}
-                            {!showTitle&&bw>30&&bh>16&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,letterSpacing:'0.06em'}}>{sevLabel}{e.count>1?' ×'+e.count:''}</span>}
-                          </div>;
-                        });
-                      })()}
-                    </div>
+                        errMap.get(key).count++;
+                      }
+                      const allItems=[...errMap.values()].map(e=>({...e,value:e.sevWeight*e.count}));
+
+                      // Extract categories present in data
+                      const cats=[...new Set(allItems.map(e=>e.cat))];
+                      const catCounts={};
+                      cats.forEach(c=>{catCounts[c]=allItems.filter(e=>e.cat===c).reduce((s,e)=>s+e.count,0);});
+                      const catMaxSev={};
+                      cats.forEach(c=>{const sevs=allItems.filter(e=>e.cat===c).map(e=>e.sev);catMaxSev[c]=sevs.includes('high')?'high':sevs.includes('medium')?'medium':'low';});
+
+                      // Apply category filter
+                      const filtered=diagCatFilter?allItems.filter(e=>e.cat===diagCatFilter):allItems;
+
+                      return <>
+                        {/* Category filter chips */}
+                        {cats.length>1&&<div style={{display:'flex',alignItems:'center',gap:5,flexShrink:0,padding:'6px 0',borderTop:`1px solid ${T.border}`,marginTop:6}}>
+                          <span style={{fontSize:9,color:T.muted,fontFamily:MF,letterSpacing:'0.06em',flexShrink:0}}>FILTER</span>
+                          <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                            <span onClick={()=>setDiagCatFilter(null)}
+                              style={{padding:'3px 8px',borderRadius:4,fontSize:10,fontWeight:600,cursor:'pointer',transition:I.fast,fontFamily:MF,letterSpacing:'0.04em',
+                                background:!diagCatFilter?T.primary+'20':'rgba(255,255,255,0.04)',
+                                color:!diagCatFilter?T.primary:T.muted,
+                                border:`1px solid ${!diagCatFilter?T.primary+'50':T.border}`,
+                              }}
+                              onMouseEnter={e=>{if(diagCatFilter)e.currentTarget.style.borderColor=T.primary;}}
+                              onMouseLeave={e=>{if(diagCatFilter)e.currentTarget.style.borderColor=T.border;}}
+                            >All ({allItems.reduce((s,e)=>s+e.count,0)})</span>
+                            {cats.sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[catMaxSev[b]]||0)-(r[catMaxSev[a]]||0)||(catCounts[b]||0)-(catCounts[a]||0);}).map(cat=>{
+                              const ci=CAT[cat]||{l:cat,i:'•'};
+                              const isActive=diagCatFilter===cat;
+                              const chipColor=isActive?(catMaxSev[cat]==='high'?T.error:catMaxSev[cat]==='medium'?T.warning:'#8B84CC'):T.muted;
+                              return <span key={cat} onClick={()=>setDiagCatFilter(isActive?null:cat)}
+                                style={{padding:'3px 8px',borderRadius:4,fontSize:10,fontWeight:600,cursor:'pointer',transition:I.fast,fontFamily:MF,letterSpacing:'0.04em',display:'inline-flex',alignItems:'center',gap:3,
+                                  background:isActive?chipColor+'20':'rgba(255,255,255,0.04)',
+                                  color:isActive?chipColor:T.muted,
+                                  border:`1px solid ${isActive?chipColor+'50':T.border}`,
+                                }}
+                                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.borderColor=chipColor;e.currentTarget.style.color=chipColor;}}}
+                                onMouseLeave={e=>{if(!isActive){e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}}
+                              >{ci.i} {ci.l} ({catCounts[cat]})</span>;
+                            })}
+                          </div>
+                        </div>}
+
+                        {/* Treemap container */}
+                        <div ref={diagTreemapRef} style={{flex:1,position:'relative',borderRadius:8,overflow:'hidden',background:T.bg,border:'1px solid rgba(255,255,255,0.06)',minHeight:80,marginTop:cats.length>1?6:8}}>
+                          {filtered.length>0&&diagTmSize.w>20&&diagTmSize.h>20&&(()=>{
+                            const rects=squarify(filtered.sort((a,b)=>b.value-a.value),{x:0,y:0,w:diagTmSize.w,h:diagTmSize.h});
+                            return rects.map(rect=>{
+                              const e=rect;
+                              const bw=rect.w-2,bh=rect.h-2;
+                              const showTitle=bw>80&&bh>30;
+                              const showMeta=bw>100&&bh>50;
+                              const showAccts=bw>80&&bh>70;
+                              const sevLabel=e.sev==='high'?'CRIT':e.sev==='medium'?'WARN':'INFO';
+                              const errRelevant=focusedAcct?e.linkedAccts.some(la=>la.addr===focusedAcct.addr&&la.cid===focusedAcct.cid):true;
+                              return <div key={e.title}
+                                onClick={()=>{
+                                  if(e.linkedAccts.length>0){
+                                    const la=e.linkedAccts[0];
+                                    setFocusedAcct({addr:la.addr,cid:la.cid,ticker:la.ticker,name:la.name,color:la.color});
+                                  }
+                                  setSection('errors');
+                                  setSelectedErr(e.firstLi);
+                                }}
+                                style={{
+                                  position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,
+                                  background:e.color+'18',
+                                  borderLeft:`3px solid ${e.color}`,
+                                  borderRadius:4,cursor:'pointer',overflow:'hidden',
+                                  transition:'left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease, background-color 0.15s ease',
+                                  opacity:errRelevant?1:0.15,
+                                  display:'flex',flexDirection:'column',justifyContent:'center',
+                                  padding:'4px 8px',boxSizing:'border-box',
+                                }}
+                                onMouseEnter={ev=>{ev.currentTarget.style.background=e.color+'30';ev.currentTarget.style.boxShadow=`inset 0 0 20px ${e.color}25, 0 0 12px ${e.color}15`;}}
+                                onMouseLeave={ev=>{ev.currentTarget.style.background=e.color+'18';ev.currentTarget.style.boxShadow='none';}}
+                                title={`${sevLabel}: ${e.title}\n${e.count}× · ${(CAT[e.cat]||{l:e.cat}).l}${e.action?'\nAction: '+e.action:''}`}
+                              >
+                                {showTitle&&<div style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
+                                  <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:e.color+'30',color:e.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
+                                  {e.count>1&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,flexShrink:0}}>×{e.count}</span>}
+                                  {e.helpUrl&&<a href={e.helpUrl} target="_blank" rel="noopener" onClick={ev=>ev.stopPropagation()} style={{fontSize:9,color:T.orange,textDecoration:'none',lineHeight:1,flexShrink:0}} title="Help article">📄</a>}
+                                </div>}
+                                {showTitle&&<div style={{fontSize:11,fontWeight:600,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.3}}>{e.title}</div>}
+                                {showMeta&&<div style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2,letterSpacing:'0.04em'}}>{(CAT[e.cat]||{l:e.cat}).l}</div>}
+                                {showAccts&&e.linkedAccts.length>0&&<div style={{display:'flex',alignItems:'center',gap:3,marginTop:3}}>
+                                  {e.linkedAccts.slice(0,4).map((la,j)=><span key={j} style={{width:6,height:6,borderRadius:'50%',background:la.color,flexShrink:0}} title={la.ticker}/>)}
+                                  {e.linkedAccts.length>4&&<span style={{fontSize:8,color:T.muted}}>+{e.linkedAccts.length-4}</span>}
+                                </div>}
+                                {!showTitle&&bw>30&&bh>16&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,letterSpacing:'0.06em'}}>{sevLabel}{e.count>1?' ×'+e.count:''}</span>}
+                              </div>;
+                            });
+                          })()}
+                          {filtered.length===0&&<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:T.muted,fontSize:12}}>No {diagCatFilter?(CAT[diagCatFilter]||{l:diagCatFilter}).l:''} errors</div>}
+                        </div>
+                      </>;
+                    })()}
                   </div>
                 </div>;
               }
