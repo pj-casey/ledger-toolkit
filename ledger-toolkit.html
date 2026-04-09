@@ -3787,7 +3787,14 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       const ticker=a.ch.ticker;
       // Drain classification: balance dropped >90% AND customer had real value (>$50 fiat or >0.001 crypto)
       const custFiatForDrain=cvFiatValue(appJson,a.cid,a.ajBalance)||0;
-      const isDrained=hasBoth&&delta<0&&compareBalance>0&&(live/compareBalance)<0.1&&(custFiatForDrain>50||compareBalance>0.001);
+      // Staking guard: if sub-accounts hold ≥50% of account fiat value, the "missing" main balance
+      // likely became liquid staking tokens (stETH, rETH, etc.) — not a drain.
+      // Note: native-chain staking (Cosmos/Solana) is already handled by hasStaking → compareBalance=custSpendable.
+      const subAcctFiatSum=(a.ajSubAccounts||[]).reduce((s,t)=>
+        s+(t.balance&&parseFloat(t.balance)>0?cvTokenFiatValue(appJson,t.tokenId||'',t.balance,a.cid)||0:0),0);
+      const isDrained=hasBoth&&delta<0&&compareBalance>0&&(live/compareBalance)<0.1
+        &&(custFiatForDrain>50||compareBalance>0.001)
+        &&subAcctFiatSum<custFiatForDrain*0.5;
       const badges=[];
       if(isDrained)badges.push('DRAINED');
       else if(isMismatch)badges.push('CHANGED');
