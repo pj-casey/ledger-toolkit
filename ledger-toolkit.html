@@ -3098,9 +3098,9 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
           {[{l:'Derivation',v:acct.dm||'default'},{l:'Address Path',v:acct.fp||'—'},{l:'Operations',v:String(acct.ops)},{l:'Sync',v:acct.dur?acct.dur.toFixed(2)+'s':'—'}].map(x=><div key={x.l} style={{background:T.bg,border:`1px solid ${T.border}`,padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono">{x.v}</div></div>)}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:liveBalance&&liveBalance.status!=='unsupported'?8:16}}>
+        {(acct.bal!=null||acct.spendBal!=null)&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:liveBalance&&liveBalance.status!=='unsupported'?8:16}}>
           {[{l:'Balance (log)',v:acct.bal!=null?Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log — see explorer)'},{l:'Spendable Balance',v:acct.spendBal!=null?Number(acct.spendBal).toLocaleString(undefined,{maximumFractionDigits:8})+' '+ch.ticker:'— (not in log)'}].map(x=><div key={x.l} style={{background:T.bg,border:`1px solid ${T.border}`,padding:10,borderRadius:8}}><div className="label" style={{color:T.muted,marginBottom:4}}>{x.l}</div><div className="mono" style={{color:acct.bal!=null?T.success:T.muted}}>{x.v}</div></div>)}
-        </div>
+        </div>}
         {liveBalance&&liveBalance.status!=='unsupported'&&<div style={{background:T.bg,border:`1px solid ${T.border}`,padding:10,borderRadius:8,marginBottom:16}}>
           <div className="label" style={{color:T.muted,marginBottom:4}}>Live Balance</div>
           {liveBalance.status==='loading'&&<div className="mono" style={{color:T.muted,opacity:0.7}}>··· fetching</div>}
