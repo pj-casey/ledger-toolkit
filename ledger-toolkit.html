@@ -3785,13 +3785,17 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       const liveFiatAtCustRate=(live!=null&&custRate?.rate)?live*custRate.rate:null;
       const liveMarketFiat=lbEntry?.fiat!=null?lbEntry.fiat:null;
       const ticker=a.ch.ticker;
+      // Drain classification: balance dropped >90% AND customer had real value (>$50 fiat or >0.001 crypto)
+      const custFiatForDrain=cvFiatValue(appJson,a.cid,a.ajBalance)||0;
+      const isDrained=hasBoth&&delta<0&&compareBalance>0&&(live/compareBalance)<0.1&&(custFiatForDrain>50||compareBalance>0.001);
       const badges=[];
-      if(isMismatch)badges.push('CHANGED');
+      if(isDrained)badges.push('DRAINED');
+      else if(isMismatch)badges.push('CHANGED');
       if(pendingCount>0)badges.push(`${pendingCount} PENDING`);
       if(failedCount>0)badges.push(`${failedCount} FAILED`);
       if(hasLogErrs&&!isMismatch&&pendingCount===0&&failedCount===0)badges.push('LOG ERRORS');
       const severity=isIssue?(isMismatch||pendingCount>0?'red':'amber'):'green';
-      const title=isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
+      const title=isDrained?`DRAINED — ${a.displayName}`:isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
       const statusLabel=lbEntry?.status==='loading'?'···':!live?'no live data':isMismatch?(delta>0?'▲ on-chain higher':'▼ on-chain lower'):hasBoth?'✓ match':'—';
       const acctErrs=a.addr&&a.addr.length>4?errs.filter(e=>(e.det||e.msg||'').includes(a.addr)).slice(0,2):[];
       f.push({
@@ -3810,8 +3814,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         stakedAmount:hasStaking?stakedAmount.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custSpendableBal:custSpendable!=null?custSpendable.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custTotalBal:cust.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker,
-        detail:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
-        action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
+        detail:isDrained?`This account appears to have been drained. The customer's app shows ${cust.toFixed(4)} ${ticker}${custFiatForDrain>0?' ('+cvFmtFiat(custFiatForDrain,appJson)+')':''} but the blockchain now has ${live!=null?live.toFixed(4):0} ${ticker}. This is a ${((1-live/compareBalance)*100).toFixed(0)}% loss.${daysSinceSnapshot!=null?' Data is '+daysSinceSnapshot+' day'+(daysSinceSnapshot!==1?'s':'')+' old.':''}`:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
+        action:isDrained?'ESCALATE immediately. Do NOT advise the customer to continue using this seed phrase. If multiple accounts are drained, the recovery phrase is likely compromised. Guide the customer to: (1) Stop using all accounts on this seed, (2) Set up a new device with a new seed, (3) File a police report, (4) Report to ic3.gov (US) or equivalent.':isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
         navigate:{type:'account',idx},
         copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}${hasStaking?' [staked: '+stakedAmount.toFixed(6)+' '+ticker+', available: '+custSpendable.toFixed(6)+' '+ticker+']':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatAtCustRate!=null?' ('+cvFmtFiat(liveFiatAtCustRate,appJson)+' at customer rate)':''}\n  Delta (vs available): ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}${snapshotDate?'\n  Snapshot: '+snapshotDate:''}`,
         evidence:[
@@ -3819,9 +3823,149 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           ...acctErrs.map(e=>({label:'Log error',detail:e.dg?.t||e.msg||'Unknown'})),
           ...(a.ajBlockHeight!=null?[{label:'Last synced block',detail:Number(a.ajBlockHeight).toLocaleString()}]:[]),
         ],
-        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,
+        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,_isDrained:isDrained,_ajOps:a.ajOperations||[],_addr:a.addr||'',_displayName:a.displayName||a.ch.name,_ch:a.ch,_custFiatForDrain:custFiatForDrain,
       });
     });
+    // ── Drain summary finding (cross-account aggregation) ─────────────────────
+    const drainedFindings=f.filter(x=>x._isDrained);
+    if(drainedFindings.length>0){
+      // Extract drain transactions from each drained account's operations
+      const drainAccts=drainedFindings.map(df=>{
+        const ops=(df._ajOps||[]);
+        const dec=DECIMALS[df._acctCid]||18;
+        // Find OUT operations — these are the drain transactions
+        const outOps=ops.filter(op=>op.type==='OUT'||op.type==='FEES').map(op=>({
+          hash:op.hash,date:op.date,type:op.type,
+          value:op.value!=null?parseFloat(op.value)/Math.pow(10,dec):0,
+          valueFiat:op.value!=null&&op.date?(()=>{const r=cvRateOnDate(appJson,df._acctCid,op.date.slice(0,10));return r!=null?(parseFloat(op.value)/Math.pow(10,dec))*r:null;})():null,
+          recipients:op.recipients||[],
+          senders:op.senders||[],
+          txUrl:op.hash&&TX_EXPLORERS[df._acctCid]?TX_EXPLORERS[df._acctCid](op.hash):null,
+        })).sort((a,b)=>new Date(b.date)-new Date(a.date));
+        // Token sub-account drains
+        const tokenDrains=(df._subAccounts||[]).filter(s=>{
+          const tb=s.balance?parseFloat(s.balance):0;
+          return tb===0&&(s.operationsCount>0||(s.operations||[]).length>0);
+        }).map(s=>{
+          const nm=(s.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
+          const tokenOuts=(s.operations||[]).filter(op=>op.type==='OUT').map(op=>({
+            hash:op.hash,date:op.date,recipients:op.recipients||[],
+            txUrl:op.hash&&TX_EXPLORERS[df._acctCid]?TX_EXPLORERS[df._acctCid](op.hash):null,
+          }));
+          return{name:nm,tokenId:s.tokenId,ops:tokenOuts};
+        });
+        return{
+          acctIdx:df.acctIdx,cid:df._acctCid,ch:df._ch,addr:df._addr,
+          displayName:df._displayName,custFiat:df._custFiatForDrain,
+          custBal:df.custBal,liveBal:df.liveBal,delta:df.delta,
+          outOps:outOps.slice(0,20),tokenDrains,
+        };
+      });
+      // Aggregate recipient addresses across all drained accounts
+      const recipientMap={};
+      for(const da of drainAccts){
+        for(const op of da.outOps){
+          for(const r of op.recipients){
+            if(!r||r.length<8)continue;
+            const key=r.toLowerCase();
+            if(!recipientMap[key])recipientMap[key]={addr:r,chains:[],totalFiat:0,txCount:0};
+            recipientMap[key].chains.push({cid:da.cid,ch:da.ch,hash:op.hash,value:op.value,valueFiat:op.valueFiat,date:op.date,txUrl:op.txUrl});
+            if(op.valueFiat)recipientMap[key].totalFiat+=op.valueFiat;
+            recipientMap[key].txCount++;
+          }
+        }
+        // Token drain recipients
+        for(const td of da.tokenDrains){
+          for(const op of td.ops){
+            for(const r of op.recipients){
+              if(!r||r.length<8)continue;
+              const key=r.toLowerCase();
+              if(!recipientMap[key])recipientMap[key]={addr:r,chains:[],totalFiat:0,txCount:0};
+              recipientMap[key].chains.push({cid:da.cid,ch:da.ch,hash:op.hash,date:op.date,txUrl:op.txUrl,tokenName:td.name});
+              recipientMap[key].txCount++;
+            }
+          }
+        }
+      }
+      const recipients=Object.values(recipientMap).sort((a,b)=>b.txCount-a.txCount||b.totalFiat-a.totalFiat);
+      // Filter out the customer's own addresses (they appear as senders in drain OUTs)
+      const customerAddrs=new Set(drainAccts.map(da=>da.addr.toLowerCase()).filter(Boolean));
+      const attackerRecipients=recipients.filter(r=>!customerAddrs.has(r.addr.toLowerCase()));
+      // Total loss calculation
+      const totalLossFiat=drainedFindings.reduce((s,df)=>s+(df._custFiatForDrain||0),0);
+      const chainSummary=[...new Set(drainAccts.map(da=>da.ch.name))];
+      // Time window of drain operations
+      const allDrainDates=drainAccts.flatMap(da=>da.outOps.map(op=>op.date)).filter(Boolean).sort();
+      const drainEarliest=allDrainDates[0]||null;
+      const drainLatest=allDrainDates[allDrainDates.length-1]||null;
+      const drainWindowMs=drainEarliest&&drainLatest?new Date(drainLatest)-new Date(drainEarliest):0;
+      const drainWindowLabel=drainWindowMs<3600000?Math.round(drainWindowMs/60000)+' minutes':drainWindowMs<86400000?Math.round(drainWindowMs/3600000)+' hours':Math.round(drainWindowMs/86400000)+' days';
+      const isSeedCompromise=drainedFindings.length>=2;
+      const totalTokenDrains=drainAccts.reduce((s,da)=>s+da.tokenDrains.length,0);
+      // Build copy report
+      const copyLines=[
+        '══════════════════════════════════════',
+        isSeedCompromise?'⚠ SEED COMPROMISE — MULTI-CHAIN DRAIN':'⚠ DRAIN DETECTED',
+        '══════════════════════════════════════',
+        '',
+        `Total estimated loss: ${cvFmtFiat(totalLossFiat,appJson)||'$'+totalLossFiat.toFixed(2)}`,
+        `Accounts affected: ${drainedFindings.length} across ${chainSummary.length} chain${chainSummary.length!==1?'s':''}`,
+        `Chains: ${chainSummary.join(', ')}`,
+        drainEarliest?`Drain window: ${drainEarliest.slice(0,10)} to ${drainLatest.slice(0,10)} (${drainWindowLabel})`:'',
+        totalTokenDrains>0?`Tokens drained: ${totalTokenDrains} token${totalTokenDrains!==1?'s':''} also emptied`:'',
+        `Snapshot date: ${snapshotDate||'unknown'}`,
+        `User ID: ${dev.userId||'unknown'}`,
+        `Device: ${dev.modelName||'unknown'} · FW ${dev.fw||'unknown'}`,
+        '',
+        '── DRAINED ACCOUNTS ──',
+        '',
+      ];
+      for(const da of drainAccts){
+        copyLines.push(`${da.displayName} (${da.ch.name})`);
+        copyLines.push(`  Address: ${da.addr}`);
+        copyLines.push(`  Before: ${da.custBal}${da.custFiat>0?' ('+cvFmtFiat(da.custFiat,appJson)+')':''}`);
+        copyLines.push(`  Now: ${da.liveBal||'0'}`);
+        if(da.outOps.length>0){
+          copyLines.push(`  Drain transactions:`);
+          for(const op of da.outOps.slice(0,10)){
+            copyLines.push(`    ${op.date?op.date.slice(0,10):''} ${op.type} ${op.value.toFixed(6)} ${da.ch.ticker} → ${(op.recipients[0]||'?')}${op.txUrl?' '+op.txUrl:''}`);
+          }
+        }
+        if(da.tokenDrains.length>0){
+          copyLines.push(`  Tokens drained: ${da.tokenDrains.map(t=>t.name).join(', ')}`);
+        }
+        copyLines.push('');
+      }
+      if(attackerRecipients.length>0){
+        copyLines.push('── FUNDS SENT TO ──');
+        copyLines.push('');
+        for(const r of attackerRecipients.slice(0,15)){
+          const chainsUsed=[...new Set(r.chains.map(c=>c.ch.name))];
+          const addrUrl=r.chains[0]?.ch?.url?r.chains[0].ch.url(r.addr):null;
+          copyLines.push(`${r.addr}`);
+          copyLines.push(`  ${r.txCount} transaction${r.txCount!==1?'s':''} from ${chainsUsed.join(', ')}${r.totalFiat>0?' · ~'+cvFmtFiat(r.totalFiat,appJson):''}`);
+          if(addrUrl)copyLines.push(`  Explorer: ${addrUrl}`);
+          copyLines.push('');
+        }
+      }
+      copyLines.push('══════════════════════════════════════');
+      f.unshift({
+        id:'drain-alert',kind:'drain',severity:'red',
+        title:isSeedCompromise?`SEED COMPROMISE — ${drainedFindings.length} accounts drained across ${chainSummary.length} chain${chainSummary.length!==1?'s':''}`:`DRAIN DETECTED — ${drainAccts[0].displayName}`,
+        detail:isSeedCompromise?`${drainedFindings.length} accounts across ${chainSummary.join(', ')} have been emptied. Estimated loss: ${cvFmtFiat(totalLossFiat,appJson)||'$'+totalLossFiat.toFixed(2)}. Multiple chains drained indicates the recovery phrase is compromised — all accounts derived from this seed should be considered at risk.`:`${drainAccts[0].displayName} appears drained. Balance went from ${drainAccts[0].custBal} to ${drainAccts[0].liveBal||'~0'}. Estimated loss: ${cvFmtFiat(totalLossFiat,appJson)||'$'+totalLossFiat.toFixed(2)}.`,
+        action:isSeedCompromise?'ESCALATE immediately. The recovery phrase is compromised. ALL accounts on this seed are at risk. Guide customer: (1) Do NOT use this seed phrase or any accounts on it, (2) Set up a NEW device with a NEW seed, (3) Transfer any remaining funds from new addresses only, (4) File a police report, (5) Report to ic3.gov (US) or local equivalent. Preserve this drain report for law enforcement.':'ESCALATE. Guide the customer to stop using this account. If other accounts on the same seed are intact, this may be a single-chain exploit (e.g., malicious approval). Check token approvals on revoke.cash. If multiple chains are affected, treat as seed compromise.',
+        navigate:null,
+        copyText:copyLines.filter(Boolean).join('\n'),
+        evidence:attackerRecipients.slice(0,5).map(r=>{
+          const chainsUsed=[...new Set(r.chains.map(c=>c.ch.ticker))];
+          return{label:`→ ${r.addr.slice(0,8)}…${r.addr.slice(-6)}`,detail:`${r.txCount} tx from ${chainsUsed.join(',')}${r.totalFiat>0?' · ~'+cvFmtFiat(r.totalFiat,appJson):''}`};
+        }),
+        _drainAccts:drainAccts,_attackerRecipients:attackerRecipients,_totalLossFiat:totalLossFiat,
+        _isSeedCompromise:isSeedCompromise,_chainSummary:chainSummary,
+        _drainWindowLabel:drainWindowLabel,_drainEarliest:drainEarliest,_drainLatest:drainLatest,
+        _totalTokenDrains:totalTokenDrains,
+      });
+    }
     // ── System findings ───────────────────────────────────────────────────────
     // Countervalue drift
     if(hasAppJson&&fetchedCount>0){
@@ -3987,6 +4131,111 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const renderDetail=f=>{
     if(!f)return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#8A8A8E',fontSize:13}}>Select a finding to view details.</div>;
     const s=sc(f);
+    // ── Drain finding detail panel ────────────────────────────────────────────
+    if(f.kind==='drain'){
+      const da=f._drainAccts||[];
+      const ar=f._attackerRecipients||[];
+      return <div style={{height:'100%',overflowY:'auto',padding:'20px 24px'}}>
+        {/* Header */}
+        <div style={{padding:'14px 18px',borderRadius:8,background:'rgba(234,67,53,0.08)',border:'1px solid rgba(234,67,53,0.25)',marginBottom:16}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+            <span style={{fontSize:18}}>🚨</span>
+            <span style={{fontSize:16,fontWeight:800,color:'#EA4335',letterSpacing:'-0.02em'}}>{f._isSeedCompromise?'SEED COMPROMISE':'DRAIN DETECTED'}</span>
+          </div>
+          <div style={{fontSize:28,fontWeight:800,color:'#FFFFFF',fontFamily:MF,lineHeight:1.2,marginBottom:4}}>
+            {cvFmtFiat(f._totalLossFiat,appJson)||'$'+f._totalLossFiat.toFixed(2)}
+          </div>
+          <div style={{fontSize:12,color:'#EA4335',fontWeight:600}}>
+            estimated loss · {da.length} account{da.length!==1?'s':''} · {(f._chainSummary||[]).join(', ')}
+            {f._totalTokenDrains>0?` · ${f._totalTokenDrains} token${f._totalTokenDrains!==1?'s':''} emptied`:''}
+          </div>
+          {f._drainEarliest&&<div style={{fontSize:11,color:'#8A8A8E',marginTop:4,fontFamily:MF}}>
+            Drain window: {f._drainEarliest.slice(0,10)} → {f._drainLatest.slice(0,10)} ({f._drainWindowLabel})
+          </div>}
+        </div>
+        {/* Action box */}
+        <div style={{padding:'12px 14px',borderRadius:6,background:'rgba(234,67,53,0.06)',border:'1px solid rgba(234,67,53,0.2)',marginBottom:16}}>
+          <div style={{fontSize:10,color:'#EA4335',fontWeight:700,marginBottom:5}}>⚠ ESCALATION REQUIRED</div>
+          <div style={{fontSize:13,color:'#FFFFFF',lineHeight:1.6}}>→ {f.action}</div>
+        </div>
+        {/* Funds sent to — attacker addresses */}
+        {ar.length>0&&<div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:'#EA4335',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+            <span>Funds sent to</span>
+            <span style={{fontSize:10,fontWeight:400,color:'#8A8A8E'}}>({ar.length} address{ar.length!==1?'es':''})</span>
+          </div>
+          {ar.slice(0,10).map((r,ri)=>{
+            const chainsUsed=[...new Set(r.chains.map(c=>c.ch.name))];
+            const addrUrl=r.chains[0]?.ch?.url?r.chains[0].ch.url(r.addr):null;
+            return <div key={ri} style={{background:'rgba(234,67,53,0.04)',border:'1px solid rgba(234,67,53,0.15)',borderRadius:6,padding:'10px 12px',marginBottom:6}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                <span style={{fontFamily:MF,fontSize:12,color:'#FFFFFF',wordBreak:'break-all',flex:1}}>{r.addr}</span>
+                <CopyBtn text={r.addr}/>
+                {addrUrl&&<a href={addrUrl} target="_blank" rel="noopener noreferrer" style={{color:'#EA4335',fontSize:10,fontWeight:600,textDecoration:'none',flexShrink:0,display:'inline-flex',alignItems:'center',gap:3}} onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'} onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>Explorer ↗</a>}
+              </div>
+              <div style={{fontSize:11,color:'#8A8A8E'}}>
+                {r.txCount} tx from {chainsUsed.join(', ')}{r.totalFiat>0?' · ~'+cvFmtFiat(r.totalFiat,appJson):''}
+              </div>
+              {r.chains.slice(0,5).map((c,ci)=>(
+                <div key={ci} style={{fontSize:10,color:'#8A8A8E',fontFamily:MF,marginTop:3,display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{width:6,height:6,borderRadius:'50%',background:c.ch.color||'#666',flexShrink:0}}/>
+                  <span>{c.ch.name}</span>
+                  {c.date&&<span>{c.date.slice(0,10)}</span>}
+                  {c.tokenName&&<span style={{color:T.primary}}>{c.tokenName}</span>}
+                  {c.txUrl&&<a href={c.txUrl} target="_blank" rel="noopener noreferrer" style={{color:'#8A8A8E',textDecoration:'none',fontSize:9}} onMouseEnter={e=>e.currentTarget.style.color=T.primary} onMouseLeave={e=>e.currentTarget.style.color='#8A8A8E'}>tx ↗</a>}
+                </div>
+              ))}
+              {r.chains.length>5&&<div style={{fontSize:9,color:'#8A8A8E',marginTop:3}}>+{r.chains.length-5} more transactions</div>}
+            </div>;
+          })}
+        </div>}
+        {/* Per-account drain breakdown */}
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:'#FFFFFF',marginBottom:8}}>Drained accounts</div>
+          {da.map((acct,ai)=>{
+            const ch=acct.ch||DC;
+            const iconUrl=chainIconUrl(acct.cid);
+            return <div key={ai} style={{background:'rgba(0,0,0,0.15)',borderRadius:6,padding:'10px 14px',marginBottom:6,borderLeft:`3px solid ${ch.color||'#666'}`}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                <div style={{width:20,height:20,borderRadius:'50%',background:ch.color||'#333',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                  {iconUrl?<img src={iconUrl} alt="" style={{width:14,height:14,objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>:<span style={{fontSize:7,fontWeight:700,color:'#fff'}}>{ch.ticker}</span>}
+                </div>
+                <span style={{fontSize:13,fontWeight:600,color:'#FFFFFF',flex:1}}>{acct.displayName}</span>
+                <span style={{fontSize:11,color:'#EA4335',fontFamily:MF,fontWeight:600}}>{acct.custBal} → {acct.liveBal||'0'}</span>
+              </div>
+              {acct.addr&&<div style={{fontSize:10,fontFamily:MF,color:'#8A8A8E',marginBottom:6,display:'flex',alignItems:'center',gap:4}}>
+                <span style={{wordBreak:'break-all'}}>{acct.addr}</span>
+                <CopyBtn text={acct.addr}/>
+              </div>}
+              {acct.outOps.length>0&&<div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:6}}>
+                <div style={{fontSize:9,color:'#8A8A8E',marginBottom:4,fontWeight:600}}>Outgoing transactions ({acct.outOps.length})</div>
+                {acct.outOps.slice(0,5).map((op,oi)=>(
+                  <div key={oi} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:10,fontFamily:MF,color:'#8A8A8E'}}>
+                    <span style={{color:'#EA4335',fontWeight:600,flexShrink:0}}>{op.date?op.date.slice(0,10):''}</span>
+                    <span style={{color:'#FFFFFF'}}>{op.value.toFixed(4)} {ch.ticker}</span>
+                    {op.valueFiat!=null&&<span style={{color:'#8A8A8E'}}>({cvFmtFiat(op.valueFiat,appJson)})</span>}
+                    <span style={{color:'#8A8A8E'}}>→ {(op.recipients[0]||'?').slice(0,12)}…</span>
+                    {op.txUrl&&<a href={op.txUrl} target="_blank" rel="noopener noreferrer" style={{color:'#8A8A8E',textDecoration:'none',marginLeft:'auto',flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.color=T.primary} onMouseLeave={e=>e.currentTarget.style.color='#8A8A8E'}>tx ↗</a>}
+                  </div>
+                ))}
+                {acct.outOps.length>5&&<div style={{fontSize:9,color:'#8A8A8E',marginTop:2}}>+{acct.outOps.length-5} more</div>}
+              </div>}
+              {acct.tokenDrains.length>0&&<div style={{marginTop:6,fontSize:10,color:T.primary}}>
+                Tokens drained: {acct.tokenDrains.map(t=>t.name).join(', ')}
+              </div>}
+            </div>;
+          })}
+        </div>
+        {/* Copy button */}
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>{copyText(f.copyText);setCopiedId(f.id);setTimeout(()=>setCopiedId(null),2000);}} style={{flex:1,padding:'10px 16px',borderRadius:6,border:'1px solid rgba(234,67,53,0.3)',background:'rgba(234,67,53,0.08)',color:'#EA4335',fontSize:12,fontWeight:700,cursor:'pointer',textAlign:'center'}}>
+            {copiedId===f.id?'✓ Copied drain report':'Copy drain report for escalation'}
+          </button>
+        </div>
+        {f.detail&&<div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.6,marginTop:14,padding:'10px 0',borderTop:'1px solid rgba(255,255,255,0.06)'}}>{f.detail}</div>}
+      </div>;
+    }
+    // ── Standard finding detail (existing code, unchanged) ─────────────────────
     return <div style={{height:'100%',overflowY:'auto',padding:'20px 24px'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:16}}>
         <div style={{width:10,height:10,borderRadius:'50%',background:s.dot,flexShrink:0,marginTop:4}}/>
