@@ -10,15 +10,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#131214;--panel:#1C1D1F;--border:#3C3C3C;--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--success:#7AC26C;--error:#E40046;--warning:#FFBD42;--ov-fs-xs:clamp(9px,1.1vh,11px);--ov-fs-sm:clamp(10px,1.3vh,12px);--ov-fs-md:clamp(11px,1.4vh,13px);--ov-fs-lg:clamp(13px,1.6vh,16px);--ov-pad-row:clamp(2px,0.4vh,4px);--ov-pad-section:clamp(6px,1vh,12px);--ov-gap-chips:clamp(4px,0.5vh,6px);--ov-gap-rows:clamp(4px,0.6vh,8px);--ov-stat-num:clamp(28px,4vh,42px);--ov-stat-label:clamp(10px,1.2vh,13px);--transition-fast:150ms ease;--hover-bg:rgba(255,255,255,0.04);--hover-bg-strong:rgba(255,255,255,0.07)}
+:root{--bg:#1A1A1D;--panel:#1A1A1D;--border:rgba(255,255,255,0.06);--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--success:#7AC26C;--error:#E40046;--warning:#FFBD42;--ov-fs-xs:clamp(9px,1.1vh,11px);--ov-fs-sm:clamp(10px,1.3vh,12px);--ov-fs-md:clamp(11px,1.4vh,13px);--ov-fs-lg:clamp(13px,1.6vh,16px);--ov-pad-row:clamp(2px,0.4vh,4px);--ov-pad-section:clamp(6px,1vh,12px);--ov-gap-chips:clamp(4px,0.5vh,6px);--ov-gap-rows:clamp(4px,0.6vh,8px);--ov-stat-num:clamp(28px,4vh,42px);--ov-stat-label:clamp(10px,1.2vh,13px);--transition-fast:150ms ease;--hover-bg:rgba(255,255,255,0.04);--hover-bg-strong:rgba(255,255,255,0.07)}
 body{background:var(--bg);color:var(--text)}
 
 /* === Type Scale === */
-body,#root{font-family:'Darker Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;font-weight:400;line-height:1.6;letter-spacing:0.01em;}
+body,#root{font-family:'Inter','Darker Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;font-weight:400;line-height:1.6;letter-spacing:0.01em;}
 .stat-value{font-family:'Darker Grotesque',-apple-system,BlinkMacSystemFont,sans-serif !important;font-size:var(--ov-stat-num) !important;font-weight:700 !important;line-height:1.2 !important;letter-spacing:-0.02em;}
 h1,h2,.section-title{font-size:16px;font-weight:600;line-height:1.4;}
 .card-header,h3{font-size:14px;font-weight:600;line-height:1.4;}
-.label,.tab-label{font-family:'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;}
+.label,.tab-label{font-size:11px;font-weight:500;color:#8A8A8E;}
 .mono,code,pre{font-family:'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace;font-size:12px;line-height:1.5;}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
@@ -52,7 +52,7 @@ button:active{transform:scale(0.98);}
 
 /* ── Customer View ── */
 .cv-frame{display:flex;height:calc(100vh - 52px);overflow:hidden;font-family:'Inter','Darker Grotesque',sans-serif;}
-.cv-nav{width:200px;background:#1A1A1D;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.06) transparent;}
+.cv-nav{width:240px;background:#1A1A1D;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.06) transparent;border-right:1px solid rgba(255,255,255,0.06);}
 .cv-nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;cursor:pointer;color:#8A8A8E;font-size:14px;font-weight:500;transition:background 150ms ease;margin:2px 8px;}
 .cv-nav-item:hover{background:rgba(255,255,255,0.04);}
 .cv-nav-item.cv-nav-active{background:rgba(255,255,255,0.06);color:#FFFFFF;}
@@ -66,8 +66,8 @@ button:active{transform:scale(0.98);}
 .cv-mode-btn:not(.cv-active):hover{background:rgba(255,255,255,0.06);color:#CCCCCC;}
 .cv-mode-btn.cv-active{background:var(--primary);color:#000;box-shadow:0 0 12px rgba(187,176,255,0.25);}
 /* ── Diagnostic card hover states ── */
-.err-hover:hover{filter:brightness(1.05);}
-.acct-hover:hover{filter:brightness(1.05);}
+.err-hover:hover{background:rgba(255,255,255,0.04);}
+.acct-hover:hover{background:rgba(255,255,255,0.04);}
 /* ── JSON Tree ── */
 .jt-row{display:flex;align-items:baseline;gap:4px;padding:1px 12px;font-size:12px;transition:background 100ms ease;min-height:22px;white-space:nowrap;}
 .jt-row:hover{background:rgba(255,255,255,0.03);}
@@ -120,26 +120,26 @@ button:active{transform:scale(0.98);}
 .guide-embed .new-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;text-transform:uppercase;background:rgba(122,194,108,0.15);color:#7AC26C;margin-left:5px;vertical-align:middle}
 .guide-embed .shortcut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:12px 0}
 .guide-embed .shortcut-card{background:#242528;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#c8c8c8}
-.guide-embed kbd{background:#242528;border:1px solid #3C3C3C;border-bottom:2px solid #3C3C3C;border-radius:4px;padding:2px 6px;font-size:10px;font-family:'JetBrains Mono',monospace;color:#949494}
-.guide-embed .section-divider{height:1px;background:linear-gradient(90deg,transparent 0%,#3C3C3C 20%,#3C3C3C 80%,transparent 100%);margin:36px 0 0}
+.guide-embed kbd{background:#242528;border:1px solid rgba(255,255,255,0.06);border-bottom:2px solid rgba(255,255,255,0.06);border-radius:4px;padding:2px 6px;font-size:10px;font-family:'JetBrains Mono',monospace;color:#949494}
+.guide-embed .section-divider{height:1px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 20%,rgba(255,255,255,0.06) 80%,transparent 100%);margin:36px 0 0}
 .guide-embed .mono{font-family:'JetBrains Mono','SF Mono',Consolas,monospace}
 .guide-embed .hero-logo{display:none}
 .guide-embed .top-bar{display:none}
 .guide-embed .def-list{margin:10px 0 12px;padding-left:0;list-style:none}
-.guide-embed .def-list li{padding:4px 0 4px 14px;border-left:2px solid #3C3C3C;margin-bottom:3px;font-size:13px;color:#c8c8c8;line-height:1.5}
+.guide-embed .def-list li{padding:4px 0 4px 14px;border-left:2px solid rgba(255,255,255,0.06);margin-bottom:3px;font-size:13px;color:#c8c8c8;line-height:1.5}
 .guide-embed .def-list li strong{color:#fff}
 .guide-embed ol.tech-list{margin:10px 0 12px;padding-left:18px}
 .guide-embed ol.tech-list li{padding:3px 0;font-size:13px;color:#c8c8c8;line-height:1.5}
 .guide-embed ol.tech-list li strong{color:#fff}
 /* Boot splash */
 #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:52px}
-#splash-bg{position:absolute;inset:0;background:#131214;transition:opacity 0.5s ease}
+#splash-bg{position:absolute;inset:0;background:#1A1A1D;transition:opacity 0.5s ease}
 #splash-center{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
 #splash-glow{position:absolute;width:220px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(212,160,255,0.12) 0%,transparent 70%);pointer-events:none;opacity:0;animation:splashIn 0.6s ease 0.1s forwards,splashBreathe 3s ease-in-out 0.7s infinite}
 #splash-logo{position:relative;z-index:1;color:#fff;opacity:0;transform:scale(0.92);animation:splashLogoIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.05s forwards}
 #splash-log{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;font-family:'JetBrains Mono','SF Mono',Consolas,monospace;font-size:11px;color:#949494;line-height:2;white-space:nowrap;text-align:center}
 #splash-log div{opacity:0;transform:translateY(4px);animation:splashLineIn 0.2s ease forwards}
-#splash-header{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;padding:0 24px;gap:10px;opacity:0;z-index:3;border-bottom:1px solid #3C3C3C;background:linear-gradient(90deg,rgba(69,57,92,0.15) 0%,transparent 40%);transition:opacity 0.4s ease}
+#splash-header{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;padding:0 24px;gap:10px;opacity:0;z-index:3;border-bottom:1px solid rgba(255,255,255,0.06);background:#1A1A1D;transition:opacity 0.4s ease}
 #splash-header svg{color:#fff;flex-shrink:0}
 #splash-header span{font-family:'JetBrains Mono','SF Mono',Consolas,monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:#949494}
 #splash.dismiss #splash-bg{opacity:0}
@@ -218,7 +218,7 @@ const Ico={
 };
 
 /* Theme & helpers */
-const T={bg:'#131214',panel:'#1C1D1F',card:'#242528',border:'#3C3C3C',text:'#FFFFFF',muted:'#949494',primary:'#BBB0FF',success:'#7AC26C',error:'#E40046',warning:'#FFBD42',orange:'#FF5300'};
+const T={bg:'#1A1A1D',panel:'#1A1A1D',card:'#242528',border:'rgba(255,255,255,0.06)',text:'#FFFFFF',muted:'#949494',primary:'#BBB0FF',success:'#7AC26C',error:'#E40046',warning:'#FFBD42',orange:'#FF5300'};
 const MF="'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace";
 const I={
   fast:'150ms ease',
@@ -2402,6 +2402,7 @@ function logQualityScore(entries,dev,accts,errs,deviceApps){
     if(!deviceApps)return'No device app data (device may not have been connected)';
     if(deviceApps.source==='manager-result'){const n=deviceApps.installed?.length||0;return`${n} app${n!==1?'s':''} detected via Manager`;}
     if(deviceApps.source==='apdu-only'){const n=deviceApps.openedApps?.length||0;return`${n} app${n!==1?'s':''} detected via APDU`;}
+    if(deviceApps.source==='catalog-only'){const n=deviceApps.sessionInstalls?.length||0;return`${n} app${n!==1?'s':''} detected via catalog`;}
     return'No device app data';
   })();
   details.push({field:'Device app info',found:hasDeviceApp,note:deviceAppNote});
@@ -2666,7 +2667,7 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
           </div>
         </div>
       </div>
-      <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{fontFamily:MF,padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,background:'rgba(255,255,255,0.06)',color:T.muted,border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer',letterSpacing:'0.03em'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
+      <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,background:'rgba(255,255,255,0.06)',color:T.muted,border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer',letterSpacing:'0.03em'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
     </div>
     <div style={{fontSize:13,color:T.text,paddingLeft:34}}>{llText(d.a,dev)}</div>
     {(()=>{const u=errUrl(d);return u?<div style={{paddingLeft:34,marginTop:6}}><a href={u} target="_blank" rel="noopener" style={{fontSize:11,color:T.orange,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3}} onMouseEnter={e=>{e.currentTarget.style.textDecoration='underline';}} onMouseLeave={e=>{e.currentTarget.style.textDecoration='none';}}>📄 Help article ↗</a></div>:null;})()}
@@ -2697,7 +2698,7 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
       const errTime=new Date(err.ts).getTime();
       return <div style={{paddingLeft:34,marginTop:12}}>
         <div onClick={()=>setCtxOpen(o=>!o)} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:6,marginBottom:ctxOpen?8:0}}>
-          <span style={{fontFamily:MF,color:T.muted,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>What happened before</span>
+          <span style={{fontFamily:MF,color:T.muted,fontSize:10,fontWeight:600,letterSpacing:'0.06em'}}>What happened before</span>
           <span style={{color:T.muted,fontSize:10}}>{ctxOpen?'▼':'▶'}</span>
         </div>
         {ctxOpen&&<div style={{borderLeft:`2px solid ${T.border}`,paddingLeft:10}}>
@@ -2720,7 +2721,7 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
       </div>;
     })()}
     {evidence&&<div style={{paddingLeft:34,marginTop:12}}>
-      <div style={{fontFamily:MF,color:T.muted,marginBottom:6,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>Related evidence</div>
+      <div style={{color:T.muted,marginBottom:6,fontSize:10,fontWeight:600}}>Related evidence</div>
       <div style={{display:'flex',flexDirection:'column',gap:4}}>
         {evidence.netFails.length>0&&<span onClick={()=>{if(onGoNetwork)onGoNetwork();}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(139,132,204,0.08)',border:'1px solid rgba(139,132,204,0.20)',color:'#8B84CC',transition:I.fast,width:'fit-content'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(139,132,204,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(139,132,204,0.08)'}>
           <span style={{fontSize:13}}>🌐</span>
@@ -2743,11 +2744,11 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
       </div>
     </div>}
     {d.causes&&d.causes.length>0&&<div style={{paddingLeft:34,marginTop:10}}>
-      <span style={{fontFamily:MF,color:T.muted,marginRight:6,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>Common causes:</span>
+      <span style={{fontFamily:MF,color:T.muted,marginRight:6,fontSize:10,fontWeight:600,letterSpacing:'0.06em'}}>Common causes:</span>
       {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,fontFamily:MF,letterSpacing:'0.02em',background:'rgba(255,255,255,0.06)',color:T.muted,marginRight:4,marginBottom:4}}>{llText(cause,dev)}</span>)}
     </div>}
     {detOpen&&<div className="error-detail" style={{paddingLeft:34,marginTop:12,borderTop:`1px solid ${sv.bd}`,paddingTop:10}}>
-      <div style={{fontFamily:MF,color:sv.c,marginBottom:6,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em'}}>Technical Details</div>
+      <div style={{fontFamily:MF,color:sv.c,marginBottom:6,fontSize:10,fontWeight:600,letterSpacing:'0.06em'}}>Technical Details</div>
       <pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{d.r}</pre>
     </div>}
   </div>;
@@ -3121,12 +3122,12 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
 function ModeToggle({mode,onChange}){
   return <div className="cv-mode-toggle" role="group" aria-label="View mode">
     <button className={`cv-mode-btn${mode==='diagnostic'?' cv-active':''}`} onClick={()=>onChange('diagnostic')} aria-pressed={mode==='diagnostic'}>
-      <div style={{fontFamily:"'JetBrains Mono','SF Mono',Consolas,monospace",fontSize:11,fontWeight:700,letterSpacing:'0.04em'}}>Diagnostic</div>
+      <div style={{fontSize:12,fontWeight:700}}>Diagnostic</div>
       <div style={{fontSize:10,color:mode==='diagnostic'?'rgba(0,0,0,0.5)':'#666666',marginTop:2}}>Technical investigation</div>
     </button>
     <div style={{width:1,background:'var(--border)',alignSelf:'stretch',flexShrink:0}}/>
     <button className={`cv-mode-btn${mode==='customer'?' cv-active':''}`} onClick={()=>onChange('customer')} aria-pressed={mode==='customer'}>
-      <div style={{fontFamily:"'JetBrains Mono','SF Mono',Consolas,monospace",fontSize:11,fontWeight:700,letterSpacing:'0.04em'}}>Customer View</div>
+      <div style={{fontSize:12,fontWeight:700}}>Customer View</div>
       <div style={{fontSize:10,color:mode==='customer'?'rgba(0,0,0,0.5)':'#666666',marginTop:2}}>See the customer's wallet</div>
     </button>
   </div>;
@@ -3192,7 +3193,7 @@ function CVPortfolio({enrichedAccts,liveBalances,onSelectAcct,setCvSection,appJs
     <div style={{padding:'0 32px'}}>
       <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:16}}>Asset allocation ({chainAlloc.length})</div>
       <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1.5fr 1.5fr 1fr',gap:0,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:0}}>
-        {['Asset','Price','Allocation','Balance','Value'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
+        {['Asset','Price','Allocation','Balance','Value'].map(h=><div key={h} style={{fontSize:11,color:'#8A8A8E',fontWeight:600,letterSpacing:'0.06em',paddingBottom:8}}>{h}</div>)}
       </div>
       {chainAlloc.map(grp=>{
         const ch=grp.ch;
@@ -3343,7 +3344,7 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
       <span style={{fontSize:13,color:T.warning,lineHeight:1.5}}>The experimental setting "Developer mode" may show unreleased OS and apps, leading to compatibility issues. You can disable it in settings.</span>
     </div>}
     {installedApps.length>0&&<div style={{padding:'0 32px 24px'}}>
-      <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Storage</div>
+      <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,letterSpacing:'0.06em',marginBottom:8}}>Storage</div>
       {(()=>{
         const appsWithBytes=installedApps.filter(a=>a.bytes>0);
         const appsWithoutBytes=installedApps.filter(a=>!a.bytes);
@@ -3394,7 +3395,7 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
       })()}
     </div>}
     {deviceModelList.length>1&&<div style={{padding:'0 32px 16px'}}>
-      <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Paired devices</div>
+      <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,letterSpacing:'0.06em',marginBottom:10}}>Paired devices</div>
       <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
         {deviceModelList.map((mid,i)=>{
           const isLast=mid===(lastDevice.modelId||modelId);
@@ -3461,7 +3462,7 @@ function CVMyLedger({logData,appJson,versionCheck,firmwareCheck,appVersionCheck}
           })
       )}
       {(logData.requiredApps||[]).length>0&&<div style={{marginTop:24,paddingTop:16,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-        <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Required by accounts</div>
+        <div style={{fontSize:11,color:'#8A8A8E',fontWeight:600,letterSpacing:'0.06em',marginBottom:12}}>Required by accounts</div>
         {logData.requiredApps.map((ra,i)=>{
           const ch=chainForApp(ra.appName)||ra.chains?.[0];
           const iconUrl=ch?chainIconUrl(ch.id||ch.cid||null):null;
@@ -3620,7 +3621,7 @@ function CVEarn({enrichedAccts,appJson,onSelectAcct}){
 
       {/* Deposited assets table */}
       <div style={{fontSize:16,fontWeight:600,color:'#FFFFFF',marginBottom:12}}>Deposited assets</div>
-      <div style={{display:'grid',gridTemplateColumns:'2.5fr 1.5fr 1fr 1.5fr',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:10,color:'#8A8A8E',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:MF}}>
+      <div style={{display:'grid',gridTemplateColumns:'2.5fr 1.5fr 1fr 1.5fr',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:10,color:'#8A8A8E',fontWeight:600,letterSpacing:'0.06em',fontFamily:MF}}>
         <span>Account</span><span>Invested</span><span title="Estimated APY — varies by validator and conditions">Rate ⓘ</span><span title="Rewards from staking operations recorded in app.json">Rewards ⓘ</span>
       </div>
       {positions.map(p=>{
@@ -3657,7 +3658,7 @@ function CVEarn({enrichedAccts,appJson,onSelectAcct}){
           </div>
           {isExpanded&&<div style={{padding:'12px 0 16px 46px',borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(255,255,255,0.01)'}}>
             {p.validators.length>0&&<div style={{marginBottom:10}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Validator{p.validators.length>1?'s':''}</div>
+              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Validator{p.validators.length>1?'s':''}</div>
               {p.validators.map((v,i)=>{
                 const isReadable=v.includes('.')&&!v.startsWith('0x')&&v.length<60;
                 return <div key={i} style={{fontSize:12,color:'#FFFFFF',padding:'3px 0',fontFamily:isReadable?'inherit':MF,display:'flex',alignItems:'center',gap:6}}>
@@ -3672,7 +3673,7 @@ function CVEarn({enrichedAccts,appJson,onSelectAcct}){
               {p.sinceDate&&<div style={{fontSize:11,color:'#8A8A8E'}}>Since: <span style={{color:'#FFFFFF'}}>{p.sinceDate}</span></div>}
             </div>
             {p.ops.length>0&&<div style={{marginBottom:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Recent activity ({p.ops.length})</div>
+              <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',letterSpacing:'0.06em',marginBottom:6,fontFamily:MF}}>Recent activity ({p.ops.length})</div>
               {p.ops.slice(0,8).map((op,i)=>{
                 const opLabel=EARN_OP_LABELS[op.type]||op.type;
                 const val=parseFloat(op.value||0)/Math.pow(10,DECIMALS[p.cid]||18);
@@ -3734,7 +3735,6 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
   const[selectedId,setSelectedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
   const[viewMode,setViewMode]=useState('issues');
-  const[chainFilter,setChainFilter]=useState(null);
   const errs=logData.errs||[];
   const highCount=errs.filter(e=>e.dg?.s==='high').length;
   const medCount=errs.filter(e=>e.dg?.s==='medium').length;
@@ -3773,11 +3773,12 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       const hasBoth=compareBalance!=null&&live!=null;
       const delta=hasBoth?live-compareBalance:null;
       const pct=hasBoth&&compareBalance>0?Math.abs(delta)/compareBalance*100:0;
-      const isMismatch=hasBoth&&(pct>0.01||(compareBalance===0&&Math.abs(live)>0.000001));
+      const isMismatch=hasBoth&&pct>0.01;
       const pendingCount=(a.ajPendingOps||[]).length;
       const failedCount=(a.ajOperations||[]).filter(op=>op.hasFailed||op.status==='failed').length;
       const hasLogErrs=a.addr&&a.addr.length>4&&errs.some(e=>(e.det||e.msg||'').includes(a.addr));
       const isIssue=isMismatch||pendingCount>0||failedCount>0||hasLogErrs;
+      if(!isIssue&&viewMode!=='all')return;
       const custFiatVal=cvFiatValue(appJson,a.cid,a.ajBalance);
       const custSpendFiatVal=hasStaking&&a.ajSpendable!=null?cvFiatValue(appJson,a.cid,a.ajSpendable):custFiatVal;
       const custRate=cvLatestRate(appJson,a.cid);
@@ -3790,7 +3791,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       if(failedCount>0)badges.push(`${failedCount} FAILED`);
       if(hasLogErrs&&!isMismatch&&pendingCount===0&&failedCount===0)badges.push('LOG ERRORS');
       const severity=isIssue?(isMismatch||pendingCount>0?'red':'amber'):'green';
-      const title=isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:hasBoth?`${a.displayName} — ✓ match`:`${a.displayName} — not compared`;
+      const title=isMismatch?`Balance changed — ${a.displayName}`:pendingCount>0?`Pending transaction${pendingCount>1?'s':''} — ${a.displayName}`:failedCount>0?`${failedCount} failed tx — ${a.displayName}`:hasLogErrs?`Log errors — ${a.displayName}`:`${a.displayName} — ✓ match`;
       const statusLabel=lbEntry?.status==='loading'?'···':!live?'no live data':isMismatch?(delta>0?'▲ on-chain higher':'▼ on-chain lower'):hasBoth?'✓ match':'—';
       const acctErrs=a.addr&&a.addr.length>4?errs.filter(e=>(e.det||e.msg||'').includes(a.addr)).slice(0,2):[];
       f.push({
@@ -3809,8 +3810,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         stakedAmount:hasStaking?stakedAmount.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custSpendableBal:custSpendable!=null?custSpendable.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker:null,
         custTotalBal:cust.toLocaleString(undefined,{maximumFractionDigits:6})+' '+ticker,
-        detail:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':!hasBoth?'Live balance data was not fetched for this account. The balance shown is from the customer\'s app.json export only — it has not been verified on-chain.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
-        action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':!hasBoth?'Live balance could not be fetched for this chain. If the customer reports a balance issue, verify manually using a block explorer.':'No action needed.',
+        detail:isMismatch?(hasStaking?`This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen. Comparing only the available ${custSpendable.toFixed(4)} ${ticker} to the live balance of ${live.toFixed(4)} ${ticker}.${Math.abs(delta)>0.000001?' The available balance has changed — this could be normal activity since the export or a sync issue.':' The available balance matches on-chain.'}`:`The customer's app shows ${cust.toFixed(4)} ${ticker} (as of ${snapshotDate||'export'}) but the blockchain currently has ${live.toFixed(4)} ${ticker}.${daysSinceSnapshot!=null&&daysSinceSnapshot>0?` The data is ${daysSinceSnapshot} day${daysSinceSnapshot!==1?'s':''} old — differences may be from normal transactions since the export.`:''} If the customer reports seeing a wrong balance without having transacted, this may indicate a sync issue.`):pendingCount>0?`This account has ${pendingCount} unconfirmed transaction${pendingCount!==1?'s':''} that may be stuck.`:failedCount>0?`This account has ${failedCount} failed transaction${failedCount!==1?'s':''} in its history.`:hasLogErrs?'Log errors reference this account\'s address.':(hasStaking?`Balance matches on-chain. This account has ${stakedAmount.toFixed(4)} ${ticker} staked/frozen — the comparison uses available balance only.`:'Balance matches on-chain.'),
+        action:isMismatch?`${daysSinceSnapshot!=null&&daysSinceSnapshot>1?'Data is '+daysSinceSnapshot+' days old. ':''}Ask the customer if they made transactions since the export. If not, this is a sync issue — guide them to force-sync: My Accounts → swipe down to refresh. If it persists, clear app cache.`:pendingCount>0?'Check if transaction is visible on chain explorer. Customer may need to speed up or cancel.':failedCount>0?'Review failed transactions in account detail for context.':'No action needed.',
         navigate:{type:'account',idx},
         copyText:`${a.displayName} (${a.ch.name})\n  Address: ${a.addr||'—'}\n  Customer sees: ${cust!=null?cust.toFixed(6)+' '+ticker:'—'}${custFiatVal!=null?' ('+cvFmtFiat(custFiatVal,appJson)+')':''}${hasStaking?' [staked: '+stakedAmount.toFixed(6)+' '+ticker+', available: '+custSpendable.toFixed(6)+' '+ticker+']':''}\n  On-chain: ${live!=null?live.toFixed(6)+' '+ticker:'—'}${liveFiatAtCustRate!=null?' ('+cvFmtFiat(liveFiatAtCustRate,appJson)+' at customer rate)':''}\n  Delta (vs available): ${delta!=null?delta.toFixed(6):'—'}\n  Status: ${isIssue?badges.join(', '):'OK'}${snapshotDate?'\n  Snapshot: '+snapshotDate:''}`,
         evidence:[
@@ -3818,7 +3819,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           ...acctErrs.map(e=>({label:'Log error',detail:e.dg?.t||e.msg||'Unknown'})),
           ...(a.ajBlockHeight!=null?[{label:'Last synced block',detail:Number(a.ajBlockHeight).toLocaleString()}]:[]),
         ],
-        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,_rawCompareBalance:compareBalance,_rawLive:live,
+        _subAccounts:a.ajSubAccounts||[],_pendingOps:a.ajPendingOps||[],_failedCount:failedCount,_blockHeight:a.ajBlockHeight,_acctCid:a.cid,
       });
     });
     // ── System findings ───────────────────────────────────────────────────────
@@ -3943,19 +3944,14 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     const order={red:0,amber:1,green:2};
     f.sort((a,b)=>order[a.severity]-order[b.severity]);
     return f;
-  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,snapshotDate,daysSinceSnapshot]);
+  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,snapshotDate,daysSinceSnapshot]);
 
   const redCount=findings.filter(f=>f.severity==='red').length;
   const amberCount=findings.filter(f=>f.severity==='amber').length;
   const greenCount=findings.filter(f=>f.severity==='green').length;
   const issueCount=findings.filter(f=>f.severity!=='green').length;
   const totalAcctCount=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null).length;
-  const displayFindings=(()=>{
-    let ff=viewMode==='issues'?findings.filter(f=>f.severity!=='green'):findings;
-    if(chainFilter==='_system')ff=ff.filter(f=>f.kind==='system');
-    else if(chainFilter)ff=ff.filter(f=>f._acctCid===chainFilter);
-    return ff;
-  })();
+  const displayFindings=viewMode==='issues'?findings.filter(f=>f.severity!=='green'):findings;
   const selectedFinding=findings.find(f=>f.id===selectedId)||null;
 
   const customerTotal=(enrichedAccts||[]).reduce((s,a)=>{
@@ -3997,7 +3993,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',lineHeight:1.35,marginBottom:4}}>{f.title}</div>
           {f.kind==='account'&&(f.badges||[]).length>0&&<div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-            {f.badges.map(b=><span key={b} style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:s.color+'22',color:s.color,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>{b}</span>)}
+            {f.badges.map(b=><span key={b} style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:s.color+'22',color:s.color,fontWeight:700,letterSpacing:'0.04em'}}>{b}</span>)}
           </div>}
         </div>
         <div style={{display:'flex',gap:6,flexShrink:0}}>
@@ -4014,15 +4010,15 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,fontSize:11,fontFamily:MF}}>
             <div>
-              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',marginBottom:2}}>Total balance</div>
+              <div style={{fontSize:9,color:'#8A8A8E',marginBottom:2}}>Total balance</div>
               <div style={{color:'#FFFFFF'}}>{f.custTotalBal}</div>
             </div>
             <div>
-              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',marginBottom:2}}>{['ripple','stellar'].includes(f._acctCid)?'Reserved':'Staked / Frozen'}</div>
+              <div style={{fontSize:9,color:'#8A8A8E',marginBottom:2}}>{['ripple','stellar'].includes(f._acctCid)?'Reserved':'Staked / Frozen'}</div>
               <div style={{color:'#BBB0FF'}}>{f.stakedAmount}</div>
             </div>
             <div>
-              <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',marginBottom:2}}>Available</div>
+              <div style={{fontSize:9,color:'#8A8A8E',marginBottom:2}}>Available</div>
               <div style={{color:'#4FC46B'}}>{f.custSpendableBal}</div>
             </div>
           </div>
@@ -4032,8 +4028,8 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         </div>;
       })()}
       {f.kind==='account'&&f.custBal&&(()=>{
-        const custNum=f._rawCompareBalance||0;
-        const liveNum=f._rawLive||0;
+        const custNum=parseFloat(f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal)||0;
+        const liveNum=parseFloat(f.liveBal)||0;
         const maxVal=Math.max(custNum,liveNum,0.000001);
         const custPct=Math.min((custNum/maxVal)*100,100);
         const livePct=Math.min((liveNum/maxVal)*100,100);
@@ -4042,7 +4038,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         return <div style={{marginBottom:14,padding:'12px 16px',background:'rgba(0,0,0,0.15)',borderRadius:8}}>
           <div style={{marginBottom:10}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-              <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{f.hasStaking?'Available (excl. staked)':'Customer sees'}</span>
+              <span style={{fontSize:9,color:'#8A8A8E',letterSpacing:'0.04em'}}>{f.hasStaking?'Available (excl. staked)':'Customer sees'}</span>
               <span style={{fontSize:11,color:'#FFFFFF',fontFamily:MF}}>{f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal}</span>
             </div>
             <div style={{height:20,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
@@ -4052,7 +4048,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           </div>
           <div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-              <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>On-chain</span>
+              <span style={{fontSize:9,color:'#8A8A8E',letterSpacing:'0.04em'}}>On-chain</span>
               <span style={{fontSize:11,color:'#FFFFFF',fontFamily:MF}}>{f.liveBal||'—'}</span>
             </div>
             <div style={{height:20,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
@@ -4069,32 +4065,32 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
       {f.kind==='account'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',background:'rgba(0,0,0,0.2)',borderRadius:6,overflow:'hidden',marginBottom:14}}>
         {/* Customer sees */}
         <div style={{padding:'10px 12px',borderRight:'1px solid rgba(255,255,255,0.05)'}}>
-          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{f.hasStaking?'Available (excl. staked)':'Customer sees'}{f.snapshotDate?` (${f.snapshotDate})`:''}</div>
+          <div style={{fontSize:9,color:'#8A8A8E',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>{f.hasStaking?'Available (excl. staked)':'Customer sees'}{f.snapshotDate?` (${f.snapshotDate})`:''}</div>
           <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF,fontWeight:600}}>{f.hasStaking&&f.custSpendableBal?f.custSpendableBal:f.custBal||'—'}</div>
           {f.custFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.custFiat}{f.rateLabel&&<span style={{fontSize:8,color:'rgba(255,255,255,0.25)',marginLeft:4}}>{f.rateLabel}</span>}</div>}
         </div>
         {/* On-chain now */}
         <div style={{padding:'10px 12px',borderRight:'1px solid rgba(255,255,255,0.05)'}}>
-          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>On-chain now</div>
+          <div style={{fontSize:9,color:'#8A8A8E',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>On-chain now</div>
           <div style={{fontSize:13,color:'#FFFFFF',fontFamily:MF,fontWeight:600}}>{f.liveBal||'—'}</div>
           {f.liveFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.liveFiat}{f.rateLabel&&<span style={{fontSize:8,color:'rgba(255,255,255,0.25)',marginLeft:4}}>{f.rateLabel}</span>}</div>}
           {f.liveMarketFiat&&f.liveMarketFiat!==f.liveFiat&&<div style={{fontSize:9,color:'rgba(255,255,255,0.25)',marginTop:1}}>{f.liveMarketFiat} market</div>}
         </div>
         {/* Delta */}
         <div style={{padding:'10px 12px'}}>
-          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>Delta</div>
+          <div style={{fontSize:9,color:'#8A8A8E',letterSpacing:'0.04em',marginBottom:4,fontFamily:MF}}>Delta</div>
           <div style={{fontSize:13,color:f.severity==='green'?'#4FC46B':f.delta&&f.delta!=='0'?'#EA4335':'#8A8A8E',fontFamily:MF,fontWeight:600}}>{f.delta||'—'}</div>
           {f.deltaFiat&&<div style={{fontSize:10,color:'#8A8A8E',marginTop:2}}>{f.deltaFiat}</div>}
         </div>
       </div>}
       <div style={{fontSize:13,color:'#8A8A8E',lineHeight:1.7,marginBottom:14}}>{f.detail}</div>
       <div style={{padding:'12px 14px',borderRadius:6,background:s.bg,border:`1px solid ${s.border}`,marginBottom:14}}>
-        <div style={{fontSize:10,color:s.color,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5,fontFamily:MF}}>Recommended action</div>
+        <div style={{fontSize:10,color:s.color,fontWeight:700,marginBottom:5}}>Recommended action</div>
         <div style={{fontSize:13,color:'#FFFFFF',lineHeight:1.5}}>→ {f.action}</div>
       </div>
       {f.kind==='account'&&<>
         {(f._subAccounts||[]).length>0&&<div style={{marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6,fontFamily:MF}}>Tokens ({f._subAccounts.length})</div>
+          <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',marginBottom:6}}>Tokens ({f._subAccounts.length})</div>
           {f._subAccounts.slice(0,5).map((sa,i)=>{
             const nm=(sa.tokenId||'').split('/').pop().replace(/__/g,' ').replace(/_/g,' ');
             const td=getTokenDecimals(sa.tokenId||'',f._acctCid||'');
@@ -4108,7 +4104,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         {f._blockHeight!=null&&<div style={{fontSize:12,color:'#8A8A8E',fontFamily:MF,marginBottom:8}}>Last synced block: {Number(f._blockHeight).toLocaleString()}</div>}
       </>}
       {(f.evidence||[]).length>0&&<div>
-        <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8,fontFamily:MF}}>Evidence</div>
+        <div style={{fontSize:10,fontWeight:700,color:'#8A8A8E',marginBottom:8}}>Evidence</div>
         {f.evidence.map((ev,i)=><div key={i} style={{fontSize:12,color:'#8A8A8E',padding:'4px 0 4px 10px',borderLeft:'2px solid rgba(255,255,255,0.08)',marginBottom:3}}><span style={{color:'#FFFFFF',fontWeight:500}}>{ev.label}:</span> {ev.detail}</div>)}
       </div>}
     </div>;
@@ -4118,15 +4114,15 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     {/* Row 1 — Header */}
     <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:10,padding:'12px 20px 10px',borderBottom:'1px solid rgba(255,255,255,0.06)',flexWrap:'wrap'}}>
       <span style={{fontSize:15,fontWeight:700,color:'#FFFFFF'}}>Agent Insights</span>
-      <span style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:'rgba(187,176,255,0.12)',color:'#BBB0FF',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',fontFamily:MF}}>DIAGNOSTIC</span>
+      <span style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:'rgba(187,176,255,0.12)',color:'#BBB0FF',fontWeight:700,letterSpacing:'0.04em',fontFamily:MF}}>DIAGNOSTIC</span>
       <div style={{display:'flex',gap:5,marginLeft:2}}>
         {redCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(234,67,53,0.12)',color:'#EA4335',fontWeight:600}}>{redCount} critical</span>}
         {amberCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(255,189,66,0.1)',color:T.warning,fontWeight:600}}>{amberCount} warning</span>}
         {greenCount>0&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:4,background:'rgba(79,196,107,0.08)',color:'#4FC46B',fontWeight:600}}>{greenCount} ok</span>}
       </div>
       <div style={{marginLeft:'auto',display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:5,overflow:'hidden'}}>
-        <button onClick={()=>{setViewMode('issues');setChainFilter(null);}} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
-        <button onClick={()=>{setViewMode('all');setChainFilter(null);}} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All ({findings.length})</button>
+        <button onClick={()=>setViewMode('issues')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='issues'?'rgba(234,67,53,0.15)':'transparent',color:viewMode==='issues'?'#EA4335':'#8A8A8E'}}>Issues ({issueCount})</button>
+        <button onClick={()=>setViewMode('all')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:viewMode==='all'?'rgba(255,255,255,0.08)':'transparent',color:viewMode==='all'?'#FFFFFF':'#8A8A8E'}}>All ({findings.length})</button>
       </div>
     </div>
     {/* Row 2 — Stat cards */}
@@ -4157,7 +4153,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           </svg>;
         })()}
         <div>
-          <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:2}}>Portfolio</div>
+          <div style={{fontSize:9,color:'#8A8A8E',marginBottom:2}}>Portfolio</div>
           <div style={{fontSize:13,fontWeight:700,color:'#FFFFFF',fontFamily:MF}}>{customerTotal>0?fmtFiat(customerTotal):'—'}</div>
           <div style={{fontSize:10,color:portfolioDelta<-0.01?'#EA4335':portfolioDelta>0.01?'#4FC46B':'#8A8A8E'}}>
             {onchainTotal>0?(portfolioDelta>=0?'▲ ':'▼ ')+fmtFiat(Math.abs(portfolioDelta))+' on-chain':totalAcctCount+' acct'+(totalAcctCount!==1?'s':'')}
@@ -4168,96 +4164,53 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         </div>
       </div>
       <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
-        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Device</div>
+        <div style={{fontSize:9,color:'#8A8A8E',marginBottom:4}}>Device</div>
         <div style={{fontSize:14,fontWeight:700,color:'#FFFFFF',marginBottom:2}}>{dev.modelId?DN[dev.modelId]||dev.modelId:'—'}</div>
         <div style={{fontSize:10,color:firmwareCheck?.outdated?T.warning:'#8A8A8E'}}>{firmwareCheck?.current?`FW ${firmwareCheck.current}`:`FW ${dev.fw||'—'}`}{firmwareCheck?.outdated?' ⬆':''}</div>
       </div>
       <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
-        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Live Data</div>
+        <div style={{fontSize:9,color:'#8A8A8E',marginBottom:4}}>Live Data</div>
         <div style={{fontSize:14,fontWeight:700,color:fetchedCount>0?'#FFFFFF':'#8A8A8E',marginBottom:2}}>{fetchedCount}/{acctCount}</div>
         <div style={{fontSize:10,color:fetchedCount===acctCount&&acctCount>0?'#4FC46B':fetchedCount>0?T.warning:'#8A8A8E'}}>{fetchedCount===0?'None fetched':fetchedCount===acctCount?'All live':'Partial'}</div>
       </div>
       <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:6,padding:'8px 12px'}}>
-        <div style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:MF,marginBottom:4}}>Customer</div>
+        <div style={{fontSize:9,color:'#8A8A8E',marginBottom:4}}>Customer</div>
         <div style={{fontSize:14,fontWeight:700,color:'#FFFFFF',marginBottom:2}}>{llLabel(dev)} {dev.appVer||'—'}</div>
         <div style={{fontSize:10,color:appVersionCheck?.outdated?T.warning:'#8A8A8E'}}>{hasAppJson?'app.json loaded':'no app.json'}{ajSettings.developerMode?' · dev mode':''}</div>
       </div>
     </div>
-    {/* Row 2.5 — Chain summary chips */}
+    {/* Row 2.5 — Health dots */}
     {(()=>{
       const accts=(enrichedAccts||[]).filter(a=>a.enriched&&a.ajBalance!=null);
       if(accts.length===0)return null;
-
-      // Group account findings by chain
-      const chainMap={};
-      findings.forEach(f=>{
-        if(f.kind!=='account'||!f._acctCid)return;
-        if(!chainMap[f._acctCid])chainMap[f._acctCid]={cid:f._acctCid,red:0,amber:0,green:0};
-        chainMap[f._acctCid][f.severity]=(chainMap[f._acctCid][f.severity]||0)+1;
-      });
-      const chains=Object.values(chainMap).sort((a,b)=>(b.red-a.red)||(b.amber-a.amber));
-
-      // System findings count
-      const sysFindingsAll=findings.filter(f=>f.kind==='system');
-      const sysRed=sysFindingsAll.filter(f=>f.severity==='red').length;
-      const sysAmber=sysFindingsAll.filter(f=>f.severity==='amber').length;
-      const sysGreen=sysFindingsAll.filter(f=>f.severity==='green').length;
-
       const matches=accts.filter(a=>{const lb=liveBalances[a.id];const dec=DECIMALS[a.cid]||18;const total=parseFloat(a.ajBalance)/Math.pow(10,dec);const sp=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;const c=sp!=null&&Math.abs(total-sp)>0.000001?sp:total;const l=lb?.bal;return c!=null&&l!=null&&(c===0||Math.abs(l-c)/c*100<=0.01);}).length;
-
-      const chipStyle=(isActive)=>({
-        display:'inline-flex',alignItems:'center',gap:5,
-        padding:'4px 10px 4px 6px',borderRadius:12,cursor:'pointer',
-        transition:'all 120ms',flexShrink:0,
-        background:isActive?'rgba(187,176,255,0.12)':'rgba(255,255,255,0.04)',
-        border:isActive?'1px solid rgba(187,176,255,0.3)':'1px solid rgba(255,255,255,0.08)',
-      });
-
-      const sevDot=(color,count)=>count>0?
-        <span key={color} style={{display:'inline-flex',alignItems:'center',gap:2}}>
-          <span style={{width:6,height:6,borderRadius:'50%',background:color,flexShrink:0}}/>
-          <span style={{fontSize:10,fontWeight:600,color,fontFamily:MF}}>{count}</span>
-        </span>:null;
-
-      return <div style={{flexShrink:0,padding:'6px 16px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',alignItems:'center',gap:6,overflowX:'auto',scrollbarWidth:'none'}}>
-        <span style={{fontSize:9,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em',fontWeight:600,fontFamily:MF,flexShrink:0}}>Chains</span>
-
-        {chains.map(ch=>{
-          const info=CHAINS[ch.cid];
-          const ticker=info?.ticker||ch.cid.toUpperCase().slice(0,4);
-          const color=info?.color||'#949494';
-          const iconUrl=chainIconUrl(ch.cid);
-          const isActive=chainFilter===ch.cid;
-          return <div key={ch.cid}
-            onClick={()=>setChainFilter(isActive?null:ch.cid)}
-            style={chipStyle(isActive)}>
-            {iconUrl
-              ?<img src={iconUrl} alt="" width={14} height={14} style={{borderRadius:3,flexShrink:0}} onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='';}}/>
-              :null}
-            <span style={{display:iconUrl?'none':'',width:14,height:14,borderRadius:3,background:color+'30',fontSize:8,fontWeight:700,color,textAlign:'center',lineHeight:'14px',fontFamily:MF,flexShrink:0}}>{ticker.slice(0,2)}</span>
-            <span style={{fontSize:11,fontWeight:600,color:isActive?'#FFFFFF':'#C0C0C0',fontFamily:MF}}>{ticker}</span>
-            <span style={{display:'inline-flex',gap:4,alignItems:'center'}}>
-              {sevDot('#EA4335',ch.red)}
-              {sevDot(T.warning,ch.amber)}
-              {ch.red===0&&ch.amber===0&&sevDot('#4FC46B',ch.green)}
-            </span>
-          </div>;
-        })}
-
-        {/* System chip */}
-        {sysFindingsAll.length>0&&<div
-          onClick={()=>setChainFilter(chainFilter==='_system'?null:'_system')}
-          style={chipStyle(chainFilter==='_system')}>
-          <span style={{fontSize:11,flexShrink:0}}>⚙</span>
-          <span style={{fontSize:11,fontWeight:600,color:chainFilter==='_system'?'#FFFFFF':'#C0C0C0',fontFamily:MF}}>System</span>
-          <span style={{display:'inline-flex',gap:4,alignItems:'center'}}>
-            {sevDot('#EA4335',sysRed)}
-            {sevDot(T.warning,sysAmber)}
-            {sysRed===0&&sysAmber===0&&sevDot('#4FC46B',sysGreen)}
-          </span>
-        </div>}
-
-        <span style={{marginLeft:'auto',fontSize:9,color:'#8A8A8E',fontFamily:MF,flexShrink:0}}>{matches}/{accts.length} ✓</span>
+      return <div style={{flexShrink:0,padding:'6px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',alignItems:'center',gap:6}}>
+        <span style={{fontSize:9,color:'#8A8A8E',letterSpacing:'0.04em',fontWeight:600,fontFamily:MF,marginRight:2}}>Accounts</span>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap',flex:1}}>
+          {accts.map((a,i)=>{
+            const lbEntry=liveBalances[a.id];
+            const dec=DECIMALS[a.cid]||18;
+            const custTotal=parseFloat(a.ajBalance)/Math.pow(10,dec);
+            const custSp=a.ajSpendable!=null&&a.ajSpendable!==a.ajBalance?parseFloat(a.ajSpendable)/Math.pow(10,dec):null;
+            const cust=custSp!=null&&Math.abs(custTotal-custSp)>0.000001?custSp:custTotal;
+            const live=lbEntry?.bal!=null?lbEntry.bal:null;
+            const hasBoth=cust!=null&&live!=null;
+            const pct=hasBoth&&cust>0?Math.abs(live-cust)/cust*100:0;
+            const isMismatch=hasBoth&&pct>0.01;
+            const hasPending=(a.ajPendingOps||[]).length>0;
+            const hasFailedOps=(a.ajOperations||[]).some(op=>op.hasFailed||op.status==='failed');
+            const dotColor=isMismatch?'#EA4335':hasPending||hasFailedOps?T.warning:hasBoth?'#4FC46B':lbEntry?.status==='loading'?'#8A8A8E':'rgba(255,255,255,0.15)';
+            const findingId=`acct-${a.id}`;
+            const isSel=selectedId===findingId;
+            const status=isMismatch?'mismatch':hasPending?'pending':hasFailedOps?'failed ops':hasBoth?'match':'no data';
+            return <div key={i}
+              title={`${a.displayName}: ${status}`}
+              onClick={()=>{const f=displayFindings.find(f=>f.id===findingId);if(f)setSelectedId(findingId);}}
+              style={{width:isSel?10:7,height:isSel?10:7,borderRadius:'50%',background:dotColor,cursor:'pointer',transition:'all 120ms',outline:isSel?`2px solid ${dotColor}`:'none',outlineOffset:1,opacity:isSel?1:0.8,flexShrink:0}}
+            />;
+          })}
+        </div>
+        <span style={{fontSize:9,color:'#8A8A8E',fontFamily:MF,flexShrink:0}}>{matches}/{accts.length} ✓</span>
         {snapshotDate&&<span style={{fontSize:9,color:'rgba(187,176,255,0.4)',fontFamily:MF,flexShrink:0}}>snapshot {snapshotDate}</span>}
       </div>;
     })()}
@@ -4609,7 +4562,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                   {/* Chain + Name + tokens link */}
                   <div style={{minWidth:0,paddingRight:16}}>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{ch.name}</span>
+                      <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',letterSpacing:'0.04em'}}>{ch.name}</span>
                       {a.dm&&<span className="cv-dm-badge">{a.dm}</span>}
                       {funded&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4FC46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                     </div>
@@ -4693,7 +4646,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                 </div>
                 <div>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.04em'}}>{ch.name}</span>
+                    <span style={{fontSize:11,fontWeight:500,color:'#8A8A8E',letterSpacing:'0.04em'}}>{ch.name}</span>
                     {acct.dm&&<span className="cv-dm-badge">{acct.dm}</span>}
                   </div>
                   <div style={{fontSize:18,fontWeight:700,color:'#FFFFFF',marginTop:1}}>{acct.displayName}{acct.ajStarred&&<span style={{color:'#FFB800',fontSize:14,marginLeft:6}}>★</span>}</div>
@@ -4734,7 +4687,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
               </div>;
             })()}
             <div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Address</div>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',letterSpacing:'0.06em',marginBottom:8}}>Address</div>
               <div style={{fontFamily:MF,fontSize:12,color:'#FFFFFF',wordBreak:'break-all'}}><CVCopyText text={acct.addr} mono={true}/></div>
               {(acct.fp||acct.ajFreshAddressPath)&&<div style={{fontFamily:MF,fontSize:11,color:'#8A8A8E',marginTop:6}}>Path: {acct.ajFreshAddressPath||acct.fp}</div>}
               <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:12}}>
@@ -4749,7 +4702,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
               </div>
             </div>
             {(enriched&&ajSubs.length>0||!enriched&&logToks.length>0)&&<div style={{padding:'16px 32px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Token Holdings ({enriched?ajSubs.length:logToks.length})</div>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',letterSpacing:'0.06em',marginBottom:12}}>Token Holdings ({enriched?ajSubs.length:logToks.length})</div>
               {enriched?ajSubs.map((s,si)=>{
                 const rawName=(s.tokenId||s.id||'').split('/').pop()||s.tokenId||'?';
                 const name=rawName.replace(/__/g,' ').replace(/_/g,' ');
@@ -4842,9 +4795,9 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
                 </div>;
               };
               return <div style={{padding:'16px 32px'}}>
-                <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Latest Operations ({acct.ajOps})</div>
+                <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',letterSpacing:'0.06em',marginBottom:12}}>Latest Operations ({acct.ajOps})</div>
                 {acct.ajPendingOps&&acct.ajPendingOps.length>0&&<div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.warning,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>⏳ Pending ({acct.ajPendingOps.length})</div>
+                  <div style={{fontSize:11,fontWeight:600,color:T.warning,letterSpacing:'0.06em',marginBottom:8}}>⏳ Pending ({acct.ajPendingOps.length})</div>
                   {acct.ajPendingOps.map((op,pi)=>{
                     const opType=(op.type||'').toUpperCase();
                     const opLabel=OP_LABELS[opType]||opType;
@@ -4875,7 +4828,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
               </div>;
             })()}
             {enriched&&acct.ajSwapHistory&&acct.ajSwapHistory.length>0&&<div style={{padding:'16px 32px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Swap History ({acct.ajSwapHistory.length})</div>
+              <div style={{fontSize:11,fontWeight:600,color:'#8A8A8E',letterSpacing:'0.06em',marginBottom:12}}>Swap History ({acct.ajSwapHistory.length})</div>
               {acct.ajSwapHistory.map((sw,si)=>(
                 <div key={si} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:si<acct.ajSwapHistory.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
                   <div style={{width:28,height:28,borderRadius:'50%',background:'rgba(187,176,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -4889,7 +4842,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
               ))}
             </div>}
             {acctErrs.length>0&&<div style={{padding:'16px 32px'}}>
-              <div style={{fontSize:11,fontWeight:600,color:'#EA4335',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Related Issues ({acctErrs.length})</div>
+              <div style={{fontSize:11,fontWeight:600,color:'#EA4335',letterSpacing:'0.06em',marginBottom:8}}>Related Issues ({acctErrs.length})</div>
               {acctErrs.map((err,i)=><div key={i} style={{fontSize:12,color:'#EA4335',padding:'6px 0',borderBottom:i<acctErrs.length-1?'1px solid rgba(234,67,53,0.1)':'none'}}>{err.dg?.t||err.msg||'Unknown error'}</div>)}
             </div>}
           </div>;
@@ -5150,7 +5103,7 @@ function fmtAcctLine(a,short,liveBalances,isMobile){
   return '  '+[a.ch.name,balStr,opsStr,addr].filter(Boolean).join(' — ');
 }
 
-const dropItemStyle={display:'block',width:'100%',padding:'8px 12px 8px 15px',background:'none',border:'none',borderBottom:'1px solid #3C3C3C',borderLeft:'3px solid transparent',color:'#FFFFFF',cursor:'pointer',textAlign:'left',fontSize:12,transition:I.fast};
+const dropItemStyle={display:'block',width:'100%',padding:'8px 12px 8px 15px',background:'none',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:'3px solid transparent',color:'#FFFFFF',cursor:'pointer',textAlign:'left',fontSize:12,transition:I.fast};
 function buildIncidentLines(logData,ledgerStatus){
   if(!ledgerStatus?.incidents||!logData.entries.length)return[];
   const sessionStart=new Date(logData.entries[0]?.timestamp).getTime();
@@ -5328,28 +5281,24 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
   const displayArticles = [...conditional.slice(0, 3), ...alwaysOn].slice(0, 5);
 
   // Sub-components defined inline
-  const SectionHeader = ({ icon, label, subtitle, count, active, onClick, expandable, expanded, dot }) => (
+  const SectionHeader = ({ icon, label, count, active, onClick, expandable, expanded, dot }) => (
     <div
       onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px',
-        cursor: 'pointer', borderLeft: active ? '3px solid #BBB0FF' : '3px solid transparent',
-        borderTop: '1px solid #3C3C3C',
-        background: active ? 'linear-gradient(90deg, rgba(187,176,255,0.10) 0%, transparent 70%)' : 'transparent',
+        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+        borderRadius: 8, cursor: 'pointer', margin: '2px 8px',
+        color: active ? '#FFFFFF' : '#8A8A8E',
+        background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
+        transition: 'background 150ms ease',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = active ? 'linear-gradient(90deg, rgba(187,176,255,0.14) 0%, transparent 70%)' : I.hover}
-      onMouseLeave={e => e.currentTarget.style.background = active ? 'linear-gradient(90deg, rgba(187,176,255,0.10) 0%, transparent 70%)' : 'transparent'}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
     >
-      <span style={{ fontSize: 14, marginTop: 1 }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'JetBrains Mono','SF Mono',Consolas,monospace", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#FFFFFF' }}>{label}</span>
-          {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, marginLeft: 6, display: 'inline-block' }}/>}
-          {count != null && <span style={{ fontSize: 11, color: '#949494', marginLeft: 'auto', paddingLeft: 8 }}>{count}</span>}
-          {expandable && <span style={{ fontSize: 10, color: '#949494', marginLeft: 4 }}>{expanded ? '▾' : '▸'}</span>}
-        </div>
-        <div style={{ fontSize: 10, color: '#666666', marginTop: 2 }}>{subtitle}</div>
-      </div>
+      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+      <span style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{label}</span>
+      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0 }}/>}
+      {count != null && <span style={{ fontSize: 11, color: '#949494' }}>{count}</span>}
+      {expandable && <span style={{ fontSize: 10, color: '#949494', marginLeft: 4 }}>{expanded ? '▾' : '▸'}</span>}
     </div>
   );
 
@@ -5374,7 +5323,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
 
   return (
-    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid #3C3C3C', background: focusedAcct?`linear-gradient(180deg, ${focusedAcct.color}12 0%, #1C1D1F 50%)`:'linear-gradient(180deg, rgba(69,57,92,0.12) 0%, #1C1D1F 35%)', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0, transition:'background 0.4s ease' }}>
+    <div style={{ width: 240, minWidth: 240, borderRight: '1px solid rgba(255,255,255,0.06)', background: focusedAcct?`linear-gradient(180deg, ${focusedAcct.color}12 0%, #1A1A1D 50%)`:'#1A1A1D', display: 'flex', flexDirection: 'column', overflowY: 'auto', flexShrink: 0, transition:'background 0.4s ease' }}>
 
       {/* Investigation Panel — appears when focus is active */}
       {focusedAcct&&(()=>{
@@ -5435,25 +5384,27 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
         </div>;
       })()}
 
-      {/* Overview — matches SectionHeader pattern, severity-colored left border */}
+      {/* Overview — pill nav item matching SectionHeader */}
       <div
         onClick={() => setSection('overview')}
         style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px',
-          cursor: 'pointer',
-          borderLeft: `3px solid ${sevColor}`,
-          background: section === 'overview' ? 'linear-gradient(160deg, rgba(69,57,92,0.35) 0%, rgba(10,10,10,0.2) 100%)' : 'transparent',
+          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+          borderRadius: 8, cursor: 'pointer', margin: '2px 8px',
+          color: section === 'overview' ? '#FFFFFF' : '#8A8A8E',
+          background: section === 'overview' ? 'rgba(255,255,255,0.06)' : 'transparent',
+          transition: 'background 150ms ease',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = section === 'overview' ? 'linear-gradient(160deg, rgba(69,57,92,0.45) 0%, rgba(10,10,10,0.25) 100%)' : I.hover}
-        onMouseLeave={e => e.currentTarget.style.background = section === 'overview' ? 'linear-gradient(160deg, rgba(69,57,92,0.35) 0%, rgba(10,10,10,0.2) 100%)' : 'transparent'}
+        onMouseEnter={e => { if (section !== 'overview') e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+        onMouseLeave={e => { if (section !== 'overview') e.currentTarget.style.background = 'transparent'; }}
       >
-        <span style={{ fontSize: 14, marginTop: 1, color: sevColor }}><Ico.Chip /></span>
+        <span style={{ fontSize: 16, color: sevColor, flexShrink: 0 }}><Ico.Chip /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontFamily: "'JetBrains Mono','SF Mono',Consolas,monospace", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#FFFFFF' }}>Overview</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Overview</span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: sevColor, marginLeft: 8, flexShrink: 0 }}/>
           </div>
-          <div style={{ fontSize: 10, color: '#666666', marginTop: 2, lineHeight: 1.4 }}>
-            <span style={{ color: sevColor }}>●</span>{' '}{sevSentenceFinal}
+          <div style={{ fontSize: 11, color: '#666666', marginTop: 2, lineHeight: 1.4 }}>
+            {sevSentenceFinal}
           </div>
         </div>
       </div>
@@ -5557,7 +5508,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
       {/* Contextual help */}
       {displayArticles.length > 0 && (
         <div style={{ padding: '8px 12px', borderTop: `1px solid ${T.border}` }}>
-          <div style={{ fontFamily: MF, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.muted, marginBottom: 6, opacity: 0.7 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: T.muted, marginBottom: 6, opacity: 0.7 }}>
             📄 Help articles
           </div>
           {displayArticles.map(ch => (
@@ -5575,7 +5526,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 
       {/* API data sources */}
       <div style={{padding:'8px 12px 10px',borderTop:`1px solid ${T.border}`}}>
-        <div style={{fontFamily:MF,fontSize:8,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,marginBottom:5,opacity:0.6}}>Live data</div>
+        <div style={{fontFamily:MF,fontSize:8,fontWeight:600,letterSpacing:'0.08em',color:T.muted,marginBottom:5,opacity:0.6}}>Live data</div>
         {(()=>{
           const lbVals=Object.values(liveBalances||{});
           const balOk=lbVals.some(v=>v?.status==='ok'&&v.bal!=null);
@@ -5610,7 +5561,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
 }
 
 function App(){
-  const purposeLabel={fontFamily:MF,fontSize:10,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:500,flexShrink:0};
+  const purposeLabel={fontSize:11,color:'#666666',fontWeight:400,flexShrink:0};
   const[logData,setLogData]=useState(null);
   const[fileName,setFileName]=useState('');
   const[loadErr,setLoadErr]=useState('');
@@ -6096,7 +6047,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setLiveBalances({});setAcctSort('fiat');setSortDropOpen(false);setNavigatedAcct(null);setHoveredTmRect(null);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -6255,14 +6206,14 @@ function App(){
     })
   );
 
-  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}06 0%, ${T.bg} 50%)`:`radial-gradient(ellipse at 0% 0%, rgba(69,57,92,0.07) 0%, ${T.bg} 50%)`,color:T.text,transition:'background 0.4s ease'}}>
+  return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}06 0%, ${T.bg} 50%)`:T.bg,color:T.text,transition:'background 0.4s ease'}}>
     {/* Top bar */}
-    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}40`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:`linear-gradient(90deg, rgba(69,57,92,0.15) 0%, transparent 40%)`,zIndex:10,transition:'border-bottom 0.4s ease'}}>
+    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}40`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:T.bg,zIndex:10,transition:'border-bottom 0.4s ease'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <svg data-splash-target width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color:T.text,flexShrink:0}}>
           <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="currentColor"/>
         </svg>
-        <span style={{fontFamily:"'JetBrains Mono','SF Mono',Consolas,monospace",fontSize:10,fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:T.muted}}>Diagnostic Toolkit</span>
+        <span style={{fontSize:11,fontWeight:500,color:T.muted}}>Diagnostic Toolkit</span>
       </div>
       {logData&&<ModeToggle mode={viewMode} onChange={setViewMode}/>}
       {logData&&<div style={{display:'flex',alignItems:'center',gap:12,fontSize:12}}>
@@ -6323,7 +6274,7 @@ function App(){
         <div style={{position:'relative',zIndex:1,display:'flex',flexDirection:'column',alignItems:'center'}}>
           <div className={dragOver?'drop-icon-pulse':''} style={{color:dragOver?T.orange:T.muted,marginBottom:16,transition:I.medium}}><Ico.Upload/></div>
           <div style={{fontSize:18,fontWeight:600,marginBottom:8,color:dragOver?T.text:'#fff',transition:I.medium}}>Drop a Ledger Wallet log file</div>
-          <div style={{fontFamily:MF,fontSize:10,letterSpacing:'0.06em',textTransform:'uppercase',color:T.muted,marginBottom:32,opacity:0.5}}>.json &nbsp;·&nbsp; .txt &nbsp;·&nbsp; .log</div>
+          <div style={{fontFamily:MF,fontSize:10,letterSpacing:'0.06em',color:T.muted,marginBottom:32,opacity:0.5}}>.json &nbsp;·&nbsp; .txt &nbsp;·&nbsp; .log</div>
           <div style={{display:'flex',gap:12}}>
             <button onClick={e=>{e.stopPropagation();openGuide('agent');}} style={{appearance:'none',padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:I.fast,fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>📖</span> Agent Guide</button>
             <button onClick={e=>{e.stopPropagation();openGuide('technical');}} style={{appearance:'none',padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:I.fast,fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>🔬</span> Technical Reference</button>
@@ -6335,7 +6286,7 @@ function App(){
       {/* Log Viewer */}
       {logData&&viewMode==='diagnostic'&&<div style={{display:'flex',flex:1,overflow:'hidden'}}>
         <DiagSidebar logData={logData} section={section} setSection={setSection} liveBalances={liveBalances} focusedAcct={focusedAcct} setFocusedAcct={setFocusedAcct} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck} ledgerStatus={ledgerStatus} setErrAcctFilter={setErrAcctFilter} setTlAcctFilter={setTlAcctFilter} />
-        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:focusedAcct?`linear-gradient(135deg, ${focusedAcct.color}06 0%, ${focusedAcct.color}02 30%, transparent 60%)`:`linear-gradient(90deg, rgba(69,57,92,0.04) 0%, transparent 15%)`,transition:'background 0.4s ease',animation:focusedAcct?'focusEngage 0.4s ease-out':'none','--focus-color':focusedAcct?focusedAcct.color+'12':'transparent'}}>
+        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',borderLeft:focusedAcct?`3px solid ${focusedAcct.color}`:'3px solid transparent',transition:I.fast,background:focusedAcct?`linear-gradient(135deg, ${focusedAcct.color}06 0%, ${focusedAcct.color}02 30%, transparent 60%)`:'transparent',transition:'background 0.4s ease',animation:focusedAcct?'focusEngage 0.4s ease-out':'none','--focus-color':focusedAcct?focusedAcct.color+'12':'transparent'}}>
         {/* Context Ribbon */}
         {(selectedErr!=null&&section==='errors')&&(()=>{
           const ribbonErr=selectedErr!=null?logData.errs.find(e=>e.li===selectedErr):null;
@@ -6412,7 +6363,7 @@ function App(){
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
 
             {/* Zone 1: Top strip */}
-            <div style={{flexShrink:0,padding:'20px 24px 12px',borderBottom:`1px solid ${T.border}`,background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
+            <div style={{flexShrink:0,padding:'20px 24px 12px',borderBottom:`1px solid ${T.border}`,background:'transparent'}}>
               {noSync&&<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(255,189,66,0.08)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
                 <span style={{color:T.warning,fontWeight:700,fontSize:13,flexShrink:0}}>⚠</span>
                 <span style={{color:T.warning}}><strong>No sync captured in this session</strong> — operation counts, log balances, and account status are unavailable. {Object.values(liveBalances).some(lb=>lb.status==='ok'&&lb.bal!=null)?'Live blockchain balances are being shown where available.':'Live blockchain balances are being fetched.'}</span>
@@ -6516,7 +6467,7 @@ function App(){
                         onMouseLeave={e=>{e.currentTarget.style.background=T.card;}}
                       >
                         <div className="stat-value" style={{color:s.c}}>{s.v}</div>
-                        <div style={{fontFamily:"'JetBrains Mono','SF Mono',Consolas,monospace",fontSize:'var(--ov-stat-label)',color:T.muted,marginTop:4,lineHeight:1.4,letterSpacing:'0.06em',textTransform:'uppercase'}}>{s.l}</div>
+                        <div style={{fontFamily:"'JetBrains Mono','SF Mono',Consolas,monospace",fontSize:'var(--ov-stat-label)',color:T.muted,marginTop:4,lineHeight:1.4,letterSpacing:'0.06em'}}>{s.l}</div>
                       </div>
                     ))}
                   </div>
@@ -6539,7 +6490,7 @@ function App(){
                         background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
                         boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:280,maxHeight:340,overflowY:'auto',
                       }}>
-                        <div style={{padding:'8px 12px 4px',fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',color:T.muted}}>
+                        <div style={{padding:'8px 12px 4px',fontSize:10,fontWeight:600,color:T.muted}}>
                           {focusedAcct?'Switch focus':'Select an account to investigate'}
                         </div>
                         {logData.accts.map(a=>{
@@ -6664,7 +6615,7 @@ function App(){
                 )}
               </div>
               {/* Activity badges */}
-              {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{badges.map(b=><span key={b.k} style={{...bdg(b.c),fontSize:'var(--ov-fs-xs)',padding:'3px 10px',textTransform:'uppercase',letterSpacing:'0.04em'}}>{b.l}</span>)}</div>;})()}
+              {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{badges.map(b=><span key={b.k} style={{...bdg(b.c),fontSize:'var(--ov-fs-xs)',padding:'3px 10px',letterSpacing:'0.04em'}}>{b.l}</span>)}</div>;})()}
             </div>
 
             {/* Zone 2: Middle content — adaptive layout */}
@@ -6674,7 +6625,7 @@ function App(){
               if(!d.modelName&&!d.modelId&&!d.fw&&!d.appVer){parts.push('No device connected during this session');}
               else{if(d.modelName||d.modelId)parts.push(d.modelName||d.modelId);if(d.fw){if(fwOk)parts.push(`FW ${d.fw} ✓`);else if(fwOutdated&&fwLatestVer)parts.push(`FW ${d.fw} ⬆ ${fwLatestVer}`);else if(firmwareCheck?.status==='loading')parts.push(`FW ${d.fw} …`);else parts.push(`FW ${d.fw}`);}if(!d.modelName&&!d.modelId&&d.appVer)parts.push(`${llLabel(d)} ${d.appVer}`);if(da?.source==='manager-result'&&req.length>0){const okCount=req.filter(r=>{const inst=da.installed.find(i=>i.name.toLowerCase()===r.appName.toLowerCase());return inst&&inst.updated;}).length;const allOk=okCount===req.length;parts.push(`${da.installed.length} app${da.installed.length!==1?'s':''}${allOk?' (all up to date)':` (${okCount}/${req.length} up to date)`}`);}if(d.ledgerSync)parts.push('Sync active');}
               const unifiedDeviceCard=<>
-                <div onClick={()=>setDeviceExpanded(o=>!o)} style={{display:'flex',alignItems:'center',gap:10,padding:'clamp(8px, 1vh, 12px) clamp(12px, 1.5vh, 16px)',background:`linear-gradient(90deg, rgba(187,176,255,0.06) 0%, ${T.panel} 50%)`,border:`1px solid ${T.border}`,borderLeft:`3px solid ${deviceExpanded?T.primary:'transparent'}`,borderRadius:deviceExpanded?'4px 4px 0 0':4,cursor:'pointer',transition:I.fast,flexShrink:0,borderTop:'1px solid rgba(255,255,255,0.04)'}} onMouseEnter={e=>e.currentTarget.style.background='linear-gradient(90deg, rgba(187,176,255,0.10) 0%, rgba(255,255,255,0.03) 50%)'} onMouseLeave={e=>e.currentTarget.style.background=`linear-gradient(90deg, rgba(187,176,255,0.06) 0%, ${T.panel} 50%)`}>
+                <div onClick={()=>setDeviceExpanded(o=>!o)} style={{display:'flex',alignItems:'center',gap:10,padding:'clamp(8px, 1vh, 12px) clamp(12px, 1.5vh, 16px)',background:T.panel,border:`1px solid ${T.border}`,borderLeft:`3px solid ${deviceExpanded?T.primary:'transparent'}`,borderRadius:deviceExpanded?'4px 4px 0 0':4,cursor:'pointer',transition:I.fast,flexShrink:0,borderTop:'1px solid rgba(255,255,255,0.04)'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.04)'} onMouseLeave={e=>e.currentTarget.style.background=T.panel}>
                   <Ico.Chip/>
                   <span style={{flex:1,fontSize:'var(--ov-fs-md)'}}>{parts.join(' · ')}</span>
                   <span style={{color:T.muted,fontSize:11}}>{deviceExpanded?'▾':'▸'}</span>
@@ -6697,7 +6648,7 @@ function App(){
                     const hasProbs=rows.some(r=>r.status!=='ok');
                     return <div style={{marginBottom:10}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                        <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted}}>Device Apps</span>
+                        <span style={{fontSize:'var(--ov-fs-xs)',fontWeight:600,color:T.muted}}>Device Apps</span>
                         <span>
                           {!versionCheck&&<span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{allOk?'all up to date':okCount+'/'+rows.length+' up to date'}</span>}
                         </span>
@@ -6782,7 +6733,7 @@ function App(){
                     });
                     return <div style={{marginBottom:10}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                        <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted}}>Device Apps</span>
+                        <span style={{fontSize:'var(--ov-fs-xs)',fontWeight:600,color:T.muted}}>Device Apps</span>
                         <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>required by accounts{Object.keys(cat).length>0?' · catalog available':''}</span>
                       </div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:'var(--ov-gap-chips)'}}>
@@ -6813,19 +6764,19 @@ function App(){
                   })()}
                   {/* B3: Environment rows */}
                   <div style={{marginTop:'var(--ov-pad-section)'}}>
-                    <div style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,marginBottom:4}}>Environment</div>
-                    {[['OS',logData.dev.os?`${logData.dev.os} ${logData.dev.osVer||''}`:logData.isMobile?(logData.dev.platform==='ios'?'iOS':logData.dev.platform==='android'?'Android':'—'):'—'],['Platform',logData.isMobile?(()=>{const p=logData.dev.platform;const label=p==='ios'?'iOS':p==='android'?'Android':p?p.charAt(0).toUpperCase()+p.slice(1):'';return`${llLabel(logData.dev)} Mobile${label?' ('+label+')':''}`})():logData.dev.platform||'—'],[llLabel(logData.dev),(()=>{const v=logData.dev.appVer||'—';if(!logData.dev.appVer)return v;if(appVersionCheck?.status==='loading')return<span>{v}<span style={{color:T.muted}}> …</span></span>;if(appVersionCheck?.status==='ok'&&!appVersionCheck.outdated&&appVersionCheck.latest)return<span>{v}<span style={{color:T.success}}> ✓</span></span>;if(appVersionCheck?.status==='ok'&&appVersionCheck.outdated&&appVersionCheck.latest)return<span style={{color:T.error}}>{v} ⬆ {appVersionCheck.latest}</span>;return v;})()],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?`Active · ${logData.sync}s`:'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'var(--ov-pad-row) 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:'var(--ov-fs-sm)',transition:I.fast,borderRadius:3}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}><span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
+                    <div style={{fontSize:'var(--ov-fs-xs)',fontWeight:600,color:T.muted,marginBottom:4}}>Environment</div>
+                    {[['OS',logData.dev.os?`${logData.dev.os} ${logData.dev.osVer||''}`:logData.isMobile?(logData.dev.platform==='ios'?'iOS':logData.dev.platform==='android'?'Android':'—'):'—'],['Platform',logData.isMobile?(()=>{const p=logData.dev.platform;const label=p==='ios'?'iOS':p==='android'?'Android':p?p.charAt(0).toUpperCase()+p.slice(1):'';return`${llLabel(logData.dev)} Mobile${label?' ('+label+')':''}`})():logData.dev.platform||'—'],[llLabel(logData.dev),(()=>{const v=logData.dev.appVer||'—';if(!logData.dev.appVer)return v;if(appVersionCheck?.status==='loading')return<span>{v}<span style={{color:T.muted}}> …</span></span>;if(appVersionCheck?.status==='ok'&&!appVersionCheck.outdated&&appVersionCheck.latest)return<span>{v}<span style={{color:T.success}}> ✓</span></span>;if(appVersionCheck?.status==='ok'&&appVersionCheck.outdated&&appVersionCheck.latest)return<span style={{color:T.error}}>{v} ⬆ {appVersionCheck.latest}</span>;return v;})()],['User ID',logData.dev.userId?trunc(logData.dev.userId,36):'—'],['Sync',logData.sync?`Active · ${logData.sync}s`:'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'var(--ov-pad-row) 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:'var(--ov-fs-sm)',transition:I.fast,borderRadius:3}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}><span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{k}</span><span className="mono" style={{display:'flex',alignItems:'center',gap:4}}>{v}{k==='User ID'&&logData.dev.userId&&<CopyBtn text={logData.dev.userId}/>}</span></div>)}
                   </div>
                   {/* B4: Device Reference (popover) */}
                   <div style={{position:'relative',marginTop:'var(--ov-gap-rows)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-                    <div onClick={()=>setDevDetailOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 0',cursor:'pointer',fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,color:T.muted,textTransform:'uppercase',letterSpacing:'0.06em'}}>
+                    <div onClick={()=>setDevDetailOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 0',cursor:'pointer',fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,color:T.muted,letterSpacing:'0.06em'}}>
                       {devDetailOpen?'▾':'▸'} Device Reference
                     </div>
                     {devDetailOpen&&<div data-dev-ref-popover style={{position:'absolute',bottom:'calc(100% + 4px)',left:0,right:0,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',padding:'clamp(8px, 1vh, 12px) clamp(10px, 1.3vh, 14px)',zIndex:20}}>
-                      <div style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,marginBottom:6}}>Device Reference</div>
-                      {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'var(--ov-pad-row) 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:'var(--ov-fs-sm)',transition:I.fast,borderRadius:3}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}><span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>{k}</span><span className="mono">{v}</span></div>)}
+                      <div style={{fontSize:'var(--ov-fs-xs)',fontWeight:600,color:T.muted,marginBottom:6}}>Device Reference</div>
+                      {[['Language',logData.dev.lang||'—'],['Paired',(logData.dev.devices||[]).map(m=>DN[m]||m).join(', ')||'—'],['Commit',logData.dev.commit||'—'],['MEV',logData.dev.mev||'—']].map(([k,v])=><div key={k} style={{display:'flex',justifyContent:'space-between',padding:'var(--ov-pad-row) 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:'var(--ov-fs-sm)',transition:I.fast,borderRadius:3}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}><span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>{k}</span><span className="mono">{v}</span></div>)}
                       <div style={{display:'flex',justifyContent:'space-between',padding:'var(--ov-pad-row) 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:'var(--ov-fs-sm)'}}>
-                        <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs)',color:T.muted,textTransform:'uppercase',letterSpacing:'0.04em'}}>Wallet Sync</span>
+                        <span style={{fontSize:'var(--ov-fs-xs)',color:T.muted}}>Wallet Sync</span>
                         <span className="mono">{(()=>{
                           if(!logData.dev.ledgerSync)return<span style={{color:T.muted}}>—</span>;
                           const wsErr=logData.entries.filter(e=>e.type==='walletsync'&&/error|failed|rejected|timeout/i.test(e.message||'')).length;
@@ -6861,23 +6812,23 @@ function App(){
                       </span>
                     </div>}
                     {/* Issues panel — adaptive grid, no scroll */}
-                    <div style={{flex:1,overflow:'hidden',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'10px 4px 0'}}>
+                    <div style={{flex:1,overflow:'hidden',borderTop:`1px solid ${T.border}`,padding:'10px 4px 0'}}>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',gap:'var(--ov-gap-chips, 5px)',overflow:'hidden',alignContent:'start'}}>
                         {[...logData.errs].sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[(b.dg||{}).s]||0)-(r[(a.dg||{}).s]||0);}).slice(0,12).map(e=>{
                           const dg=e.dg||{};
                           const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#8B84CC';
                           const linkedAcct=logData.accts.find(a=>a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase()));
                           const errRelevant=focusedAcct?((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(focusedAcct.addr.toLowerCase()):true;
-                          return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`,borderRadius:6,cursor:'pointer',borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:I.fast,display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.12}} onMouseEnter={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}14 0%, rgba(255,255,255,0.04) 40%)`} onMouseLeave={ev=>ev.currentTarget.style.background=`linear-gradient(135deg, ${sc}0D 0%, ${T.card} 40%)`}>
+                          return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:'transparent',borderRadius:6,cursor:'pointer',borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:I.fast,display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.12}} onMouseEnter={ev=>ev.currentTarget.style.background='rgba(255,255,255,0.04)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
                             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
-                              <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',fontWeight:700,padding:'1px 5px',borderRadius:4,background:sc+'22',color:sc,textTransform:'uppercase',letterSpacing:'0.06em',flexShrink:0}}>{dg.s==='high'?'CRIT':dg.s==='medium'?'WARN':'INFO'}</span>
+                              <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',fontWeight:700,padding:'1px 5px',borderRadius:4,background:sc+'22',color:sc,letterSpacing:'0.06em',flexShrink:0}}>{dg.s==='high'?'CRIT':dg.s==='medium'?'WARN':'INFO'}</span>
                               <div style={{display:'flex',alignItems:'center',gap:4}}>
                                 {errUrl(dg)&&<a href={errUrl(dg)} target="_blank" rel="noopener" onClick={ev=>ev.stopPropagation()} style={{fontSize:10,color:T.orange,textDecoration:'none',lineHeight:1}} title="Help article">📄</a>}
                                 <span style={{fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,flexShrink:0}} className="mono">{fmtTime(e.ts)}</span>
                               </div>
                             </div>
                             <div style={{fontSize:'var(--ov-fs-sm, 11px)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.t||'Unknown error'}</div>
-                            <div style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textTransform:'uppercase',letterSpacing:'0.04em'}}>{dg.c||'—'}</div>
+                            <div style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',letterSpacing:'0.04em'}}>{dg.c||'—'}</div>
                             {linkedAcct&&<div style={{display:'flex',alignItems:'center',gap:4,marginTop:1}}>
                               <span style={{width:6,height:6,borderRadius:'50%',background:linkedAcct.ch.color,flexShrink:0}}/>
                               <span style={{fontSize:9,fontWeight:700,color:linkedAcct.ch.color}}>{linkedAcct.ch.ticker}</span>
@@ -6961,7 +6912,7 @@ function App(){
 
         {/* Timeline */}
         {section==='timeline'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-          <div style={{flexShrink:0,padding:'20px 24px 12px',background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
+          <div style={{flexShrink:0,padding:'20px 24px 12px',background:'transparent'}}>
           {(()=>{
             const ents=logData.entries;
             if(ents.length<2)return null;
@@ -7019,13 +6970,13 @@ function App(){
             return <div style={{marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
                 <div style={{display:'inline-flex',borderRadius:4,overflow:'hidden',border:`1px solid ${I.interactiveBorder}`,background:'transparent'}}>
-                  <button onClick={()=>setTlSwimlane(false)} style={{padding:'2px 8px',border:'none',background:!tlSwimlane?T.primary+'20':'transparent',color:!tlSwimlane?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:!tlSwimlane?700:400,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}}>Stacked</button>
+                  <button onClick={()=>setTlSwimlane(false)} style={{padding:'2px 8px',border:'none',background:!tlSwimlane?T.primary+'20':'transparent',color:!tlSwimlane?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:!tlSwimlane?700:400,cursor:'pointer',letterSpacing:'0.04em'}}>Stacked</button>
                   <div style={{width:1,background:I.interactiveBorder,alignSelf:'stretch'}}/>
-                  <button onClick={()=>setTlSwimlane(true)} style={{padding:'2px 8px',border:'none',background:tlSwimlane?T.primary+'20':'transparent',color:tlSwimlane?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:tlSwimlane?700:400,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}}>Lanes</button>
+                  <button onClick={()=>setTlSwimlane(true)} style={{padding:'2px 8px',border:'none',background:tlSwimlane?T.primary+'20':'transparent',color:tlSwimlane?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:tlSwimlane?700:400,cursor:'pointer',letterSpacing:'0.04em'}}>Lanes</button>
                 </div>
               </div>
               <div style={{background:T.panel,borderRadius:8,border:`1px solid ${T.border}`,borderTop:'1px solid rgba(255,255,255,0.05)',overflow:'hidden'}}>
-                <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:`linear-gradient(180deg, rgba(69,57,92,0.08) 0%, ${T.bg} 40%)`,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards',boxShadow:'inset 0 -3px 8px rgba(0,0,0,0.25)'}}
+                <div style={{height:tlSwimlane?Math.min(sortedTypes.length*18+10,200):120,display:'flex',alignItems:tlSwimlane?'stretch':'flex-end',background:T.bg,cursor:'crosshair',userSelect:'none',position:'relative',padding:tlSwimlane?0:'0 1px',animation:'stripDraw 0.8s ease-out forwards'}}
                   onMouseDown={ev=>{const rect=ev.currentTarget.getBoundingClientRect();const start=(ev.clientX-rect.left)/rect.width;tlBrushRef.current={start,end:start,rect};setTlBrushing(true);setTlBrush({start,end:start});ev.preventDefault();}}
                   onMouseMove={handleBarHover}
                   onMouseLeave={()=>setTlHoveredBucket(null)}>
@@ -7038,7 +6989,7 @@ function App(){
                         const isHighlighted=tlHighlightType===tp;
                         const maxForType=Math.max(...buckets.map(bk=>bk.types[tp]||0),1);
                         return <div key={tp} style={{display:'flex',alignItems:'center',height:14,gap:0}}>
-                          <span style={{width:70,fontSize:8,fontFamily:MF,color:isActive?color:T.muted,fontWeight:isActive?700:400,textAlign:'right',paddingRight:6,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.03em'}}
+                          <span style={{width:70,fontSize:8,fontFamily:MF,color:isActive?color:T.muted,fontWeight:isActive?700:400,textAlign:'right',paddingRight:6,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer',letterSpacing:'0.03em'}}
                             onClick={e=>{e.stopPropagation();setTypeFilter(isActive?'all':tp);}}
                             onMouseEnter={()=>setTlHighlightType(tp)}
                             onMouseLeave={()=>setTlHighlightType(null)}
@@ -7152,7 +7103,7 @@ function App(){
                   </div>;
                 })}
               </div>
-              <div style={{fontFamily:MF,marginTop:3,fontSize:8,color:T.muted,opacity:0.4,letterSpacing:'0.06em',textTransform:'uppercase'}}>click to filter · hover to highlight</div>
+              <div style={{fontFamily:MF,marginTop:3,fontSize:8,color:T.muted,opacity:0.4,letterSpacing:'0.06em'}}>click to filter · hover to highlight</div>
             </div>;
           })()}
           <div style={{display:'flex',gap:10,marginBottom:16}}>
@@ -7170,18 +7121,18 @@ function App(){
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <span style={{fontFamily:MF,fontSize:10,color:T.muted,letterSpacing:'0.04em'}}>{filtered.length} of {logData.entries.length}</span>
               <div style={{display:'inline-flex',borderRadius:4,overflow:'hidden',border:`1px solid ${I.interactiveBorder}`,background:'transparent'}}>
-                <button onClick={()=>{if(tlGrouping){setTlGrouping(false);setExpandedGroups({});}}} style={{padding:'3px 8px',border:'none',background:!tlGrouping?T.primary+'20':'transparent',color:!tlGrouping?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:!tlGrouping?700:400,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}}>Flat</button>
+                <button onClick={()=>{if(tlGrouping){setTlGrouping(false);setExpandedGroups({});}}} style={{padding:'3px 8px',border:'none',background:!tlGrouping?T.primary+'20':'transparent',color:!tlGrouping?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:!tlGrouping?700:400,cursor:'pointer',letterSpacing:'0.04em'}}>Flat</button>
                 <div style={{width:1,background:I.interactiveBorder,alignSelf:'stretch'}}/>
-                <button onClick={()=>{if(!tlGrouping){setTlGrouping(true);setExpandedGroups({});}}} style={{padding:'3px 8px',border:'none',background:tlGrouping?T.primary+'20':'transparent',color:tlGrouping?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:tlGrouping?700:400,cursor:'pointer',letterSpacing:'0.04em',textTransform:'uppercase'}}>Grouped</button>
+                <button onClick={()=>{if(!tlGrouping){setTlGrouping(true);setExpandedGroups({});}}} style={{padding:'3px 8px',border:'none',background:tlGrouping?T.primary+'20':'transparent',color:tlGrouping?T.primary:T.muted,fontFamily:MF,fontSize:9,fontWeight:tlGrouping?700:400,cursor:'pointer',letterSpacing:'0.04em'}}>Grouped</button>
               </div>
             </div>
             <button aria-label="Export filtered log entries as JSON" onClick={()=>downloadJSON(filtered,'filtered-logs.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.DL/> Export filtered</button>
           </div>
           </div>{/* end fixed header */}
-          <div ref={timelineScrollRef} key={`${typeFilter||'all'}-${tlAcctFilter?.addr||'all'}-${searchTerm||''}-${tlBrush?`${tlBrush.start.toFixed(2)}-${tlBrush.end.toFixed(2)}`:'none'}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',animation:'listFade 0.3s ease-out'}}>
+          <div ref={timelineScrollRef} key={`${typeFilter||'all'}-${tlAcctFilter?.addr||'all'}-${searchTerm||''}-${tlBrush?`${tlBrush.start.toFixed(2)}-${tlBrush.end.toFixed(2)}`:'none'}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,animation:'listFade 0.3s ease-out'}}>
           <div style={{background:T.panel,overflow:'hidden'}}>
             <div className="tl-grid" style={{display:'grid',gridTemplateColumns:'50px 90px 130px 1fr',background:T.panel,position:'sticky',top:0,zIndex:1,borderBottom:`1px solid ${T.border}`}}>
-              {['#','Time','Type','Message'].map(h=><div key={h} style={{padding:'8px 12px',color:T.muted,fontFamily:MF,fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',background:T.panel}}>{h}</div>)}
+              {['#','Time','Type','Message'].map(h=><div key={h} style={{padding:'8px 12px',color:T.muted,fontFamily:MF,fontSize:10,fontWeight:600,letterSpacing:'0.06em',background:T.panel}}>{h}</div>)}
             </div>
             {(()=>{
               let rowCount=0;
@@ -7225,7 +7176,7 @@ function App(){
                     <div style={{padding:'8px 12px'}}><span onClick={ev=>{ev.stopPropagation();setTypeFilter(typeFilter===g.eventType?'all':g.eventType);}} style={{...bdg(typeColor),border:'1px solid rgba(255,255,255,0.06)',cursor:'pointer'}}>{g.eventType}</span></div>
                     <div style={{padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
                       <span style={{fontFamily:MF,color:T.muted,fontSize:10,letterSpacing:'0.02em'}}>{g.count} events · {durLabel}</span>
-                      <span style={{fontFamily:MF,color:typeColor,marginLeft:'auto',fontSize:9,fontWeight:600,letterSpacing:'0.04em',textTransform:'uppercase'}}>{isOpen?'▼ collapse':'▶ expand'}</span>
+                      <span style={{fontFamily:MF,color:typeColor,marginLeft:'auto',fontSize:9,fontWeight:600,letterSpacing:'0.04em'}}>{isOpen?'▼ collapse':'▶ expand'}</span>
                     </div>
                   </div>
                   {isOpen&&g.entries.map(e=>{
@@ -7268,7 +7219,7 @@ function App(){
         {/* Accounts */}
         {section==='accounts'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
           {/* Top bar: stats + action buttons */}
-          <div style={{flexShrink:0,padding:'16px 24px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
+          <div style={{flexShrink:0,padding:'16px 24px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',background:'transparent'}}>
             <div style={{fontSize:12,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{(()=>{const funded=logData.accts.filter(a=>a.ops>0).length;const withSync=logData.accts.filter(a=>a.ops===0&&(a.dur!=null||a.bal!=null)).length;const noData=logData.accts.filter(a=>a.ops===0&&a.dur==null&&a.bal==null).length;const parts=[];if(funded)parts.push(`${funded} funded`);if(withSync)parts.push(`${withSync} empty`);if(noData)parts.push(`${noData} no data`);return parts.join(' · ')||'0 accounts';})()}</div>
             <div style={{display:'flex',gap:6}}>
               {logData.dev.accountIds&&logData.dev.accountIds.length>0&&<button onClick={()=>copyText(logData.dev.accountIds.join('\n'))} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Copy/> Copy all IDs ({logData.dev.accountIds.length})</button>}
@@ -7295,7 +7246,7 @@ function App(){
                 </div>
                 <div data-sort-drop style={{position:'relative'}}>
                   <button onClick={()=>setSortDropOpen(o=>!o)}
-                    style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,fontFamily:MF,letterSpacing:'0.04em',textTransform:'uppercase',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,cursor:'pointer'}}
+                    style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,fontFamily:MF,letterSpacing:'0.04em',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,cursor:'pointer'}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
                     Sort: {({fiat:'Fiat',balance:'Balance',activity:'Activity',health:'Health',chain:'Chain',alpha:'Alpha'}[acctSort]||acctSort)} {sortDropOpen?'▾':'▸'}
@@ -7341,7 +7292,7 @@ function App(){
                       onMouseEnter={ev=>{clearTimeout(hoverTimeoutRef.current);setHoveredAcct(a.id);setHoveredTmRect(ev.currentTarget.getBoundingClientRect());}}
                       onMouseLeave={()=>{hoverTimeoutRef.current=setTimeout(()=>{setHoveredAcct(null);setHoveredTmRect(null);},150);}}
                       style={{position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,background:blockBg,borderLeft:`3px solid ${a.ch.color}`,borderRadius:4,cursor:'pointer',overflow:'hidden',transition:I.fast,opacity:op,animation:isFocused?'focusPulse 2s ease-in-out infinite':(navigatedAcct===a.id?I.pulse:undefined),'--pulse-color':a.ch.color+'60',boxShadow:hoveredAcct===a.id&&!hoveredTmRect?`0 0 12px ${a.ch.color}50, inset 0 0 8px ${a.ch.color}30`:'none',display:'flex',flexDirection:'column',justifyContent:'center',padding:'3px 5px 3px 6px',boxSizing:'border-box'}}>
-                      {showSmall&&<span style={{fontFamily:MF,fontSize:showFull?12:10,fontWeight:700,color:a.ch.color,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2,display:'flex',alignItems:'center',gap:4}}>{(()=>{const u=chainIconUrl(a.cid);return u?<img src={u} alt="" width={showFull?18:14} height={showFull?18:14} style={{borderRadius:2,flexShrink:0}} onError={e=>{e.target.style.display='none';}} />:null;})()}{a.ch.ticker}</span>}
+                      {showSmall&&<span style={{fontFamily:MF,fontSize:showFull?12:10,fontWeight:700,color:a.ch.color,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2,display:'flex',alignItems:'center',gap:4}}>{(()=>{const u=chainIconUrl(a.cid);return u?<img src={u} alt="" width={showFull?18:14} height={showFull?18:14} style={{borderRadius:2,flexShrink:0}} onError={e=>{e.target.style.display='none';}} />:null;})()}{a.ch.ticker}</span>}
                       {showMedium&&lb&&lb.fiat>0&&<span style={{fontSize:10,color:T.muted,fontFamily:MF,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:0})}</span>}
                       {showFull&&<span style={{fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{a.ch.name}</span>}
                       {hasErrs&&<span style={{position:'absolute',top:2,right:2,width:6,height:6,borderRadius:'50%',background:T.error,border:'1px solid '+T.bg}}/>}
@@ -7401,7 +7352,7 @@ function App(){
                   {acctFilter&&<button onClick={()=>setAcctFilter('')} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.muted,cursor:'pointer',fontSize:14,padding:4,display:'flex',alignItems:'center',lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.muted}>✕</button>}
                 </div>
               </div>
-              <div ref={acctScrollRef} data-accounts-scroll key={`${acctFilter||'all'}-${focusedAcct?.addr||'all'}-${acctSort}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 16px 24px',animation:'listFade 0.3s ease-out'}}>
+              <div ref={acctScrollRef} data-accounts-scroll key={`${acctFilter||'all'}-${focusedAcct?.addr||'all'}-${acctSort}`} style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 16px 24px',animation:'listFade 0.3s ease-out'}}>
               {(()=>{
                 const acctErrCounts={};
                 for(const e of logData.errs){
@@ -7430,7 +7381,7 @@ function App(){
                   return <div key={'grp-'+g.addr} data-acct-id={g.accts[0].id} style={{background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.primary}25`,borderRadius:8,padding:'12px 12px 0',marginBottom:12,opacity:groupRelevant?1:0.12,transition:I.medium}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,padding:'0 8px'}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:T.muted,fontFamily:MF}}>Shared Address</span>
+                        <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.08em',color:T.muted,fontFamily:MF}}>Shared Address</span>
                         <span className="mono" style={{fontSize:11,color:T.primary,opacity:0.8}}>{g.addr.slice(0,10)}...{g.addr.slice(-6)}</span>
                         <CopyBtn text={g.addr}/>
                       </div>
@@ -7449,7 +7400,7 @@ function App(){
                 <div style={{fontSize:12,marginBottom:12}}>Try searching by chain name, ticker, or partial address</div>
                 <button onClick={()=>setAcctFilter('')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.primary,fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear filter</button>
               </div>}
-              {sortedAccts.length===0&&!acctFilter&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494',background:'linear-gradient(135deg, rgba(69,57,92,0.06) 0%, transparent 30%)',borderRadius:8}}>
+              {sortedAccts.length===0&&!acctFilter&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494',background:'transparent',borderRadius:8}}>
                 <div style={{fontSize:32,marginBottom:12}}>👛</div>
                 <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No accounts in this log</div>
                 <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Account data wasn't captured in this export. Switch to Customer View and load the customer's app.json for accounts and balances.</div>
@@ -7544,7 +7495,7 @@ function App(){
 
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
             {/* Fixed header */}
-            <div style={{flexShrink:0,padding:'12px 24px 8px',borderBottom:`1px solid ${T.border}`,background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
+            <div style={{flexShrink:0,padding:'12px 24px 8px',borderBottom:`1px solid ${T.border}`,background:'transparent'}}>
               {/* Row 1: Severity + Category filter chips + Copy button */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:8}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
@@ -7598,7 +7549,7 @@ function App(){
                     });
                   })()}
                 </div>
-                <div style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.4,marginTop:2,letterSpacing:'0.06em',textTransform:'uppercase'}}>click to filter · hover to preview on strip</div>
+                <div style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.4,marginTop:2,letterSpacing:'0.06em'}}>click to filter · hover to preview on strip</div>
                 <button onClick={()=>{
                   const lines=['=== Error Summary ===',''];
                   for(const e of enrichedErrs){
@@ -7617,7 +7568,7 @@ function App(){
 
               {/* Row 2: Repeating patterns */}
               {repeatingUniq.length>0&&<div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8,flexWrap:'wrap'}}>
-                <span style={{fontFamily:MF,fontSize:9,color:T.muted,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em'}}>Patterns:</span>
+                <span style={{fontFamily:MF,fontSize:9,color:T.muted,fontWeight:600}}>Patterns:</span>
                 {repeatingUniq.map(e=>{
                   const count=e.dg.repeatCount+1;
                   const isActive=errPatternFilter===e.dg.t;
@@ -7734,7 +7685,7 @@ function App(){
                 const maxTotal=Math.max(...buckets.map(b=>b.total),1);
                 const byTime=[...enrichedErrs].sort((a,b)=>new Date(a.ts).getTime()-new Date(b.ts).getTime());
                 return <div style={{marginBottom:6,marginTop:4}}>
-                  <div style={{background:`linear-gradient(180deg, rgba(69,57,92,0.08) 0%, ${T.bg} 40%)`,borderRadius:6,overflow:'hidden',border:'1px solid rgba(255,255,255,0.06)',borderTop:'1px solid rgba(255,255,255,0.08)',position:'relative',height:80,cursor:'crosshair',userSelect:'none',animation:'stripDraw 0.8s ease-out forwards',boxShadow:'inset 0 -3px 8px rgba(0,0,0,0.25)'}}
+                  <div style={{background:T.bg,borderRadius:6,overflow:'hidden',border:'1px solid rgba(255,255,255,0.06)',borderTop:'1px solid rgba(255,255,255,0.08)',position:'relative',height:80,cursor:'crosshair',userSelect:'none',animation:'stripDraw 0.8s ease-out forwards'}}
                     onMouseMove={ev=>{
                       const rect=ev.currentTarget.getBoundingClientRect();
                       const pct=(ev.clientX-rect.left)/rect.width;
@@ -7836,7 +7787,7 @@ function App(){
                     })()}
                     {/* Purpose label */}
                     <div style={{position:'absolute',top:6,right:8,display:'flex',alignItems:'center',gap:6,pointerEvents:'none'}}>
-                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.06em',textTransform:'uppercase'}}>Session · click to navigate</span>
+                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.06em'}}>Session · click to navigate</span>
                     </div>
                     {/* Error count label */}
                     <div style={{position:'absolute',bottom:4,left:8,fontSize:10,color:T.error,fontWeight:700,opacity:0.8,display:'flex',alignItems:'center',gap:4,pointerEvents:'none',fontFamily:MF,letterSpacing:'0.03em'}}>
@@ -7852,11 +7803,11 @@ function App(){
                   <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,marginTop:4}}>
                     <span style={{display:'flex',alignItems:'center',gap:4}}>
                       <span style={{width:8,height:8,borderRadius:2,background:'linear-gradient(135deg, #4FC3F7 0%, #B49AFF 50%, #FF8C42 100%)',opacity:0.5}}/>
-                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.04em',textTransform:'uppercase'}}>Session context</span>
+                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.04em'}}>Session context</span>
                     </span>
                     <span style={{display:'flex',alignItems:'center',gap:4}}>
                       <span style={{width:8,height:8,borderRadius:2,background:T.error,opacity:0.9,boxShadow:`0 0 4px ${T.error}40`}}/>
-                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.04em',textTransform:'uppercase'}}>Errors</span>
+                      <span style={{fontFamily:MF,fontSize:8,color:T.muted,opacity:0.5,letterSpacing:'0.04em'}}>Errors</span>
                     </span>
                   </div>
                 </div>;
@@ -7894,7 +7845,7 @@ function App(){
             </div>}
             {/* Master-detail body */}
             {enrichedErrs.length===0?(
-              <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'48px 24px',background:'linear-gradient(135deg, rgba(69,57,92,0.06) 0%, transparent 30%)',borderRadius:8}}>
+              <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'48px 24px',background:'transparent',borderRadius:8}}>
                 <div>
                   <div style={{fontSize:32,marginBottom:12}}>✓</div>
                   <div style={{fontSize:16,color:'#CCCCCC',fontWeight:600,marginBottom:8}}>No errors detected</div>
@@ -7936,7 +7887,7 @@ function App(){
                 })}
               </div>
               {/* Right panel: ErrCard detail */}
-              <div style={{flex:1,overflowY:'auto',padding:'16px 20px',boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',background:'linear-gradient(90deg, rgba(69,57,92,0.03) 0%, transparent 20%)'}}>
+              <div style={{flex:1,overflowY:'auto',padding:'16px 20px',background:'transparent'}}>
                 {detailErr?<ErrCard err={detailErr} onJump={jumpTo} linkedAcct={errAcctMap.get(detailErr.li)||null} onGoAcct={(addr)=>{const acct=logData.accts.find(a=>a.addr===addr);if(acct){setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});}goToAcct(addr);}} onGoNetwork={()=>setSection('network')} onGoApdu={()=>setSection('apdu')} dev={logData.dev} entries={logData.entries}/>:
                   <div style={{textAlign:'center',padding:40,color:T.muted,fontSize:13}}>Select an error to see details</div>
                 }
@@ -7948,7 +7899,7 @@ function App(){
 
         {/* Network */}
         {section==='network'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-          <div style={{flexShrink:0,padding:'20px 24px 12px',background:'linear-gradient(90deg, rgba(69,57,92,0.06) 0%, transparent 40%)'}}>
+          <div style={{flexShrink:0,padding:'20px 24px 12px',background:'transparent'}}>
           {focusedAcct&&<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,padding:'6px 10px',borderRadius:6,background:'rgba(187,176,255,0.08)',border:'1px solid rgba(187,176,255,0.25)'}}>
             <span style={{width:8,height:8,borderRadius:2,background:focusedAcct.color,flexShrink:0}}/>
             <span style={{fontSize:11,color:'#BBB0FF',fontWeight:600}}>Filtering by {focusedAcct.ticker} — showing all requests (network requests are not account-specific)</span>
@@ -7969,8 +7920,8 @@ function App(){
             ):null;
           })()}
           </div>{/* end fixed header */}
-          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
-          {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494',background:'linear-gradient(135deg, rgba(69,57,92,0.06) 0%, transparent 30%)',borderRadius:8}}>
+          <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px'}}>
+          {netEntries.length===0&&<div style={{textAlign:'center',padding:'48px 24px',color:'#949494',background:'transparent',borderRadius:8}}>
             <div style={{fontSize:32,marginBottom:12}}>🌐</div>
             <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No network requests in this session</div>
             <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>This is normal for short sessions or logs exported before a sync completed.</div>
@@ -8015,8 +7966,8 @@ function App(){
           }
           if(logData.apdu.length===0)return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
             <div style={{flexShrink:0,padding:'20px 24px 12px'}}></div>
-            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',textAlign:'center',color:'#949494'}}>
-              <div style={{paddingTop:48,background:'linear-gradient(135deg, rgba(69,57,92,0.06) 0%, transparent 30%)',borderRadius:8,padding:'48px 24px'}}>
+            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px',textAlign:'center',color:'#949494'}}>
+              <div style={{paddingTop:48,background:'transparent',borderRadius:8,padding:'48px 24px'}}>
                 <div style={{fontSize:32,marginBottom:12}}>📡</div>
                 <div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No device communication data</div>
                 <div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5,marginBottom:16}}>Device was not connected during this session. Ask the customer to connect, reproduce the issue, and export new logs.</div>
@@ -8033,7 +7984,7 @@ function App(){
               </div>
               {rejections.length>0&&(()=>{const counts={};rejections.forEach(a=>{const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();counts[sw]=(counts[sw]||0)+1;});const [topCode,topCount]=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];const codeNames={'6985':'Conditions not satisfied','6982':'Security status not satisfied','6700':'Incorrect length','6e00':'INS not supported','5515':'Device locked','6a82':'File not found','6d00':'Invalid instruction','6f00':'Technical error'};const codeName=codeNames[topCode]||'Unknown condition';return<div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,fontSize:13,color:'#FFBD42'}}>{rejections.length} device rejection{rejections.length>1?'s':''}. Most common: {topCode} — {codeName}.</div>;})()}
             </div>
-            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
+            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px'}}>
               <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,overflow:'hidden'}}>
                 {logData.apdu.slice(0,500).map((a,i)=>{
                   const status=decodeApduStatus(a.hex,a.dir);
@@ -8059,7 +8010,7 @@ function App(){
             try{treeData=JSON.parse(logData.rawText);}catch{}
             if(!treeData)treeData=logData.entries;
           }
-          if(!treeData)return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}><div style={{flexShrink:0,padding:'20px 24px 12px'}}></div><div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px',textAlign:'center',color:T.muted}}><div style={{textAlign:'center',paddingTop:48}}><div style={{fontSize:32,marginBottom:12}}>{'{}'}</div><div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No raw data available</div><div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5}}>The uploaded file could not be parsed as JSON. Try re-exporting from Ledger Wallet → Settings → Help → Export logs.</div></div></div></div>;
+          if(!treeData)return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}><div style={{flexShrink:0,padding:'20px 24px 12px'}}></div><div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px',textAlign:'center',color:T.muted}}><div style={{textAlign:'center',paddingTop:48}}><div style={{fontSize:32,marginBottom:12}}>{'{}'}</div><div style={{fontSize:14,color:'#CCCCCC',marginBottom:8}}>No raw data available</div><div style={{fontSize:12,color:'#949494',maxWidth:360,margin:'0 auto',lineHeight:1.5}}>The uploaded file could not be parsed as JSON. Try re-exporting from Ledger Wallet → Settings → Help → Export logs.</div></div></div></div>;
           return<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
             <div style={{flexShrink:0,padding:'20px 24px 12px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -8071,7 +8022,7 @@ function App(){
               </button>
             </div>
             </div>{/* end fixed header */}
-            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,boxShadow:'inset 0 2px 6px rgba(0,0,0,0.15)',padding:'16px 24px 24px'}}>
+            <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px'}}>
             <JTTree data={treeData}/>
             </div>{/* end scrollable */}
           </div>;
@@ -8105,7 +8056,7 @@ class ErrorBoundary extends React.Component{
   constructor(props){super(props);this.state={hasError:false};}
   static getDerivedStateFromError(){return{hasError:true};}
   render(){
-    if(this.state.hasError)return<div style={{minHeight:'100vh',background:'#131214',color:'#FFFFFF',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',textAlign:'center'}}><div><div style={{fontSize:24,marginBottom:12}}>⚠️</div><div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div><div style={{fontSize:13,color:'#949494',marginBottom:16}}>Reload the page to try again.</div><button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#BBB0FF',color:'#000',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button></div></div>;
+    if(this.state.hasError)return<div style={{minHeight:'100vh',background:'#1A1A1D',color:'#FFFFFF',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',textAlign:'center'}}><div><div style={{fontSize:24,marginBottom:12}}>⚠️</div><div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div><div style={{fontSize:13,color:'#949494',marginBottom:16}}>Reload the page to try again.</div><button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#BBB0FF',color:'#000',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button></div></div>;
     return this.props.children;
   }
 }
