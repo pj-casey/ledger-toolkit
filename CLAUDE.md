@@ -208,9 +208,7 @@ Top bar: `height:52px, flexShrink:0`
 Main area: `flex:1, overflow:hidden`
 Each view: `display:flex, flexDirection:column, height:100%, overflow:hidden` → fixed header (`flexShrink:0`) + scrollable panel (`flex:1, overflowY:auto`)
 
-Scrollable panels have: `borderTop: 1px solid #3C3C3C`, `boxShadow: inset 0 2px 6px rgba(0,0,0,0.15)`, internal padding. The page itself never scrolls.
-
-Ambient gradients are layered on top of this structure: root has a radial vignette, top bar has a horizontal gradient, each fixed section header has a vertical gradient, the main content container has a subtle left-edge warmth. See "Ambient gradient system" in Design tokens.
+Scrollable panels have: `borderTop: 1px solid ${T.border}`, internal padding. No scroll shadows (removed in reskin). The page itself never scrolls.
 
 **Header bar:** Shows file name + session date/time span + duration (e.g., `2026-04-05 09:12–09:47 · 35.2m`). When `focusedAcct` is set, a **focus chip** appears inline in the header: colored dot + ticker label + ✕ dismiss. Header `borderBottom` shifts from `1px solid ${T.border}` → `2px solid ${focusedAcct.color}40` when focus active.
 
@@ -218,85 +216,72 @@ Ambient gradients are layered on top of this structure: root has a radial vignet
 
 ---
 
-## Design tokens
+## Design philosophy — Ledger Wallet alignment
+
+The diagnostic view should feel like a Ledger product that happens to show diagnostic data. Surfaces are solid and confident. Color is bold and functional. Decoration is absent. The visual hierarchy comes from background contrast and typography weight — exactly how Ledger Wallet works.
+
+**Reference implementation:** Customer View (`CustomerView` component, `.cv-*` CSS classes) is the gold standard. When in doubt about how something should look, look at how Customer View does it.
+
+### Design tokens
 
 ```
-bg:#131214  panel:#1C1D1F  card:#242528  border:#3C3C3C  text:#FFFFFF
-muted:#949494  primary:#BBB0FF  success:#7AC26C  error:#E40046  warning:#FFBD42
-orange:#FF5300
+bg:#1A1A1D  panel:#1A1A1D  card:#242528  border:rgba(255,255,255,0.06)  text:#FFFFFF
+muted:#949494  primary:#BBB0FF  success:#7AC26C  error:#E40046  warning:#FFBD42  orange:#FF5300
 ```
 
-Three elevation levels: bg → panel → card. Cards use background, NOT borders.
+Two elevation levels: bg/panel (`#1A1A1D` — unified after reskin) → card (`#242528`). Cards are solid backgrounds, not transparent. Borders are hairline `rgba(255,255,255,0.06)` — barely visible, never the primary way to define a surface.
 
 ### Typography
 
-Two-font rule — applied consistently across all UI surfaces:
-- **Structural labels** (section headers, stat card labels, badge text, sidebar keys, filter chips): `MF` constant = `'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace`
-- **Values, body text, descriptions**: Darker Grotesque (300–800), loaded from Google Fonts CDN
+Two fonts. Strict roles:
 
-`MF` is a module-scope constant. Never inline the font stack — reference `MF` everywhere monospace is needed.
-
-| Font | Role | Loaded from |
+| Font | Role | Used for |
 |---|---|---|
-| **Darker Grotesque** (300–800) | All body text, headings, values, descriptions, stat numbers | Google Fonts CDN |
-| **JetBrains Mono** (400–500) | Labels, tags, badges, code, addresses, hashes | Google Fonts CDN |
+| **Inter** | ALL UI text | Navigation, labels, headings, section titles, descriptions, badge text, button text, filter text, stat card labels, column headers |
+| **JetBrains Mono** (`MF` constant) | Data values ONLY | Addresses, hashes, balance numbers, timestamps, hex codes, derivation paths, user IDs, block heights, transaction hashes |
 
-File size: ~540KB. Both body and mono fonts via CDN — requires network on first load; subsequent loads use browser cache.
+**Inter is the default.** If text describes or labels something, it's Inter. If text IS the data (something you'd copy-paste), it's JetBrains Mono.
 
-### Ambient gradient system
+- **No uppercase text-transform** except: tiny status badges (INFO, WARN, CRIT) and the MOBILE badge. All other text is sentence case.
+- **No letter-spacing** on labels. Only on the rare uppercase badges.
+- `purposeLabel` uses Inter at fontSize 11, color #666666, fontWeight 400. Quiet hints, not shouty labels.
 
-Source color: `rgba(69,57,92,α)` = Ledger brand purple `#45395C`. Radiates from top-left corner.
-Eight opacity tiers from strongest to weakest:
+### Surfaces
 
-| Surface | Direction | Opacity |
-|---|---|---|
-| Overview sidebar block | 135deg | 0.35 |
-| Top bar | 90deg (left→right) | 0.15 |
-| Fixed section headers | 180deg (top→bottom) | 0.10 |
-| Device card | 135deg | 0.10 |
-| Stat cards (top edge) | — | highlight only |
-| Sidebar (left panel) | 180deg | 0.08 |
-| Main content container (left edge) | 90deg | 0.04 |
-| Root viewport radial vignette | radial from top-left | 0.06 |
+**Solid, not transparent.** Cards use real opaque backgrounds (`#242528`), not `rgba(255,255,255,0.03)`. bg and panel are both `#1A1A1D` (unified in reskin). The surface should be visibly distinct from the page background.
 
-### Surface physics
+**No decorative gradients.** No ambient purple gradients. No section header gradient washes. No radial vignettes. Background is flat. The only gradients allowed are:
+- Focus mode chain-color gradients (functional — signals investigation state)
+- Data visualization (comparison bars, progress bars, allocation bars)
+- Error tile severity tint (subtle `${color}0D` background — functional signal)
 
-Cards convey hierarchy and type through left-edge treatment, not background gradients:
+**No inset glows or box-shadows on cards.** ErrCards and AcctCards use a 3px colored left border for identity/severity. No `boxShadow: inset` effects. The left border is the signal.
 
-- **ErrCards:** 3px colored left border (`sv.c`) + `boxShadow: inset 6px 0 16px -4px ${sv.c}35` (severity color)
-- **AcctCards:** 3px colored left border (`ch.color+'40'` or `ch.color+'60'` when open) + `boxShadow: inset 8px 0 24px -2px ${ch.color}40` (chain color). Outer container must NOT have `overflow:'hidden'` — it clips the inset glow.
-- **SectionHeaders:** Active tab → horizontal glow using `boxShadow: inset 0 -2px 8px -2px ${T.primary}40`
+**Borders are hairlines.** `rgba(255,255,255,0.06)` everywhere. Never the primary visual boundary — the background color difference between bg and card already creates the boundary.
 
-### Border-radius system
+### Color usage
 
-Three tiers, normalized across the entire tool:
-- **8px** — cards, panels, containers, overlays, popups (ErrCards, AcctCards, stat cards, device card, network container, guide overlay, portfolio overlay)
-- **6px** — buttons, interactive controls, input fields, filter chips, advice boxes
-- **4px** — small badges, pills, severity tags, type tags, breadcrumb chips
+**Bold and functional.** Chain colors, severity colors, and status colors are used at full or near-full opacity where they serve a purpose:
+- Chain icons and left borders: full color
+- Treemap blocks: chain color at 30-60% opacity (bold, not faded)
+- Severity badges: solid colored background at 15-22% opacity with colored text
+- Status text (live/error/warning): full color
 
-Do NOT use 12, 10, 5, or 3. These have been eliminated.
+**No decorative color.** No purple ambient tints. No colored bottom accents on cards. No gradient-tinted section backgrounds. Color appears only when it communicates something.
 
-### CSS animations
+### Interaction states
 
-| Keyframe | Duration | Used by |
-|---|---|---|
-| `focusPulse` | infinite | Accounts health tile focus mode breathing |
-| `selectPulse` | `I.pulse` = 0.5s ease-out | Issues strip selected-error marker, selected error row glow, active filter chips, Timeline legend chips, expanded rows, stat card click |
-| `confirmFlash` | 0.4s ease-out | CopyBtn green flash on successful copy |
-| `statFadeIn` | 0.3s | Stat card value entrance |
-| `iconPulse` | 1.5s infinite | Drop zone icon breathing on drag hover |
-| `stripDraw` | 0.8s ease-out | Timeline + Issues strips reveal left-to-right on tab enter (`clip-path: inset()`) |
-| `listFade` | 0.3s ease-out | Timeline rows, Issues error list, Accounts list fade on filter change (React `key` remount) |
-| `filterRemind` | 0.6s ease-out | Active filter chips glow when returning to a tab with a filter still active (`sectionChanged` 600ms window) |
-| `focusEngage` | 0.4s ease-out | Content area + investigation panel flash to chain color on focus activation (`--focus-color` CSS var) |
+- **Hover (cards/rows):** `background → rgba(255,255,255,0.04)`. Simple, uniform.
+- **Active/selected:** `background → rgba(255,255,255,0.06)`, white text. Matching CV's `.cv-nav-active` pattern.
+- **Focus mode:** Chain-colored gradients and opacity dimming — this is the ONE place decoration is allowed because it communicates investigation state.
+- **All transitions:** 150ms ease. No slow fades.
 
-### Hover patterns
+### Border-radius
 
-Standardized hover behaviors (unified under the `I` interaction constants):
-- **Data rows** (timeline, network, APDU, device info): `background → I.hover` (`rgba(255,255,255,0.04)`)
-- **Cards** (ErrCard, AcctCard): existing hover classes (`.err-hover`, `.acct-hover`)
-- **Ghost buttons** (outlined, transparent bg): `borderColor → T.primary, color → T.primary, background → I.hoverAccent` on hover
-- **All transitions:** normalized to `I.fast` (150ms) or `I.medium` (250ms) — no hardcoded `transition` values
+Three tiers (unchanged):
+- **8px** — cards, panels, containers
+- **6px** — buttons, inputs, chips
+- **4px** — badges, pills, tags
 
 ---
 
@@ -310,7 +295,7 @@ Standardized hover behaviors (unified under the `I` interaction constants):
 
 **API status list (bottom, always visible):** Vertical list of 5 data sources. Each row: colored dot + label + live/···/— status. Sources: Manager API, GitHub, Balances, Prices, Ledger Status.
 
-**Gradient treatment:** Shifts to chain-color gradient (`${focusedAcct.color}12` → `#1C1D1F` at 50%) when focus active. Normally: vertical purple `rgba(69,57,92,0.12)` gradient. The "Diagnosis" overview block uses a stronger `rgba(69,57,92,0.35)` gradient at 135deg.
+**Background treatment:** Shifts to chain-color gradient (`${focusedAcct.color}12` → `#1A1A1D` at 50%) when focus active. Normally: flat `#1A1A1D` (decorative purple gradients removed in reskin).
 
 ---
 
@@ -332,7 +317,7 @@ Standardized hover behaviors (unified under the `I` interaction constants):
 
 **Agent Insights tab:** Delegates to `CVAgentInsights` (see below).
 
-CSS classes: `.cv-sidebar`, `.cv-portfolio-card`, `.cv-detail-card`, `.cv-section-title`, `.cv-info-row`, `.cv-acct-row.cv-active`, `.cv-infobar`. All use chain-colored left borders + inset glow matching Diagnostic mode. `fontFamily:MF` on labels/stats. `.cv-layout` uses `height:calc(100vh - 52px)`.
+CSS classes: `.cv-nav`, `.cv-portfolio-card`, `.cv-detail-card`, `.cv-section-title`, `.cv-info-row`, `.cv-acct-row.cv-active`, `.cv-infobar`. `.cv-nav` is 240px wide with `border-right: 1px solid rgba(255,255,255,0.06)` — matches Diagnostic sidebar width. Pill-shaped nav items (`borderRadius:8, margin:'2px 8px'`). `.cv-layout` uses `height:calc(100vh - 52px)`.
 
 ---
 
@@ -512,7 +497,7 @@ Every non-button interactive element has a hairline resting border (`I.interacti
 
 ### Layer 2 — Guide Layer
 
-Six `purposeLabel` annotations (10px JetBrains Mono, `T.muted`, uppercase, 0.06em tracking). Defined as `purposeLabel` constant inside `App()` after `sectionChanged`. Locations: Overview error grid, Accounts health tiles, Timeline strip, Timeline legend, Issues severity chips, Issues category chips. All use "· click to filter" or "· hover for detail" format.
+Six `purposeLabel` annotations (Inter 11px, `#666666`, fontWeight 400 — no uppercase, no letter-spacing). Defined as `purposeLabel` constant inside `App()` after `sectionChanged`. Locations: Overview error grid, Accounts health tiles, Timeline strip, Timeline legend, Issues severity chips, Issues category chips. All use "· click to filter" or "· hover for detail" format.
 
 ### Layer 3 — Consistent Motion
 
