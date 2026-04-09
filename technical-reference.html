@@ -188,6 +188,7 @@ ol.tech-list li strong{color:var(--text)}
       <a class="indent" href="#diagnostic-pathways">Diagnostic Pathways</a>
       <a class="indent" href="#adaptive-dimming">Adaptive Dimming</a>
       <a class="indent" href="#overview-arch">Overview Architecture</a>
+      <a class="indent" href="#diag-map-arch">Diagnostic Priority Map</a>
       <a class="indent" href="#triangulation">Multi-Source Data Triangulation</a>
       <a href="#customer-view-arch"><span class="toc-icon">🖥</span> Customer View Architecture</a>
       <a class="indent" href="#enrichment-pipeline">Enrichment Pipeline</a>
@@ -495,7 +496,7 @@ ol.tech-list li strong{color:var(--text)}
   </ul>
 </div>
 
-<h3 id="focus-system">Account Focus System<span class="new-badge">New</span></h3>
+<h3 id="focus-system">Account Focus System</h3>
 <div class="card">
   <p>Single-account investigation mode controlled by the <span class="mono">focusedAcct</span> state variable in the App component. Holds the full account object (with <span class="mono">addr</span>, <span class="mono">ch.color</span>, <span class="mono">ch.ticker</span>) or null when inactive.</p>
   <p><strong>Activation triggers:</strong></p>
@@ -512,7 +513,7 @@ ol.tech-list li strong{color:var(--text)}
   <div class="tip">For investigation workflows using Focus Mode, see the Agent Guide (📖 button) → Account Focus Mode.</div>
 </div>
 
-<h3 id="context-ribbon">Context Ribbon<span class="new-badge">New</span></h3>
+<h3 id="context-ribbon">Context Ribbon</h3>
 <div class="card">
   <p>Computed navigation bar at the top of the content area. No dedicated state variable — rendered from existing <span class="mono">focusedAcct</span>, <span class="mono">selectedErr</span>, and <span class="mono">section</span> state.</p>
   <p><strong>Visibility condition:</strong> <span class="mono">focusedAcct</span> is set OR (<span class="mono">selectedErr</span> is set AND <span class="mono">section === 'errors'</span>).</p>
@@ -525,7 +526,7 @@ ol.tech-list li strong{color:var(--text)}
   <p><strong>Clear button:</strong> Wipes both <span class="mono">focusedAcct</span> and <span class="mono">selectedErr</span>.</p>
 </div>
 
-<h3 id="diagnostic-pathways">Diagnostic Pathways<span class="new-badge">New</span></h3>
+<h3 id="diagnostic-pathways">Diagnostic Pathways</h3>
 <div class="card">
   <p>Automatic correlation of pre-error events rendered within the ErrCard component. Implemented as a <span class="mono">useMemo</span> with dependencies <span class="mono">[entries, err.li, err.ts]</span>.</p>
   <p><strong>Computation:</strong> Scans a 5-second window before each error's timestamp. Counts events in four categories:</p>
@@ -539,7 +540,7 @@ ol.tech-list li strong{color:var(--text)}
   <div class="tip">For practical use in error investigation, see the Agent Guide (📖 button) → Issues Interactive Filters.</div>
 </div>
 
-<h3 id="adaptive-dimming">Adaptive Dimming<span class="new-badge">New</span></h3>
+<h3 id="adaptive-dimming">Adaptive Dimming</h3>
 <div class="card">
   <p>Visual de-emphasis of non-focused elements when <span class="mono">focusedAcct</span> is active. Applied via inline <span class="mono">opacity</span> styles with <span class="mono">transition: opacity 0.2s</span>.</p>
   <p><strong>Opacity values by element type:</strong></p>
@@ -547,7 +548,7 @@ ol.tech-list li strong{color:var(--text)}
     <li><strong>Health tiles</strong> — 0.25</li>
     <li><strong>AcctCards (single + grouped)</strong> — 0.25</li>
     <li><strong>Sidebar account rows</strong> — 0.4</li>
-    <li><strong>Overview error tiles</strong> — 0.25</li>
+    <li><strong>Diagnostic Priority Map blocks (account-linked findings)</strong> — dimmed when linked account is not the focused account; system-wide findings (<span class="mono">linkedAccts.length===0</span>) remain at full opacity</li>
     <li><strong>Issues strip segments</strong> — 0.2</li>
     <li><strong>Network entries</strong> — 0.3</li>
   </ul>
@@ -555,14 +556,33 @@ ol.tech-list li strong{color:var(--text)}
   <p><strong>Design principle:</strong> Non-focused elements dim but remain visible — context is preserved, not hidden. This allows peripheral awareness of the full dataset while directing attention to the investigation target.</p>
 </div>
 
-<h3 id="overview-arch">Overview Architecture<span class="new-badge">New</span></h3>
+<h3 id="overview-arch">Overview Architecture</h3>
 <div class="card">
-  <p>Three-zone vertical layout within a flex column container:</p>
-  <p><strong>Zone 1 — Top strip (flexShrink:0):</strong> No-sync warning banner (conditional), device status line (compact one-liner: model · firmware status · app count status · sync status), stat cards row (Issues hero with severity-colored left border, Accounts, Network with failure count, Log Quality with score), action bar (Focus Investigation dropdown, Guide 📖 button, activity badges).</p>
-  <p><strong>Zone 2 — Content (flex:1, overflow:hidden):</strong> When errors exist: unified device card, error tiles (sorted by severity, max 12, each showing severity badge, timestamp, title, category, and linked account chain dot + ticker). When no errors: device card and green "no issues" confirmation message.</p>
-  <p><strong>Zone 3 — Bottom bar (flexShrink:0):</strong> Session timestamp range (left), chain distribution badges (center), log quality breakdown link (right).</p>
-  <p><strong>Stat card computation:</strong> Issues card shows count with severity-based label and color. Network card counts entries with <span class="mono">status ≥ 400</span> or <span class="mono">level='error'</span>. Quality card shows the computed 0–100 score. All stat numbers use <span class="mono">clamp(28px, 4vh, 42px)</span> sizing.</p>
+  <p>Two-zone vertical layout within a flex column container (Zone 3 bottom bar was removed):</p>
+  <p><strong>Zone 1 — Triage row (flexShrink:0):</strong> No-sync warning banner (conditional), device status line (compact one-liner: model · firmware status · app count status · sync status), stat badges row (Issues hero with severity-colored left border, Accounts, Network with failure count, Log Quality with score), action bar (Focus Investigation dropdown, Copy report dropdown, Guide 📖 button, activity badges).</p>
+  <p><strong>Zone 2 — Content (flex:1, overflow:hidden, overflowY:auto):</strong> Two-column layout when findings exist. Left column: unified device card. Right column: <strong>Diagnostic Priority Map</strong> — a squarified treemap of all findings from 7 data sources (log errors, firmware status, app version, device app status, no-sync flag, network failures, incomplete swaps). Blocks sized by severity weight, colored by severity (red / amber / green). Interactive category chips (Connection, Sync, Activity, App &amp; Updates, Server) filter the treemap. Each block is clickable and navigates to the relevant section. When no errors and no system findings: device card spans full width with green "no issues" confirmation. See <a href="#diag-map-arch" style="color:var(--primary)">Diagnostic Priority Map</a> for detailed architecture.</p>
+  <p><strong>Stat badge computation:</strong> Issues badge shows count with severity-based label and color. Network badge counts entries with <span class="mono">status ≥ 400</span> or <span class="mono">level='error'</span>. Quality badge shows the computed 0–100 score. All stat numbers use <span class="mono">clamp(28px, 4vh, 42px)</span> sizing.</p>
   <div class="tip">For step-by-step usage, see the Agent Guide (📖 button) → Quick Start.</div>
+</div>
+
+<h3 id="diag-map-arch">Diagnostic Priority Map</h3>
+<div class="card">
+  <p>A squarified treemap rendered in the right column of the Overview when findings exist. Uses the same <span class="mono">squarify()</span> module-scope algorithm as the Accounts portfolio overlay.</p>
+  <p><strong>Findings engine (IIFE in Overview render):</strong> Collects findings from 7 sources into a flat <span class="mono">findings[]</span> array:</p>
+  <ul class="def-list">
+    <li><strong>A — Log errors</strong> — one block per unique error title from <span class="mono">enrichedErrs</span>. Weight: 10 (critical), 4 (warning), 1 (info). Category via <span class="mono">classifyDiag(dg)</span>. <span class="mono">linkedAccts</span> populated from error-to-account correlation.</li>
+    <li><strong>B — App version</strong> — when <span class="mono">appVersionCheck.outdated</span>. Weight 5, category <span class="mono">'app'</span>, <span class="mono">linkedAccts:[]</span>.</li>
+    <li><strong>C — Firmware</strong> — when <span class="mono">firmwareCheck.outdated</span>. Weight 5, category <span class="mono">'app'</span>. Action text prepends "Update Ledger Wallet first." when app update is also pending.</li>
+    <li><strong>D — Device apps</strong> — missing apps (weight 6, high severity) and outdated apps (weight 2, medium severity) from <span class="mono">versionCheck</span>. Both have <span class="mono">linkedAccts:[]</span>.</li>
+    <li><strong>E — No-sync</strong> — when <span class="mono">noSync</span> flag is true. Weight 3, category <span class="mono">'sync'</span>.</li>
+    <li><strong>F — Network failures</strong> — when <span class="mono">netStats.fails &gt; 0</span>. Weight proportional to fail count, category <span class="mono">'server'</span>.</li>
+    <li><strong>G — Incomplete swaps</strong> — from <span class="mono">logData.activity</span>. Weight 3, category <span class="mono">'activity'</span>.</li>
+  </ul>
+  <p><strong>Workflow categories (<span class="mono">DIAG_WF</span> constant, <span class="mono">classifyDiag(dg)</span> function — both at module scope):</strong> Five categories: <span class="mono">connection</span>, <span class="mono">sync</span>, <span class="mono">activity</span>, <span class="mono">app</span>, <span class="mono">server</span>. Classification uses ERR_DB <span class="mono">cat</span> field combined with title-string heuristics to resolve ambiguous software-category errors.</p>
+  <p><strong>State:</strong> <span class="mono">diagTmSize</span> <span class="mono">{w, h}</span> measured via <span class="mono">ResizeObserver</span> + <span class="mono">getBoundingClientRect</span> + <span class="mono">requestAnimationFrame</span> on the container ref (<span class="mono">diagTreemapRef</span>). <span class="mono">diagCatFilter</span> (nullable category string). Observer dep array: <span class="mono">[section, logData]</span> to re-measure on navigation and file load.</p>
+  <p><strong>Block rendering:</strong> Each block is positioned absolutely with <span class="mono">left/top/width/height</span> from squarify output. CSS transitions on all four coordinates at <span class="mono">0.3s ease</span> enable animated reflow when category filter changes. Color: severity color at 40% opacity background + 3px left border at full color. <span class="mono">key={f.id}</span> is a stable string (<span class="mono">'err-'+title</span>, <span class="mono">'fw-outdated'</span>, etc.) ensuring DOM element reuse across filter changes and enabling CSS transition animation.</p>
+  <p><strong>Focus Mode integration:</strong> Per-block relevance: <span class="mono">errRelevant = focusedAcct ? (f.linkedAccts.length===0 || f.linkedAccts.some(a =&gt; a.addr === focusedAcct.addr)) : true</span>. Non-relevant blocks dim to <span class="mono">opacity:0.12</span>. System-wide findings (<span class="mono">linkedAccts.length===0</span>) always remain fully visible regardless of focus state.</p>
+  <p><strong>Reset:</strong> <span class="mono">setDiagCatFilter(null)</span> called in both <span class="mono">handleFile</span> paths and <span class="mono">clearLog</span>.</p>
 </div>
 
 <h3 id="triangulation">Multi-Source Data Triangulation</h3>
@@ -587,7 +607,7 @@ ol.tech-list li strong{color:var(--text)}
 <div class="section-divider"></div>
 
 <!-- ═══════════════ CUSTOMER VIEW ═══════════════ -->
-<h2 id="customer-view-arch">Customer View Architecture<span class="new-badge">New</span></h2>
+<h2 id="customer-view-arch">Customer View Architecture</h2>
 
 <h3 id="enrichment-pipeline">Account Enrichment Pipeline</h3>
 <div class="card">
@@ -637,7 +657,7 @@ ol.tech-list li strong{color:var(--text)}
   <p><strong>Visual elements:</strong> Health dots strip (one dot per account, colored by status, clickable), comparison bars (proportional width showing customer vs on-chain), portfolio donut (44×44px SVG with overlapping arcs).</p>
 </div>
 
-<h3 id="drain-detection">Drain Detection &amp; Forensic Analysis<span class="new-badge">New</span></h3>
+<h3 id="drain-detection">Drain Detection &amp; Forensic Analysis</h3>
 <div class="card">
   <p>Automatic detection of account drains within the Agent Insights findings engine. A drain is classified when an account's live balance has dropped more than 90% compared to the customer's cached balance, and the cached balance had real value (above $50 fiat).</p>
   <p><strong>Per-account classification:</strong> Inside the existing per-account findings loop, each account is evaluated for drain status. Drained accounts receive a <span class="mono">_isDrained</span> flag, a "DRAINED" badge, and drain-specific detail text and escalation guidance replacing the generic "Balance changed" messaging.</p>

@@ -154,6 +154,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
     </div>
     <div>
       <a href="#interface"><span class="toc-icon">🖥</span> The Interface</a>
+      <a class="indent" href="#diag-map">Diagnostic Priority Map</a>
       <a class="indent" href="#xpub-scanner">Xpub Scanner</a>
       <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
       <a class="indent" href="#timeline-strip">Timeline Session Strip</a>
@@ -191,7 +192,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <div class="step">
   <div class="step-num">2</div>
   <div class="step-content">
-    <p><strong>Read the sidebar.</strong> The <strong>Overview</strong> section at the top has a severity-colored left border — <span class="badge badge-green">green</span> = clean session, <span class="badge badge-yellow">yellow</span> = warnings, <span class="badge badge-red">red</span> = critical issues. Click it for the full Overview with device status, stat cards, and error tiles.</p>
+    <p><strong>Read the Overview.</strong> The <strong>triage row</strong> at the top has a severity-colored left border — <span class="badge badge-green">green</span> = clean session, <span class="badge badge-yellow">yellow</span> = warnings, <span class="badge badge-red">red</span> = critical issues. Clickable stat badges (Issues, Accounts, Network, Quality) let you jump to any section. Below, the <strong>Diagnostic Priority Map</strong> shows every finding sized by importance — the biggest, reddest block is where you start.</p>
   </div>
 </div>
 <div class="step">
@@ -207,7 +208,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </div>
 </div>
 
-<div class="tip">The tool analyzes the log automatically. The Overview tells you what it found — device status, stat cards (Issues, Accounts, Network, Log Quality), and error tiles are all visible as soon as you load a file. If the ticket is about one account, use <strong>Focus Mode</strong> (Shift+click a tile or use the Focus Investigation button) to filter every section to that account. Mobile logs (from Ledger Wallet iOS/Android) are supported — a MOBILE badge appears in the top bar.</div>
+<div class="tip">The tool analyzes the log automatically. The Overview shows a triage row with stat badges (Issues, Accounts, Network, Quality) and a <strong>Diagnostic Priority Map</strong> below — blocks sized by severity, organized into workflow categories: Connection, Sync, Activity, App &amp; Updates, Server. The biggest, reddest block is your starting point. If the ticket is about one account, use <strong>Focus Mode</strong> (Shift+click a tile or use the Focus Investigation button) to filter every section to that account. Mobile logs (from Ledger Wallet iOS/Android) are supported — a solid purple <strong>MOBILE</strong> badge appears next to the file name.</div>
 
 
 <div class="section-divider"></div>
@@ -249,15 +250,15 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <h3 id="s-device">"My device won't connect / isn't recognized"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Look at the <strong>Overview</strong>. The device status line at the top shows model, firmware, app status, and sync state in one line. If it says "Device —", the device never identified itself. Check the <strong>Network</strong> stat card — 0 failures with 0 total requests means no API activity at all.</p>
-  <p><strong>Look for:</strong> Device model and firmware version in the device card (the expandable panel on the Overview). Check if firmware is outdated — the tool shows "FW 2.6.1 ⚠ 2.7.0 avail." when an update is needed.</p>
+  <p><strong>Start here:</strong> Look at the <strong>Overview</strong>. Check the <strong>Diagnostic Priority Map</strong> for a Connection or App &amp; Updates block — a red block there is your first lead. The device status line shows model, firmware, and sync state. If it says "Device —", the device never identified itself. Check the <strong>Network</strong> stat badge — 0 failures with 0 total requests means no API activity at all.</p>
+  <p><strong>Look for:</strong> Device model and firmware version in the device card (the expandable panel on the Overview). Check if firmware is outdated — the tool shows "FW 2.6.1 ⬆ 2.7.0 avail." when an update is needed. The Diagnostic Priority Map will also show a firmware finding in App &amp; Updates.</p>
   <p><strong>Next:</strong> Check <strong>Issues</strong> for hardware/USB errors. Check <strong>Advanced → APDU</strong> for device communication. If there's zero APDU data, the device never established a connection at all.</p>
   <div class="warn">No APDU data = no device communication during this session. Check USB cable, port, or Bluetooth before investigating software.</div>
 </div>
 
 <h3 id="s-crash">"The app crashes / won't open / is slow"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Check the <strong>Overview</strong> in the sidebar. The severity and issue count tell you how bad this session was.</p>
+  <p><strong>Start here:</strong> Check the <strong>Overview</strong>. The severity and issue count in the triage row tell you how bad the session was. The <strong>Diagnostic Priority Map</strong> shows which category of problem dominates — Connection, Sync, Activity, App &amp; Updates, or Server.</p>
   <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating pattern badges at the top — "↻ Unexpected error ×6" means the same error is looping. The error strip shows whether problems are clustered (cascade) or spread across the session.</p>
   <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> device card's Environment section for OS and platform — some issues are platform-specific.</p>
   <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
@@ -279,7 +280,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <h3 id="s-general">General investigation (no specific complaint)</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Read the <strong>Overview</strong> for the overall picture — device status line, stat cards (Issues, Accounts, Network, Log Quality), and error tiles. If any error tile is linked to an account, click it to activate Focus Mode automatically.</p>
+  <p><strong>Start here:</strong> Read the <strong>Overview</strong> for the overall picture — triage row (severity, stat badges), and the <strong>Diagnostic Priority Map</strong> below it. The map shows every finding sized by severity and organized by category. Click any block to jump to the relevant section. Filter by category (Connection, Sync, Activity, App &amp; Updates, Server) to focus on a specific area.</p>
   <p><strong>Recommended flow:</strong></p>
   <p><strong>Overview</strong> → device health + big picture<br>
      <strong>Issues</strong> → what went wrong and when<br>
@@ -303,22 +304,22 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <div class="feat-grid">
   <div class="feat-item">
     <div class="icon">📊</div>
-    <div class="label">Overview<span class="new-badge">Updated</span></div>
-    <div class="desc">Default landing. Device status line (model, firmware, apps, sync) at the top. Stat cards: Issues (hero, severity-colored), Accounts, Network (failure count), Log Quality. Focus Investigation button opens a dropdown of all accounts with chain colors, tickers, fiat values, and error counts. Error tiles sorted by severity with linked account badges. Unified Device card with app chips, environment info, and Device Reference popover. Guide button (📖) opens this guide during investigation. Session info at the bottom. No scrolling — everything fits in one screen.</div>
+    <div class="label">Overview</div>
+    <div class="desc">Default landing. Triage row: severity-colored left border, stat badges (Issues, Accounts, Network, Log Quality), Focus Investigation dropdown, Copy report dropdown, Guide 📖 button. Below: <strong>Diagnostic Priority Map</strong> — a treemap of all findings (errors + firmware + app updates + device app status + sync + network + swaps) sized by severity and organized into workflow categories. Biggest, reddest block = where to start. Device card with firmware, app chips, and environment info. No scrolling.</div>
   </div>
   <div class="feat-item">
     <div class="icon">⚠️</div>
-    <div class="label">Issues<span class="new-badge">Updated</span></div>
+    <div class="label">Issues</div>
     <div class="desc">Interactive severity and category filter chips. Error strip shows session context with error segments highlighted. Repeating pattern badges surface cascades. Error detail panel includes breadcrumbs ("What happened before") and "View in Timeline" for one-click context. Affected account links. Copy Errors for tickets.</div>
   </div>
   <div class="feat-item">
     <div class="icon">👛</div>
-    <div class="label">Accounts<span class="new-badge">Updated</span></div>
+    <div class="label">Accounts</div>
     <div class="desc">Health tiles with ticker labels — hover for account details, click to filter, Shift+click to activate Focus Mode (filters all sections to that account). Portfolio overlay shows proportional fiat distribution. EVM chains sharing an address are auto-grouped. Error badges link to Issues. Live on-chain balances with fiat values for 40+ chains. When Focus Mode is active, non-focused tiles dim to 25%.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📋</div>
-    <div class="label">Timeline<span class="new-badge">Updated</span></div>
+    <div class="label">Timeline</div>
     <div class="desc">Session visualizer with color-coded stacked bars — same colors as the type badges on each row. Interactive legend chips: hover to highlight segments, click to filter the list. Error dots below for one-click navigation. Smart grouping collapses repeated events. Auto-filters to focused account when Focus Mode is active.</div>
   </div>
   <div class="feat-item">
@@ -333,7 +334,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </div>
   <div class="feat-item">
     <div class="icon">{ }</div>
-    <div class="label">Raw JSON<span class="new-badge">Updated</span></div>
+    <div class="label">Raw JSON</div>
     <div class="desc">Interactive tree viewer under Advanced. Progressive search — type to find, tree auto-expands to show matches and scrolls to the first one. Navigate between matches with ▲▼ buttons or Enter key.</div>
   </div>
   <div class="feat-item">
@@ -343,7 +344,28 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </div>
 </div>
 
-<h3 id="timeline-strip">Timeline: Session Strip &amp; Legend<span class="new-badge">New</span></h3>
+<h3 id="diag-map">Diagnostic Priority Map</h3>
+<div class="card">
+  <p>The <strong>Diagnostic Priority Map</strong> is the main content area of the Overview. It shows every finding from the current session as a treemap — blocks sized by severity weight, colored red to amber to green. The biggest, reddest block is always your starting point.</p>
+  <p><strong>Multi-source findings:</strong> The map aggregates from seven data sources — log errors, firmware update status, desktop app version, device app status (missing/outdated), no-sync flag, network failures, and incomplete swaps — into one unified view. Errors are the dominant input on most sessions, but system-level findings surface in the same map so nothing is missed.</p>
+  <p><strong>Workflow categories:</strong> Every block is classified into one of five investigation categories:</p>
+  <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
+    <strong style="color:var(--text)">🔌 Connection</strong> — device hardware errors, USB/Bluetooth issues<br>
+    <strong style="color:var(--text)">🔄 Sync</strong> — balance sync failures, price data, bridge issues<br>
+    <strong style="color:var(--text)">⚡ Activity</strong> — failed transactions, user rejections, swap failures<br>
+    <strong style="color:var(--text)">📱 App &amp; Updates</strong> — outdated firmware, missing/outdated device apps, app version<br>
+    <strong style="color:var(--text)">☁️ Server</strong> — Ledger server errors, API failures
+  </p>
+  <p><strong>Interacting with the map:</strong></p>
+  <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
+    <strong style="color:var(--text)">Click any block</strong> — jumps to the relevant section (Issues for errors, Accounts for account findings)<br>
+    <strong style="color:var(--text)">Category chips</strong> above the map — click to filter to one category. Click again to clear.<br>
+    <strong style="color:var(--text)">Focus Mode</strong> — when an account is focused, blocks linked to other accounts dim. System-wide findings stay visible.
+  </p>
+  <div class="tip">When you see both sync errors and a firmware update needed, the map shows two blocks — one in Sync, one in App &amp; Updates. Start with the App &amp; Updates block: fixing the firmware first often resolves sync issues that appear to be separate.</div>
+</div>
+
+<h3 id="timeline-strip">Timeline: Session Strip &amp; Legend</h3>
 <div class="card">
   <p>The <strong>Timeline</strong> header shows a stacked bar chart of the entire session. Bar height = event density. Bar color = event type, using the same colors as the type badges on every row. You read the session left to right: "gray startup, purple analytics, gold price fetching, orange sync burst, blue network calls, red errors at the end."</p>
   <p><strong>Legend chips</strong> below the strip show every event type with its color and count. Hover a chip to highlight matching segments — everything else dims. Click to filter the row list. Click again to clear. The type dropdown and chips share state.</p>
@@ -353,7 +375,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch orange light up — next time you see orange, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
 </div>
 
-<h3 id="issues-interactive">Issues: Interactive Filters &amp; Breadcrumbs<span class="new-badge">New</span></h3>
+<h3 id="issues-interactive">Issues: Interactive Filters &amp; Breadcrumbs</h3>
 <div class="card">
   <p><strong>Filter chips:</strong> Severity chips (<span class="badge badge-red">Critical</span> <span class="badge badge-yellow">Warning</span> <span class="badge badge-purple">Info</span>) and category chips (Hardware, Software, Server) at the top of Issues. Click to filter. Hover to highlight matching errors on the strip. Combine them: Critical + Hardware = only critical hardware errors.</p>
   <p><strong>Error strip:</strong> Same color-coded session bars as the Timeline, but error segments are prominent (full opacity) while context is muted. Hover any bar for a tooltip showing what errors occurred at that moment. Click to select that error.</p>
@@ -363,7 +385,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="tip">The error strip and Timeline strip share the same visual language. Colors you learned in Timeline work here — yellow bars during errors means the error happened during sync.</div>
 </div>
 
-<h3 id="account-tiles">Account Health Tiles<span class="new-badge">New</span></h3>
+<h3 id="account-tiles">Account Health Tiles</h3>
 <div class="card">
   <p>At the top of <strong>Accounts</strong>, colored tiles give you a quick visual map. Each tile = one account, colored by chain, showing a chain icon or 3-letter ticker label as fallback.</p>
   <p><strong>Corner dots:</strong> Red (top-right) = errors for this account. Purple (bottom-right) = xpub/scannable. <strong>?</strong> = unsupported for live balance.</p>
@@ -374,7 +396,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="tip">Health tiles are the fastest way to answer "what does this customer have?" One glance shows funded chains, problem accounts (red dots), and portfolio shape.</div>
 </div>
 
-<h3 id="focus-mode">Account Focus Mode<span class="new-badge">New</span></h3>
+<h3 id="focus-mode">Account Focus Mode</h3>
 <div class="card">
   <p>Focus Mode is your primary investigation tool. Most tickets center on one account — focus on it and every section becomes relevant to that account.</p>
   <p><strong>How to activate:</strong></p>
@@ -383,10 +405,10 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
     <strong style="color:var(--text)">Focus button</strong> in the tile hover popover<br>
     <strong style="color:var(--text)">Affected account</strong> link on any error card in Issues<br>
     <strong style="color:var(--text)">Focus Investigation</strong> dropdown button on the Overview<br>
-    <strong style="color:var(--text)">Error tile</strong> on Overview, when linked to an account
+    <strong style="color:var(--text)">Diagnostic Priority Map block</strong>, when linked to an account
   </p>
   <p><strong>What happens:</strong> A purple indicator appears in the sidebar showing which account is focused. The content area gets a colored left border matching the account's chain. A <strong>Context Ribbon</strong> appears at the top of the content area showing your investigation thread — click any segment to navigate (account → Accounts, error title → Issues, timestamp → Timeline). Every section filters to that account: Issues shows only related errors, Timeline shows only that account's events, and the sidebar account list highlights the focused row.</p>
-  <p><strong>Adaptive Dimming:</strong> Everything not related to your focused account dims to 25% — tiles, account cards, sidebar rows, error strip segments, Overview error tiles. Your investigation path stays bright. The focused tile gently pulses so you always know which account you're looking at.</p>
+  <p><strong>Adaptive Dimming:</strong> Everything not related to your focused account dims — tiles, account cards, sidebar rows, error strip segments. Blocks in the Diagnostic Priority Map that are linked to other accounts dim; system-wide findings (firmware, app version, etc.) stay fully visible. Your investigation path stays bright. The focused tile gently pulses so you always know which account you're looking at.</p>
   <p><strong>EVM precision:</strong> For EVM chains sharing the same address (Ethereum + L2s like Polygon, Arbitrum, Base), focus is chain-specific. Focusing Ethereum shows only Ethereum activity — Polygon and Arbitrum stay dim even though they share the address.</p>
   <p><strong>How to clear:</strong> Click the <strong>✕</strong> on the sidebar focus indicator, press <kbd>Escape</kbd>, click ✕ on the Context Ribbon, or Shift+click the same tile again.</p>
   <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See the Technical Reference (🔬 button on the landing page) for implementation details.</em></div>
@@ -420,7 +442,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="tip">Use this when you need to find a specific error code, account ID, or data field in the raw log. It's much faster than scrolling through the Timeline for technical data.</div>
 </div>
 
-<h3 id="live-balances">Live On-Chain Balances<span class="new-badge">New</span></h3>
+<h3 id="live-balances">Live On-Chain Balances</h3>
 <div class="card">
   <p>The tool automatically fetches live blockchain balances for every account in the log — no app.json needed. As soon as you load a file, balances start appearing on each account card in the Accounts section with a green dollar value.</p>
   <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
@@ -430,23 +452,23 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="tip">This is your fastest way to answer "is this a high-value customer?" — check the sidebar fiat values or the Portfolio overlay in Accounts. No app.json needed.</div>
 </div>
 
-<h3 id="mobile-logs">Mobile Log Support<span class="new-badge">New</span></h3>
+<h3 id="mobile-logs">Mobile Log Support</h3>
 <div class="card">
-  <p>The tool supports logs from <strong>Ledger Wallet Mobile</strong> (iOS and Android). When a mobile log is loaded, a purple <strong>MOBILE</strong> badge appears in the top bar.</p>
+  <p>The tool supports logs from <strong>Ledger Wallet Mobile</strong> (iOS and Android). When a mobile log is loaded, a solid purple <strong>MOBILE</strong> badge appears next to the file name in the header — bold and unmissable.</p>
   <p><strong>What's different about mobile logs:</strong> They don't include sync data (operation counts, log balances, or sync duration). All accounts show "no data" badges instead of operation counts. The tool compensates by showing live blockchain balances for every account.</p>
   <p><strong>What works the same:</strong> Error detection, device info (when available), timeline, network requests, copy exports. The Overview and Issues section work identically.</p>
   <div class="warn">Mobile logs typically score 50–65 on log quality due to reduced metadata. This is expected — don't treat a low quality score as a problem on mobile.</div>
 </div>
 
-<h3 id="no-sync">No-Sync Visibility<span class="new-badge">New</span></h3>
+<h3 id="no-sync">No-Sync Visibility</h3>
 <div class="card">
   <p>When a log has accounts but no sync data (common with mobile logs and some short sessions), the tool shows <strong>amber warnings everywhere</strong> so you don't mistake "no data" for "empty account."</p>
-  <p><strong>What you'll see:</strong> An amber banner on the Overview, amber ⚠ next to the Accounts count in the sidebar, amber borders on account cards, and "no data" badges instead of "empty." Live blockchain balances are fetched automatically — the sidebar shows fiat values where available.</p>
+  <p><strong>What you'll see:</strong> An amber banner on the Overview, amber ⚠ next to the Accounts count in the sidebar, amber borders on account cards, and "no data" badges instead of "empty." Live blockchain balances are fetched automatically — the sidebar shows fiat values where available. Accounts that show a green fiat value are confirmed live-funded; use the live balance as your reference even without sync data.</p>
   <p>Copy exports include a "⚠ NO SYNC DATA" warning at the top so recipients know the data source.</p>
   <div class="tip">When you see amber everywhere, it means the log didn't capture sync. The accounts are real — they just have no operation history in this log. Live balances tell you what's actually on-chain.</div>
 </div>
 
-<h3 id="discoverability">Discoverability Hints<span class="new-badge">New</span></h3>
+<h3 id="discoverability">Discoverability Hints</h3>
 <div class="card">
   <p>Small hint text appears below interactive elements to show available interactions:</p>
   <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
@@ -457,7 +479,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p>These hints are always visible but unobtrusive (9px, muted, 50% opacity). New agents learn the interactions; experienced agents stop noticing them.</p>
 </div>
 
-<h3 id="customer-view">Customer View — "See the customer's wallet"<span class="new-badge">Updated</span></h3>
+<h3 id="customer-view">Customer View — "See the customer's wallet"</h3>
 <div class="card">
   <p>Customer View replicates the Ledger Wallet interface so you can see exactly what the customer sees. Switch to it using the <span class="badge badge-purple">Customer View</span> toggle in the top bar. Load the customer's <kbd>app.json</kbd> via the upload banner for full data.</p>
   <p><strong>Five tabs</strong> in the left sidebar, matching the real Ledger Wallet layout:</p>
@@ -470,7 +492,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   </ul>
 </div>
 
-<h3 id="agent-insights-guide">Agent Insights — the diagnostic dashboard<span class="new-badge">New</span></h3>
+<h3 id="agent-insights-guide">Agent Insights — the diagnostic dashboard</h3>
 <div class="card">
   <p>Agent Insights is a fixed-viewport dashboard at the bottom of the Customer View nav. It compares the customer's app.json data to live blockchain balances and flags discrepancies.</p>
   <p><strong>Layout:</strong> Stat cards across the top (Portfolio delta, Device, Data confidence, Customer settings), then a master-detail split below. Compact findings list on the left, full detail panel on the right.</p>
@@ -486,7 +508,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><strong>Drain detection:</strong> When an account's balance has dropped more than 90% and was worth real money, Agent Insights classifies it as <strong>DRAINED</strong> instead of "Balance changed." If two or more accounts are drained, a <strong>SEED COMPROMISE</strong> alert appears at the top of the findings list with a fund flow diagram, attacker addresses, and a one-click drain report for escalation. See the playbook entry <a href="#s-drain" style="color:var(--primary)">"My account was drained"</a> for the investigation workflow.</p>
 </div>
 
-<h3 id="staking-awareness">Staking awareness<span class="new-badge">New</span></h3>
+<h3 id="staking-awareness">Staking awareness</h3>
 <div class="card">
   <p>Many customers have staked or frozen funds. The tool detects this automatically when <kbd>balance ≠ spendableBalance</kbd> in the app.json and adjusts the comparison accordingly.</p>
   <p><strong>What you'll see:</strong> A purple 🥩 staking card in the Agent Insights detail panel showing "Total: 276.34 SOL · Staked: 276.12 SOL · Available: 0.21 SOL." The comparison uses the <strong>available</strong> balance (not total) against the live balance — preventing false alarms on staked funds.</p>
@@ -500,7 +522,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="warn">If a customer says "my balance is wrong" and they have staked funds, check the Earn tab first. The "missing" balance is almost certainly staked, not lost.</div>
 </div>
 
-<h3 id="earn-tab-guide">Earn tab — staking investigation<span class="new-badge">New</span></h3>
+<h3 id="earn-tab-guide">Earn tab — staking investigation</h3>
 <div class="card">
   <p>The Earn tab shows all staking positions from the customer's app.json. Use it for "my staking isn't working," "I can't unstake," or "my rewards are wrong" tickets.</p>
   <p><strong>"My rewards" sub-tab:</strong> Total deposited (fiat + allocation bar), total rewards earned, and a table of deposited assets with account name, invested amount, estimated APY, and rewards.</p>
@@ -518,11 +540,11 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 
 <div class="card">
   <h3>Four formats</h3>
-  <p><span class="badge badge-purple">Copy Summary</span> Quick ticket note. Device info, top accounts with live balances, top errors, portfolio total. Paste into your support ticket.</p>
-  <p><span class="badge badge-purple">Copy Full</span> Complete data dump. All accounts with live balances and fiat values, all errors, device apps. For escalation to Tier 2 or engineering.</p>
+  <p><span class="badge badge-purple">Quick Summary</span> Quick ticket note. Device info, top accounts with live balances, top errors, portfolio total. Paste into your support ticket.</p>
+  <p><span class="badge badge-purple">Full Export</span> Complete data dump. All accounts with live balances and fiat values, all errors, device apps. For escalation to Tier 2 or engineering.</p>
   <p><span class="badge badge-green">Copy Customer Summary</span> Account-focused. Live balances, fiat values, and portfolio total. For describing what the wallet looks like. Available in the Overview action bar and as a button in Customer View.</p>
   <p><span class="badge badge-red">Copy Errors</span> All errors with severity, action items, and common causes. Available at the top of the Issues section. Great for tickets focused on error investigation.</p>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All four formats are in the <strong>📋 Copy report ▾</strong> button in the Overview action bar. Copy Errors is also available as a standalone button in the Issues section header. Each format is color-coded: <span style="color:#BBB0FF">purple</span> for summary/full, <span style="color:#FF5300">orange</span> for customer, <span style="color:#E40046">red</span> for errors.</p>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:0">All four formats are in the <strong>📋 Copy report ▾</strong> dropdown in the Overview triage row. Copy Errors is also available as a standalone button in the Issues section header. Each format is color-coded: <span style="color:#BBB0FF">purple</span> for Quick Summary/Full Export, <span style="color:#FF5300">orange</span> for customer, <span style="color:#E40046">red</span> for errors.</p>
 </div>
 
 
