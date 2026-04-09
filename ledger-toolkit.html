@@ -6173,13 +6173,15 @@ function App(){
   useEffect(()=>{
     const el=diagTreemapRef.current;
     if(!el)return;
+    const measure=()=>{const r=el.getBoundingClientRect();if(r.width>0&&r.height>0)setDiagTmSize({w:r.width,h:r.height});};
+    measure();
+    requestAnimationFrame(measure);
     const ro=new ResizeObserver(entries=>{
-      const r=entries[0]?.contentRect;
-      if(r)setDiagTmSize({w:r.width,h:r.height});
+      for(const entry of entries){const{width,height}=entry.contentRect;if(width>0&&height>0)setDiagTmSize({w:width,h:height});}
     });
     ro.observe(el);
     return()=>ro.disconnect();
-  },[section]);
+  },[section,logData]);
 
   useEffect(()=>{
     setQualityOpen(false);
