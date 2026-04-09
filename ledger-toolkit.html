@@ -4165,6 +4165,23 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
           <div style={{fontSize:10,color:'#EA4335',fontWeight:700,marginBottom:5}}>⚠ ESCALATION REQUIRED</div>
           <div style={{fontSize:13,color:'#FFFFFF',lineHeight:1.6}}>→ {f.action}</div>
         </div>
+        {/* Staking chain warning — post-export staking can look like a drain */}
+        {(()=>{
+          const stakingDrains=(f._drainAccts||[]).filter(a=>STAKING_APY[a.cid]);
+          if(stakingDrains.length===0)return null;
+          const chainNames=[...new Set(stakingDrains.map(a=>a.ch.name))];
+          const typeLabels=[...new Set(stakingDrains.map(a=>STAKING_TYPE[a.cid]||'staking'))];
+          return <div style={{padding:'10px 14px',borderRadius:6,background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',marginBottom:16,display:'flex',alignItems:'flex-start',gap:8}}>
+            <span style={{fontSize:14,flexShrink:0}}>🥩</span>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:T.warning,marginBottom:3}}>Staking verification needed</div>
+              <div style={{fontSize:12,color:'#8A8A8E',lineHeight:1.6}}>
+                <strong style={{color:'#FFFFFF'}}>{chainNames.join(', ')}</strong> support{chainNames.length===1?'s':''} native {typeLabels.join(' / ').toLowerCase()}. If the customer staked funds after exporting their data, the balance drop may be from delegation — not theft. <strong style={{color:'#FFFFFF'}}>Verify on the block explorer</strong> before escalating. Staked funds appear at the same address on most explorers.
+                {stakingDrains.some(a=>a.cid==='solana')&&<span style={{display:'block',marginTop:4,color:T.warning,fontSize:11}}><strong>Solana note:</strong> Staked SOL uses separate stake accounts that won't appear in the main account balance. Check the "Stake Accounts" tab on the Solana explorer.</span>}
+              </div>
+            </div>
+          </div>;
+        })()}
         {/* Funds sent to — attacker addresses */}
         {ar.length>0&&<div style={{marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:700,color:'#EA4335',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
