@@ -7019,7 +7019,7 @@ function App(){
                       </div>;
                     })()}
                   </div>
-                  {logData.isMobile&&<span style={{background:T.primary+'22',color:T.primary,padding:'2px 6px',borderRadius:4,fontSize:10,fontWeight:700}}>MOBILE</span>}
+                  {logData.isMobile&&<span style={{background:T.primary,color:'#000000',padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:800,letterSpacing:'0.08em',boxShadow:`0 0 12px ${T.primary}40`}}>MOBILE</span>}
                   {(()=>{const act=logData.activity||{};const items=[];if(act.managerOpened)items.push('Manager');if(act.swapBrowsed)items.push(act.swapExecuted?'Swap':'Swap (incomplete)');if(act.deviceScan)items.push('Device scan');if(!items.length)return null;return<><span style={{color:'rgba(255,255,255,0.15)',margin:'0 2px'}}>|</span><span style={{fontSize:10,color:T.muted,fontStyle:'italic'}}>{items.join(' · ')}</span></>;})()}
                 </div>
               </div>
@@ -7243,44 +7243,27 @@ function App(){
                       }
                       for(const[,e] of errMap)findings.push({...e,value:e.sevWeight*e.count});
 
-                      // B) Combined Update Path → App & Updates
-                      (()=>{
-                        const steps=[];
-                        if(appVersionCheck?.status==='ok'&&appVersionCheck.outdated&&appVersionCheck.latest){
-                          steps.push({label:`Update ${llLabel(logData.dev)}`,detail:`${appVersionCheck.current||'?'} → ${appVersionCheck.latest}`,weight:2});
+                      // B) Desktop app outdated → App & Updates
+                      if(appVersionCheck?.status==='ok'&&appVersionCheck.outdated&&appVersionCheck.latest){
+                        findings.push({id:'app-outdated',title:`${llLabel(logData.dev)} outdated: ${appVersionCheck.current||'?'} → ${appVersionCheck.latest}`,sev:'medium',color:T.warning,count:1,wfCat:'app',category:'App & Updates',action:'Update to latest version. This should be done before updating firmware or device apps.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:2,value:2});
+                      }
+
+                      // C) Firmware outdated → App & Updates
+                      if(firmwareCheck?.status==='ok'&&firmwareCheck.outdated&&firmwareCheck.latest){
+                        findings.push({id:'fw-outdated',title:`Firmware outdated: ${logData.dev.fw||'?'} → ${firmwareCheck.latest}`,sev:'medium',color:T.warning,count:1,wfCat:'app',category:'App & Updates',action:`Update firmware via My Ledger.${appVersionCheck?.status==='ok'&&appVersionCheck.outdated?' Update '+llLabel(logData.dev)+' first.':''}`,linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:3,value:3});
+                      }
+
+                      // D) Device apps outdated/missing → App & Updates
+                      if(versionCheck?.status==='ok'&&versionCheck.apps){
+                        const outdated=versionCheck.apps.filter(a=>a.outdated===true);
+                        const missing=versionCheck.apps.filter(a=>a.installed===null&&a.required);
+                        if(missing.length>0){
+                          findings.push({id:'apps-missing',title:`${missing.length} required app${missing.length>1?'s':''} not installed`,sev:'high',color:T.error,count:missing.length,wfCat:'app',category:'App & Updates',action:`Install via My Ledger.${firmwareCheck?.status==='ok'&&firmwareCheck.outdated?' Update firmware first.':''}`,linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:6,value:6*missing.length});
                         }
-                        if(firmwareCheck?.status==='ok'&&firmwareCheck.outdated&&firmwareCheck.latest){
-                          steps.push({label:'Update firmware',detail:`${logData.dev.fw||'?'} → ${firmwareCheck.latest}`,weight:3});
+                        if(outdated.length>0){
+                          findings.push({id:'apps-outdated',title:`${outdated.length} app${outdated.length>1?'s':''} outdated`,sev:'medium',color:T.warning,count:outdated.length,wfCat:'app',category:'App & Updates',action:`Update via My Ledger.${firmwareCheck?.status==='ok'&&firmwareCheck.outdated?' Update firmware first.':''}`,linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:2,value:2*outdated.length});
                         }
-                        if(versionCheck?.status==='ok'&&versionCheck.apps){
-                          const outdated=versionCheck.apps.filter(a=>a.outdated===true);
-                          const missing=versionCheck.apps.filter(a=>a.installed===null&&a.required);
-                          if(missing.length>0){
-                            steps.push({label:`Install ${missing.length} missing app${missing.length>1?'s':''}`,detail:missing.map(a=>a.name).join(', '),weight:6*missing.length});
-                          }
-                          if(outdated.length>0){
-                            steps.push({label:`Update ${outdated.length} app${outdated.length>1?'s':''}`,detail:outdated.map(a=>`${a.name} ${a.installed||'?'}→${a.latest}`).join(', '),weight:2*outdated.length});
-                          }
-                        }
-                        if(steps.length===0)return;
-                        const totalWeight=steps.reduce((s,st)=>s+st.weight,0);
-                        const worstSev=steps.some(s=>s.weight>=6)?'high':'medium';
-                        const title=steps.length===1?steps[0].label:`Update path (${steps.length} steps)`;
-                        findings.push({
-                          id:'update-path',
-                          title,
-                          sev:worstSev,
-                          color:worstSev==='high'?T.error:T.warning,
-                          count:steps.length,
-                          wfCat:'app',
-                          category:'App & Updates',
-                          action:steps.length>1?`Start with: ${steps[0].label}`:`${steps[0].label}: ${steps[0].detail}`,
-                          linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,
-                          sevWeight:worstSev==='high'?9:3,
-                          value:totalWeight,
-                          _updateSteps:steps
-                        });
-                      })();
+                      }
 
                       // E) No sync data → Sync
                       if(noSync&&logData.accts.length>0){
@@ -7377,7 +7360,7 @@ function App(){
                                 }}
                                 onMouseEnter={ev=>{ev.currentTarget.style.background=f.color+'30';ev.currentTarget.style.boxShadow=`inset 0 0 20px ${f.color}25, 0 0 12px ${f.color}15`;}}
                                 onMouseLeave={ev=>{ev.currentTarget.style.background=f.color+'18';ev.currentTarget.style.boxShadow='none';}}
-                                title={`${sevLabel}: ${f.title}\n${f._updateSteps?f._updateSteps.map((st,i)=>`${'①②③④⑤'[i]||'•'} ${st.label}: ${st.detail}`).join('\n'):(f.count>1?f.count+'× · ':'')+f.category}${f.action?'\nAction: '+f.action:''}`}
+                                title={`${sevLabel}: ${f.title}\n${f.count>1?f.count+'× · ':''}${f.category}${f.action?'\nAction: '+f.action:''}`}
                               >
                                 {showTitle&&<div style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
                                   <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:f.color+'30',color:f.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
@@ -7387,11 +7370,6 @@ function App(){
                                 </div>}
                                 {showTitle&&<div style={{fontSize:11,fontWeight:600,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.3}}>{f.title}</div>}
                                 {showMeta&&<div style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2,letterSpacing:'0.04em'}}>{f.category}</div>}
-                                {showMeta&&f._updateSteps&&f._updateSteps.length>1&&<div style={{display:'flex',flexDirection:'column',gap:1,marginTop:3}}>
-                                  {f._updateSteps.map((st,si)=><div key={si} style={{fontSize:9,color:si===0?'#FFFFFF':T.muted,fontWeight:si===0?600:400,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                                    {'①②③④⑤'[si]||'•'} {st.label}
-                                  </div>)}
-                                </div>}
                                 {showAccts&&f.linkedAccts.length>0&&<div style={{display:'flex',alignItems:'center',gap:3,marginTop:3}}>
                                   {f.linkedAccts.slice(0,4).map((la,j)=><span key={j} style={{width:6,height:6,borderRadius:'50%',background:la.color,flexShrink:0}} title={la.ticker}/>)}
                                   {f.linkedAccts.length>4&&<span style={{fontSize:8,color:T.muted}}>+{f.linkedAccts.length-4}</span>}
