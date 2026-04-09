@@ -278,6 +278,7 @@ const GUIDE_AGENT=`<!-- Hero -->
       <a href="#quick-start"><span class="toc-icon">⚡</span> Quick Start</a>
       <a href="#playbook"><span class="toc-icon">🎯</span> Investigation Playbook</a>
       <a class="indent" href="#s-balance">"My balance is wrong"</a>
+      <a class="indent" href="#s-drain">"I was hacked / drained"</a>
       <a class="indent" href="#s-tx">"My transaction failed"</a>
       <a class="indent" href="#s-device">"My device won't connect"</a>
       <a class="indent" href="#s-crash">"The app crashes"</a>
@@ -358,6 +359,16 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
   <p><strong>In Customer View:</strong> Load the customer's <kbd>app.json</kbd> and go to <strong>Agent Insights</strong>. The dashboard compares what the customer sees to live on-chain balances and flags discrepancies. Check the staking card — if the customer has staked funds, the "missing" balance is likely frozen, not lost. Use the <strong>Earn</strong> tab to see their staking positions and validator details.</p>
   <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
+</div>
+
+<h3 id="s-drain">"My account was drained / I think I was hacked"</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> and load the customer's <kbd>app.json</kbd>. Go to <strong>Agent Insights</strong>. If accounts have been drained, a red <strong>DRAIN DETECTED</strong> or <strong>SEED COMPROMISE</strong> finding will appear at the top of the list automatically.</p>
+  <p><strong>What you'll see:</strong> The drain finding shows total estimated loss, which accounts were emptied, and a <strong>fund flow diagram</strong> showing where the money went — victim accounts on the left, attacker addresses on the right, with transaction links between them. When multiple chains converge on the same destination address, it's highlighted as the attacker's collection wallet.</p>
+  <p><strong>"Funds sent to" section:</strong> Lists every destination address that received the stolen funds. Each address has a <strong>copy button</strong> and a direct <strong>explorer link</strong> — click to verify on the blockchain. This is what law enforcement needs.</p>
+  <p><strong>Copy the drain report:</strong> Click <strong>"Copy drain report for escalation"</strong> at the bottom of the drain detail panel. This produces a formatted report with: customer identity, each drained account with before/after balances, every drain transaction hash with explorer links, and all destination addresses. Paste it into your escalation ticket.</p>
+  <p><strong>Escalation procedure:</strong> The tool provides specific guidance in the action box. For multi-chain drains (seed compromise): advise the customer to stop using the seed phrase immediately, set up a new device with a new seed, and file a police report.</p>
+  <div class="warn">If the drain finding shows a staking warning (amber 🥩 box), verify on the block explorer before escalating — the balance drop may be from recent staking, not theft. The explorer link is right there in the finding.</div>
 </div>
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
@@ -511,7 +522,7 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p><strong>Adaptive Dimming:</strong> Everything not related to your focused account dims to 25% — tiles, account cards, sidebar rows, error strip segments, Overview error tiles. Your investigation path stays bright. The focused tile gently pulses so you always know which account you're looking at.</p>
   <p><strong>EVM precision:</strong> For EVM chains sharing the same address (Ethereum + L2s like Polygon, Arbitrum, Base), focus is chain-specific. Focusing Ethereum shows only Ethereum activity — Polygon and Arbitrum stay dim even though they share the address.</p>
   <p><strong>How to clear:</strong> Click the <strong>✕</strong> on the sidebar focus indicator, press <kbd>Escape</kbd>, click ✕ on the Context Ribbon, or Shift+click the same tile again.</p>
-  <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See Technical Reference → Account Focus System for implementation details.</em></div>
+  <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See the Technical Reference (🔬 button on the landing page) for implementation details.</em></div>
 </div>
 
 <h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
@@ -605,6 +616,7 @@ const GUIDE_AGENT=`<!-- Hero -->
     <li><strong>"Copy to clipboard"</strong> — copies a formatted summary for pasting into your ticket.</li>
   </ul>
   <div class="tip">Agent Insights uses the customer's cached countervalue rate for BOTH columns in the comparison. This means the fiat delta purely reflects balance changes, not price movement. If you see a fiat difference, the crypto balance actually changed.</div>
+  <p><strong>Drain detection:</strong> When an account's balance has dropped more than 90% and was worth real money, Agent Insights classifies it as <strong>DRAINED</strong> instead of "Balance changed." If two or more accounts are drained, a <strong>SEED COMPROMISE</strong> alert appears at the top of the findings list with a fund flow diagram, attacker addresses, and a one-click drain report for escalation. See the playbook entry <a href="#s-drain" style="color:var(--primary)">"My account was drained"</a> for the investigation workflow.</p>
 </div>
 
 <h3 id="staking-awareness">Staking awareness<span class="new-badge">New</span></h3>
@@ -768,6 +780,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
       <a class="indent" href="#enrichment-pipeline">Enrichment Pipeline</a>
       <a class="indent" href="#countervalue-system">Countervalue System</a>
       <a class="indent" href="#agent-insights-engine">Agent Insights Engine</a>
+      <a class="indent" href="#drain-detection">Drain Detection</a>
       <a class="indent" href="#staking-detection">Staking Detection</a>
       <a class="indent" href="#earn-data-extraction">Earn Tab Data Extraction</a>
       <a class="indent" href="#cv-rendering">Rendering Components</a>
@@ -885,7 +898,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 <h3 id="session-viz">Session Visualization</h3>
 <div class="card">
   <p>The session is divided into 80 equal time buckets. Each bucket renders as a stacked bar where bar height represents event density (total entry count) and color segments represent event type distribution, using the same canonical color map as row badges.</p>
-  <p><strong>Visual treatment:</strong> Bar tops have rounded corners (<span class="mono">border-radius: 2px 2px 0 0</span>). The strip container has an ambient gradient (brand purple at 8% opacity) with an inset shadow to convey depth. Bars render at 0.92 opacity with a subtle top-edge highlight glow. The strip reveals left-to-right via <span class="mono">clip-path: inset()</span> animation (<span class="mono">stripDraw</span>) on tab enter.</p>
+  <p><strong>Visual treatment:</strong> Bar tops have rounded corners (<span class="mono">border-radius: 2px 2px 0 0</span>). The strip container has a flat background matching the panel color. Bars render at 0.92 opacity. The strip reveals left-to-right via <span class="mono">clip-path: inset()</span> animation (<span class="mono">stripDraw</span>) on tab enter.</p>
   <p><strong>Legend chips:</strong> One chip per event type present in the session, showing type name, color dot, and entry count. Each chip uses a tinted background and border in its own TC color at low opacity. Hovering a chip dims all non-matching bar segments to 15% opacity. Clicking a chip filters the entry list to that type. State is shared with the type dropdown filter — changes in either update both.</p>
   <p><strong>Error dot baseline:</strong> Error entries are rendered as individual colored dots on a dedicated baseline below the bars. Each dot is a clickable navigation target — click scrolls to and expands that entry in the list.</p>
   <p><strong>Bucket hover tooltip:</strong> Hovering any bar shows timestamp, total event count for that bucket, per-type breakdown, and sample message. Clicking the bar scrolls to and expands the nearest log entry to the bucket's midpoint.</p>
@@ -1015,7 +1028,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Purple dot (bottom-right)</strong> — account has an xpub / is scannable via the UTXO scanner</li>
     <li><strong>? label</strong> — chain is not supported for live balance fetching</li>
   </ul>
-  <p><strong>Hover popover:</strong> chain name, truncated address, live balance and fiat value, sync status (no sync / loading / empty), derivation mode, error count, and xpub/explorer availability flags. Popover is pointer-events-none and clamped to container width.</p>
+  <p><strong>Hover popover:</strong> chain name, truncated address, live balance and fiat value, sync status (no sync / loading / empty), derivation mode, error count, and xpub/explorer availability flags. Popover has <span class="mono">onMouseEnter</span>/<span class="mono">onMouseLeave</span> handlers to stay visible when the cursor moves from the tile to the popover. Clamped to container width.</p>
   <p><strong>Adaptive dimming:</strong> When account focus is active, non-focused tiles dim to 25% opacity with a 0.2s transition. The focused tile displays a <span class="mono">focusPulse</span> CSS animation (scale + opacity breathing). See <a href="#adaptive-dimming" style="color:var(--primary)">Adaptive Dimming</a> for full details.</p>
   <p><strong>Portfolio overlay:</strong> Activated via "Portfolio ▸" button. Tiles are resized proportionally to fiat value (36–80px) and sorted by value descending. Clicking any tile applies a chain filter and closes the overlay.</p>
 </div>
@@ -1083,7 +1096,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <p><strong>Downstream effects:</strong> A <span class="mono">useEffect</span> propagates <span class="mono">focusedAcct</span> to <span class="mono">tlAcctFilter</span> (Timeline account filter) and <span class="mono">errAcctFilter</span> (Issues account filter). Visual effects are applied via inline opacity styles on non-focused elements.</p>
   <p><strong>Visual indicators:</strong> Sidebar focus indicator (purple pill with chain color swatch and ticker), content area left border (3px, chain color), <span class="mono">focusPulse</span> CSS animation on the focused tile (scale 1→1.08 + opacity breathing at 2s interval).</p>
   <p><strong>Clear triggers:</strong> <kbd>Escape</kbd> key, ✕ on sidebar indicator, ✕ on Context Ribbon, Shift+click same tile. State is also reset in <span class="mono">handleFile</span> and <span class="mono">clearLog</span>.</p>
-  <div class="tip">For investigation workflows using Focus Mode, see Agent Guide → <a href="#focus-mode" style="color:var(--primary)">Account Focus Mode</a>.</div>
+  <div class="tip">For investigation workflows using Focus Mode, see the Agent Guide (📖 button) → Account Focus Mode.</div>
 </div>
 
 <h3 id="context-ribbon">Context Ribbon<span class="new-badge">New</span></h3>
@@ -1110,7 +1123,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Other errors</strong> — <span class="mono">level='error'</span>, excluding the current error entry</li>
   </ul>
   <p>Returns null if no correlated events are found in the window. When results exist, renders clickable "Related evidence" links: network failures → Network section (<span class="mono">onGoNetwork</span>), APDU rejections → APDU section (<span class="mono">onGoApdu</span>), sync entries → Timeline via <span class="mono">jumpTo(syncEntry.logIndex)</span>.</p>
-  <div class="tip">For practical use in error investigation, see Agent Guide → <a href="#issues-interactive" style="color:var(--primary)">Issues Interactive Filters</a>.</div>
+  <div class="tip">For practical use in error investigation, see the Agent Guide (📖 button) → Issues Interactive Filters.</div>
 </div>
 
 <h3 id="adaptive-dimming">Adaptive Dimming<span class="new-badge">New</span></h3>
@@ -1136,7 +1149,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <p><strong>Zone 2 — Content (flex:1, overflow:hidden):</strong> When errors exist: unified device card, error tiles (sorted by severity, max 12, each showing severity badge, timestamp, title, category, and linked account chain dot + ticker). When no errors: device card and green "no issues" confirmation message.</p>
   <p><strong>Zone 3 — Bottom bar (flexShrink:0):</strong> Session timestamp range (left), chain distribution badges (center), log quality breakdown link (right).</p>
   <p><strong>Stat card computation:</strong> Issues card shows count with severity-based label and color. Network card counts entries with <span class="mono">status ≥ 400</span> or <span class="mono">level='error'</span>. Quality card shows the computed 0–100 score. All stat numbers use <span class="mono">clamp(28px, 4vh, 42px)</span> sizing.</p>
-  <div class="tip">For step-by-step usage, see Agent Guide → <a href="#quick-start" style="color:var(--primary)">Quick Start</a>.</div>
+  <div class="tip">For step-by-step usage, see the Agent Guide (📖 button) → Quick Start.</div>
 </div>
 
 <h3 id="triangulation">Multi-Source Data Triangulation</h3>
@@ -1179,7 +1192,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>ajFreshAddressPath</strong> — latest receive address derivation path</li>
   </ul>
   <p>When app.json contains accounts not present in the log, they are appended as app.json-only accounts with <span class="mono">enriched:true</span> and synthetic chain metadata derived from the <span class="mono">currencyId</span>.</p>
-  <p><em>For investigation workflows, see Agent Guide → Customer View.</em></p>
+  <p><em>For investigation workflows, see the Agent Guide (📖 button) → Customer View.</em></p>
 </div>
 
 <h3 id="countervalue-system">Countervalue System</h3>
@@ -1196,7 +1209,8 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <p>The Agent Insights findings engine is a single <span class="mono">useMemo</span> that produces a severity-sorted array of diagnostic findings from all available data sources.</p>
   <p><strong>Finding types:</strong></p>
   <ul class="def-list">
-    <li><strong>Account findings</strong> (<span class="mono">kind:'account'</span>) — one per account with issues. Includes balance comparison data, staking context, pending/failed operation counts, and log error references.</li>
+    <li><strong>Account findings</strong> (<span class="mono">kind:'account'</span>) — one per account with issues. Includes balance comparison data, staking context, pending/failed operation counts, and log error references. Accounts with &gt;90% balance drops are classified as <span class="mono">_isDrained</span> with escalation-specific messaging.</li>
+    <li><strong>Drain findings</strong> (<span class="mono">kind:'drain'</span>) — aggregated alert when one or more accounts are drained. Contains operation-extracted drain transactions, deduplicated attacker recipient addresses, fund flow data, and a forensic copy report. See <a href="#drain-detection" style="color:var(--primary)">Drain Detection</a>.</li>
     <li><strong>System findings</strong> (<span class="mono">kind:'system'</span>) — countervalue drift, firmware status, app versions, developer mode, log errors, data confidence.</li>
   </ul>
   <p><strong>Balance comparison model:</strong></p>
@@ -1208,6 +1222,18 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   </ul>
   <p><strong>Severity classification:</strong> <span class="mono">red</span> = balance mismatch or pending transactions. <span class="mono">amber</span> = failed transactions, log errors, developer mode, data issues. <span class="mono">green</span> = healthy checks. Sorted red → amber → green.</p>
   <p><strong>Visual elements:</strong> Health dots strip (one dot per account, colored by status, clickable), comparison bars (proportional width showing customer vs on-chain), portfolio donut (44×44px SVG with overlapping arcs).</p>
+</div>
+
+<h3 id="drain-detection">Drain Detection &amp; Forensic Analysis<span class="new-badge">New</span></h3>
+<div class="card">
+  <p>Automatic detection of account drains within the Agent Insights findings engine. A drain is classified when an account's live balance has dropped more than 90% compared to the customer's cached balance, and the cached balance had real value (above $50 fiat).</p>
+  <p><strong>Per-account classification:</strong> Inside the existing per-account findings loop, each account is evaluated for drain status. Drained accounts receive a <span class="mono">_isDrained</span> flag, a "DRAINED" badge, and drain-specific detail text and escalation guidance replacing the generic "Balance changed" messaging.</p>
+  <p><strong>Cross-account aggregation:</strong> After the per-account loop, all drained accounts are collected. If two or more accounts are drained, the system classifies this as a seed compromise — the recovery phrase is likely exposed. A summary <span class="mono">kind:'drain'</span> finding is created via <span class="mono">f.unshift()</span> to appear at the top of the findings list.</p>
+  <p><strong>Operation scanning:</strong> For each drained account, the <span class="mono">ajOperations</span> array is scanned for OUT transactions. Each operation's <span class="mono">recipients[]</span>, <span class="mono">hash</span>, <span class="mono">date</span>, and <span class="mono">value</span> are extracted. Token sub-account operations are also scanned when the token balance is zero but operations exist.</p>
+  <p><strong>Recipient aggregation:</strong> All recipient addresses from drain transactions across all drained accounts are collected and deduplicated (case-insensitive). On EVM chains, the same address receiving from multiple chains (e.g., ETH, Polygon, Arbitrum) is identified as a single collection wallet. The customer's own addresses are filtered out. Remaining addresses are the attacker's endpoints.</p>
+  <p><strong>Fund flow visualization:</strong> A visual diagram renders in the drain detail panel: source accounts (chain-colored, left column) connected via gradient lines to destination addresses (red-tinted, right column). Multi-chain convergence to a single address is highlighted. Each connection includes transaction explorer links via <span class="mono">TX_EXPLORERS</span>, and each destination address includes an address explorer link via <span class="mono">CHAINS[].url</span>.</p>
+  <p><strong>Forensic copy report:</strong> A formatted plain-text report optimized for law enforcement escalation. Includes: customer identity (user ID, device), per-account drain details (address, before/after balance, drain transaction hashes with explorer URLs, recipient addresses), total loss across all chains, and all attacker endpoint addresses with explorer links.</p>
+  <p><strong>Staking chain guard:</strong> When drained accounts are on chains that support native staking (checked against <span class="mono">STAKING_APY</span>), an amber warning advises the agent to verify on the block explorer before escalating — the balance drop may be from post-export staking rather than theft.</p>
 </div>
 
 <h3 id="staking-detection">Staking Detection &amp; Chain-Specific Handling</h3>
@@ -1306,7 +1332,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 <h2 id="about">About This Tool</h2>
 
 <div class="card">
-  <p>The Ledger Diagnostic Toolkit is a single-file client-side web application (~6,600 lines of HTML, CSS, and JavaScript) that runs entirely in the browser with no build step, no server, and no installation. It opens as a local <span class="mono">file://</span> or from any static host.</p>
+  <p>The Ledger Diagnostic Toolkit is a single-file client-side web application (~8,400 lines of HTML, CSS, and JavaScript) that runs entirely in the browser with no build step, no server, and no installation. It opens as a local <span class="mono">file://</span> or from any static host.</p>
   <p><strong>Architecture highlights:</strong></p>
   <ul class="def-list">
     <li><strong>Runtime</strong> — React 18.3.1 + Babel standalone 7.26.10 for JSX transpilation. No webpack, no npm, no dependencies to install. The HTML file is self-contained.</li>
@@ -1317,7 +1343,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Zero data transmission</strong> — all log parsing, analysis, and pattern matching runs client-side. Only account addresses leave the browser to query on-chain balances. No log content, error data, or user metadata is ever transmitted.</li>
     <li><strong>Fixed viewport</strong> — <span class="mono">height:100vh, overflow:hidden</span>. The page never scrolls. Each section uses a fixed header zone + scrollable content panel. All features are accessible within one screen.</li>
   </ul>
-  <div class="tip">For step-by-step investigation workflows, see Agent Guide → <a href="#quick-start" style="color:var(--primary)">Quick Start</a>.</div>
+  <div class="tip">For step-by-step investigation workflows, see the Agent Guide (📖 button) → Quick Start.</div>
 </div>
 
 
