@@ -1922,6 +1922,31 @@ const ERR_DB=[
 ];
 const SEV={high:{l:'Critical',c:'#E40046',bg:'rgba(228,0,70,0.10)',bd:'rgba(228,0,70,0.3)'},medium:{l:'Warning',c:'#FFBD42',bg:'rgba(255,189,66,0.08)',bd:'rgba(255,189,66,0.25)'},low:{l:'Info',c:'#8B84CC',bg:'rgba(139,132,204,0.08)',bd:'rgba(139,132,204,0.25)'}};
 const CAT={hardware:{l:'Hardware / Device',i:'🔌'},software:{l:'Software / Sync',i:'🔄'},server:{l:'Server / Network',i:'☁️'},unknown:{l:'Unknown',i:'❓'}};
+const DIAG_WF={
+  connection:{l:'Connection',i:'🔌',desc:'Device connectivity'},
+  sync:{l:'Sync',i:'🔄',desc:'Data & balance sync'},
+  activity:{l:'Activity',i:'⚡',desc:'User actions & transactions'},
+  app:{l:'App & Updates',i:'📱',desc:'Software versions'},
+  server:{l:'Server',i:'☁️',desc:'Ledger services'}
+};
+function classifyDiag(dg){
+  const t=((dg&&dg.t)||'').toLowerCase();
+  const c=(dg&&dg.c)||'unknown';
+  if(c==='hardware'){
+    if(t.includes('rejected')||t.includes('refused'))return 'activity';
+    if(t.includes('blind signing'))return 'activity';
+    if(t.includes('firmware update failed')||t.includes('mcu already'))return 'app';
+    return 'connection';
+  }
+  if(c==='server')return 'server';
+  if(c==='software'){
+    if(t.includes('sync')||t.includes('price data')||t.includes('chart data')||t.includes('staking info')||t.includes('bridge init')||t.includes('account already'))return 'sync';
+    if(t.includes('insufficient')||t.includes('invalid address')||t.includes('nonce')||t.includes('gas estimation')||t.includes('speed-up')||t.includes('swap rate')||t.includes('deserialization')||t.includes('undelegation')||t.includes('congestion'))return 'activity';
+    if(t.includes('out of date')||t.includes('installation failed')||t.includes('password')||t.includes('invalid instruction')||t.includes('camera'))return 'app';
+    return 'sync';
+  }
+  return 'sync';
+}
 
 function errUrl(dg){const match=ERR_DB.find(r=>r.t===dg.t&&r.u);return match?match.u:null;}
 
@@ -7195,7 +7220,10 @@ function App(){
                     </div>}
                     {/* Diagnostic Priority Map */}
                     {(()=>{
-                      // Deduplicate errors by title, compute priority weight
+                      // ── Build findings from ALL data sources ──
+                      const findings=[];
+
+                      // A) Deduplicated errors → findings
                       const errMap=new Map();
                       for(const e of logData.errs){
                         const dg=e.dg||diagnose(e.raw);
@@ -7209,104 +7237,148 @@ function App(){
                               if(!linkedAccts.find(la=>la.addr===a.addr))linkedAccts.push({ticker:a.ch.ticker,color:a.ch.color,addr:a.addr,cid:a.cid,name:a.ch.name});
                             }
                           }
-                          errMap.set(key,{title:key,sev:dg.s,sevWeight,color:sc,count:0,cat:dg.c||'unknown',action:dg.a?llText(dg.a,logData.dev):'',linkedAccts,helpUrl:errUrl(dg),firstLi:e.li,firstTs:e.ts});
+                          errMap.set(key,{id:'err-'+key,title:key,sev:dg.s,color:sc,count:0,wfCat:classifyDiag(dg),category:(CAT[dg.c]||{l:dg.c||'Unknown'}).l,action:dg.a?llText(dg.a,logData.dev):'',linkedAccts,helpUrl:errUrl(dg),firstLi:e.li,firstTs:e.ts,sevWeight});
                         }
                         errMap.get(key).count++;
                       }
-                      const allItems=[...errMap.values()].map(e=>({...e,value:e.sevWeight*e.count}));
+                      for(const[,e] of errMap)findings.push({...e,value:e.sevWeight*e.count});
 
-                      // Extract categories present in data
-                      const cats=[...new Set(allItems.map(e=>e.cat))];
-                      const catCounts={};
-                      cats.forEach(c=>{catCounts[c]=allItems.filter(e=>e.cat===c).reduce((s,e)=>s+e.count,0);});
-                      const catMaxSev={};
-                      cats.forEach(c=>{const sevs=allItems.filter(e=>e.cat===c).map(e=>e.sev);catMaxSev[c]=sevs.includes('high')?'high':sevs.includes('medium')?'medium':'low';});
+                      // B) Firmware outdated → App & Updates
+                      if(firmwareCheck?.status==='ok'&&firmwareCheck.outdated&&firmwareCheck.latest){
+                        findings.push({id:'fw-outdated',title:`Firmware outdated: ${logData.dev.fw||'?'} → ${firmwareCheck.latest}`,sev:'medium',color:T.warning,count:1,wfCat:'app',category:'Firmware',action:'Update firmware via My Ledger.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:3,value:3});
+                      }
 
-                      // Apply category filter
-                      const filtered=diagCatFilter?allItems.filter(e=>e.cat===diagCatFilter):allItems;
+                      // C) Apps outdated/missing → App & Updates
+                      if(versionCheck?.status==='ok'&&versionCheck.apps){
+                        const outdated=versionCheck.apps.filter(a=>a.outdated===true);
+                        const missing=versionCheck.apps.filter(a=>a.installed===null&&a.required);
+                        if(outdated.length>0){
+                          findings.push({id:'apps-outdated',title:`${outdated.length} app${outdated.length>1?'s':''} outdated`,sev:'medium',color:T.warning,count:outdated.length,wfCat:'app',category:'Device Apps',action:'Update via My Ledger.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:2,value:2*outdated.length});
+                        }
+                        if(missing.length>0){
+                          findings.push({id:'apps-missing',title:`${missing.length} required app${missing.length>1?'s':''} not installed`,sev:'high',color:T.error,count:missing.length,wfCat:'app',category:'Device Apps',action:'Install via My Ledger.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:6,value:6*missing.length});
+                        }
+                      }
+
+                      // D) Desktop app outdated → App & Updates
+                      if(appVersionCheck?.status==='ok'&&appVersionCheck.outdated&&appVersionCheck.latest){
+                        findings.push({id:'app-outdated',title:`${llLabel(logData.dev)} outdated: ${appVersionCheck.current||'?'} → ${appVersionCheck.latest}`,sev:'medium',color:T.warning,count:1,wfCat:'app',category:'Desktop App',action:'Update to latest version.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:2,value:2});
+                      }
+
+                      // E) No sync data → Sync
+                      if(noSync&&logData.accts.length>0){
+                        findings.push({id:'no-sync',title:'No sync data captured',sev:'medium',color:T.warning,count:1,wfCat:'sync',category:'Sync Status',action:'Ask customer to sync and re-export.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:3,value:3});
+                      }
+
+                      // F) Network failures → Server
+                      if(netStats.fails>0){
+                        findings.push({id:'net-fails',title:`${netStats.fails} network failure${netStats.fails>1?'s':''}`,sev:netStats.fails>3?'medium':'low',color:netStats.fails>3?T.warning:'#8B84CC',count:netStats.fails,wfCat:'server',category:'Network',action:'Check connectivity and status.ledger.com.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:netStats.fails>3?3:1,value:Math.min(netStats.fails,5)});
+                      }
+
+                      // G) Swap not completed → Activity
+                      if(logData.activity?.swapBrowsed&&!logData.activity?.swapExecuted){
+                        findings.push({id:'swap-incomplete',title:'Swap browsed but not completed',sev:'low',color:'#8B84CC',count:1,wfCat:'activity',category:'User Activity',action:'Customer may have had a UX issue or price concern.',linkedAccts:[],helpUrl:null,firstLi:null,firstTs:null,sevWeight:1,value:1});
+                      }
+
+                      if(findings.length===0)return null;
+
+                      // ── Category analysis ──
+                      const wfCats=[...new Set(findings.map(f=>f.wfCat))];
+                      const wfCounts={};wfCats.forEach(c=>{wfCounts[c]=findings.filter(f=>f.wfCat===c).reduce((s,f)=>s+f.count,0);});
+                      const wfMaxSev={};wfCats.forEach(c=>{const sevs=findings.filter(f=>f.wfCat===c).map(f=>f.sev);wfMaxSev[c]=sevs.includes('high')?'high':sevs.includes('medium')?'medium':'low';});
+                      const wfTotalValue={};wfCats.forEach(c=>{wfTotalValue[c]=findings.filter(f=>f.wfCat===c).reduce((s,f)=>s+f.value,0);});
+
+                      // Apply filter
+                      const filtered=diagCatFilter?findings.filter(f=>f.wfCat===diagCatFilter):findings;
 
                       return <>
-                        {/* Category filter chips */}
-                        {cats.length>1&&<div style={{display:'flex',alignItems:'center',gap:5,flexShrink:0,padding:'6px 0',borderTop:`1px solid ${T.border}`,marginTop:6}}>
-                          <span style={{fontSize:9,color:T.muted,fontFamily:MF,letterSpacing:'0.06em',flexShrink:0}}>FILTER</span>
+                        {/* Workflow category filter chips */}
+                        <div style={{display:'flex',alignItems:'center',gap:5,flexShrink:0,padding:'6px 0',borderTop:`1px solid ${T.border}`,marginTop:6}}>
                           <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                             <span onClick={()=>setDiagCatFilter(null)}
-                              style={{padding:'3px 8px',borderRadius:4,fontSize:10,fontWeight:600,cursor:'pointer',transition:I.fast,fontFamily:MF,letterSpacing:'0.04em',
+                              style={{padding:'3px 10px',borderRadius:4,fontSize:10,fontWeight:600,cursor:'pointer',transition:I.fast,fontFamily:MF,letterSpacing:'0.04em',
                                 background:!diagCatFilter?T.primary+'20':'rgba(255,255,255,0.04)',
                                 color:!diagCatFilter?T.primary:T.muted,
                                 border:`1px solid ${!diagCatFilter?T.primary+'50':T.border}`,
                               }}
-                              onMouseEnter={e=>{if(diagCatFilter)e.currentTarget.style.borderColor=T.primary;}}
+                              onMouseEnter={e=>{if(diagCatFilter)e.currentTarget.style.borderColor=T.primary+'60';}}
                               onMouseLeave={e=>{if(diagCatFilter)e.currentTarget.style.borderColor=T.border;}}
-                            >All ({allItems.reduce((s,e)=>s+e.count,0)})</span>
-                            {cats.sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[catMaxSev[b]]||0)-(r[catMaxSev[a]]||0)||(catCounts[b]||0)-(catCounts[a]||0);}).map(cat=>{
-                              const ci=CAT[cat]||{l:cat,i:'•'};
+                            >All</span>
+                            {wfCats.sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[wfMaxSev[b]]||0)-(r[wfMaxSev[a]]||0)||(wfTotalValue[b]||0)-(wfTotalValue[a]||0);}).map(cat=>{
+                              const ci=DIAG_WF[cat]||{l:cat,i:'•'};
                               const isActive=diagCatFilter===cat;
-                              const chipColor=isActive?(catMaxSev[cat]==='high'?T.error:catMaxSev[cat]==='medium'?T.warning:'#8B84CC'):T.muted;
+                              const chipSevColor=wfMaxSev[cat]==='high'?T.error:wfMaxSev[cat]==='medium'?T.warning:'#8B84CC';
+                              const chipColor=isActive?chipSevColor:T.muted;
                               return <span key={cat} onClick={()=>setDiagCatFilter(isActive?null:cat)}
-                                style={{padding:'3px 8px',borderRadius:4,fontSize:10,fontWeight:600,cursor:'pointer',transition:I.fast,fontFamily:MF,letterSpacing:'0.04em',display:'inline-flex',alignItems:'center',gap:3,
+                                style={{padding:'3px 10px',borderRadius:4,fontSize:10,fontWeight:600,cursor:'pointer',transition:I.fast,fontFamily:MF,letterSpacing:'0.04em',display:'inline-flex',alignItems:'center',gap:4,
                                   background:isActive?chipColor+'20':'rgba(255,255,255,0.04)',
                                   color:isActive?chipColor:T.muted,
                                   border:`1px solid ${isActive?chipColor+'50':T.border}`,
                                 }}
-                                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.borderColor=chipColor;e.currentTarget.style.color=chipColor;}}}
+                                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.borderColor=chipSevColor+'60';e.currentTarget.style.color=chipSevColor;}}}
                                 onMouseLeave={e=>{if(!isActive){e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}}
-                              >{ci.i} {ci.l} ({catCounts[cat]})</span>;
+                                title={ci.desc}
+                              >{ci.i} {ci.l} <span style={{opacity:0.6}}>({wfCounts[cat]})</span></span>;
                             })}
                           </div>
-                        </div>}
+                        </div>
 
                         {/* Treemap container */}
-                        <div ref={diagTreemapRef} style={{flex:1,position:'relative',borderRadius:8,overflow:'hidden',background:T.bg,border:'1px solid rgba(255,255,255,0.06)',minHeight:80,marginTop:cats.length>1?6:8}}>
+                        <div ref={diagTreemapRef} style={{flex:1,position:'relative',borderRadius:8,overflow:'hidden',background:T.bg,border:'1px solid rgba(255,255,255,0.06)',minHeight:80,marginTop:6}}>
                           {filtered.length>0&&diagTmSize.w>20&&diagTmSize.h>20&&(()=>{
                             const rects=squarify(filtered.sort((a,b)=>b.value-a.value),{x:0,y:0,w:diagTmSize.w,h:diagTmSize.h});
                             return rects.map(rect=>{
-                              const e=rect;
+                              const f=rect;
                               const bw=rect.w-2,bh=rect.h-2;
                               const showTitle=bw>80&&bh>30;
                               const showMeta=bw>100&&bh>50;
                               const showAccts=bw>80&&bh>70;
-                              const sevLabel=e.sev==='high'?'CRIT':e.sev==='medium'?'WARN':'INFO';
-                              const errRelevant=focusedAcct?e.linkedAccts.some(la=>la.addr===focusedAcct.addr&&la.cid===focusedAcct.cid):true;
-                              return <div key={e.title}
+                              const sevLabel=f.sev==='high'?'CRIT':f.sev==='medium'?'WARN':'INFO';
+                              const wfLabel=(DIAG_WF[f.wfCat]||{i:'•'}).i;
+                              const errRelevant=focusedAcct?(f.linkedAccts.length===0||f.linkedAccts.some(la=>la.addr===focusedAcct.addr&&la.cid===focusedAcct.cid)):true;
+                              return <div key={f.id}
                                 onClick={()=>{
-                                  if(e.linkedAccts.length>0){
-                                    const la=e.linkedAccts[0];
+                                  if(f.linkedAccts.length>0){
+                                    const la=f.linkedAccts[0];
                                     setFocusedAcct({addr:la.addr,cid:la.cid,ticker:la.ticker,name:la.name,color:la.color});
                                   }
-                                  setSection('errors');
-                                  setSelectedErr(e.firstLi);
+                                  if(f.firstLi!=null){setSection('errors');setSelectedErr(f.firstLi);}
+                                  else if(f.wfCat==='app')setSection('overview');
+                                  else if(f.wfCat==='sync')setSection('accounts');
+                                  else if(f.wfCat==='server')setSection('network');
+                                  else setSection('errors');
                                 }}
                                 style={{
                                   position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,
-                                  background:e.color+'18',
-                                  borderLeft:`3px solid ${e.color}`,
+                                  background:f.color+'18',
+                                  borderLeft:`3px solid ${f.color}`,
                                   borderRadius:4,cursor:'pointer',overflow:'hidden',
                                   transition:'left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease, background-color 0.15s ease',
                                   opacity:errRelevant?1:0.15,
                                   display:'flex',flexDirection:'column',justifyContent:'center',
                                   padding:'4px 8px',boxSizing:'border-box',
                                 }}
-                                onMouseEnter={ev=>{ev.currentTarget.style.background=e.color+'30';ev.currentTarget.style.boxShadow=`inset 0 0 20px ${e.color}25, 0 0 12px ${e.color}15`;}}
-                                onMouseLeave={ev=>{ev.currentTarget.style.background=e.color+'18';ev.currentTarget.style.boxShadow='none';}}
-                                title={`${sevLabel}: ${e.title}\n${e.count}× · ${(CAT[e.cat]||{l:e.cat}).l}${e.action?'\nAction: '+e.action:''}`}
+                                onMouseEnter={ev=>{ev.currentTarget.style.background=f.color+'30';ev.currentTarget.style.boxShadow=`inset 0 0 20px ${f.color}25, 0 0 12px ${f.color}15`;}}
+                                onMouseLeave={ev=>{ev.currentTarget.style.background=f.color+'18';ev.currentTarget.style.boxShadow='none';}}
+                                title={`${sevLabel}: ${f.title}\n${f.count>1?f.count+'× · ':''}${f.category}${f.action?'\nAction: '+f.action:''}`}
                               >
                                 {showTitle&&<div style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
-                                  <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:e.color+'30',color:e.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
-                                  {e.count>1&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,flexShrink:0}}>×{e.count}</span>}
-                                  {e.helpUrl&&<a href={e.helpUrl} target="_blank" rel="noopener" onClick={ev=>ev.stopPropagation()} style={{fontSize:9,color:T.orange,textDecoration:'none',lineHeight:1,flexShrink:0}} title="Help article">📄</a>}
+                                  <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:f.color+'30',color:f.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
+                                  {f.count>1&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:f.color,flexShrink:0}}>×{f.count}</span>}
+                                  <span style={{fontSize:9,flexShrink:0}}>{wfLabel}</span>
+                                  {f.helpUrl&&<a href={f.helpUrl} target="_blank" rel="noopener" onClick={ev=>ev.stopPropagation()} style={{fontSize:9,color:T.orange,textDecoration:'none',lineHeight:1,flexShrink:0}} title="Help article">📄</a>}
                                 </div>}
-                                {showTitle&&<div style={{fontSize:11,fontWeight:600,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.3}}>{e.title}</div>}
-                                {showMeta&&<div style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2,letterSpacing:'0.04em'}}>{(CAT[e.cat]||{l:e.cat}).l}</div>}
-                                {showAccts&&e.linkedAccts.length>0&&<div style={{display:'flex',alignItems:'center',gap:3,marginTop:3}}>
-                                  {e.linkedAccts.slice(0,4).map((la,j)=><span key={j} style={{width:6,height:6,borderRadius:'50%',background:la.color,flexShrink:0}} title={la.ticker}/>)}
-                                  {e.linkedAccts.length>4&&<span style={{fontSize:8,color:T.muted}}>+{e.linkedAccts.length-4}</span>}
+                                {showTitle&&<div style={{fontSize:11,fontWeight:600,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.3}}>{f.title}</div>}
+                                {showMeta&&<div style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2,letterSpacing:'0.04em'}}>{f.category}</div>}
+                                {showAccts&&f.linkedAccts.length>0&&<div style={{display:'flex',alignItems:'center',gap:3,marginTop:3}}>
+                                  {f.linkedAccts.slice(0,4).map((la,j)=><span key={j} style={{width:6,height:6,borderRadius:'50%',background:la.color,flexShrink:0}} title={la.ticker}/>)}
+                                  {f.linkedAccts.length>4&&<span style={{fontSize:8,color:T.muted}}>+{f.linkedAccts.length-4}</span>}
                                 </div>}
-                                {!showTitle&&bw>30&&bh>16&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,letterSpacing:'0.06em'}}>{sevLabel}{e.count>1?' ×'+e.count:''}</span>}
+                                {!showTitle&&bw>30&&bh>16&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:f.color,letterSpacing:'0.06em'}}>{sevLabel}{f.count>1?' ×'+f.count:''}</span>}
                               </div>;
                             });
                           })()}
-                          {filtered.length===0&&<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:T.muted,fontSize:12}}>No {diagCatFilter?(CAT[diagCatFilter]||{l:diagCatFilter}).l:''} errors</div>}
+                          {filtered.length===0&&<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:T.muted,fontSize:12}}>No {diagCatFilter?(DIAG_WF[diagCatFilter]||{l:diagCatFilter}).l:''} findings</div>}
                         </div>
                       </>;
                     })()}
