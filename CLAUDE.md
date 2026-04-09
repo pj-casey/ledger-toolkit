@@ -11,7 +11,7 @@ Single-file React/Babel app (`ledger-toolkit.html`) for CS agents to diagnose cu
 
 ## Architecture
 
-- **ONE file**: `ledger-toolkit.html` (~7,600 lines)
+- **ONE file**: `ledger-toolkit.html` (~8,477 lines)
 - React 18.3.1 + Babel standalone 7.26.10, bitcoinjs-lib 5.2.0, bs58 4.0.1, buffer 6.0.3
 - No build step — opens directly in browser
 - **Fixed viewport** — root is `height:100vh, overflow:hidden`. The page never scrolls. Each view fills available space with a fixed header zone + scrollable content panel.
@@ -330,7 +330,8 @@ Fixed-viewport master-detail panel inside Customer View. Requires `appJson` to b
 **State:** `selectedId` (active finding), `copiedId` (copy feedback), `viewMode` ('issues'|'all')
 
 **Unified findings engine (`useMemo`):** Produces a flat `findings[]` array sorted red→amber→green combining:
-- **Per-account findings:** For each enriched account with `ajBalance`, compares customer's cached balance to live on-chain. Flags mismatches >0.01% as 'red', log-error-only as 'amber', matches as 'green'. Each finding: `{id, kind:'account', severity, title, custBal, custFiat, liveBal, liveFiat, liveMarketFiat, delta, deltaFiat, snapshotDate, daysSinceSnapshot, rateLabel, badges, detail, action, navigate, evidence, _acctCid, ...}`
+- **Per-account findings (`kind:'account'`):** For each enriched account with `ajBalance`, compares customer's cached balance to live on-chain. Flags mismatches >0.01% as 'red', log-error-only as 'amber', matches as 'green'. Each finding: `{id, kind:'account', severity, title, custBal, custFiat, liveBal, liveFiat, liveMarketFiat, delta, deltaFiat, snapshotDate, daysSinceSnapshot, rateLabel, badges, detail, action, navigate, evidence, _acctCid, _isDrained, _ajOps, _addr, _displayName, _ch, _custFiatForDrain, ...}`
+- **Drain summary finding (`kind:'drain'`):** Cross-account aggregation — inserted at top of findings via `f.unshift()` when one or more accounts are flagged `isDrained`. `isDrained` = live balance dropped >90% vs cached, account had real value, and sub-account fiat sum <50% of account fiat (liquid staking guard). Single drain → "DRAIN DETECTED"; 2+ drains → "SEED COMPROMISE". Detail panel: red header, escalation box, staking chain warning (STAKING_APY lookup), fund flow diagram (3-col layout, TX_EXPLORERS + CHAINS explorer links), per-account breakdown, forensic copy report.
 - **System findings (`kind:'system'`):** Countervalue drift (>2% cache vs market), firmware status, device app status, desktop/mobile app version, developer mode warning, log error summary, data confidence.
 
 **Layout:** 2-row header + 4 stat cards + health dots strip + master-detail (left 38% list / right 62% detail panel).

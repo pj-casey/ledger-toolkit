@@ -5998,6 +5998,7 @@ function App(){
   const[acctSort,setAcctSort]=useState('fiat');
   const[sortDropOpen,setSortDropOpen]=useState(false);
   const[tmSize,setTmSize]=useState({w:300,h:400});
+  const[diagTmSize,setDiagTmSize]=useState({w:300,h:300});
   const[hoveredTmRect,setHoveredTmRect]=useState(null);
   const[qualityOpen,setQualityOpen]=useState(false);
   const[otherAppsOpen,setOtherAppsOpen]=useState(false);
@@ -6056,6 +6057,7 @@ function App(){
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
   const acctTreemapRef=React.useRef(null);
+  const diagTreemapRef=React.useRef(null);
   const acctScrollRef=React.useRef(null);
   const hoverTimeoutRef=React.useRef(null);
   const[tlBrush,setTlBrush]=useState(null);
@@ -6142,6 +6144,16 @@ function App(){
     ro.observe(el);
     return()=>ro.disconnect();
   },[section]);
+  useEffect(()=>{
+    const el=diagTreemapRef.current;
+    if(!el)return;
+    const ro=new ResizeObserver(entries=>{
+      const r=entries[0]?.contentRect;
+      if(r)setDiagTmSize({w:r.width,h:r.height});
+    });
+    ro.observe(el);
+    return()=>ro.disconnect();
+  },[logData]);
 
   useEffect(()=>{
     setQualityOpen(false);
@@ -6826,206 +6838,165 @@ function App(){
                   </div>
                 </div>);
               })()}
-              {/* Device status line */}
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10,fontSize:13,letterSpacing:'0.01em'}}>
-                <span style={{color:devColor,fontWeight:600}}>{devLabel}</span>
-                <span style={{color:T.muted}}>·</span>
-                <span style={{color:fwColor,fontWeight:600}}>{fwLabel}</span>
-                <span style={{color:T.muted}}>·</span>
-                <span style={{color:appsColor,fontWeight:600}}>{appsLabel}</span>
-                <span style={{color:T.muted}}>·</span>
-                <span style={{color:syncColor,fontWeight:600}}>{syncLabel}</span>
-                {logData.isMobile&&<><span style={{color:T.muted}}>·</span><span style={{background:T.primary+'22',color:T.primary,padding:'1px 6px',borderRadius:4,fontSize:10,fontWeight:700}}>MOBILE</span></>}
-              </div>
-              {/* Stat cards + copy buttons */}
-              <div style={{position:'relative'}}>
-                <div style={{...purposeLabel,marginBottom:4}}>Diagnostics · click to navigate</div>
-                <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:8}}>
-                  <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,flex:1}}>
-                    {[
-                      {l:'Issues',
-                       v:logData.errs.length===0?'None':(highCount>0?`${highCount} critical`:medCount>0?`${medCount} warning`:`${logData.errs.length} low`),
-                       c:logData.errs.length===0?T.success:highCount>0?T.error:medCount>0?T.warning:'#8B84CC',
-                       click:()=>setSection('errors'),
-                       hero:true},
-                      {l:noSync?'Accounts ⚠':'Accounts',
-                       v:logData.accts.length,
-                       c:logData.accts.length>0?(noSync?T.warning:T.success):T.muted,
-                       click:()=>setSection('accounts')},
-                      {l:'Network',
-                       v:netStats.total===0?'0 calls':`${netStats.fails} failures`,
-                       c:netStats.total===0?T.muted:netStats.fails>0?T.error:T.success,
-                       click:()=>setSection('network')},
-                      {l:'Log Quality',
-                       v:logData.quality?`${logData.quality.score}/100`:'—',
-                       c:logData.quality?logData.quality.color:T.muted,
-                       click:()=>setQualityOpen(o=>!o)}
-                    ].map(s=>(
-                      <div key={s.l}
-                        className={s.click?'stat-card':undefined}
-                        onClick={s.click||undefined}
-                        style={{
-                          background:T.card,borderRadius:8,border:`1px solid ${I.interactiveBorder}`,
-                          padding:s.hero?'clamp(12px, 1.8vh, 20px)':'clamp(10px, 1.5vh, 16px)',
-                          textAlign:'center',cursor:s.click?'pointer':'default',
-                          transition:I.fast,
-                          borderLeft:s.hero?`3px solid ${s.c}`:'none',
-                          borderBottom:`3px solid ${s.c}40`,
-                          borderTop:'1px solid rgba(255,255,255,0.05)',
+              {/* Action bar */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:6,marginBottom:10}}>
+                {logData.accts.length>0&&<div data-focus-drop style={{position:'relative',flexShrink:0}}>
+                  <button onClick={()=>setFocusDropOpen(o=>!o)} style={{
+                    display:'inline-flex',alignItems:'center',gap:6,
+                    padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:700,
+                    background:focusedAcct?focusedAcct.color+'25':T.primary+'20',
+                    border:`1px solid ${focusedAcct?focusedAcct.color+'60':T.primary+'50'}`,
+                    color:focusedAcct?focusedAcct.color:T.primary,
+                    cursor:'pointer',transition:I.fast,
+                  }}>
+                    <><span style={{fontSize:14}}>◎</span> Focus investigation</>
+                    <span style={{fontSize:10,opacity:0.7}}>{focusDropOpen?'▾':'▸'}</span>
+                  </button>
+                  {focusDropOpen&&<div style={{
+                    position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:30,
+                    background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
+                    boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:280,maxHeight:340,overflowY:'auto',
+                  }}>
+                    <div style={{padding:'8px 12px 4px',fontSize:10,fontWeight:600,color:T.muted}}>
+                      {focusedAcct?'Switch focus':'Select an account to investigate'}
+                    </div>
+                    {logData.accts.map(a=>{
+                      const lb=liveBalances[a.id];
+                      const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
+                      const isFocused=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;
+                      const errCount=errByAccount[a.addr]||0;
+                      return <div key={a.id}
+                        onClick={()=>{
+                          if(isFocused){setFocusedAcct(null);}
+                          else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}
+                          setFocusDropOpen(false);
                         }}
-                        onMouseEnter={e=>{if(s.click)e.currentTarget.style.background=s.c+'12';}}
-                        onMouseLeave={e=>{e.currentTarget.style.background=T.card;}}
+                        style={{
+                          display:'flex',alignItems:'center',gap:8,padding:'8px 12px',
+                          cursor:'pointer',transition:I.fast,
+                          background:isFocused?a.ch.color+'15':'transparent',
+                          borderLeft:isFocused?`3px solid ${a.ch.color}`:'3px solid transparent',
+                        }}
+                        onMouseEnter={e=>{if(!isFocused)e.currentTarget.style.background=I.hover;}}
+                        onMouseLeave={e=>{e.currentTarget.style.background=isFocused?a.ch.color+'15':'transparent';}}
                       >
-                        <div className="stat-value" style={{color:s.c}}>{s.v}</div>
-                        <div style={{fontFamily:"'JetBrains Mono','SF Mono',Consolas,monospace",fontSize:'var(--ov-stat-label)',color:T.muted,marginTop:4,lineHeight:1.4,letterSpacing:'0.06em'}}>{s.l}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{display:'flex',gap:6,flexShrink:0,paddingTop:4,alignItems:'flex-start'}}>
-                    <div style={{display:'flex',flexDirection:'column',gap:4,flexShrink:0}}>
-                    {logData.accts.length>0&&<div data-focus-drop style={{position:'relative',flexShrink:0}}>
-                      <button onClick={()=>setFocusDropOpen(o=>!o)} style={{
-                        display:'inline-flex',alignItems:'center',gap:6,
-                        padding:'8px 16px',borderRadius:6,fontSize:12,fontWeight:700,
-                        background:focusedAcct?focusedAcct.color+'25':T.primary+'20',
-                        border:`1px solid ${focusedAcct?focusedAcct.color+'60':T.primary+'50'}`,
-                        color:focusedAcct?focusedAcct.color:T.primary,
-                        cursor:'pointer',transition:I.fast,
-                      }}>
-                        <><span style={{fontSize:14}}>◎</span> Focus investigation</>
-                        <span style={{fontSize:10,opacity:0.7}}>{focusDropOpen?'▾':'▸'}</span>
-                      </button>
-                      {focusDropOpen&&<div style={{
-                        position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:30,
-                        background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
-                        boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:280,maxHeight:340,overflowY:'auto',
-                      }}>
-                        <div style={{padding:'8px 12px 4px',fontSize:10,fontWeight:600,color:T.muted}}>
-                          {focusedAcct?'Switch focus':'Select an account to investigate'}
-                        </div>
-                        {logData.accts.map(a=>{
-                          const lb=liveBalances[a.id];
-                          const hasFunds=a.ops>0||(lb&&lb.status==='ok'&&lb.bal>0);
-                          const isFocused=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;
-                          const errCount=errByAccount[a.addr]||0;
-                          return <div key={a.id}
-                            onClick={()=>{
-                              if(isFocused){setFocusedAcct(null);}
-                              else{setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});}
-                              setFocusDropOpen(false);
-                            }}
-                            style={{
-                              display:'flex',alignItems:'center',gap:8,padding:'8px 12px',
-                              cursor:'pointer',transition:I.fast,
-                              background:isFocused?a.ch.color+'15':'transparent',
-                              borderLeft:isFocused?`3px solid ${a.ch.color}`:'3px solid transparent',
-                            }}
-                            onMouseEnter={e=>{if(!isFocused)e.currentTarget.style.background=I.hover;}}
-                            onMouseLeave={e=>{e.currentTarget.style.background=isFocused?a.ch.color+'15':'transparent';}}
-                          >
-                            <span style={{width:10,height:10,borderRadius:2,background:hasFunds?a.ch.color:a.ch.color+'50',flexShrink:0}}/>
-                            <span style={{flex:1,fontSize:12,fontWeight:isFocused?700:500,color:isFocused?a.ch.color:T.text}}>{a.ch.name}</span>
-                            <span className="mono" style={{fontSize:10,color:T.muted}}>{a.ch.ticker}</span>
-                            {lb&&lb.fiat>0&&<span className="mono" style={{fontSize:10,color:T.success}}>${lb.fiat<1000?lb.fiat.toFixed(0):Math.round(lb.fiat).toLocaleString()}</span>}
-                            {errCount>0&&<span style={{fontSize:9,fontWeight:700,color:T.error,background:'rgba(228,0,70,0.15)',padding:'1px 5px',borderRadius:4}}>⚠{errCount}</span>}
-                            {isFocused&&<span style={{fontSize:9,fontWeight:700,color:a.ch.color}}>✓</span>}
-                          </div>;
-                        })}
-                        {focusedAcct&&<div
-                          onClick={()=>{setFocusedAcct(null);setFocusDropOpen(false);}}
-                          style={{padding:'8px 12px',borderTop:`1px solid ${T.border}`,cursor:'pointer',fontSize:11,fontWeight:600,color:T.muted,textAlign:'center'}}
-                          onMouseEnter={e=>e.currentTarget.style.background=I.hover}
-                          onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-                        >Clear focus</div>}
-                      </div>}
-                    </div>}
-                    <div data-copy-drop style={{position:'relative',flexShrink:0}}>
-                      <button onClick={()=>setCopyOpen(o=>!o)} style={{
-                        display:'inline-flex',alignItems:'center',gap:6,
-                        padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,
-                        background:'rgba(255,255,255,0.04)',
-                        border:`1px solid ${T.border}`,
-                        color:T.muted,cursor:'pointer',transition:I.fast,
-                      }}
-                      onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}
-                      >
-                        <span style={{fontSize:12}}>📋</span> Copy report
-                        <span style={{fontSize:10,opacity:0.7}}>{copyOpen?'▾':'▸'}</span>
-                      </button>
-                      {copyOpen&&<div style={{
-                        position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:30,
-                        background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
-                        boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:220,
-                      }}>
-                        <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:T.success}}
-                          onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
-                          onMouseLeave={e=>e.currentTarget.style.background='none'}>
-                          <div style={{fontWeight:600}}>Quick Summary</div>
-                          <div style={{color:'#949494',fontSize:10}}>for ticket notes</div>
-                        </button>
-                        <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
-                          onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
-                          onMouseLeave={e=>e.currentTarget.style.background='none'}>
-                          <div style={{fontWeight:600}}>Full Export</div>
-                          <div style={{color:'#949494',fontSize:10}}>for escalation</div>
-                        </button>
-                        {logData.accts.length>0&&(
-                          <button onClick={()=>{copyText(buildCustomerText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:T.orange}}
-                            onMouseEnter={e=>e.currentTarget.style.background='rgba(255,83,0,0.06)'}
-                            onMouseLeave={e=>e.currentTarget.style.background='none'}>
-                            <div style={{fontWeight:600}}>Customer Summary</div>
-                            <div style={{color:'#949494',fontSize:10}}>account-focused</div>
-                          </button>
-                        )}
-                        {logData.errs.length>0&&(
-                          <button onClick={()=>{copyText(buildErrorText(logData));setCopyOpen(false);}} style={{...dropItemStyle,borderBottom:'none',borderLeftColor:'#E40046'}}
-                            onMouseEnter={e=>e.currentTarget.style.background='rgba(228,0,70,0.06)'}
-                            onMouseLeave={e=>e.currentTarget.style.background='none'}>
-                            <div style={{fontWeight:600}}>Copy Errors</div>
-                            <div style={{color:'#949494',fontSize:10}}>all errors with actions</div>
-                          </button>
-                        )}
-                      </div>}
-                    </div>
-                    </div>
-                    <button onClick={()=>openGuide('agent')} title="Agent Guide" style={{
-                      padding:'6px 10px',borderRadius:6,fontSize:12,fontWeight:600,
-                      background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,
-                      color:T.muted,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,
-                    }}>
-                      <span style={{fontSize:13}}>📖</span>
+                        <span style={{width:10,height:10,borderRadius:2,background:hasFunds?a.ch.color:a.ch.color+'50',flexShrink:0}}/>
+                        <span style={{flex:1,fontSize:12,fontWeight:isFocused?700:500,color:isFocused?a.ch.color:T.text}}>{a.ch.name}</span>
+                        <span className="mono" style={{fontSize:10,color:T.muted}}>{a.ch.ticker}</span>
+                        {lb&&lb.fiat>0&&<span className="mono" style={{fontSize:10,color:T.success}}>${lb.fiat<1000?lb.fiat.toFixed(0):Math.round(lb.fiat).toLocaleString()}</span>}
+                        {errCount>0&&<span style={{fontSize:9,fontWeight:700,color:T.error,background:'rgba(228,0,70,0.15)',padding:'1px 5px',borderRadius:4}}>⚠{errCount}</span>}
+                        {isFocused&&<span style={{fontSize:9,fontWeight:700,color:a.ch.color}}>✓</span>}
+                      </div>;
+                    })}
+                    {focusedAcct&&<div
+                      onClick={()=>{setFocusedAcct(null);setFocusDropOpen(false);}}
+                      style={{padding:'8px 12px',borderTop:`1px solid ${T.border}`,cursor:'pointer',fontSize:11,fontWeight:600,color:T.muted,textAlign:'center'}}
+                      onMouseEnter={e=>e.currentTarget.style.background=I.hover}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                    >Clear focus</div>}
+                  </div>}
+                </div>}
+                <div data-copy-drop style={{position:'relative',flexShrink:0}}>
+                  <button onClick={()=>setCopyOpen(o=>!o)} style={{
+                    display:'inline-flex',alignItems:'center',gap:6,
+                    padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,
+                    background:'rgba(255,255,255,0.04)',
+                    border:`1px solid ${T.border}`,
+                    color:T.muted,cursor:'pointer',transition:I.fast,
+                  }}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}
+                  >
+                    <span style={{fontSize:12}}>📋</span> Copy report
+                    <span style={{fontSize:10,opacity:0.7}}>{copyOpen?'▾':'▸'}</span>
+                  </button>
+                  {copyOpen&&<div style={{
+                    position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:30,
+                    background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,
+                    boxShadow:'0 8px 24px rgba(0,0,0,0.5)',minWidth:220,
+                  }}>
+                    <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:T.success}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                      <div style={{fontWeight:600}}>Quick Summary</div>
+                      <div style={{color:'#949494',fontSize:10}}>for ticket notes</div>
                     </button>
-                  </div>
+                    <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:'#BBB0FF'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.06)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                      <div style={{fontWeight:600}}>Full Export</div>
+                      <div style={{color:'#949494',fontSize:10}}>for escalation</div>
+                    </button>
+                    {logData.accts.length>0&&(
+                      <button onClick={()=>{copyText(buildCustomerText(logData,liveBalances));setCopyOpen(false);}} style={{...dropItemStyle,borderLeftColor:T.orange}}
+                        onMouseEnter={e=>e.currentTarget.style.background='rgba(255,83,0,0.06)'}
+                        onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                        <div style={{fontWeight:600}}>Customer Summary</div>
+                        <div style={{color:'#949494',fontSize:10}}>account-focused</div>
+                      </button>
+                    )}
+                    {logData.errs.length>0&&(
+                      <button onClick={()=>{copyText(buildErrorText(logData));setCopyOpen(false);}} style={{...dropItemStyle,borderBottom:'none',borderLeftColor:'#E40046'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='rgba(228,0,70,0.06)'}
+                        onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                        <div style={{fontWeight:600}}>Copy Errors</div>
+                        <div style={{color:'#949494',fontSize:10}}>all errors with actions</div>
+                      </button>
+                    )}
+                  </div>}
                 </div>
-                {/* Quality popover */}
-                {logData.quality&&qualityOpen&&(()=>{
-                  const q=logData.quality;
-                  return <div data-quality-popover style={{position:'absolute',top:'calc(100% + 8px)',right:0,width:340,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',padding:'12px 16px',zIndex:20}}>
-                    {q.details.map((det,i)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
-                        <span style={{width:16,flexShrink:0,color:det.found?T.success:T.error,fontWeight:700}}>{det.found?'✓':'✗'}</span>
-                        <span style={{flex:1,color:T.text,fontWeight:600}}>{det.field}</span>
-                        <span className="mono" style={{color:T.muted}}>{det.note}</span>
-                      </div>
-                    ))}
-                    {logData.isMobile&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${T.border}`,fontSize:11,color:T.muted,lineHeight:1.5}}>Mobile logs typically score 50–65 due to reduced metadata. This is expected — mobile exports don't include analytics, OS details, or user IDs.</div>}
-                  </div>;
-                })()}
+                <button onClick={()=>openGuide('agent')} title="Agent Guide" style={{
+                  padding:'6px 10px',borderRadius:6,fontSize:12,fontWeight:600,
+                  background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,
+                  color:T.muted,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,
+                }}>
+                  <span style={{fontSize:13}}>📖</span>
+                </button>
               </div>
-              {/* Triage banner */}
-              <div style={{display:'flex',alignItems:'center',gap:12,padding:'8px 16px',marginTop:8,borderRadius:6,background:triageBanner.color+'0D',border:`1px solid ${triageBanner.color}20`,borderLeft:`3px solid ${triageBanner.color}`}}>
-                <span style={{width:8,height:8,borderRadius:'50%',background:triageBanner.color,flexShrink:0}}/>
-                <span style={{fontSize:12,color:T.text,flex:1,lineHeight:1.4}}>{triageBanner.text}</span>
-                {triageBanner.action&&triageBanner.go&&(
-                  <span onClick={triageBanner.go} style={{fontFamily:MF,fontSize:10,fontWeight:600,color:triageBanner.color,cursor:'pointer',flexShrink:0,letterSpacing:'0.04em',padding:'3px 10px',borderRadius:4,background:triageBanner.color+'15',border:`1px solid ${triageBanner.color}30`,whiteSpace:'nowrap'}}>{triageBanner.action}</span>
-                )}
-                {triageBanner.action&&!triageBanner.go&&(
-                  <span style={{fontFamily:MF,fontSize:10,color:T.muted,flexShrink:0,letterSpacing:'0.04em'}}>{triageBanner.action}</span>
-                )}
+              {/* Triage row */}
+              <div style={{background:T.card,borderRadius:8,border:`1px solid ${I.interactiveBorder}`,borderLeft:`3px solid ${triageBanner.color}`,padding:'12px 16px',position:'relative',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:triageBanner.color,flexShrink:0}}/>
+                  <span style={{fontSize:13,color:T.text,flex:1,lineHeight:1.4,fontWeight:500}}>{triageBanner.text}</span>
+                  {triageBanner.action&&triageBanner.go&&(
+                    <span onClick={triageBanner.go} style={{fontFamily:MF,fontSize:10,fontWeight:600,color:triageBanner.color,cursor:'pointer',flexShrink:0,letterSpacing:'0.04em',padding:'4px 12px',borderRadius:4,background:triageBanner.color+'15',border:`1px solid ${triageBanner.color}30`,whiteSpace:'nowrap'}}>{triageBanner.action}</span>
+                  )}
+                  {triageBanner.action&&!triageBanner.go&&(
+                    <span style={{fontFamily:MF,fontSize:10,color:T.muted,flexShrink:0,letterSpacing:'0.04em'}}>{triageBanner.action}</span>
+                  )}
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                  <span onClick={()=>setSection('errors')} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',background:errColor+'15',color:errColor,border:`1px solid ${errColor}25`,transition:I.fast,fontFamily:MF,letterSpacing:'0.03em'}} onMouseEnter={e=>e.currentTarget.style.background=errColor+'25'} onMouseLeave={e=>e.currentTarget.style.background=errColor+'15'}>
+                    ⚠ {errLabel}
+                  </span>
+                  <span onClick={()=>setSection('accounts')} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',background:(logData.accts.length>0?(noSync?T.warning:T.success):T.muted)+'15',color:logData.accts.length>0?(noSync?T.warning:T.success):T.muted,border:`1px solid ${logData.accts.length>0?(noSync?T.warning:T.success):T.muted}25`,transition:I.fast,fontFamily:MF,letterSpacing:'0.03em'}} onMouseEnter={e=>e.currentTarget.style.opacity='0.8'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+                    {logData.accts.length} account{logData.accts.length!==1?'s':''}{noSync?' ⚠':''}
+                  </span>
+                  <span onClick={()=>setSection('network')} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',background:(netStats.total===0?T.muted:netStats.fails>0?T.error:T.success)+'15',color:netStats.total===0?T.muted:netStats.fails>0?T.error:T.success,border:`1px solid ${netStats.total===0?T.muted:netStats.fails>0?T.error:T.success}25`,transition:I.fast,fontFamily:MF,letterSpacing:'0.03em'}} onMouseEnter={e=>e.currentTarget.style.opacity='0.8'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+                    {netStats.total===0?'0 calls':netStats.fails>0?`${netStats.fails} net fail${netStats.fails!==1?'s':''}`:netStats.total+' net ok'}
+                  </span>
+                  <div data-quality-badge style={{position:'relative',display:'inline-flex'}}>
+                    <span onClick={()=>setQualityOpen(o=>!o)} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',background:(logData.quality&&logData.quality.score<60?T.warning:T.muted)+'15',color:logData.quality&&logData.quality.score<60?T.warning:T.muted,border:`1px solid ${logData.quality&&logData.quality.score<60?T.warning:T.muted}25`,transition:I.fast,fontFamily:MF,letterSpacing:'0.03em'}} onMouseEnter={e=>e.currentTarget.style.opacity='0.8'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+                      📊 {logData.quality?logData.quality.score+'/100':'—'}
+                    </span>
+                    {logData.quality&&qualityOpen&&(()=>{
+                      const q=logData.quality;
+                      return <div data-quality-popover style={{position:'absolute',top:'calc(100% + 8px)',right:0,width:340,background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.5)',padding:'12px 16px',zIndex:20}}>
+                        {q.details.map((det,i)=>(
+                          <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:`1px solid ${T.border}`,fontSize:12}}>
+                            <span style={{width:16,flexShrink:0,color:det.found?T.success:T.error,fontWeight:700}}>{det.found?'✓':'✗'}</span>
+                            <span style={{flex:1,color:T.text,fontWeight:600}}>{det.field}</span>
+                            <span className="mono" style={{color:T.muted}}>{det.note}</span>
+                          </div>
+                        ))}
+                        {logData.isMobile&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${T.border}`,fontSize:11,color:T.muted,lineHeight:1.5}}>Mobile logs typically score 50–65 due to reduced metadata. This is expected — mobile exports don't include analytics, OS details, or user IDs.</div>}
+                      </div>;
+                    })()}
+                  </div>
+                  {logData.isMobile&&<span style={{background:T.primary+'22',color:T.primary,padding:'2px 6px',borderRadius:4,fontSize:10,fontWeight:700}}>MOBILE</span>}
+                  {(()=>{const act=logData.activity||{};const items=[];if(act.managerOpened)items.push('Manager');if(act.swapBrowsed)items.push(act.swapExecuted?'Swap':'Swap (incomplete)');if(act.deviceScan)items.push('Device scan');if(!items.length)return null;return<><span style={{color:'rgba(255,255,255,0.15)',margin:'0 2px'}}>|</span><span style={{fontSize:10,color:T.muted,fontStyle:'italic'}}>{items.join(' · ')}</span></>;})()}
+                </div>
               </div>
-              {/* Activity badges */}
-              {(()=>{const act=logData.activity||{};const badges=[];if(act.managerOpened)badges.push({k:'mgr',l:'Manager opened',c:T.primary});if(act.swapBrowsed)badges.push({k:'swap',l:act.swapExecuted?'Swap browsed':'Swap browsed (not completed)',c:T.primary});if(act.deviceScan)badges.push({k:'dmk',l:'Device scan active',c:T.success});if(!badges.length)return null;return <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{badges.map(b=><span key={b.k} style={{...bdg(b.c),fontSize:'var(--ov-fs-xs)',padding:'3px 10px',letterSpacing:'0.04em'}}>{b.l}</span>)}</div>;})()}
             </div>
 
             {/* Zone 2: Middle content — adaptive layout */}
@@ -7221,31 +7192,74 @@ function App(){
                         {!topAcct&&logData.accts.length>0&&<>For account details, open <span style={{color:T.primary,cursor:'pointer',fontWeight:600}} onClick={()=>setSection('accounts')}>Accounts</span>.</>}
                       </span>
                     </div>}
-                    {/* Issues panel — adaptive grid, no scroll */}
-                    <div style={{flex:1,overflow:'hidden',borderTop:`1px solid ${T.border}`,padding:'10px 4px 0'}}>
-                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',gap:'var(--ov-gap-chips, 5px)',overflow:'hidden',alignContent:'start'}}>
-                        {[...logData.errs].sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[(b.dg||{}).s]||0)-(r[(a.dg||{}).s]||0);}).slice(0,12).map(e=>{
-                          const dg=e.dg||{};
-                          const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#8B84CC';
-                          const linkedAcct=logData.accts.find(a=>a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase()));
-                          const errRelevant=focusedAcct?((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(focusedAcct.addr.toLowerCase()):true;
-                          return <div key={e.li} onClick={()=>{if(linkedAcct){setFocusedAcct({addr:linkedAcct.addr,cid:linkedAcct.cid,ticker:linkedAcct.ch.ticker,name:linkedAcct.ch.name,color:linkedAcct.ch.color});}setSection('errors');setSelectedErr(e.li);}} style={{padding:'clamp(6px, 0.8vh, 10px)',background:'transparent',borderRadius:6,cursor:'pointer',borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:`3px solid ${sc}`,overflow:'hidden',transition:I.fast,display:'flex',flexDirection:'column',gap:2,opacity:errRelevant?1:0.12}} onMouseEnter={ev=>ev.currentTarget.style.background='rgba(255,255,255,0.04)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
-                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
-                              <span style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',fontWeight:700,padding:'1px 5px',borderRadius:4,background:sc+'22',color:sc,letterSpacing:'0.06em',flexShrink:0}}>{dg.s==='high'?'CRIT':dg.s==='medium'?'WARN':'INFO'}</span>
-                              <div style={{display:'flex',alignItems:'center',gap:4}}>
-                                {errUrl(dg)&&<a href={errUrl(dg)} target="_blank" rel="noopener" onClick={ev=>ev.stopPropagation()} style={{fontSize:10,color:T.orange,textDecoration:'none',lineHeight:1}} title="Help article">📄</a>}
-                                <span style={{fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,flexShrink:0}} className="mono">{fmtTime(e.ts)}</span>
-                              </div>
-                            </div>
-                            <div style={{fontSize:'var(--ov-fs-sm, 11px)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.t||'Unknown error'}</div>
-                            <div style={{fontFamily:MF,fontSize:'var(--ov-fs-xs, 10px)',color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',letterSpacing:'0.04em'}}>{dg.c||'—'}</div>
-                            {linkedAcct&&<div style={{display:'flex',alignItems:'center',gap:4,marginTop:1}}>
-                              <span style={{width:6,height:6,borderRadius:'50%',background:linkedAcct.ch.color,flexShrink:0}}/>
-                              <span style={{fontSize:9,fontWeight:700,color:linkedAcct.ch.color}}>{linkedAcct.ch.ticker}</span>
+                    {/* Diagnostic Priority Map — squarify treemap */}
+                    <div ref={diagTreemapRef} style={{flex:1,position:'relative',borderTop:`1px solid ${T.border}`,borderRadius:8,overflow:'hidden',background:T.bg,minHeight:80,marginTop:8}}>
+                      {(()=>{
+                        if(diagTmSize.w<20||diagTmSize.h<20)return null;
+                        const errMap=new Map();
+                        for(const e of logData.errs){
+                          const dg=e.dg||diagnose(e.raw);
+                          const key=dg.t||e.msg||'Unknown';
+                          if(!errMap.has(key)){
+                            const sevWeight=dg.s==='high'?9:dg.s==='medium'?3:1;
+                            const sc=dg.s==='high'?T.error:dg.s==='medium'?T.warning:'#8B84CC';
+                            const linkedAccts=[];
+                            for(const a of logData.accts){
+                              if(a.addr&&a.addr.length>8&&((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase().includes(a.addr.toLowerCase())){
+                                linkedAccts.push({ticker:a.ch.ticker,color:a.ch.color,addr:a.addr,cid:a.cid,name:a.ch.name});
+                              }
+                            }
+                            errMap.set(key,{title:key,sev:dg.s,sevWeight,color:sc,count:0,category:dg.c||'—',action:dg.a?llText(dg.a,logData.dev):'',linkedAccts,helpUrl:errUrl(dg),firstLi:e.li,firstTs:e.ts});
+                          }
+                          errMap.get(key).count++;
+                        }
+                        const items=[...errMap.values()].map(e=>({...e,value:e.sevWeight*e.count}));
+                        if(items.length===0)return null;
+                        const rects=squarify(items.sort((a,b)=>b.value-a.value),{x:0,y:0,w:diagTmSize.w,h:diagTmSize.h});
+                        return rects.map((rect,i)=>{
+                          const e=rect;
+                          const bw=rect.w-2,bh=rect.h-2;
+                          const showTitle=bw>80&&bh>30;
+                          const showMeta=bw>100&&bh>50;
+                          const showAccts=bw>80&&bh>70;
+                          const sevLabel=e.sev==='high'?'CRIT':e.sev==='medium'?'WARN':'INFO';
+                          const errRelevant=focusedAcct?e.linkedAccts.some(la=>la.addr===focusedAcct.addr&&la.cid===focusedAcct.cid):true;
+                          return <div key={e.title}
+                            onClick={()=>{
+                              if(e.linkedAccts.length>0){
+                                const la=e.linkedAccts[0];
+                                setFocusedAcct({addr:la.addr,cid:la.cid,ticker:la.ticker,name:la.name,color:la.color});
+                              }
+                              setSection('errors');
+                              setSelectedErr(e.firstLi);
+                            }}
+                            style={{
+                              position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,margin:1,
+                              background:e.color+'18',
+                              borderLeft:`3px solid ${e.color}`,
+                              borderRadius:4,cursor:'pointer',overflow:'hidden',
+                              transition:I.fast,opacity:errRelevant?1:0.15,
+                              display:'flex',flexDirection:'column',justifyContent:'center',
+                              padding:'4px 8px',boxSizing:'border-box',
+                            }}
+                            onMouseEnter={ev=>{ev.currentTarget.style.background=e.color+'30';ev.currentTarget.style.boxShadow=`inset 0 0 20px ${e.color}25`;}}
+                            onMouseLeave={ev=>{ev.currentTarget.style.background=e.color+'18';ev.currentTarget.style.boxShadow='none';}}
+                            title={`${sevLabel}: ${e.title}\n${e.count}× · ${e.category}${e.action?'\nAction: '+e.action:''}`}
+                          >
+                            {showTitle&&<div style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
+                              <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:e.color+'30',color:e.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
+                              {e.count>1&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,flexShrink:0}}>×{e.count}</span>}
                             </div>}
+                            {showTitle&&<div style={{fontSize:11,fontWeight:600,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.3}}>{e.title}</div>}
+                            {showMeta&&<div style={{fontFamily:MF,fontSize:9,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2,letterSpacing:'0.04em'}}>{e.category}</div>}
+                            {showAccts&&e.linkedAccts.length>0&&<div style={{display:'flex',alignItems:'center',gap:3,marginTop:3}}>
+                              {e.linkedAccts.slice(0,3).map((la,j)=><span key={j} style={{width:6,height:6,borderRadius:'50%',background:la.color,flexShrink:0}}/>)}
+                              {e.linkedAccts.length>3&&<span style={{fontSize:8,color:T.muted}}>+{e.linkedAccts.length-3}</span>}
+                            </div>}
+                            {!showTitle&&bw>30&&bh>16&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:e.color,letterSpacing:'0.06em'}}>{sevLabel}{e.count>1?' ×'+e.count:''}</span>}
                           </div>;
-                        })}
-                      </div>
+                        });
+                      })()}
                     </div>
                   </div>
                 </div>;
