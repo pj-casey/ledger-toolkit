@@ -6767,9 +6767,8 @@ function App(){
             if(noSync){
               return{color:T.muted,text:`No sync captured — accounts show addresses only. ${logData.isMobile?'Mobile logs don\'t include balances.':'Ask customer for app.json.'}`,action:'Open Accounts →',go:()=>setSection('accounts')};
             }
-            const chains=[...new Set(logData.accts.map(a=>a.ch.name))];
             const infoCount=errs.length;
-            return{color:T.success,text:`${infoCount>0?infoCount+' informational event'+(infoCount>1?'s':'')+' (routine)':'Clean session'} · ${logData.accts.length} account${logData.accts.length!==1?'s':''} across ${chains.length} chain${chains.length!==1?'s':''}`,action:logData.accts.length>0?'Open Accounts →':null,go:logData.accts.length>0?()=>setSection('accounts'):null};
+            return{color:T.success,text:infoCount>0?`${infoCount} informational event${infoCount>1?'s':''} logged (routine)`:'Clean session — no issues detected',action:logData.accts.length>0?'Open Accounts →':null,go:logData.accts.length>0?()=>setSection('accounts'):null};
           })();
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
 
@@ -7258,11 +7257,6 @@ function App(){
                 </div>
                 {/* Right: session profile */}
                 <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
-                  {/* Clean session confirmation */}
-                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'rgba(122,194,108,0.08)',border:'1px solid rgba(122,194,108,0.2)',borderRadius:6,marginBottom:12,flexShrink:0}}>
-                    <span style={{color:T.success,fontSize:14,flexShrink:0}}>✓</span>
-                    <span style={{fontSize:12,color:'#CCCCCC',fontWeight:600}}>No issues detected</span>
-                  </div>
                   {/* Chain ecosystem */}
                   {logData.accts.length>0&&<div style={{background:T.bg,border:`1px solid ${I.interactiveBorder}`,borderRadius:8,padding:'12px 16px',marginBottom:12,flexShrink:0}}>
                     <div style={{...purposeLabel,marginBottom:8,opacity:0.5}}>Customer ecosystem · click to explore</div>
@@ -7270,7 +7264,7 @@ function App(){
                       {(()=>{
                         const chainMap=new Map();
                         for(const a of logData.accts){const key=a.ch.name;if(!chainMap.has(key))chainMap.set(key,{chain:a.ch,count:0,funded:0});const c=chainMap.get(key);c.count++;if(a.ops>0||(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0))c.funded++;}
-                        return[...chainMap.values()].sort((a,b)=>b.funded-a.funded||b.count-a.count).map(({chain,count,funded})=>(
+                        const sorted=[...chainMap.values()].sort((a,b)=>b.funded-a.funded||b.count-a.count);const visible=sorted.slice(0,10);const overflow=sorted.length-visible.length;return<>{visible.map(({chain,count,funded})=>(
                           <div key={chain.name} onClick={()=>setSection('accounts')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:6,cursor:'pointer',background:chain.color+'15',border:`1px solid ${chain.color}25`,transition:I.fast}}
                             onMouseEnter={e=>e.currentTarget.style.background=chain.color+'25'}
                             onMouseLeave={e=>e.currentTarget.style.background=chain.color+'15'}>
@@ -7279,7 +7273,7 @@ function App(){
                             {count>1&&<span style={{fontFamily:MF,fontSize:10,color:T.muted}}>×{count}</span>}
                             {funded>0&&<span style={{fontFamily:MF,fontSize:9,color:T.success}}>active</span>}
                           </div>
-                        ));
+                        ))}{overflow>0&&<div onClick={()=>setSection('accounts')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:6,cursor:'pointer',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,transition:I.fast,fontSize:12,fontWeight:600,color:T.muted}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>+{overflow} more chain{overflow!==1?'s':''} →</div>}</>;
                       })()}
                     </div>
                     <div style={{fontSize:11,color:T.muted}}>
@@ -7309,11 +7303,6 @@ function App(){
                       </div>
                     </div>;
                   })()}
-                  {/* Navigation buttons */}
-                  {logData.accts.length>0&&<div style={{display:'flex',gap:8,marginTop:12,flexShrink:0}}>
-                    <span onClick={()=>setSection('accounts')} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.primary+'15',color:T.primary,border:`1px solid ${T.primary}30`,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>Open Accounts →</span>
-                    <span onClick={()=>setSection('timeline')} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:'transparent',color:T.muted,border:`1px solid ${T.border}`,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>View Timeline →</span>
-                  </div>}
                 </div>
               </div>;
             })()}
