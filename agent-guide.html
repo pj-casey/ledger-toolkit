@@ -127,7 +127,6 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 </style>
 </head>
 <body>
-<!-- Hero -->
 <div class="hero">
   <svg class="hero-logo" width="120" height="100" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="white"/>
@@ -146,6 +145,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
       <a href="#quick-start"><span class="toc-icon">⚡</span> Quick Start</a>
       <a href="#playbook"><span class="toc-icon">🎯</span> Investigation Playbook</a>
       <a class="indent" href="#s-balance">"My balance is wrong"</a>
+      <a class="indent" href="#s-drain">"I was hacked / drained"</a>
       <a class="indent" href="#s-tx">"My transaction failed"</a>
       <a class="indent" href="#s-device">"My device won't connect"</a>
       <a class="indent" href="#s-crash">"The app crashes"</a>
@@ -226,6 +226,16 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
   <p><strong>In Customer View:</strong> Load the customer's <kbd>app.json</kbd> and go to <strong>Agent Insights</strong>. The dashboard compares what the customer sees to live on-chain balances and flags discrepancies. Check the staking card — if the customer has staked funds, the "missing" balance is likely frozen, not lost. Use the <strong>Earn</strong> tab to see their staking positions and validator details.</p>
   <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
+</div>
+
+<h3 id="s-drain">"My account was drained / I think I was hacked"</h3>
+<div class="card">
+  <p><strong>Start here:</strong> Switch to <span class="badge badge-purple">Customer View</span> and load the customer's <kbd>app.json</kbd>. Go to <strong>Agent Insights</strong>. If accounts have been drained, a red <strong>DRAIN DETECTED</strong> or <strong>SEED COMPROMISE</strong> finding will appear at the top of the list automatically.</p>
+  <p><strong>What you'll see:</strong> The drain finding shows total estimated loss, which accounts were emptied, and a <strong>fund flow diagram</strong> showing where the money went — victim accounts on the left, attacker addresses on the right, with transaction links between them. When multiple chains converge on the same destination address, it's highlighted as the attacker's collection wallet.</p>
+  <p><strong>"Funds sent to" section:</strong> Lists every destination address that received the stolen funds. Each address has a <strong>copy button</strong> and a direct <strong>explorer link</strong> — click to verify on the blockchain. This is what law enforcement needs.</p>
+  <p><strong>Copy the drain report:</strong> Click <strong>"Copy drain report for escalation"</strong> at the bottom of the drain detail panel. This produces a formatted report with: customer identity, each drained account with before/after balances, every drain transaction hash with explorer links, and all destination addresses. Paste it into your escalation ticket.</p>
+  <p><strong>Escalation procedure:</strong> The tool provides specific guidance in the action box. For multi-chain drains (seed compromise): advise the customer to stop using the seed phrase immediately, set up a new device with a new seed, and file a police report.</p>
+  <div class="warn">If the drain finding shows a staking warning (amber 🥩 box), verify on the block explorer before escalating — the balance drop may be from recent staking, not theft. The explorer link is right there in the finding.</div>
 </div>
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
@@ -379,7 +389,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><strong>Adaptive Dimming:</strong> Everything not related to your focused account dims to 25% — tiles, account cards, sidebar rows, error strip segments, Overview error tiles. Your investigation path stays bright. The focused tile gently pulses so you always know which account you're looking at.</p>
   <p><strong>EVM precision:</strong> For EVM chains sharing the same address (Ethereum + L2s like Polygon, Arbitrum, Base), focus is chain-specific. Focusing Ethereum shows only Ethereum activity — Polygon and Arbitrum stay dim even though they share the address.</p>
   <p><strong>How to clear:</strong> Click the <strong>✕</strong> on the sidebar focus indicator, press <kbd>Escape</kbd>, click ✕ on the Context Ribbon, or Shift+click the same tile again.</p>
-  <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See Technical Reference → Account Focus System for implementation details.</em></div>
+  <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See the Technical Reference (🔬 button on the landing page) for implementation details.</em></div>
 </div>
 
 <h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
@@ -473,6 +483,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
     <li><strong>"Copy to clipboard"</strong> — copies a formatted summary for pasting into your ticket.</li>
   </ul>
   <div class="tip">Agent Insights uses the customer's cached countervalue rate for BOTH columns in the comparison. This means the fiat delta purely reflects balance changes, not price movement. If you see a fiat difference, the crypto balance actually changed.</div>
+  <p><strong>Drain detection:</strong> When an account's balance has dropped more than 90% and was worth real money, Agent Insights classifies it as <strong>DRAINED</strong> instead of "Balance changed." If two or more accounts are drained, a <strong>SEED COMPROMISE</strong> alert appears at the top of the findings list with a fund flow diagram, attacker addresses, and a one-click drain report for escalation. See the playbook entry <a href="#s-drain" style="color:var(--primary)">"My account was drained"</a> for the investigation workflow.</p>
 </div>
 
 <h3 id="staking-awareness">Staking awareness<span class="new-badge">New</span></h3>
@@ -578,5 +589,6 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <p>The log didn't capture sync information. This is normal for mobile logs and very short desktop sessions. The accounts are real — they just have no operation history in this log. Live blockchain balances are your primary reference. See the <a href="#no-sync" style="color:var(--primary)">No-Sync Visibility</a> section for details.</p>
 
 </div>
+
 </body>
 </html>
