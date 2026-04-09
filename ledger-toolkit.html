@@ -3014,7 +3014,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
     if(!chains.some(ch=>!TOKEN_CHAINS_FETCHED.has(ch)))return;
     fetchTokenChains(chains).then(hadNew=>{if(hadNew)setTokV(v=>v+1);});
   },[open]);
-  const ch=acct.ch,hasFunds=acct.ops>0;
+  const ch=acct.ch,liveFunded=liveBalance&&liveBalance.status==='ok'&&liveBalance.bal>0,hasFunds=acct.ops>0||liveFunded;
   const noSyncAcct=acct.dur==null&&acct.bal==null&&acct.ops===0;
   let eUrl=null;try{eUrl=ch.url?.(acct.addr);}catch{}
   const hasExp=eUrl&&eUrl!=='#';
@@ -3056,13 +3056,13 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontWeight:600,fontSize:15}}>{ch.name}</span>
           {acct.toks.length>0&&<span style={bdg(T.primary)}>{acct.toks.length} token{acct.toks.length>1?'s':''}</span>}
-          {hasFunds?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span style={bdg(T.muted)}>{acct.dur!=null||acct.bal!=null?'empty':'no data'}</span>}
+          {hasFunds?(acct.ops>0?<span style={bdg(T.success)}>{acct.ops} ops</span>:<span className="mono" style={bdg(T.success)}>{liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}{liveBalance.fiat!=null?' · $'+liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):''}</span>):<span style={bdg(T.muted)}>{acct.dur!=null||acct.bal!=null?'empty':'no data'}</span>}
           {errCount>0&&<span onClick={ev=>{ev.stopPropagation();if(onErrClick)onErrClick();}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:'rgba(228,0,70,0.15)',color:T.error,cursor:'pointer'}} title="View issues for this account">⚠ {errCount} issue{errCount!==1?'s':''}</span>}
           {appBadge}
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
           {liveBalance?.status==='loading'&&<span className="mono" style={{fontSize:11,color:T.muted,opacity:0.6}}>live ···</span>}
-          {liveBalance?.status==='ok'&&liveBalance.bal!=null&&<span className="mono" style={{fontSize:11,color:T.success,fontWeight:600}}>{liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}{liveBalance.fiat!=null?' · $'+liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):''}</span>}
+          {acct.ops>0&&liveBalance?.status==='ok'&&liveBalance.bal!=null&&<span className="mono" style={{fontSize:11,color:T.success,fontWeight:600}}>{liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}{liveBalance.fiat!=null?' · $'+liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):''}</span>}
         </div>
         <div className="mono" style={{color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
       </div>
@@ -5624,7 +5624,7 @@ function buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCh
 }
 function buildCustomerText(logData,liveBalances){
   const dev=logData.dev;const accts=logData.accts;const errs=logData.errs;
-  const funded=accts.filter(a=>a.ops>0);const empty=accts.filter(a=>a.ops<=0);
+  const funded=accts.filter(a=>a.ops>0||(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0));const empty=accts.filter(a=>a.ops<=0&&!(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0));
   const noSyncTxt=accts.length>0&&!accts.some(a=>a.dur!=null||a.bal!=null);
   const lines=['=== Customer Wallet Summary ===',
     ...(noSyncTxt?['⚠ NO SYNC DATA — operation counts and log balances are unavailable.','  Live blockchain balances shown where available.','']:[]),
@@ -5714,8 +5714,8 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
   );
 
   // Accounts split
-  const fundedAccts = accounts.filter(a => a.ops > 0);
-  const emptyAccts = accounts.filter(a => a.ops <= 0);
+  const fundedAccts = accounts.filter(a => a.ops > 0 || (liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0));
+  const emptyAccts = accounts.filter(a => a.ops <= 0 && !(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0));
   const errorsForAcct = (acct) => errors.filter(e =>
     e.raw && (
       (e.raw.message || '').toLowerCase().includes(acct.cid) ||
@@ -5772,7 +5772,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
             </div>}
             <div style={{display:'flex',justifyContent:'space-between'}}>
               <span style={{color:T.muted}}>Operations</span>
-              <span style={{fontFamily:MF,fontWeight:600,color:acct.ops>0?T.text:T.muted}}>{acct.ops||0}</span>
+              <span style={{fontFamily:MF,fontWeight:600,color:acct.ops>0?T.text:T.muted}}>{acct.ops||0}{acct.ops===0&&hasBal&&<span style={{fontWeight:400,fontSize:9,marginLeft:4}}>(log only)</span>}</span>
             </div>
             {errCount>0&&<div style={{display:'flex',justifyContent:'space-between'}}>
               <span style={{color:T.muted}}>Errors</span>
@@ -7269,7 +7269,7 @@ function App(){
                     <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
                       {(()=>{
                         const chainMap=new Map();
-                        for(const a of logData.accts){const key=a.ch.name;if(!chainMap.has(key))chainMap.set(key,{chain:a.ch,count:0,funded:0});const c=chainMap.get(key);c.count++;if(a.ops>0)c.funded++;}
+                        for(const a of logData.accts){const key=a.ch.name;if(!chainMap.has(key))chainMap.set(key,{chain:a.ch,count:0,funded:0});const c=chainMap.get(key);c.count++;if(a.ops>0||(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0))c.funded++;}
                         return[...chainMap.values()].sort((a,b)=>b.funded-a.funded||b.count-a.count).map(({chain,count,funded})=>(
                           <div key={chain.name} onClick={()=>setSection('accounts')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:6,cursor:'pointer',background:chain.color+'15',border:`1px solid ${chain.color}25`,transition:I.fast}}
                             onMouseEnter={e=>e.currentTarget.style.background=chain.color+'25'}
@@ -7283,7 +7283,7 @@ function App(){
                       })()}
                     </div>
                     <div style={{fontSize:11,color:T.muted}}>
-                      {logData.accts.filter(a=>a.ops>0).length} funded · {logData.accts.filter(a=>a.ops===0).length} empty/no-data · {[...new Set(logData.accts.map(a=>a.ch.name))].length} chain{[...new Set(logData.accts.map(a=>a.ch.name))].length!==1?'s':''}
+                      {logData.accts.filter(a=>a.ops>0||(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0)).length} funded · {logData.accts.filter(a=>{const lb=liveBalances[a.id];return a.ops===0&&!(lb&&lb.status==='ok'&&lb.bal>0);}).length} empty/no-data · {[...new Set(logData.accts.map(a=>a.ch.name))].length} chain{[...new Set(logData.accts.map(a=>a.ch.name))].length!==1?'s':''}
                     </div>
                   </div>}
                   {/* Session activity */}
@@ -7631,7 +7631,7 @@ function App(){
         {section==='accounts'&&<div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
           {/* Top bar: stats + action buttons */}
           <div style={{flexShrink:0,padding:'16px 24px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',background:'transparent'}}>
-            <div style={{fontSize:12,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{(()=>{const funded=logData.accts.filter(a=>a.ops>0).length;const withSync=logData.accts.filter(a=>a.ops===0&&(a.dur!=null||a.bal!=null)).length;const noData=logData.accts.filter(a=>a.ops===0&&a.dur==null&&a.bal==null).length;const parts=[];if(funded)parts.push(`${funded} funded`);if(withSync)parts.push(`${withSync} empty`);if(noData)parts.push(`${noData} no data`);return parts.join(' · ')||'0 accounts';})()}</div>
+            <div style={{fontSize:12,color:T.muted,fontFamily:MF,letterSpacing:'0.04em'}}>{(()=>{const funded=logData.accts.filter(a=>a.ops>0||(liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0)).length;const withSync=logData.accts.filter(a=>{const lb=liveBalances[a.id];const lf=lb&&lb.status==='ok'&&lb.bal>0;return a.ops===0&&!lf&&(a.dur!=null||a.bal!=null);}).length;const noData=logData.accts.filter(a=>{const lb=liveBalances[a.id];const lf=lb&&lb.status==='ok'&&lb.bal>0;return a.ops===0&&!lf&&a.dur==null&&a.bal==null;}).length;const parts=[];if(funded)parts.push(`${funded} funded`);if(withSync)parts.push(`${withSync} empty`);if(noData)parts.push(`${noData} no data`);return parts.join(' · ')||'0 accounts';})()}</div>
             <div style={{display:'flex',gap:6}}>
               {logData.dev.accountIds&&logData.dev.accountIds.length>0&&<button onClick={()=>copyText(logData.dev.accountIds.join('\n'))} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.Copy/> Copy all IDs ({logData.dev.accountIds.length})</button>}
               <button onClick={()=>downloadJSON(logData.accts.map(a=>({id:a.id,chain:a.ch.name,address:a.addr,derivation:a.dm,ops:a.ops})),'accounts.json')} style={{padding:'6px 14px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><Ico.DL/> Export</button>
@@ -7643,6 +7643,7 @@ function App(){
               ? <div style={{flexShrink:0,padding:'0 24px 8px'}}><div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'10px 16px',fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0}}>💡</span><span>Mobile logs don't include operation counts or balances. Accounts show chains and addresses only. Switch to <span onClick={()=>setViewMode('customer')} style={{color:T.primary,fontWeight:600,cursor:'pointer'}}>Customer View</span> and load the customer's app.json for full account details.</span></div></div>
               : <div style={{flexShrink:0,padding:'0 24px 8px'}}><div style={{background:'rgba(255,189,66,0.10)',border:'1px solid rgba(255,189,66,0.25)',borderLeft:`3px solid ${T.warning}`,borderRadius:8,padding:'10px 16px',fontSize:12,color:T.warning,lineHeight:1.6}}>⚠ No sync activity captured in this log — operation counts may show as 0. Ask the customer to export logs after triggering a manual sync (right-click an account → Sync). For exact balances, switch to Customer View and load the customer's app.json.</div></div>
           )}
+          {(()=>{const noSyncShown=logData.accts.length>0&&!logData.accts.some(a=>a.dur!=null)&&!logData.sync;if(noSyncShown)return null;const opsZeroLiveFunded=logData.accts.filter(a=>a.ops===0&&liveBalances[a.id]&&liveBalances[a.id].status==='ok'&&liveBalances[a.id].bal>0).length;if(opsZeroLiveFunded===0)return null;return <div style={{flexShrink:0,padding:'0 24px 8px'}}><div style={{background:'rgba(187,176,255,0.06)',border:'1px solid rgba(187,176,255,0.15)',borderRadius:8,padding:'8px 16px',fontSize:12,color:T.muted,lineHeight:1.6,display:'flex',alignItems:'flex-start',gap:8}}><span style={{flexShrink:0,fontSize:11}}>ℹ</span><span>{opsZeroLiveFunded} account{opsZeroLiveFunded!==1?'s show':' shows'} 0 operations in the log but {opsZeroLiveFunded!==1?'have':'has'} on-chain balances. Live blockchain data is displayed where available.</span></div></div>;})()}
           {/* Two-panel body */}
           <div style={{flex:1,display:'flex',overflow:'hidden'}}>
             {/* LEFT PANEL: Treemap */}
@@ -7742,7 +7743,7 @@ function App(){
                     {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
                   </div>}
                   {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:6}}>Loading balance···</div>}
-                  {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'Empty account'}</div>}
+                  {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'No operations in log'}</div>}
                   {nd&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>No sync data</div>}
                   {a.dm&&<div style={{marginBottom:6}}><span className="mono" style={{fontSize:10,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:4}}>{a.dm}</span></div>}
                   <div style={{display:'flex',flexWrap:'wrap',gap:4,fontSize:10,borderTop:`1px solid ${T.border}`,paddingTop:8,marginTop:2}}>
