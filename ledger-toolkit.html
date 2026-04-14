@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net; connect-src https://api.tzkt.io https://api.mainnet-beta.solana.com https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net; connect-src https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
 <title>Ledger Diagnostic Toolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1593,7 +1593,7 @@ const BALANCE_APIS={
   litecoin:addr=>new Promise((res,rej)=>UTXO_NETS.LTC.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   dogecoin:addr=>new Promise((res,rej)=>UTXO_NETS.DOGE.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   bitcoin_cash:addr=>new Promise((res,rej)=>UTXO_NETS.BCH.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
-  solana:async addr=>{const r=await fetch('https://api.mainnet-beta.solana.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'getBalance',params:[addr],id:1})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result.value/1e9;},
+  solana:async addr=>{const r=await fetch('https://solana-rpc.publicnode.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'getBalance',params:[addr],id:1})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result.value/1e9;},
   tezos:async addr=>{const r=await fetch(`https://api.tzkt.io/v1/accounts/${encodeURIComponent(addr)}/balance`);const t=await r.text();return Number(t)/1e6;},
   ripple:async addr=>{const r=await fetch('https://xrplcluster.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'account_info',params:[{account:addr,ledger_index:'validated'}]})});const j=await r.json();return Number(j.result.account_data.Balance)/1e6;},
   stellar:async addr=>{const r=await fetch(`https://horizon.stellar.org/accounts/${encodeURIComponent(addr)}`);const j=await r.json();const n=j.balances?.find(b=>b.asset_type==='native');return n?Number(n.balance):0;},
@@ -3128,7 +3128,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
           {liveBalance?.status==='loading'&&<span className="mono" style={{fontSize:11,color:T.muted,opacity:0.6}}>live ···</span>}
-          {liveBalance?.status==='error'&&<span className="mono" style={{fontSize:11,color:T.error,opacity:0.8}} title={liveBalance.err||'Balance fetch failed'}>live ✕</span>}
+          {liveBalance?.status==='error'&&<span style={{fontSize:10,color:T.error,opacity:0.8}} title={liveBalance.err||'Could not reach blockchain'}>balance check failed</span>}
           {acct.ops>0&&liveBalance?.status==='ok'&&liveBalance.bal!=null&&<span className="mono" style={{fontSize:11,color:T.success,fontWeight:600}}>{liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}{liveBalance.fiat!=null?' · $'+liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):''}</span>}
         </div>
         <div className="mono" style={{color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
@@ -5847,7 +5847,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
               <span style={{fontFamily:MF,fontWeight:700,color:T.error}}>{errCount}</span>
             </div>}
             {noSync&&<div style={{fontSize:10,color:T.warning,fontStyle:'italic',marginTop:2}}>No sync data</div>}
-            {lbError&&<div style={{fontSize:10,color:T.error,fontStyle:'italic',marginTop:2}} title={lb.err||'Fetch failed'}>Live balance unavailable</div>}
+            {lbError&&<div style={{fontSize:10,color:T.error,fontStyle:'italic',marginTop:2}} title={lb.err||'Could not reach blockchain'}>Balance check failed</div>}
           </div>
           {/* Quick actions */}
           <div style={{display:'flex',flexDirection:'column',gap:4}}>
