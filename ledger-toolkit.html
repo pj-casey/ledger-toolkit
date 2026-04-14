@@ -3128,6 +3128,7 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
           {acct.isXpub&&<span style={bdg(ch.color)}>xpub</span>}
           {acct.bal!=null&&<span className="mono" style={{fontSize:11,color:T.muted}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:8})}</span>}
           {liveBalance?.status==='loading'&&<span className="mono" style={{fontSize:11,color:T.muted,opacity:0.6}}>live ···</span>}
+          {liveBalance?.status==='error'&&<span className="mono" style={{fontSize:11,color:T.error,opacity:0.8}} title={liveBalance.err||'Balance fetch failed'}>live ✕</span>}
           {acct.ops>0&&liveBalance?.status==='ok'&&liveBalance.bal!=null&&<span className="mono" style={{fontSize:11,color:T.success,fontWeight:600}}>{liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {ch.ticker}{liveBalance.fiat!=null?' · $'+liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):''}</span>}
         </div>
         <div className="mono" style={{color:T.muted,marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr}</div>
@@ -5813,6 +5814,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
         const hasBal=lb&&lb.status==='ok'&&lb.bal!=null;
         const hasFiat=lb&&lb.fiat>0;
         const noSync=acct.dur==null&&acct.bal==null;
+        const lbError=lb&&lb.status==='error';
         const c=focusedAcct.color;
         return <div style={{background:`linear-gradient(180deg, ${c}15 0%, ${c}08 60%, transparent 100%)`,borderBottom:`1px solid ${c}30`,padding:'14px 14px 10px',flexShrink:0,animation:'focusEngage 0.4s ease-out','--focus-color':c+'12'}}>
           {/* Header: chain identity */}
@@ -5845,6 +5847,7 @@ function DiagSidebar({ logData, section, setSection, liveBalances, focusedAcct, 
               <span style={{fontFamily:MF,fontWeight:700,color:T.error}}>{errCount}</span>
             </div>}
             {noSync&&<div style={{fontSize:10,color:T.warning,fontStyle:'italic',marginTop:2}}>No sync data</div>}
+            {lbError&&<div style={{fontSize:10,color:T.error,fontStyle:'italic',marginTop:2}} title={lb.err||'Fetch failed'}>Live balance unavailable</div>}
           </div>
           {/* Quick actions */}
           <div style={{display:'flex',flexDirection:'column',gap:4}}>
@@ -7609,7 +7612,7 @@ function App(){
                         const tipW=220;
                         const left=tlHoveredBucket.x+tipW>tlHoveredBucket.cw?Math.max(0,tlHoveredBucket.x-tipW):tlHoveredBucket.x;
                         return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
-                          <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(bTime).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
+                          <div className="mono" style={{color:T.muted,marginBottom:4}}>{isNaN(bTime)?'—':fmtTime(new Date(bTime).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
                           <div style={{display:'flex',flexDirection:'column',gap:2}}>
                             {topTypes.map(([tp,ct])=>(
                               <div key={tp} style={{display:'flex',alignItems:'center',gap:5}}>
@@ -7910,6 +7913,7 @@ function App(){
                     {lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {a.ch.ticker}{lb.fiat!=null&&lb.fiat>0?<span style={{color:T.muted,fontWeight:400,marginLeft:6}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span>:''}
                   </div>}
                   {lb&&lb.status==='loading'&&<div className="mono" style={{fontSize:11,color:T.muted,marginBottom:6}}>Loading balance···</div>}
+                  {lb&&lb.status==='error'&&<div className="mono" style={{fontSize:11,color:T.error,marginBottom:6}} title={lb.err||'Fetch failed'}>Balance fetch failed</div>}
                   {(!lb||lb.status==='unsupported')&&!nd&&<div style={{fontSize:11,color:T.muted,marginBottom:6}}>{hf?a.ops+' operations':'No operations in log'}</div>}
                   {nd&&<div style={{fontSize:11,color:T.warning,marginBottom:6}}>No sync data</div>}
                   {a.dm&&<div style={{marginBottom:6}}><span className="mono" style={{fontSize:10,color:T.muted,background:'rgba(255,255,255,0.04)',padding:'1px 5px',borderRadius:4}}>{a.dm}</span></div>}
@@ -8032,12 +8036,11 @@ function App(){
               ex.count++;
               for(const t of flow.triggers){if(!ex.triggers.some(et=>et.type===t.type))ex.triggers.push(t);}
               if(!ex.account&&flow.account)ex.account=flow.account;
-              const ts=new Date(flow.error.ts).getTime();
-              ex.firstTs=Math.min(ex.firstTs,ts);
-              ex.lastTs=Math.max(ex.lastTs,ts);
+              const ts=flow.error.ts?new Date(flow.error.ts).getTime():NaN;
+              if(!isNaN(ts)){ex.firstTs=Math.min(ex.firstTs,ts);ex.lastTs=Math.max(ex.lastTs,ts);}
             }else{
-              const ts=new Date(flow.error.ts).getTime();
-              const entry={...flow,count:1,firstTs:ts,lastTs:ts};
+              const ts=flow.error.ts?new Date(flow.error.ts).getTime():NaN;
+              const entry={...flow,count:1,firstTs:isNaN(ts)?null:ts,lastTs:isNaN(ts)?null:ts};
               titleMap.set(title,entry);
               deduped.push(entry);
             }
@@ -8206,7 +8209,7 @@ function App(){
                                 <span style={{width:7,height:7,borderRadius:'50%',background:flow.sevColor,flexShrink:0}}/>
                                 <span style={{fontSize:11,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{flow.error.dg.t}</span>
                                 {flow.count>1&&<span style={{fontFamily:MF,fontSize:9,color:T.warning,fontWeight:700,flexShrink:0}}>×{flow.count}</span>}
-                                <span style={{fontFamily:MF,fontSize:9,color:T.muted,flexShrink:0,marginLeft:'auto'}}>{flow.count>1?`${fmtTime(new Date(flow.firstTs).toISOString())}–${fmtTime(new Date(flow.lastTs).toISOString())}`:fmtTime(flow.error.ts)}</span>
+                                <span style={{fontFamily:MF,fontSize:9,color:T.muted,flexShrink:0,marginLeft:'auto'}}>{flow.count>1&&flow.firstTs!=null&&flow.lastTs!=null?`${fmtTime(new Date(flow.firstTs).toISOString())}–${fmtTime(new Date(flow.lastTs).toISOString())}`:fmtTime(flow.error.ts||'')}</span>
                               </div>
                               {flow.account&&<>
                                 <div style={{width:16,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -8333,7 +8336,7 @@ function App(){
                       const tipW=240;
                       const left=errStripHover.x+tipW>errStripHover.cw?Math.max(0,errStripHover.x-tipW):errStripHover.x;
                       return <div style={{position:'absolute',left,bottom:'calc(100% + 6px)',width:tipW,background:T.panel,border:`1px solid ${T.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.5)',padding:'8px 10px',zIndex:30,pointerEvents:'none',fontSize:10}}>
-                        <div className="mono" style={{color:T.muted,marginBottom:4}}>{fmtTime(new Date(errStripHover.time).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
+                        <div className="mono" style={{color:T.muted,marginBottom:4}}>{isNaN(errStripHover.time)?'—':fmtTime(new Date(errStripHover.time).toISOString())} · {b.total} event{b.total!==1?'s':''}</div>
                         {errs.length>0?(
                           <div>
                             <div style={{color:T.error,fontWeight:700,marginBottom:3}}>{errs.length} error{errs.length!==1?'s':''}:</div>
@@ -8632,10 +8635,34 @@ function App(){
 }
 
 class ErrorBoundary extends React.Component{
-  constructor(props){super(props);this.state={hasError:false};}
-  static getDerivedStateFromError(){return{hasError:true};}
+  constructor(props){super(props);this.state={hasError:false,error:null,errorInfo:null};}
+  static getDerivedStateFromError(error){return{hasError:true,error};}
+  componentDidCatch(error,errorInfo){
+    this.setState({errorInfo});
+    console.error('ErrorBoundary caught:',error,errorInfo);
+  }
   render(){
-    if(this.state.hasError)return<div style={{minHeight:'100vh',background:'#1A1A1D',color:'#FFFFFF',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',textAlign:'center'}}><div><div style={{fontSize:24,marginBottom:12}}>⚠️</div><div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div><div style={{fontSize:13,color:'#949494',marginBottom:16}}>Reload the page to try again.</div><button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#BBB0FF',color:'#000',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button></div></div>;
+    if(this.state.hasError){
+      const errMsg=this.state.error?.message||'Unknown error';
+      const stack=this.state.error?.stack||'';
+      const componentStack=this.state.errorInfo?.componentStack||'';
+      const fullReport=`Error: ${errMsg}\n\nStack:\n${stack}\n\nComponent Stack:\n${componentStack}`;
+      return<div style={{minHeight:'100vh',background:'#1A1A1D',color:'#FFFFFF',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Inter,sans-serif',textAlign:'center',padding:24}}>
+        <div style={{maxWidth:600}}>
+          <div style={{fontSize:24,marginBottom:12}}>⚠️</div>
+          <div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Something went wrong</div>
+          <div style={{fontSize:13,color:'#949494',marginBottom:16}}>Copy the error details below and share them so we can fix this.</div>
+          <div style={{background:'#242528',border:'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:16,textAlign:'left',marginBottom:16,maxHeight:200,overflowY:'auto'}}>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:'#E40046',lineHeight:1.6,wordBreak:'break-word',whiteSpace:'pre-wrap'}}>{errMsg}</div>
+            {componentStack&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'#949494',lineHeight:1.5,marginTop:8,wordBreak:'break-word',whiteSpace:'pre-wrap'}}>{componentStack.trim().split('\n').slice(0,8).join('\n')}</div>}
+          </div>
+          <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+            <button onClick={()=>{try{navigator.clipboard.writeText(fullReport);}catch{}}} style={{padding:'8px 20px',borderRadius:6,border:'1px solid rgba(255,255,255,0.06)',background:'#242528',color:'#BBB0FF',fontWeight:600,fontSize:13,cursor:'pointer'}}>Copy Error</button>
+            <button onClick={()=>window.location.reload()} style={{padding:'8px 20px',borderRadius:6,border:'none',background:'#BBB0FF',color:'#000',fontWeight:600,fontSize:13,cursor:'pointer'}}>Reload</button>
+          </div>
+        </div>
+      </div>;
+    }
     return this.props.children;
   }
 }
