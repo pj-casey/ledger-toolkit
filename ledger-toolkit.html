@@ -5376,7 +5376,10 @@ function JTNode({keyName,value,path,depth,expanded,onToggle,searchTerm,onCopyPat
       }
       {keyName!==null&&(()=>{const isIndex=/^\d+$/.test(keyName);return<><span style={{color:isIndex?T.muted:T.primary}}>{isIndex?keyName:`"${keyName}"`}</span><span style={{color:T.muted}}>: </span></>;})()}
       {isExpandable?(isExpanded?openBracket:badge):renderValue()}
-      {hovered&&path&&<span className="jt-copy-path" onClick={e=>{e.stopPropagation();onCopyPath(path);}} title={`Copy path: ${path}`}>📋</span>}
+      {hovered&&path&&<>
+        <span className="jt-copy-path" onClick={e=>{e.stopPropagation();onCopyPath(path);}} title={`Copy path: ${path}`}>📋</span>
+        <span className="jt-copy-path" onClick={e=>{e.stopPropagation();try{navigator.clipboard.writeText(isExpandable?JSON.stringify(value,null,2):String(value??''));}catch{}}} title="Copy value" style={{fontSize:11}}>⎘</span>
+      </>}
     </div>
     {isExpanded&&(()=>{
       const capped=entries.length>500;
@@ -8565,17 +8568,37 @@ function App(){
                 <button aria-label="Copy APDU exchanges to clipboard" onClick={()=>{copyText(logData.apdu.map(a=>[a.dir.toUpperCase(),fmtTime(a.ts),a.hex||''].join('\t')).join('\n'));setApduExportCopied(true);setTimeout(()=>setApduExportCopied(false),2000);}} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:600,background:T.success+'1A',color:T.success,border:`1px solid ${T.success}4D`,cursor:'pointer'}}>{apduExportCopied?'Copied!':'Export APDUs'}</button>
               </div>
               {rejections.length>0&&(()=>{const counts={};rejections.forEach(a=>{const sw=a.hex.replace(/\s/g,'').slice(-4).toLowerCase();counts[sw]=(counts[sw]||0)+1;});const [topCode,topCount]=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];const codeNames={'6985':'Conditions not satisfied','6982':'Security status not satisfied','6700':'Incorrect length','6e00':'INS not supported','5515':'Device locked','6a82':'File not found','6d00':'Invalid instruction','6f00':'Technical error'};const codeName=codeNames[topCode]||'Unknown condition';return<div style={{background:'rgba(255,189,66,0.10)',borderLeft:'3px solid #FFBD42',padding:'8px 12px',borderRadius:4,fontSize:13,color:'#FFBD42'}}>{rejections.length} device rejection{rejections.length>1?'s':''}. Most common: {topCode} — {codeName}.</div>;})()}
+              <div style={{display:'flex',alignItems:'center',gap:16,marginTop:rejections.length>0?8:0,fontSize:11,color:T.muted}}>
+                <span style={{display:'inline-flex',alignItems:'center',gap:5}}><span style={{display:'inline-block',width:8,height:8,borderRadius:2,background:'#8B84CC30',border:'1px solid #8B84CC40'}}/>App → Device (command sent)</span>
+                <span style={{display:'inline-flex',alignItems:'center',gap:5}}><span style={{display:'inline-block',width:8,height:8,borderRadius:2,background:'rgba(122,194,108,0.12)',border:'1px solid rgba(122,194,108,0.25)'}}/>Device → App (response)</span>
+                <span style={{marginLeft:'auto',fontSize:10,opacity:0.6}}>Hover for details · Click to copy</span>
+              </div>
             </div>
             <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px'}}>
               <div style={{background:T.panel,border:`1px solid ${T.border}`,borderRadius:8,overflow:'hidden'}}>
                 {logData.apdu.slice(0,500).map((a,i)=>{
                   const status=decodeApduStatus(a.hex,a.dir);
                   const claLabel=a.dir==='in'&&a.hex?`CLA:${a.hex.replace(/\s/g,'').slice(0,2).toUpperCase()}`:null;
-                  return<div key={i} className="mono" style={{display:'flex',alignItems:'center',gap:10,padding:'8px 14px',borderBottom:`1px solid ${T.border}`,transition:I.fast}} onMouseEnter={ev=>ev.currentTarget.style.background=I.hover} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
-                    <span style={bdg(a.dir==='in'?'#8B84CC':T.success)}>{a.dir==='in'?'→ IN':'← OUT'}</span>
+                  const isIn=a.dir==='in';
+                  const rowBg=isIn
+                    ?'rgba(139,132,204,0.06)'
+                    :status&&status.color===T.error
+                      ?'rgba(228,0,70,0.05)'
+                      :status&&status.color===T.success
+                        ?'rgba(122,194,108,0.05)'
+                        :'rgba(255,255,255,0.02)';
+                  const borderLeft=isIn
+                    ?'3px solid #8B84CC40'
+                    :status&&status.color===T.error
+                      ?'3px solid rgba(228,0,70,0.35)'
+                      :status&&status.color===T.success
+                        ?'3px solid rgba(122,194,108,0.25)'
+                        :'3px solid rgba(255,255,255,0.06)';
+                  return<div key={i} className="mono" style={{display:'flex',alignItems:'center',gap:10,padding:'7px 14px',borderBottom:`1px solid rgba(255,255,255,0.03)`,borderLeft,background:rowBg,transition:I.fast}} onMouseEnter={ev=>ev.currentTarget.style.background=isIn?'rgba(139,132,204,0.10)':'rgba(255,255,255,0.05)'} onMouseLeave={ev=>ev.currentTarget.style.background=rowBg}>
+                    <span style={{...bdg(isIn?'#8B84CC':status?status.color:T.success),minWidth:44,textAlign:'center',fontSize:9}}>{isIn?'→ SEND':'← RECV'}</span>
                     <span style={{color:T.muted,fontSize:10,flexShrink:0}}>{fmtTime(a.ts)}</span>
-                    <span style={{width:100,flexShrink:0,fontWeight:600,fontSize:11,color:status?status.color:T.muted}}>{status?status.label:claLabel||'—'}</span>
-                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:T.text}}>{a.hex||'—'}</span>
+                    <span style={{width:100,flexShrink:0,fontWeight:status?700:500,fontSize:status?12:11,color:status?status.color:T.muted}}>{status?status.label:claLabel||'—'}</span>
+                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:isIn?'#B0A8E0':T.text,opacity:0.8}}>{a.hex||'—'}</span>
                     {a.hex&&<CopyBtn text={a.hex}/>}
                   </div>;
                 })}
@@ -8603,6 +8626,7 @@ function App(){
                 <Ico.Copy/> Copy raw text
               </button>
             </div>
+            <div style={{fontSize:11,color:T.muted,marginTop:6,opacity:0.6}}>Try searching: error, rejected, sync, timeout, balance, or an account address</div>
             </div>{/* end fixed header */}
             <div style={{flex:1,overflowY:'auto',borderTop:`1px solid ${T.border}`,padding:'16px 24px 24px'}}>
             <JTTree data={treeData}/>
