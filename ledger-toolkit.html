@@ -8043,7 +8043,7 @@ function App(){
               if(!isNaN(ts)){ex.firstTs=Math.min(ex.firstTs,ts);ex.lastTs=Math.max(ex.lastTs,ts);}
             }else{
               const ts=flow.error.ts?new Date(flow.error.ts).getTime():NaN;
-              const entry={...flow,count:1,firstTs:isNaN(ts)?null:ts,lastTs:isNaN(ts)?null:ts};
+              const entry={...flow,count:1,firstTs:isNaN(ts)?Infinity:ts,lastTs:isNaN(ts)?-Infinity:ts};
               titleMap.set(title,entry);
               deduped.push(entry);
             }
@@ -8111,7 +8111,7 @@ function App(){
                   <span style={{...purposeLabel,marginRight:2,opacity:0.6}}>Category · click to filter</span>
                   {(()=>{
                     const catCounts={};
-                    for(const e of enrichedErrs){const c=e.dg.c||'unknown';catCounts[c]=(catCounts[c]||0)+1;}
+                    for(const e of displayErrs){const c=e.dg.c||'unknown';catCounts[c]=(catCounts[c]||0)+1;}
                     return Object.entries(catCounts).map(([cat,count])=>{
                       const ci=CAT[cat]||CAT.unknown;
                       return <div key={cat}
@@ -8212,7 +8212,7 @@ function App(){
                                 <span style={{width:7,height:7,borderRadius:'50%',background:flow.sevColor,flexShrink:0}}/>
                                 <span style={{fontSize:11,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{flow.error.dg.t}</span>
                                 {flow.count>1&&<span style={{fontFamily:MF,fontSize:9,color:T.warning,fontWeight:700,flexShrink:0}}>×{flow.count}</span>}
-                                <span style={{fontFamily:MF,fontSize:9,color:T.muted,flexShrink:0,marginLeft:'auto'}}>{flow.count>1&&flow.firstTs!=null&&flow.lastTs!=null?`${fmtTime(new Date(flow.firstTs).toISOString())}–${fmtTime(new Date(flow.lastTs).toISOString())}`:fmtTime(flow.error.ts||'')}</span>
+                                <span style={{fontFamily:MF,fontSize:9,color:T.muted,flexShrink:0,marginLeft:'auto'}}>{flow.count>1&&flow.firstTs!==Infinity&&flow.lastTs!==-Infinity?`${fmtTime(new Date(flow.firstTs).toISOString())}–${fmtTime(new Date(flow.lastTs).toISOString())}`:flow.error.ts?fmtTime(flow.error.ts):'—'}</span>
                               </div>
                               {flow.account&&<>
                                 <div style={{width:16,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
