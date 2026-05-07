@@ -10,14 +10,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#1A1A1D;--panel:#1A1A1D;--border:rgba(255,255,255,0.06);--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--success:#7AC26C;--error:#E40046;--warning:#FFBD42;--ov-fs-xs:clamp(9px,1.1vh,11px);--ov-fs-sm:clamp(10px,1.3vh,12px);--ov-fs-md:clamp(11px,1.4vh,13px);--ov-fs-lg:clamp(13px,1.6vh,16px);--ov-pad-row:clamp(2px,0.4vh,4px);--ov-pad-section:clamp(6px,1vh,12px);--ov-gap-chips:clamp(4px,0.5vh,6px);--ov-gap-rows:clamp(4px,0.6vh,8px);--ov-stat-num:clamp(28px,4vh,42px);--ov-stat-label:clamp(10px,1.2vh,13px);--transition-fast:150ms ease;--hover-bg:rgba(255,255,255,0.04);--hover-bg-strong:rgba(255,255,255,0.07)}
+:root{--bg:#1A1A1D;--panel:#1A1A1D;--border:rgba(255,255,255,0.06);--text:#FFFFFF;--muted:#949494;--primary:#BBB0FF;--accent-active:#FF5300;--success:#7AC26C;--error:#E40046;--warning:#FFBD42;--ov-fs-xs:clamp(9px,1.1vh,11px);--ov-fs-sm:clamp(10px,1.3vh,12px);--ov-fs-md:clamp(11px,1.4vh,13px);--ov-fs-lg:clamp(13px,1.6vh,16px);--ov-pad-row:clamp(2px,0.4vh,4px);--ov-pad-section:clamp(6px,1vh,12px);--ov-gap-chips:clamp(4px,0.5vh,6px);--ov-gap-rows:clamp(4px,0.6vh,8px);--ov-stat-num:clamp(28px,4vh,42px);--ov-stat-hero:clamp(56px,9vh,88px);--ov-stat-label:clamp(10px,1.2vh,13px);--display-font:'Darker Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;--transition-fast:150ms ease;--hover-bg:rgba(255,255,255,0.04);--hover-bg-strong:rgba(255,255,255,0.07)}
 body{background:var(--bg);color:var(--text)}
 
 /* === Type Scale === */
 body,#root{font-family:'Inter','Darker Grotesque',-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;font-weight:400;line-height:1.6;letter-spacing:0.01em;}
-.stat-value{font-family:'Darker Grotesque',-apple-system,BlinkMacSystemFont,sans-serif !important;font-size:var(--ov-stat-num) !important;font-weight:700 !important;line-height:1.2 !important;letter-spacing:-0.02em;}
-h1,h2,.section-title{font-size:16px;font-weight:600;line-height:1.4;}
-.card-header,h3{font-size:14px;font-weight:600;line-height:1.4;}
+.stat-value{font-family:var(--display-font) !important;font-size:var(--ov-stat-num) !important;font-weight:700 !important;line-height:1 !important;letter-spacing:-0.025em;}
+.stat-hero{font-family:var(--display-font);font-size:var(--ov-stat-hero);font-weight:800;line-height:0.95;letter-spacing:-0.035em;}
+h1,h2,.section-title{font-family:var(--display-font);font-size:18px;font-weight:700;line-height:1.2;letter-spacing:-0.015em;}
+.card-header,h3{font-family:var(--display-font);font-size:15px;font-weight:700;line-height:1.25;letter-spacing:-0.01em;}
+.wordmark{font-family:var(--display-font);font-weight:700;letter-spacing:-0.02em;line-height:1;}
 .label,.tab-label{font-size:11px;font-weight:500;color:#8A8A8E;}
 .mono,code,pre{font-family:'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace;font-size:12px;line-height:1.5;}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -180,7 +182,7 @@ button:active{transform:scale(0.98);}
     var elapsed=((performance.now()-t0)/1000).toFixed(3);
     var line=document.createElement('div');
     line.textContent='['+elapsed+'s] '+msg;
-    if(msg==='ready')line.style.color='#BBB0FF';
+    if(msg==='ready')line.style.color='#FF5300';
     log.appendChild(line);
   };
   _splashLog('boot');
@@ -6706,41 +6708,40 @@ function App(){
 
   return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}06 0%, ${T.bg} 50%)`:T.bg,color:T.text,transition:'background 0.4s ease'}}>
     {/* Top bar */}
-    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}40`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',background:T.bg,zIndex:10,transition:'border-bottom 0.4s ease'}}>
-      <div style={{display:'flex',alignItems:'center',gap:10}}>
-        <svg data-splash-target width="24" height="20" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color:T.text,flexShrink:0}}>
+    <div style={{height:52,flexShrink:0,borderBottom:focusedAcct?`2px solid ${focusedAcct.color}40`:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px 0 18px',background:T.bg,zIndex:10,transition:'border-bottom 0.4s ease',gap:20}}>
+      {/* Identity: logo + wordmark */}
+      <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+        <svg data-splash-target width="26" height="22" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color:T.text,flexShrink:0}}>
           <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="currentColor"/>
         </svg>
-        <span style={{fontSize:11,fontWeight:500,color:T.muted}}>Diagnostic Toolkit</span>
+        <span className="wordmark" style={{fontSize:17,color:T.text}}>Diagnostic Toolkit</span>
+        <span style={{fontSize:9,fontFamily:MF,letterSpacing:'0.14em',color:'#666',textTransform:'uppercase',padding:'2px 6px',borderRadius:3,border:`1px solid ${T.border}`,marginLeft:2,whiteSpace:'nowrap'}}>Ledger CS</span>
       </div>
       {logData&&<ModeToggle mode={viewMode} onChange={setViewMode}/>}
-      {logData&&<div style={{display:'flex',alignItems:'center',gap:12,fontSize:12}}>
-        <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
-          <Ico.File/>
-          <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}} title={fileName}>{fileName}</span>
-          {logData.isMobile&&<span style={{fontSize:10,fontWeight:700,letterSpacing:'0.05em',padding:'2px 6px',borderRadius:4,background:T.primary+'1A',color:T.primary,marginLeft:2}}>MOBILE</span>}
-          <span style={{color:T.muted,marginLeft:4,fontFamily:MF,fontSize:10,letterSpacing:'0.03em'}}>
-            {logData.entries.length>1?(()=>{
-              const t0=logData.entries[0].timestamp;
-              const tN=logData.entries[logData.entries.length-1].timestamp;
-              const dur=((new Date(tN)-new Date(t0))/1000);
-              const durLabel=dur<60?dur.toFixed(1)+'s':dur<3600?(dur/60).toFixed(1)+'m':(dur/3600).toFixed(1)+'h';
-              return `${fmtDate(t0)} ${fmtTime(t0)}–${fmtTime(tN)} · ${durLabel}`;
-            })():''}
-          </span>
-          {focusedAcct&&<span style={{display:'inline-flex',alignItems:'center',gap:5,marginLeft:8,padding:'2px 8px',borderRadius:4,background:focusedAcct.color+'20',border:`1px solid ${focusedAcct.color}40`,cursor:'default',flexShrink:0}}>
-            <span style={{width:7,height:7,borderRadius:'50%',background:focusedAcct.color}}/>
-            <span style={{fontSize:11,fontWeight:700,color:focusedAcct.color,letterSpacing:'0.02em'}}>{focusedAcct.ticker}</span>
-            <span onClick={(e)=>{e.stopPropagation();setFocusedAcct(null);}} style={{fontSize:10,color:focusedAcct.color,cursor:'pointer',opacity:0.6,marginLeft:2,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.6'}>✕</span>
+      {logData&&<div style={{display:'flex',alignItems:'center',gap:14,fontSize:12,marginLeft:'auto',flexShrink:0,minWidth:0}}>
+        {focusedAcct&&<span style={{display:'inline-flex',alignItems:'center',gap:5,padding:'3px 9px',borderRadius:4,background:focusedAcct.color+'20',border:`1px solid ${focusedAcct.color}40`,cursor:'default',flexShrink:0}}>
+          <span style={{width:7,height:7,borderRadius:'50%',background:focusedAcct.color}}/>
+          <span style={{fontSize:11,fontWeight:700,color:focusedAcct.color,letterSpacing:'0.02em'}}>{focusedAcct.ticker}</span>
+          <span onClick={(e)=>{e.stopPropagation();setFocusedAcct(null);}} style={{fontSize:10,color:focusedAcct.color,cursor:'pointer',opacity:0.6,marginLeft:2,lineHeight:1}} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.6'}>✕</span>
+        </span>}
+        {/* Session strip — vertical stack: filename row + temporal row */}
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2,lineHeight:1.1,minWidth:0,maxWidth:340}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+            <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:'#666',textTransform:'uppercase',flexShrink:0}}>Session</span>
+            <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220,color:T.muted,fontSize:11}} title={fileName}>{fileName}</span>
+            {logData.isMobile&&<span style={{fontSize:9,fontWeight:700,letterSpacing:'0.05em',padding:'1px 5px',borderRadius:3,background:T.primary+'1A',color:T.primary,flexShrink:0}}>MOBILE</span>}
+          </div>
+          {logData.entries.length>1&&<span className="mono" style={{color:'#666',fontSize:10,letterSpacing:'0.02em'}}>
+            {(()=>{const t0=logData.entries[0].timestamp;const tN=logData.entries[logData.entries.length-1].timestamp;const dur=((new Date(tN)-new Date(t0))/1000);const durLabel=dur<60?dur.toFixed(1)+'s':dur<3600?(dur/60).toFixed(1)+'m':(dur/3600).toFixed(1)+'h';return `${fmtDate(t0)} ${fmtTime(t0)}–${fmtTime(tN)} · ${durLabel}`;})()}
           </span>}
         </div>
-        <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:12,fontWeight:600,cursor:'pointer'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>New file</button>
+        <button onClick={()=>{clearLog();openPicker();}} style={{padding:'6px 12px',borderRadius:6,border:`1px solid ${T.border}`,background:'transparent',color:T.muted,fontSize:10,fontWeight:700,cursor:'pointer',letterSpacing:'0.08em',textTransform:'uppercase',whiteSpace:'nowrap'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.orange;e.currentTarget.style.color=T.orange;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>New file</button>
       </div>}
     </div>
-    {/* Loading bar */}
+    {/* Loading bar — orange = active diagnostic work */}
     <div style={{height:3,width:'100%',flexShrink:0,overflow:'hidden',position:'relative',opacity:isLoading?1:0,transition:'opacity 0.5s ease',pointerEvents:'none'}}>
-      <div style={{position:'absolute',top:-1,left:0,height:5,width:loadProgress+'%',background:'linear-gradient(90deg, #BBB0FF 0%, #D4C5FF 60%, #BBB0FF 100%)',filter:'blur(4px)',opacity:0.5,transition:isLoading?'width 0.6s cubic-bezier(0.45,0,0.55,1)':'none'}}/>
-      <div style={{position:'absolute',top:0,left:0,height:'100%',width:loadProgress+'%',background:'linear-gradient(90deg, #BBB0FF 0%, #D4C5FF 60%, #BBB0FF 100%)',transition:isLoading?'width 0.6s cubic-bezier(0.45,0,0.55,1)':'none'}}/>
+      <div style={{position:'absolute',top:-1,left:0,height:5,width:loadProgress+'%',background:'linear-gradient(90deg, #FF5300 0%, #FFA070 60%, #FF5300 100%)',filter:'blur(4px)',opacity:0.55,transition:isLoading?'width 0.6s cubic-bezier(0.45,0,0.55,1)':'none'}}/>
+      <div style={{position:'absolute',top:0,left:0,height:'100%',width:loadProgress+'%',background:'linear-gradient(90deg, #FF5300 0%, #FFA070 60%, #FF5300 100%)',transition:isLoading?'width 0.6s cubic-bezier(0.45,0,0.55,1)':'none'}}/>
     </div>
     <input key={fileKey} ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
@@ -6750,35 +6751,61 @@ function App(){
       {loadErr&&!logData&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.3)',borderRadius:8,padding:'12px 16px',margin:'16px 24px 0',fontSize:13,color:T.error,display:'flex',alignItems:'center',gap:10}}><Ico.Alert/>{loadErr}</div>}
       {parsing&&!logData&&<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',position:'relative'}}>
         <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',pointerEvents:'none'}}>
-          <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:220,height:180,borderRadius:'50%',background:'radial-gradient(circle,rgba(212,160,255,0.08) 0%,transparent 70%)'}}/>
-          <svg width="96" height="80" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{opacity:0.06,display:'block'}}>
-            <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill="#ffffff"/>
+          <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:240,height:200,borderRadius:'50%',background:'radial-gradient(circle,rgba(255,83,0,0.10) 0%,transparent 70%)',animation:'splashBreathe 2.4s ease-in-out infinite'}}/>
+          <svg width="96" height="80" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{opacity:0.08,display:'block'}}>
+            <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill={T.orange}/>
           </svg>
         </div>
         <div style={{position:'relative',zIndex:1,textAlign:'center'}}>
-          <div style={{fontSize:16,fontWeight:600,marginBottom:8,color:T.text}}>Parsing log file...</div>
-          <div style={{fontSize:13,color:T.muted}}>This may take a few seconds for large files</div>
+          <div style={{fontSize:9,fontFamily:MF,letterSpacing:'0.18em',color:T.orange,textTransform:'uppercase',marginBottom:10,fontWeight:700}}>● Diagnostic active</div>
+          <div className="wordmark" style={{fontSize:22,marginBottom:6,color:T.text}}>Parsing log file</div>
+          <div style={{fontSize:12,color:T.muted}}>Large files may take a few seconds</div>
         </div>
       </div>}
-      {!logData&&!parsing&&<div role="button" tabIndex={0} aria-label="Drop a log file or click to browse" onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openPicker();}}} onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative',overflow:'hidden',transition:I.medium}}>
-        {/* Watermark logo — absolute centered, behind content */}
-        <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',pointerEvents:'none'}}>
-          <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:220,height:180,borderRadius:'50%',background:dragOver?'radial-gradient(circle,rgba(255,83,0,0.06) 0%,transparent 70%)':'radial-gradient(circle,rgba(212,160,255,0.08) 0%,transparent 70%)',transition:I.medium}}/>
-          <svg width="96" height="80" viewBox="0 0 41 34" fill="none" xmlns="http://www.w3.org/2000/svg" style={{opacity:0.06,display:'block'}}>
-            <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill={dragOver?T.orange:'#ffffff'}/>
-          </svg>
-        </div>
-        {/* Drop zone content — flex centered, in front of watermark */}
-        <div style={{position:'relative',zIndex:1,display:'flex',flexDirection:'column',alignItems:'center'}}>
-          <div className={dragOver?'drop-icon-pulse':''} style={{color:dragOver?T.orange:T.muted,marginBottom:16,transition:I.medium}}><Ico.Upload/></div>
-          <div style={{fontSize:18,fontWeight:600,marginBottom:8,color:dragOver?T.text:'#fff',transition:I.medium}}>Drop a Ledger Wallet log file</div>
-          <div style={{fontFamily:MF,fontSize:10,letterSpacing:'0.06em',color:T.muted,marginBottom:32,opacity:0.5}}>.json &nbsp;·&nbsp; .txt &nbsp;·&nbsp; .log</div>
-          <div style={{display:'flex',gap:12}}>
-            <button onClick={e=>{e.stopPropagation();openGuide('agent');}} style={{appearance:'none',padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:I.fast,fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>📖</span> Agent Guide</button>
-            <button onClick={e=>{e.stopPropagation();openGuide('technical');}} style={{appearance:'none',padding:'10px 20px',borderRadius:8,border:`1px solid ${T.border}`,background:'rgba(255,255,255,0.03)',color:T.muted,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:I.fast,fontFamily:'inherit'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}><span style={{fontSize:16}}>🔬</span> Technical Reference</button>
+      {!logData&&!parsing&&<div role="button" tabIndex={0} aria-label="Drop a log file or click to browse" onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openPicker();}}} onDrop={ev=>{ev.preventDefault();setDragOver(false);handleFile(ev.dataTransfer.files[0]);}} onDragOver={ev=>{ev.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onClick={openPicker} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative',overflow:'hidden',transition:I.medium,padding:'48px 32px'}}>
+        {/* Drop affordance — visible bordered region, not just an icon */}
+        <div style={{position:'relative',zIndex:1,display:'flex',flexDirection:'column',alignItems:'stretch',width:'100%',maxWidth:560}}>
+          {/* Status row above the drop card */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,fontSize:10,fontFamily:MF,letterSpacing:'0.14em',color:'#666',textTransform:'uppercase'}}>
+            <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+              <span style={{width:6,height:6,borderRadius:'50%',background:dragOver?T.orange:T.success,boxShadow:dragOver?`0 0 8px ${T.orange}80`:'none',transition:I.fast}}/>
+              {dragOver?'Receiving file':'Ready'}
+            </span>
+            <span>Diagnostic Toolkit · v1</span>
+          </div>
+          {/* Drop card */}
+          <div style={{position:'relative',background:dragOver?`${T.orange}08`:'rgba(255,255,255,0.015)',border:`1.5px dashed ${dragOver?T.orange+'80':'rgba(255,255,255,0.12)'}`,borderRadius:12,padding:'56px 40px',display:'flex',flexDirection:'column',alignItems:'center',transition:I.medium}}>
+            {/* Corner ticks — engineered feel */}
+            {[['top:8px;left:8px','M0 6V0H6','top'],['top:8px;right:8px','M0 0H6V6','top'],['bottom:8px;left:8px','M0 0V6H6','bottom'],['bottom:8px;right:8px','M6 0V6H0','bottom']].map(([pos,d],i)=>{
+              const styleObj={position:'absolute',width:12,height:12};
+              pos.split(';').forEach(p=>{const[k,v]=p.split(':');styleObj[k.trim()]=v.trim();});
+              return <svg key={i} width="12" height="12" viewBox="0 0 6 6" style={styleObj}><path d={d} stroke={dragOver?T.orange:'rgba(255,255,255,0.18)'} strokeWidth="1" fill="none"/></svg>;
+            })}
+            {/* Faint Ledger watermark behind content */}
+            <svg width="72" height="60" viewBox="0 0 41 34" fill="none" style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',opacity:0.04,pointerEvents:'none'}}>
+              <path d="M0 24.3478V34.002H15.2378V31.8609H2.22018V24.3478H0ZM38.2905 24.3478V31.8609H25.2729V34.0014H40.5106V24.3478H38.2905ZM15.2599 9.65616V24.3472H25.2729V22.4165H17.4801V9.65616H15.2599ZM0 0.00195312V9.65616H2.22018V2.14248H15.2378V0.00195312H0ZM25.2729 0.00195312V2.14248H38.2905V9.65616H40.5106V0.00195312H25.2729Z" fill={dragOver?T.orange:'#ffffff'}/>
+            </svg>
+            <div className={dragOver?'drop-icon-pulse':''} style={{color:dragOver?T.orange:'rgba(255,255,255,0.4)',marginBottom:18,transition:I.medium,position:'relative',zIndex:1}}><Ico.Upload/></div>
+            <div className="wordmark" style={{fontSize:28,marginBottom:8,color:dragOver?T.text:'#fff',transition:I.medium,position:'relative',zIndex:1,textAlign:'center'}}>Drop a Ledger Wallet log</div>
+            <div style={{fontSize:13,color:T.muted,marginBottom:20,position:'relative',zIndex:1,textAlign:'center',lineHeight:1.5}}>or <span style={{color:T.text,textDecoration:'underline',textDecorationColor:'rgba(255,255,255,0.3)',textUnderlineOffset:3}}>click anywhere</span> to browse</div>
+            <div style={{display:'flex',alignItems:'center',gap:10,fontFamily:MF,fontSize:10,letterSpacing:'0.1em',color:'#666',position:'relative',zIndex:1,textTransform:'uppercase'}}>
+              <span style={{padding:'3px 8px',border:`1px solid ${T.border}`,borderRadius:3}}>.json</span>
+              <span style={{padding:'3px 8px',border:`1px solid ${T.border}`,borderRadius:3}}>.txt</span>
+              <span style={{padding:'3px 8px',border:`1px solid ${T.border}`,borderRadius:3}}>.log</span>
+            </div>
+          </div>
+          {/* Inline secondary links — not pill buttons */}
+          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:20,fontSize:12,color:T.muted}}>
+            <span onClick={e=>{e.stopPropagation();openGuide('agent');}} style={{cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,transition:I.fast}} onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.muted}>
+              <span style={{fontSize:11,fontFamily:MF,letterSpacing:'0.1em',color:'#666',textTransform:'uppercase'}}>01</span> Agent Guide <span style={{opacity:0.5}}>↗</span>
+            </span>
+            <span style={{width:1,background:T.border}}/>
+            <span onClick={e=>{e.stopPropagation();openGuide('technical');}} style={{cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,transition:I.fast}} onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.muted}>
+              <span style={{fontSize:11,fontFamily:MF,letterSpacing:'0.1em',color:'#666',textTransform:'uppercase'}}>02</span> Technical Reference <span style={{opacity:0.5}}>↗</span>
+            </span>
           </div>
         </div>
-        {dragOver&&<div style={{position:'absolute',inset:24,border:`2px solid ${T.orange}40`,borderRadius:12,pointerEvents:'none'}}/>}
+        {dragOver&&<div style={{position:'absolute',inset:16,border:`1px solid ${T.orange}30`,borderRadius:14,pointerEvents:'none'}}/>}
       </div>}
 
       {/* Log Viewer */}
@@ -6860,58 +6887,63 @@ function App(){
           return <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
 
             {/* Zone 1: Top strip */}
-            <div style={{flexShrink:0,padding:'20px 24px 12px',borderBottom:`1px solid ${T.border}`,background:'transparent'}}>
-              {noSync&&<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(255,189,66,0.08)',border:'1px solid rgba(255,189,66,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
-                <span style={{color:T.warning,fontWeight:700,fontSize:13,flexShrink:0}}>⚠</span>
-                <span style={{color:T.warning}}><strong>No sync captured in this session</strong> — operation counts, log balances, and account status are unavailable. {Object.values(liveBalances).some(lb=>lb.status==='ok'&&lb.bal!=null)?'Live blockchain balances are being shown where available.':'Live blockchain balances are being fetched.'}</span>
-              </div>}
-              {(()=>{const degraded=ledgerStatus?parseStatusData(ledgerStatus,logData):null;if(!degraded)return null;const isApp=degraded.some(d=>d.chainId==='desktop'||d.chainId==='mobile');const chainNames=degraded.filter(d=>d.chainId!=='desktop'&&d.chainId!=='mobile').map(d=>d.name).slice(0,4);const parts=[];if(isApp)parts.push('Ledger Wallet app');if(chainNames.length)parts.push(chainNames.join(', '));return(<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(255,189,66,0.06)',border:'1px solid rgba(255,189,66,0.2)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
-                <span style={{color:T.warning,fontWeight:700,fontSize:13,flexShrink:0}}>⚡</span>
-                <span style={{color:T.warning}}><strong>Ledger services degraded</strong> — {parts.join(' + ')} reporting issues. <a href="https://status.ledger.com" target="_blank" rel="noopener" style={{color:T.warning,textDecoration:'underline'}}>status.ledger.com ↗</a></span>
-              </div>);})()}
+            <div style={{flexShrink:0,padding:'20px 24px 14px',borderBottom:`1px solid ${T.border}`,background:'transparent'}}>
+              {/* Service Advisories — unified rail (collapses 3 banners into one container) */}
               {(()=>{
-                if(!ledgerStatus?.incidents||!logData.entries.length)return null;
-                const sessionStart=new Date(logData.entries[0].timestamp).getTime();
-                const sessionEnd=new Date(logData.entries[logData.entries.length-1].timestamp).getTime();
-                if(!sessionStart||!sessionEnd)return null;
-                const overlapping=[];
-                for(const inc of ledgerStatus.incidents){
-                  const incStart=new Date(inc.created_at).getTime();
-                  const incEnd=inc.resolved_at?new Date(inc.resolved_at).getTime():Date.now();
-                  if(incStart<=sessionEnd&&incEnd>=sessionStart){
-                    const affectedNames=(inc.components||[]).map(c=>c.name);
-                    const customerChains=logData.accts.map(a=>a.ch.name.toLowerCase());
-                    const matchedChains=[];
-                    for(const compName of affectedNames){
-                      const compLower=compName.toLowerCase();
-                      for(const[key]of Object.entries(STATUS_CHAIN_MAP)){
-                        if(compLower.includes(key.toLowerCase())&&customerChains.some(cc=>cc.toLowerCase().includes(key.toLowerCase()))){
-                          matchedChains.push(compName);break;
+                const advisories=[];
+                if(noSync){
+                  advisories.push({color:T.warning,label:'No sync',text:<><strong>No sync captured in this session</strong> — operation counts, log balances, and account status are unavailable. {Object.values(liveBalances).some(lb=>lb.status==='ok'&&lb.bal!=null)?'Live blockchain balances are being shown where available.':'Live blockchain balances are being fetched.'}</>});
+                }
+                const degraded=ledgerStatus?parseStatusData(ledgerStatus,logData):null;
+                if(degraded){
+                  const isApp=degraded.some(d=>d.chainId==='desktop'||d.chainId==='mobile');
+                  const chainNames=degraded.filter(d=>d.chainId!=='desktop'&&d.chainId!=='mobile').map(d=>d.name).slice(0,4);
+                  const parts=[];if(isApp)parts.push('Ledger Wallet app');if(chainNames.length)parts.push(chainNames.join(', '));
+                  advisories.push({color:T.warning,label:'Degraded',text:<><strong>Ledger services degraded</strong> — {parts.join(' + ')} reporting issues. <a href="https://status.ledger.com" target="_blank" rel="noopener" style={{color:T.warning,textDecoration:'underline'}}>status.ledger.com ↗</a></>});
+                }
+                if(ledgerStatus?.incidents&&logData.entries.length){
+                  const sessionStart=new Date(logData.entries[0].timestamp).getTime();
+                  const sessionEnd=new Date(logData.entries[logData.entries.length-1].timestamp).getTime();
+                  if(sessionStart&&sessionEnd){
+                    const overlapping=[];
+                    for(const inc of ledgerStatus.incidents){
+                      const incStart=new Date(inc.created_at).getTime();
+                      const incEnd=inc.resolved_at?new Date(inc.resolved_at).getTime():Date.now();
+                      if(incStart<=sessionEnd&&incEnd>=sessionStart){
+                        const affectedNames=(inc.components||[]).map(c=>c.name);
+                        const customerChains=logData.accts.map(a=>a.ch.name.toLowerCase());
+                        const matchedChains=[];
+                        for(const compName of affectedNames){
+                          const compLower=compName.toLowerCase();
+                          for(const[key]of Object.entries(STATUS_CHAIN_MAP)){
+                            if(compLower.includes(key.toLowerCase())&&customerChains.some(cc=>cc.toLowerCase().includes(key.toLowerCase()))){
+                              matchedChains.push(compName);break;
+                            }
+                          }
+                        }
+                        if(matchedChains.length>0){
+                          overlapping.push({name:inc.name,impact:inc.impact,status:inc.status,resolved:inc.resolved_at?new Date(inc.resolved_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):null,chains:matchedChains});
                         }
                       }
                     }
-                    if(matchedChains.length>0){
-                      overlapping.push({name:inc.name,impact:inc.impact,status:inc.status,
-                        resolved:inc.resolved_at?new Date(inc.resolved_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):null,
-                        chains:matchedChains});
+                    if(overlapping.length){
+                      advisories.push({color:'#8B84CC',label:'Incident',text:<><strong>During this session</strong>, Ledger experienced:{' '}{overlapping.map((inc,i)=>(<span key={i}>{i>0&&'; '}<strong>{inc.chains.join(', ')}</strong> ({inc.impact} — {inc.resolved?`resolved ${inc.resolved}`:inc.status})</span>))}{'. '}<span style={{color:T.muted,fontSize:11}}>This may explain errors in this log.</span>{' '}<a href="https://status.ledger.com/history" target="_blank" rel="noopener noreferrer" style={{color:T.primary,textDecoration:'none',fontWeight:600,fontSize:11}} onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'} onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>incident history ↗</a></>});
                     }
                   }
                 }
-                if(!overlapping.length)return null;
-                return(<div style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 12px',background:'rgba(139,132,204,0.08)',border:'1px solid rgba(139,132,204,0.25)',borderRadius:6,marginBottom:10,fontSize:12,lineHeight:1.5}}>
-                  <span style={{color:'#8B84CC',fontWeight:700,fontSize:13,flexShrink:0}}>🕐</span>
-                  <div style={{color:'#8B84CC'}}>
-                    <strong>During this session</strong>, Ledger experienced:{' '}
-                    {overlapping.map((inc,i)=>(
-                      <span key={i}>{i>0&&'; '}<strong>{inc.chains.join(', ')}</strong> ({inc.impact} — {inc.resolved?`resolved ${inc.resolved}`:inc.status})</span>
-                    ))}{'. '}
-                    <span style={{color:T.muted,fontSize:11}}>This may explain errors in this log.</span>{' '}
-                    <a href="https://status.ledger.com/history" target="_blank" rel="noopener noreferrer"
-                      style={{color:T.primary,textDecoration:'none',fontWeight:600,fontSize:11}}
-                      onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'}
-                      onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>incident history ↗</a>
+                if(!advisories.length)return null;
+                return <div style={{display:'flex',flexDirection:'column',background:'rgba(255,255,255,0.02)',border:`1px solid ${T.border}`,borderRadius:8,marginBottom:10,overflow:'hidden'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 12px',background:'rgba(255,255,255,0.025)',borderBottom:`1px solid ${T.border}`}}>
+                    <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:'#777',textTransform:'uppercase'}}>Service Advisories</span>
+                    <span style={{fontSize:9,fontFamily:MF,color:'#555'}}>{advisories.length} active</span>
                   </div>
-                </div>);
+                  {advisories.map((a,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'8px 12px 8px 0',borderTop:i>0?`1px solid ${T.border}`:'none',borderLeft:`3px solid ${a.color}`,paddingLeft:10}}>
+                      <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:a.color,textTransform:'uppercase',flexShrink:0,minWidth:62,paddingTop:2}}>{a.label}</span>
+                      <span style={{fontSize:12,color:'#CCC',lineHeight:1.5,flex:1}}>{a.text}</span>
+                    </div>
+                  ))}
+                </div>;
               })()}
               {/* Action bar */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:6,marginBottom:10}}>
@@ -7028,19 +7060,38 @@ function App(){
                   <span style={{fontSize:13}}>📖</span>
                 </button>
               </div>
-              {/* Triage row */}
-              <div style={{background:T.card,borderRadius:8,border:`1px solid ${I.interactiveBorder}`,borderLeft:`3px solid ${triageBanner.color}`,padding:'12px 16px',position:'relative',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                  <span style={{width:8,height:8,borderRadius:'50%',background:triageBanner.color,flexShrink:0}}/>
-                  <span style={{fontSize:13,color:T.text,flex:1,lineHeight:1.4,fontWeight:500}}>{triageBanner.text}</span>
-                  {triageBanner.action&&triageBanner.go&&(
-                    <span onClick={triageBanner.go} style={{fontFamily:MF,fontSize:10,fontWeight:600,color:triageBanner.color,cursor:'pointer',flexShrink:0,letterSpacing:'0.04em',padding:'4px 12px',borderRadius:4,background:triageBanner.color+'15',border:`1px solid ${triageBanner.color}30`,whiteSpace:'nowrap'}}>{triageBanner.action}</span>
-                  )}
-                  {triageBanner.action&&!triageBanner.go&&(
-                    <span style={{fontFamily:MF,fontSize:10,color:T.muted,flexShrink:0,letterSpacing:'0.04em'}}>{triageBanner.action}</span>
-                  )}
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+              {/* Triage row — hero stat + headline + secondary chips */}
+              <div style={{background:T.card,borderRadius:8,border:`1px solid ${I.interactiveBorder}`,borderLeft:`3px solid ${triageBanner.color}`,padding:'14px 16px 14px 14px',position:'relative',borderTop:'1px solid rgba(255,255,255,0.05)',display:'flex',gap:18,alignItems:'stretch'}}>
+                {/* Hero block */}
+                {(()=>{
+                  const heroData=(()=>{
+                    if(highCount>0)return{num:highCount,label:'CRITICAL',sub:highCount===1?'error':'errors'};
+                    if(fwOutdated)return{num:'⬆',label:'FIRMWARE',sub:'update'};
+                    if(medCount>0)return{num:medCount,label:'WARNING',sub:medCount===1?'event':'events'};
+                    if(netStats.fails>0)return{num:netStats.fails,label:'NETWORK',sub:netStats.fails===1?'failure':'failures'};
+                    if(logData.activity?.swapBrowsed)return{num:logData.activity?.swapExecuted?'✓':'◑',label:'SWAP',sub:logData.activity?.swapExecuted?'completed':'incomplete'};
+                    if(noSync)return{num:'⊘',label:'NO SYNC',sub:'data'};
+                    if(logData.errs.length>0)return{num:logData.errs.length,label:'INFO',sub:logData.errs.length===1?'event':'events'};
+                    return{num:'✓',label:'CLEAN',sub:'session'};
+                  })();
+                  return <div style={{display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'flex-start',minWidth:96,paddingRight:18,borderRight:`1px solid ${T.border}`}}>
+                    <div className="stat-hero" style={{color:triageBanner.color,fontSize:'clamp(48px,7vh,68px)'}}>{heroData.num}</div>
+                    <div style={{fontSize:9,fontWeight:800,letterSpacing:'0.16em',color:triageBanner.color,textTransform:'uppercase',marginTop:2}}>{heroData.label}</div>
+                    <div style={{fontSize:10,color:T.muted,marginTop:1,letterSpacing:'0.02em'}}>{heroData.sub}</div>
+                  </div>;
+                })()}
+                {/* Right block: text + chips */}
+                <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',gap:10,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:13,color:T.text,flex:1,lineHeight:1.4,fontWeight:500}}>{triageBanner.text}</span>
+                    {triageBanner.action&&triageBanner.go&&(
+                      <span onClick={triageBanner.go} style={{fontFamily:MF,fontSize:10,fontWeight:700,color:triageBanner.color,cursor:'pointer',flexShrink:0,letterSpacing:'0.06em',padding:'5px 12px',borderRadius:4,background:triageBanner.color+'15',border:`1px solid ${triageBanner.color}30`,whiteSpace:'nowrap',textTransform:'uppercase'}}>{triageBanner.action}</span>
+                    )}
+                    {triageBanner.action&&!triageBanner.go&&(
+                      <span style={{fontFamily:MF,fontSize:10,color:T.muted,flexShrink:0,letterSpacing:'0.06em',textTransform:'uppercase'}}>{triageBanner.action}</span>
+                    )}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                   <span onClick={()=>setSection('errors')} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',background:errColor+'15',color:errColor,border:`1px solid ${errColor}25`,transition:I.fast,fontFamily:MF,letterSpacing:'0.03em'}} onMouseEnter={e=>e.currentTarget.style.background=errColor+'25'} onMouseLeave={e=>e.currentTarget.style.background=errColor+'15'}>
                     ⚠ {errLabel}
                   </span>
@@ -7070,6 +7121,7 @@ function App(){
                   </div>
                   {logData.isMobile&&<span style={{background:T.primary,color:'#000000',padding:'3px 10px',borderRadius:4,fontSize:11,fontWeight:800,letterSpacing:'0.08em',boxShadow:`0 0 12px ${T.primary}40`}}>MOBILE</span>}
                   {(()=>{const act=logData.activity||{};const items=[];if(act.managerOpened)items.push('Manager');if(act.swapBrowsed)items.push(act.swapExecuted?'Swap':'Swap (incomplete)');if(act.deviceScan)items.push('Device scan');if(!items.length)return null;return<><span style={{color:'rgba(255,255,255,0.15)',margin:'0 2px'}}>|</span><span style={{fontSize:10,color:T.muted,fontStyle:'italic'}}>{items.join(' · ')}</span></>;})()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -7375,13 +7427,15 @@ function App(){
                         {/* Treemap container */}
                         <div ref={diagTreemapRef} style={{flex:1,position:'relative',borderRadius:8,overflow:'hidden',background:T.bg,border:'1px solid rgba(255,255,255,0.06)',minHeight:80,marginTop:6}}>
                           {filtered.length>0&&diagTmSize.w>20&&diagTmSize.h>20&&(()=>{
-                            const rects=squarify(filtered.sort((a,b)=>b.value-a.value),{x:0,y:0,w:diagTmSize.w,h:diagTmSize.h});
-                            return rects.map(rect=>{
+                            const sortedFiltered=filtered.sort((a,b)=>b.value-a.value);
+                            const rects=squarify(sortedFiltered,{x:0,y:0,w:diagTmSize.w,h:diagTmSize.h});
+                            return rects.map((rect,idx)=>{
                               const f=rect;
                               const bw=rect.w-2,bh=rect.h-2;
                               const showTitle=bw>80&&bh>30;
                               const showMeta=bw>100&&bh>50;
                               const showAccts=bw>80&&bh>70;
+                              const showOrdinal=idx<3&&bw>110&&bh>60;
                               const sevLabel=f.sev==='high'?'CRIT':f.sev==='medium'?'WARN':'INFO';
                               const wfLabel=(DIAG_WF[f.wfCat]||{i:'•'}).i;
                               const errRelevant=focusedAcct?(f.linkedAccts.length===0||f.linkedAccts.some(la=>la.addr===focusedAcct.addr&&la.cid===focusedAcct.cid)):true;
@@ -7411,6 +7465,7 @@ function App(){
                                 onMouseLeave={ev=>{ev.currentTarget.style.background=f.color+'18';ev.currentTarget.style.boxShadow='none';}}
                                 title={`${sevLabel}: ${f.title}\n${f.count>1?f.count+'× · ':''}${f.category}${f.action?'\nAction: '+f.action:''}`}
                               >
+                                {showOrdinal&&<span style={{position:'absolute',top:6,right:8,fontFamily:'var(--display-font)',fontSize:Math.min(bh*0.55,42),fontWeight:800,color:f.color,opacity:0.18,letterSpacing:'-0.05em',lineHeight:0.85,pointerEvents:'none',userSelect:'none'}}>{String(idx+1).padStart(2,'0')}</span>}
                                 {showTitle&&<div style={{display:'flex',alignItems:'center',gap:4,marginBottom:2}}>
                                   <span style={{fontFamily:MF,fontSize:9,fontWeight:700,padding:'1px 4px',borderRadius:3,background:f.color+'30',color:f.color,letterSpacing:'0.06em',flexShrink:0}}>{sevLabel}</span>
                                   {f.count>1&&<span style={{fontFamily:MF,fontSize:9,fontWeight:700,color:f.color,flexShrink:0}}>×{f.count}</span>}
@@ -8107,29 +8162,40 @@ function App(){
                   ))}
                   {/* Divider */}
                   <div style={{width:1,height:16,background:T.border,margin:'0 2px'}}/>
-                  {/* Category chips */}
+                  {/* Category chips — tinted by dominant severity within category */}
                   <span style={{...purposeLabel,marginRight:2,opacity:0.6}}>Category · click to filter</span>
                   {(()=>{
-                    const catCounts={};
-                    for(const e of displayErrs){const c=e.dg.c||'unknown';catCounts[c]=(catCounts[c]||0)+1;}
+                    const catCounts={};const catMaxSev={};const sevRank={high:3,medium:2,low:1};
+                    for(const e of displayErrs){
+                      const c=e.dg.c||'unknown';
+                      catCounts[c]=(catCounts[c]||0)+1;
+                      const s=e.dg.s||'low';
+                      if(!catMaxSev[c]||(sevRank[s]||0)>(sevRank[catMaxSev[c]]||0))catMaxSev[c]=s;
+                    }
                     return Object.entries(catCounts).map(([cat,count])=>{
                       const ci=CAT[cat]||CAT.unknown;
+                      const sev=catMaxSev[cat];
+                      const catColor=sev==='high'?T.error:sev==='medium'?T.warning:'#8B84CC';
+                      const isActive=errCatFilter===cat;
                       return <div key={cat}
-                        onClick={()=>setErrCatFilter(errCatFilter===cat?null:cat)}
+                        onClick={()=>setErrCatFilter(isActive?null:cat)}
                         onMouseEnter={()=>setErrHoveredCat(cat)}
                         onMouseLeave={()=>setErrHoveredCat(null)}
                         style={{
-                          display:'flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:6,cursor:'pointer',
-                          background:errCatFilter===cat?'rgba(255,255,255,0.08)':'transparent',
-                          border:`1px solid ${errCatFilter===cat?'rgba(255,255,255,0.2)':I.interactiveBorder}`,
+                          display:'flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:6,cursor:'pointer',
+                          background:isActive?catColor+'20':catColor+'08',
+                          border:`1px solid ${isActive?catColor+'60':catColor+'25'}`,
                           transition:`all ${I.fast}`,fontSize:11,
-                          animation:errCatFilter===cat?(sectionChanged?'filterRemind 0.6s ease-out':I.pulse):'none',
-                          '--pulse-color':'rgba(255,255,255,0.25)',
-                          '--remind-color':'rgba(255,255,255,0.3)',
-                        }}>
-                        <span style={{fontSize:12}}>{ci.i}</span>
-                        <span style={{fontFamily:MF,color:errCatFilter===cat?T.text:T.muted,fontSize:10,letterSpacing:'0.03em'}}>{ci.l.split(' / ')[0]}</span>
-                        <span style={{fontFamily:MF,color:T.muted,fontSize:9}}>{count}</span>
+                          animation:isActive?(sectionChanged?'filterRemind 0.6s ease-out':I.pulse):'none',
+                          '--pulse-color':catColor+'40',
+                          '--remind-color':catColor+'60',
+                        }}
+                        onMouseOver={e=>{if(!isActive)e.currentTarget.style.background=catColor+'15';}}
+                        onMouseOut={e=>{if(!isActive)e.currentTarget.style.background=catColor+'08';}}>
+                        <span style={{width:6,height:6,borderRadius:'50%',background:catColor,flexShrink:0}}/>
+                        <span style={{fontSize:11}}>{ci.i}</span>
+                        <span style={{fontFamily:MF,color:isActive?catColor:'#CCC',fontSize:10,letterSpacing:'0.03em',fontWeight:isActive?700:500}}>{ci.l.split(' / ')[0]}</span>
+                        <span style={{fontFamily:MF,color:catColor,fontSize:10,fontWeight:700}}>{count}</span>
                       </div>;
                     });
                   })()}
