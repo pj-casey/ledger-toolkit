@@ -2083,7 +2083,7 @@ function parseLogs(text){
       const p=JSON.parse(t);
       const arr=Array.isArray(p)?p:[p];
       // Filter out non-objects, add logIndex if missing, normalise mobile fields
-      return arr.filter(e=>e!==null&&typeof e==='object'&&!Array.isArray(e)).map((e,i)=>{
+      const entries=arr.filter(e=>e!==null&&typeof e==='object'&&!Array.isArray(e)).map((e,i)=>{
         const out=Object.assign({},e);
         if(out.logIndex==null)out.logIndex=i;
         // Mobile: logLevel -> level, tag -> type, date -> timestamp
@@ -2092,10 +2092,12 @@ function parseLogs(text){
         if(out.timestamp==null&&out.date!=null){out.timestamp=out.date;}
         return out;
       });
+      return {entries,stats:{strategy:1,attempted:entries.length,dropped:0}};
     }catch{}
     // Pretty-printed JSON recovery: reconstruct objects by tracking brace depth
     try{
       const objects=[];
+      let s2Attempted=0,s2Dropped=0;
       let depth=0,start=-1,inString=false,escape=false;
       for(let i=0;i<raw.length;i++){
         const ch=raw[i];
@@ -2130,16 +2132,17 @@ function parseLogs(text){
         else if(ch==='}'){
           depth--;
           if(depth===0&&start>=0){
+            s2Attempted++;
             try{
               const obj=JSON.parse(raw.slice(start,i+1).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,''));
               if(obj!==null&&typeof obj==='object'&&!Array.isArray(obj))objects.push(obj);
-            }catch{}
+            }catch{s2Dropped++;}
             start=-1;
           }
         }
       }
       if(objects.length>0){
-        return objects.map((e,i)=>{
+        const entries=objects.map((e,i)=>{
           const out=Object.assign({},e);
           if(out.logIndex==null)out.logIndex=i;
           if(out.level==null&&out.logLevel!=null){out.level=String(out.logLevel).toLowerCase();delete out.logLevel;}
@@ -2147,12 +2150,15 @@ function parseLogs(text){
           if(out.timestamp==null&&out.date!=null){out.timestamp=out.date;}
           return out;
         });
+        return {entries,stats:{strategy:2,attempted:s2Attempted,dropped:s2Dropped}};
       }
     }catch{}
   }
   // Line-by-line fallback (handles mixed JSON+text)
-  return raw.split('\n').map((l,i)=>{
+  let s3Attempted=0,s3Dropped=0;
+  const entries=raw.split('\n').map((l,i)=>{
     const lt=l.trim();if(!lt)return null;
+    s3Attempted++;
     try{
       const p=JSON.parse(lt);
       if(p===null||typeof p!=='object'||Array.isArray(p))return{logIndex:i,timestamp:'',type:'raw',level:'info',message:lt};
@@ -2162,8 +2168,9 @@ function parseLogs(text){
       if(out.type==null&&out.tag!=null){out.type=out.tag;delete out.tag;}
       if(out.timestamp==null&&out.date!=null){out.timestamp=out.date;}
       return out;
-    }catch{return{logIndex:i,timestamp:'',type:'raw',level:'info',message:lt};}
+    }catch{s3Dropped++;return{logIndex:i,timestamp:'',type:'raw',level:'info',message:lt};}
   }).filter(Boolean);
+  return {entries,stats:{strategy:3,attempted:s3Attempted,dropped:s3Dropped}};
 }
 
 function synthesizeMobileMeta(entries, fileName) {
@@ -6252,7 +6259,8 @@ function App(){
     reader.onload=ev=>{
       setTimeout(()=>{
         try{
-          const entries=synthesizeMobileMeta(parseLogs(ev.target.result), file.name);
+          const pr=parseLogs(ev.target.result);
+          const entries=synthesizeMobileMeta(pr.entries, file.name);
           if(!entries||entries.length===0){setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');setParsing(false);return;}
           const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
           const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
@@ -6260,7 +6268,7 @@ function App(){
           // Backfill device info from deviceApps when extractDevice missed it (mobile logs)
           if(deviceApps){if(!dev.modelId&&deviceApps.deviceModelId){dev.modelId=deviceApps.deviceModelId;dev.modelName=DN[deviceApps.deviceModelId]||deviceApps.deviceModelId;}if(!dev.fw&&deviceApps.deviceInfo?.seVersion)dev.fw=deviceApps.deviceInfo.seVersion;if(!dev.fw&&deviceApps.firmware?.version)dev.fw=deviceApps.firmware.version;}
           setLoadErr('');
-          setLogData({entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
+          setLogData({parseStats:pr.stats,entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
           setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setDiagCatFilter(null);
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
@@ -6730,6 +6738,7 @@ function App(){
             <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:'#666',textTransform:'uppercase',flexShrink:0}}>Session</span>
             <span className="mono" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220,color:T.muted,fontSize:11}} title={fileName}>{fileName}</span>
             {logData.isMobile&&<span style={{fontSize:9,fontWeight:700,letterSpacing:'0.05em',padding:'1px 5px',borderRadius:3,background:T.primary+'1A',color:T.primary,flexShrink:0}}>MOBILE</span>}
+            {(()=>{const ps=logData.parseStats;if(!ps||(ps.strategy===1&&ps.dropped===0))return null;const ratio=ps.attempted>0?ps.dropped/ps.attempted:0;const isUnreliable=ps.strategy===3||ratio>=0.05;const label=isUnreliable?'UNRELIABLE':'PARTIAL';const color=isUnreliable?T.error:T.warning;const tip=isUnreliable?'This log file is heavily damaged and findings should not be trusted. Ask the customer to re-export logs from Ledger Wallet → Settings → Help → Export logs.':`Part of this log couldn't be read (${ps.dropped} entries skipped). Most of the diagnosis is reliable, but verify on-chain before escalating anything serious.`;return <span title={tip} style={{fontSize:9,fontWeight:700,letterSpacing:'0.05em',padding:'1px 5px',borderRadius:3,background:color+'1A',color:color,flexShrink:0}}>{label}</span>;})()}
           </div>
           {logData.entries.length>1&&<span className="mono" style={{color:'#666',fontSize:10,letterSpacing:'0.02em'}}>
             {(()=>{const t0=logData.entries[0].timestamp;const tN=logData.entries[logData.entries.length-1].timestamp;const dur=((new Date(tN)-new Date(t0))/1000);const durLabel=dur<60?dur.toFixed(1)+'s':dur<3600?(dur/60).toFixed(1)+'m':(dur/3600).toFixed(1)+'h';return `${fmtDate(t0)} ${fmtTime(t0)}–${fmtTime(tN)} · ${durLabel}`;})()}

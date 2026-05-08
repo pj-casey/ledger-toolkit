@@ -148,7 +148,6 @@ Zero data transmission. All log parsing and analysis runs client-side. Only acco
 | `agent-guide.html` | Investigation guide for CS agents (also embedded in the tool as 📖) |
 | `technical-reference.html` | Technical capabilities reference (also embedded as 🔬) |
 | `CLAUDE.md` | Technical reference for AI-assisted development |
-| `SESSION_HANDOFF.md` | Session context for continuity between development sessions |
 
 ## Built with
 
