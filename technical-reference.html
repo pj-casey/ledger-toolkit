@@ -415,7 +415,7 @@ ol.tech-list li strong{color:var(--text)}
 
 <h3 id="xpub">UTXO Extended Public Key Analysis</h3>
 <div class="card">
-  <p>Full BIP32 hierarchical deterministic key derivation for Bitcoin, Litecoin, Dogecoin, and Bitcoin Cash. Derives individual addresses from <span class="mono">xpub</span>, <span class="mono">ypub</span>, and <span class="mono">zpub</span> keys along receive (<span class="mono">m/0/i</span>) and change (<span class="mono">m/1/i</span>) chains.</p>
+  <p>Full BIP32 hierarchical deterministic key derivation for Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, and Zcash (transparent t1 only — Ledger does not support shielded signing). Derives individual addresses from <span class="mono">xpub</span>, <span class="mono">ypub</span>, and <span class="mono">zpub</span> keys along receive (<span class="mono">m/0/i</span>) and change (<span class="mono">m/1/i</span>) chains.</p>
   <p><strong>Supported derivation modes:</strong></p>
   <ul class="def-list">
     <li><strong>BIP84</strong> — Native SegWit (zpub, P2WPKH, bc1q... addresses)</li>
@@ -459,7 +459,7 @@ ol.tech-list li strong{color:var(--text)}
   <p><strong>Coverage by tier:</strong></p>
   <ul class="def-list">
     <li><strong>EVM chains (23 networks)</strong> — Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, Base, Fantom, Celo, and others via JSON-RPC <span class="mono">eth_getBalance</span> against publicnode.com endpoints</li>
-    <li><strong>UTXO chains</strong> — Bitcoin (mempool.space), Litecoin/Dogecoin (BlockCypher), Bitcoin Cash (Blockchair)</li>
+    <li><strong>UTXO chains</strong> — Bitcoin (mempool.space), Litecoin/Dogecoin (BlockCypher), Bitcoin Cash &amp; Zcash (Blockchair)</li>
     <li><strong>Major L1s</strong> — Solana, Tezos, Cosmos, XRP, Polkadot, Cardano, NEAR, Tron, TON, Stellar, Hedera, Algorand, and others via chain-specific REST/RPC APIs</li>
   </ul>
   <p><strong>Fiat pricing:</strong> CoinGecko API with chain currency IDs mapped via a 40+ entry <span class="mono">COINGECKO_IDS</span> constant. USD prices batch-fetched after balances complete.</p>
@@ -468,7 +468,7 @@ ol.tech-list li strong{color:var(--text)}
 
 <h3 id="token-resolution">Token Resolution</h3>
 <div class="card">
-  <p>Token contract address resolution for 45+ EVM and non-EVM chains via a <span class="mono">TOKEN_CONTRACTS</span> registry and per-chain URL builders (<span class="mono">TOKEN_URLS</span>). When an exact contract resolution is available, a direct token explorer link is generated. When it is not, a <span class="mono">TOKEN_SEARCH</span> fallback generates an explorer search URL for 8 supported chains.</p>
+  <p>Token metadata is resolved on-demand from Ledger's CAL service (<span class="mono">crypto-assets-service.api.ledger.com/v1/tokens?id=…</span>) when an account card expands. Each token's <span class="mono">contract_address</span>, <span class="mono">decimals</span>, <span class="mono">ticker</span>, and <span class="mono">name</span> are cached in localStorage with a 24-hour per-token TTL (<span class="mono">ldt_tkm_v1</span>). Live token balances come from a single <span class="mono">Multicall3.aggregate3</span> call per chain (one round trip for N tokens). Live USD prices come from DexScreener (<span class="mono">/latest/dex/tokens/{contract}</span>) with concurrency 5, a 200ms minimum gap, and a session-scoped 5-minute price cache. Per-chain URL builders (<span class="mono">TOKEN_URLS</span>) generate direct explorer links; <span class="mono">TOKEN_SEARCH</span> handles search-fallback for chains without exact resolution.</p>
   <p>Token badges on account cards are rendered as clickable links. Token operation counts from log sync data are preserved per token per account. EVM chain IDs are mapped via a 22-entry <span class="mono">EVM_CHAIN_IDS</span> constant used to construct the correct explorer URL for each network.</p>
 </div>
 
@@ -687,7 +687,7 @@ ol.tech-list li strong{color:var(--text)}
 <div class="card">
   <p>The Earn tab extracts staking data from <span class="mono">enrichedAccts</span> without any live API calls.</p>
   <p><strong>Native staking positions:</strong> accounts where <span class="mono">balance ≠ spendableBalance</span>. Staked amount, fiat value, staking operation history (DELEGATE, STAKE, FREEZE, VOTE, UNDELEGATE, UNSTAKE, WITHDRAW, REWARD), validator addresses from <span class="mono">op.recipients</span> and <span class="mono">op.extra.stake.address</span>.</p>
-  <p><strong>Liquid staking tokens:</strong> detected by pattern-matching <span class="mono">tokenId</span> strings in sub-accounts against known LST identifiers: <span class="mono">steth</span>, <span class="mono">coinbase_wrapped_staked_eth</span>, <span class="mono">jupiter_staked_sol</span>, <span class="mono">lombard_staked_bitcoin</span>, <span class="mono">lc_staked_shared_eth</span>, <span class="mono">reth</span>.</p>
+  <p><strong>Liquid staking tokens:</strong> detected by pattern-matching <span class="mono">tokenId</span> strings in sub-accounts against known LST identifiers: <span class="mono">steth</span>, <span class="mono">coinbase_wrapped_staked_eth</span>, <span class="mono">jupiter_staked_sol</span>, <span class="mono">lombard_staked_bitcoin</span>, <span class="mono">lc_staked_shared_eth</span>, <span class="mono">reth</span>. Decimals for known tokens come from CAL metadata (authoritative); the <span class="mono">TOKEN_DECIMALS_PATTERNS</span> regex array is a fallback for tokens not yet looked up in CAL.</p>
   <p><strong>Estimated APY rates:</strong> stored in a constant <span class="mono">STAKING_APY</span> map derived from Ledger's public documentation. SOL ~5-7%, ATOM ~15-20%, DOT ~10-12%, XTZ ~5%, TRX ~3-5%, NEAR ~8-12%, ADA ~3-5%, ALGO ~5-7%, ETH ~3-3.5%.</p>
   <p><strong>Known providers:</strong> Ledger by Figment (SOL, ATOM, DOT, NEAR), Kiln (ETH), Lido (ETH→stETH), Coinbase (ETH→cbETH), Yield.xyz (AVAX, DOT, TRX, POL, BNB, CRO).</p>
 </div>

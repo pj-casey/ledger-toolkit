@@ -223,7 +223,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <p><strong>Start here:</strong> Focus on the affected account — use the <strong>Focus Investigation</strong> button on the Overview or <strong>Shift+click</strong> the account's tile in Accounts. This filters every section to that account. Check <strong>Accounts</strong> for the live on-chain balance and fiat value — compare with what the customer reports.</p>
   <p><strong>Look for:</strong> Mismatches between live balance and what the customer sees. If the log has no sync data, accounts show an amber "no data" badge — the live balance is your only reference. The sidebar also shows fiat values next to funded accounts for a quick scan.</p>
   <p><strong>For deeper investigation:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for the balances their app was displaying. Compare app.json balances with the live balances shown in Diagnostic mode.</p>
-  <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
+  <p><strong>For Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, or Zcash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
   <p><strong>In Customer View:</strong> Load the customer's <kbd>app.json</kbd> and go to <strong>Agent Insights</strong>. The dashboard compares what the customer sees to live on-chain balances and flags discrepancies. Check the staking card — if the customer has staked funds, the "missing" balance is likely frozen, not lost. Use the <strong>Earn</strong> tab to see their staking positions and validator details.</p>
   <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
@@ -414,12 +414,12 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
   <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See the Technical Reference (🔬 button on the landing page) for implementation details.</em></div>
 </div>
 
-<h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
+<h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Zcash)</h3>
 <div class="card">
   <p>When you expand an account that stores an extended public key (xpub, ypub, or zpub), the tool shows a <strong>Scan</strong> button. Clicking it derives individual addresses from the key, queries the blockchain for each one, and shows the balance and transaction count per address.</p>
   <p>This is your most powerful tool for "my balance is wrong" on UTXO chains. It shows exactly which addresses hold funds — even addresses the app's sync may have missed.</p>
   <p>The scanner walks the derivation path (receive and change chains), stopping when it hits a gap of unused addresses. Each address gets an explorer link so you can verify on-chain.</p>
-  <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin and Dogecoin are slower due to rate limiting — the tool handles retries automatically.</div>
+  <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin, Dogecoin, and Zcash are slower due to rate limiting — the tool handles retries automatically.</div>
 </div>
 
 <h3 id="derived-addresses">Derived Addresses &amp; Token Explorer Links</h3>
@@ -431,7 +431,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
     <strong style="color:var(--text)">Stacks</strong> — compressed pubkey → <span class="mono">SP...</span> c32check address
   </p>
   <p>Look for the blue "Derived Address" block when you expand one of these accounts. It includes a copy button and an explorer link. Always verify derived addresses with the customer — they're computed from log data, not confirmed on-chain.</p>
-  <p><strong>Token explorer links:</strong> Token badges on account cards are clickable. The tool resolves contract addresses for 45+ chains and links directly to the token on the correct block explorer. If you're investigating "my tokens are missing," click the token badge to verify it exists on-chain.</p>
+  <p><strong>Token tiles with live balance:</strong> When you expand an EVM account, each ERC-20 token sub-account renders as a tile showing the ticker, live on-chain balance (one Multicall3 call per chain), and live USD value (DexScreener). Tiles are clickable and link to the token on the correct block explorer. Coverage is broad across 19 EVM chains; tokens on Lukso, Moonbeam, and Kaia render with "no live price" because those chains lack DexScreener coverage. If a customer reports "my tokens are missing," the tile shows the on-chain truth — not what their cached app data says.</p>
 </div>
 
 <h3 id="raw-json-search">Raw JSON Progressive Search</h3>
@@ -445,7 +445,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <h3 id="live-balances">Live On-Chain Balances</h3>
 <div class="card">
   <p>The tool automatically fetches live blockchain balances for every account in the log — no app.json needed. As soon as you load a file, balances start appearing on each account card in the Accounts section with a green dollar value.</p>
-  <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
+  <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Zcash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
   <p><strong>Portfolio total:</strong> The sidebar shows fiat values next to funded accounts for a quick scan. The Accounts section header shows the total funded/empty split. For a full portfolio view, use the <strong>Portfolio ▸</strong> overlay on the Accounts health tiles.</p>
   <p><strong>Copy exports:</strong> All copy formats (Summary, Full, Customer) now include live balances and fiat values per account, plus a PORTFOLIO total line.</p>
   <p>Balances are fetched from public blockchain APIs and priced via CoinGecko. No API keys required. Accounts that show "live ···" are still loading. Xpub accounts (Bitcoin-family) use the existing Xpub Scanner for balance — live fetch doesn't apply to those.</p>
@@ -596,7 +596,7 @@ kbd{background:var(--card);border:1px solid var(--border);border-bottom:2px soli
 <p>This was a known issue that has been fixed. If you're seeing false "Balance changed" alerts on accounts with staked funds (SOL, TRX, NEAR, etc.), make sure you're on the latest version. The tool now compares the <strong>available</strong> balance (excluding staked) to the live balance.</p>
 
 <h3>The xpub scanner is slow</h3>
-<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
+<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin, Dogecoin, and Zcash are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
 
 <h3>Device apps show "Not installed"</h3>
 <p>A red chip marked <strong>✕ AppName</strong> on the Overview means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall. Amber chips marked <strong>⚠</strong> mean the app is installed but outdated.</p>

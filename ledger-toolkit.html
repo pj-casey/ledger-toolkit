@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net; connect-src https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net https://crypto-icons.ledger.com; connect-src https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://crypto-assets-service.api.ledger.com https://crypto-icons.ledger.com https://proxyetherscan.api.live.ledger.com https://api.dexscreener.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
 <title>Ledger Diagnostic Toolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -357,7 +357,7 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p><strong>Start here:</strong> Focus on the affected account — use the <strong>Focus Investigation</strong> button on the Overview or <strong>Shift+click</strong> the account's tile in Accounts. This filters every section to that account. Check <strong>Accounts</strong> for the live on-chain balance and fiat value — compare with what the customer reports.</p>
   <p><strong>Look for:</strong> Mismatches between live balance and what the customer sees. If the log has no sync data, accounts show an amber "no data" badge — the live balance is your only reference. The sidebar also shows fiat values next to funded accounts for a quick scan.</p>
   <p><strong>For deeper investigation:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for the balances their app was displaying. Compare app.json balances with the live balances shown in Diagnostic mode.</p>
-  <p><strong>For Bitcoin, Litecoin, Dogecoin, or Bitcoin Cash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
+  <p><strong>For Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, or Zcash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
   <p><strong>In Customer View:</strong> Load the customer's <kbd>app.json</kbd> and go to <strong>Agent Insights</strong>. The dashboard compares what the customer sees to live on-chain balances and flags discrepancies. Check the staking card — if the customer has staked funds, the "missing" balance is likely frozen, not lost. Use the <strong>Earn</strong> tab to see their staking positions and validator details.</p>
   <div class="warn">If app.json shows a different balance than the live on-chain balance, the local cache may be stale. Ask the customer to clear cache and resync.</div>
@@ -548,12 +548,12 @@ const GUIDE_AGENT=`<!-- Hero -->
   <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See the Technical Reference (🔬 button on the landing page) for implementation details.</em></div>
 </div>
 
-<h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash)</h3>
+<h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Zcash)</h3>
 <div class="card">
   <p>When you expand an account that stores an extended public key (xpub, ypub, or zpub), the tool shows a <strong>Scan</strong> button. Clicking it derives individual addresses from the key, queries the blockchain for each one, and shows the balance and transaction count per address.</p>
   <p>This is your most powerful tool for "my balance is wrong" on UTXO chains. It shows exactly which addresses hold funds — even addresses the app's sync may have missed.</p>
   <p>The scanner walks the derivation path (receive and change chains), stopping when it hits a gap of unused addresses. Each address gets an explorer link so you can verify on-chain.</p>
-  <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin and Dogecoin are slower due to rate limiting — the tool handles retries automatically.</div>
+  <div class="tip">The scanner queries live blockchain APIs, so it takes a few seconds per address. Litecoin, Dogecoin, and Zcash are slower due to rate limiting — the tool handles retries automatically.</div>
 </div>
 
 <h3 id="derived-addresses">Derived Addresses &amp; Token Explorer Links</h3>
@@ -565,7 +565,7 @@ const GUIDE_AGENT=`<!-- Hero -->
     <strong style="color:var(--text)">Stacks</strong> — compressed pubkey → <span class="mono">SP...</span> c32check address
   </p>
   <p>Look for the blue "Derived Address" block when you expand one of these accounts. It includes a copy button and an explorer link. Always verify derived addresses with the customer — they're computed from log data, not confirmed on-chain.</p>
-  <p><strong>Token explorer links:</strong> Token badges on account cards are clickable. The tool resolves contract addresses for 45+ chains and links directly to the token on the correct block explorer. If you're investigating "my tokens are missing," click the token badge to verify it exists on-chain.</p>
+  <p><strong>Token tiles with live balance:</strong> When you expand an EVM account, each ERC-20 token sub-account renders as a tile showing the ticker, live on-chain balance (one Multicall3 call per chain), and live USD value (DexScreener). Tiles are clickable and link to the token on the correct block explorer. Coverage is broad across 19 EVM chains; tokens on Lukso, Moonbeam, and Kaia render with "no live price" because those chains lack DexScreener coverage. If a customer reports "my tokens are missing," the tile shows the on-chain truth — not what their cached app data says.</p>
 </div>
 
 <h3 id="raw-json-search">Raw JSON Progressive Search</h3>
@@ -579,7 +579,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3 id="live-balances">Live On-Chain Balances</h3>
 <div class="card">
   <p>The tool automatically fetches live blockchain balances for every account in the log — no app.json needed. As soon as you load a file, balances start appearing on each account card in the Accounts section with a green dollar value.</p>
-  <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
+  <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Zcash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
   <p><strong>Portfolio total:</strong> The sidebar shows fiat values next to funded accounts for a quick scan. The Accounts section header shows the total funded/empty split. For a full portfolio view, use the <strong>Portfolio ▸</strong> overlay on the Accounts health tiles.</p>
   <p><strong>Copy exports:</strong> All copy formats (Summary, Full, Customer) now include live balances and fiat values per account, plus a PORTFOLIO total line.</p>
   <p>Balances are fetched from public blockchain APIs and priced via CoinGecko. No API keys required. Accounts that show "live ···" are still loading. Xpub accounts (Bitcoin-family) use the existing Xpub Scanner for balance — live fetch doesn't apply to those.</p>
@@ -730,7 +730,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 <p>This was a known issue that has been fixed. If you're seeing false "Balance changed" alerts on accounts with staked funds (SOL, TRX, NEAR, etc.), make sure you're on the latest version. The tool now compares the <strong>available</strong> balance (excluding staked) to the live balance.</p>
 
 <h3>The xpub scanner is slow</h3>
-<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin and Dogecoin are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
+<p>The scanner queries live blockchain APIs for each derived address. Bitcoin is fastest (~200ms per address). Litecoin, Dogecoin, and Zcash are slower (~650ms) and may hit rate limits — the tool retries automatically up to 5 times. You can stop a running scan at any time.</p>
 
 <h3>Device apps show "Not installed"</h3>
 <p>A red chip marked <strong>✕ AppName</strong> on the Overview means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall. Amber chips marked <strong>⚠</strong> mean the app is installed but outdated.</p>
@@ -1025,7 +1025,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 
 <h3 id="xpub">UTXO Extended Public Key Analysis</h3>
 <div class="card">
-  <p>Full BIP32 hierarchical deterministic key derivation for Bitcoin, Litecoin, Dogecoin, and Bitcoin Cash. Derives individual addresses from <span class="mono">xpub</span>, <span class="mono">ypub</span>, and <span class="mono">zpub</span> keys along receive (<span class="mono">m/0/i</span>) and change (<span class="mono">m/1/i</span>) chains.</p>
+  <p>Full BIP32 hierarchical deterministic key derivation for Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, and Zcash (transparent t1 only — Ledger does not support shielded signing). Derives individual addresses from <span class="mono">xpub</span>, <span class="mono">ypub</span>, and <span class="mono">zpub</span> keys along receive (<span class="mono">m/0/i</span>) and change (<span class="mono">m/1/i</span>) chains.</p>
   <p><strong>Supported derivation modes:</strong></p>
   <ul class="def-list">
     <li><strong>BIP84</strong> — Native SegWit (zpub, P2WPKH, bc1q... addresses)</li>
@@ -1069,7 +1069,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <p><strong>Coverage by tier:</strong></p>
   <ul class="def-list">
     <li><strong>EVM chains (23 networks)</strong> — Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, Base, Fantom, Celo, and others via JSON-RPC <span class="mono">eth_getBalance</span> against publicnode.com endpoints</li>
-    <li><strong>UTXO chains</strong> — Bitcoin (mempool.space), Litecoin/Dogecoin (BlockCypher), Bitcoin Cash (Blockchair)</li>
+    <li><strong>UTXO chains</strong> — Bitcoin (mempool.space), Litecoin/Dogecoin (BlockCypher), Bitcoin Cash &amp; Zcash (Blockchair)</li>
     <li><strong>Major L1s</strong> — Solana, Tezos, Cosmos, XRP, Polkadot, Cardano, NEAR, Tron, TON, Stellar, Hedera, Algorand, and others via chain-specific REST/RPC APIs</li>
   </ul>
   <p><strong>Fiat pricing:</strong> CoinGecko API with chain currency IDs mapped via a 40+ entry <span class="mono">COINGECKO_IDS</span> constant. USD prices batch-fetched after balances complete.</p>
@@ -1078,7 +1078,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 
 <h3 id="token-resolution">Token Resolution</h3>
 <div class="card">
-  <p>Token contract address resolution for 45+ EVM and non-EVM chains via a <span class="mono">TOKEN_CONTRACTS</span> registry and per-chain URL builders (<span class="mono">TOKEN_URLS</span>). When an exact contract resolution is available, a direct token explorer link is generated. When it is not, a <span class="mono">TOKEN_SEARCH</span> fallback generates an explorer search URL for 8 supported chains.</p>
+  <p>Token metadata is resolved on-demand from Ledger's CAL service (<span class="mono">crypto-assets-service.api.ledger.com/v1/tokens?id=…</span>) when an account card expands. Each token's <span class="mono">contract_address</span>, <span class="mono">decimals</span>, <span class="mono">ticker</span>, and <span class="mono">name</span> are cached in localStorage with a 24-hour per-token TTL (<span class="mono">ldt_tkm_v1</span>). Live token balances come from a single <span class="mono">Multicall3.aggregate3</span> call per chain (one round trip for N tokens). Live USD prices come from DexScreener (<span class="mono">/latest/dex/tokens/{contract}</span>) with concurrency 5, a 200ms minimum gap, and a session-scoped 5-minute price cache. Per-chain URL builders (<span class="mono">TOKEN_URLS</span>) generate direct explorer links; <span class="mono">TOKEN_SEARCH</span> handles search-fallback for chains without exact resolution.</p>
   <p>Token badges on account cards are rendered as clickable links. Token operation counts from log sync data are preserved per token per account. EVM chain IDs are mapped via a 22-entry <span class="mono">EVM_CHAIN_IDS</span> constant used to construct the correct explorer URL for each network.</p>
 </div>
 
@@ -1297,7 +1297,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 <div class="card">
   <p>The Earn tab extracts staking data from <span class="mono">enrichedAccts</span> without any live API calls.</p>
   <p><strong>Native staking positions:</strong> accounts where <span class="mono">balance ≠ spendableBalance</span>. Staked amount, fiat value, staking operation history (DELEGATE, STAKE, FREEZE, VOTE, UNDELEGATE, UNSTAKE, WITHDRAW, REWARD), validator addresses from <span class="mono">op.recipients</span> and <span class="mono">op.extra.stake.address</span>.</p>
-  <p><strong>Liquid staking tokens:</strong> detected by pattern-matching <span class="mono">tokenId</span> strings in sub-accounts against known LST identifiers: <span class="mono">steth</span>, <span class="mono">coinbase_wrapped_staked_eth</span>, <span class="mono">jupiter_staked_sol</span>, <span class="mono">lombard_staked_bitcoin</span>, <span class="mono">lc_staked_shared_eth</span>, <span class="mono">reth</span>.</p>
+  <p><strong>Liquid staking tokens:</strong> detected by pattern-matching <span class="mono">tokenId</span> strings in sub-accounts against known LST identifiers: <span class="mono">steth</span>, <span class="mono">coinbase_wrapped_staked_eth</span>, <span class="mono">jupiter_staked_sol</span>, <span class="mono">lombard_staked_bitcoin</span>, <span class="mono">lc_staked_shared_eth</span>, <span class="mono">reth</span>. Decimals for known tokens come from CAL metadata (authoritative); the <span class="mono">TOKEN_DECIMALS_PATTERNS</span> regex array is a fallback for tokens not yet looked up in CAL.</p>
   <p><strong>Estimated APY rates:</strong> stored in a constant <span class="mono">STAKING_APY</span> map derived from Ledger's public documentation. SOL ~5-7%, ATOM ~15-20%, DOT ~10-12%, XTZ ~5%, TRX ~3-5%, NEAR ~8-12%, ADA ~3-5%, ALGO ~5-7%, ETH ~3-3.5%.</p>
   <p><strong>Known providers:</strong> Ledger by Figment (SOL, ATOM, DOT, NEAR), Kiln (ETH), Lido (ETH→stETH), Coinbase (ETH→cbETH), Yield.xyz (AVAX, DOT, TRX, POL, BNB, CRO).</p>
 </div>
@@ -1491,6 +1491,7 @@ const CHAINS={
   litecoin:{name:'Litecoin',ticker:'LTC',color:'#345d9d',url:a=>`https://blockchair.com/litecoin/address/${a}`,xc:'LTC'},
   dogecoin:{name:'Dogecoin',ticker:'DOGE',color:'#ba9f33',url:a=>`https://blockchair.com/dogecoin/address/${a}`,xc:'DOGE'},
   bitcoin_cash:{name:'Bitcoin Cash',ticker:'BCH',color:'#8dc351',url:a=>`https://blockchair.com/bitcoin-cash/address/${a}`,xc:'BCH'},
+  zcash:{name:'Zcash',ticker:'ZEC',color:'#3790ca',url:a=>`https://blockchair.com/zcash/address/${a}`,xc:'ZEC'},
   stellar:{name:'Stellar',ticker:'XLM',color:'#14B8E6',url:()=>null,note:'Stellar stores accounts by public key. Search manually at stellar.expert/explorer/public/account/'},
   hedera:{name:'Hedera',ticker:'HBAR',color:'#8259EF',url:a=>`https://hashscan.io/mainnet/account/${a}`},
   elrond:{name:'MultiversX',ticker:'EGLD',color:'#23F7DD',url:a=>`https://explorer.multiversx.com/accounts/${a}`},
@@ -1535,14 +1536,14 @@ const DC={name:'Unknown',ticker:'???',color:'#717070',url:()=>null};
 const getChain=id=>CHAINS[id]||CHAINS[id?.replace(/_/g,'')]||DC;
 const ICON_CDN='https://cdn.jsdelivr.net/gh/simplr-sh/coin-logos@main/images/';
 const chainIconUrl=id=>{const g=COINGECKO_IDS[id];return g?ICON_CDN+g+'/small.png':null;};
-const DECIMALS={ethereum:18,bitcoin:8,tezos:6,cosmos:6,tron:6,near:24,solana:9,ripple:6,polkadot:10,assethub_polkadot:10,ton:9,cardano:6,bsc:18,polygon:18,avalanche_c_chain:18,optimism:18,arbitrum:18,base:18,linea:18,scroll:18,blast:18,zksync:18,mantle:18,fantom:18,cronos:18,moonbeam:18,moonriver:18,celo:18,neon_evm:18,lukso:18,sonic:18,stellar:7,hedera:8,elrond:18,filecoin:18,vechain:18,algorand:6,klaytn:18,mina:9,kaspa:8,stacks:6,dogecoin:8,litecoin:8,bitcoin_cash:8,aptos:8,sui:9,dydx:18,injective:18,flare:18,hyperevm:18,osmo:6,osmosis:6,internet_computer:8,icp:8,mantra:6,persistence:6,axelar:6,quicksilver:6,zenrock:6};
+const DECIMALS={ethereum:18,bitcoin:8,tezos:6,cosmos:6,tron:6,near:24,solana:9,ripple:6,polkadot:10,assethub_polkadot:10,ton:9,cardano:6,bsc:18,polygon:18,avalanche_c_chain:18,optimism:18,arbitrum:18,base:18,linea:18,scroll:18,blast:18,zksync:18,mantle:18,fantom:18,cronos:18,moonbeam:18,moonriver:18,celo:18,neon_evm:18,lukso:18,sonic:18,stellar:7,hedera:8,elrond:18,filecoin:18,vechain:18,algorand:6,klaytn:18,mina:9,kaspa:8,stacks:6,dogecoin:8,litecoin:8,bitcoin_cash:8,zcash:8,aptos:8,sui:9,dydx:18,injective:18,flare:18,hyperevm:18,osmo:6,osmosis:6,internet_computer:8,icp:8,mantra:6,persistence:6,axelar:6,quicksilver:6,zenrock:6};
 
 /* Live Balance — CoinGecko IDs for fiat conversion */
 const COINGECKO_IDS={
   ethereum:'ethereum',bitcoin:'bitcoin',tezos:'tezos',cosmos:'cosmos',solana:'solana',
   ripple:'ripple',polkadot:'polkadot',ton:'the-open-network',cardano:'cardano',
   near:'near',stellar:'stellar',tron:'tron',litecoin:'litecoin',dogecoin:'dogecoin',
-  bitcoin_cash:'bitcoin-cash',bsc:'binancecoin',polygon:'matic-network',
+  bitcoin_cash:'bitcoin-cash',zcash:'zcash',bsc:'binancecoin',polygon:'matic-network',
   avalanche_c_chain:'avalanche-2',optimism:'ethereum',arbitrum:'ethereum',
   base:'ethereum',linea:'ethereum',scroll:'ethereum',blast:'ethereum',
   zksync:'ethereum',mantle:'mantle',fantom:'fantom',cronos:'crypto-com-chain',
@@ -1589,12 +1590,290 @@ async function fetchEvmBalance(rpc,addr){
   return parseInt(j.result,16)/1e18;
 }
 
+/* ─── ERC-20 token balances via Multicall3 ──────────────────────────────────
+   One eth_call per chain returns N balanceOf reads in a single round trip.
+   Calldata layout (encoder, Call3 has 3 fields → inner bytes offset = 0x60):
+     selector(4) | outerOffset(32) | arrayLen(32) | tupleOffsets[N]*32
+       | per-tuple: target(32) | allowFailure(32) | bytesOffset=0x60(32)
+                  | calldataLen(32) | calldata padded
+   Response (decoder, Result has 2 fields → inner bytes offset = 0x40):
+     outerOffset(32) | arrayLen(32) | tupleOffsets[N]*32
+       | per-tuple: success(32) | bytesOffset=0x40(32)
+                  | retDataLen(32) | retData padded
+*/
+function _hex32(v){
+  // v: BigInt | number | hex string (no 0x). Output: 64-hex-char (32-byte) word.
+  if(typeof v==='bigint')return v.toString(16).padStart(64,'0');
+  if(typeof v==='number')return v.toString(16).padStart(64,'0');
+  return String(v).replace(/^0x/i,'').padStart(64,'0').toLowerCase();
+}
+function _padRightTo32(hex){
+  const len=hex.length;
+  const rem=len%64;
+  return rem===0?hex:hex+'0'.repeat(64-rem);
+}
+function _encodeAggregate3(calls){
+  // calls: [{target:'0x...', allowFailure:bool, callData:'0x...'}, ...]
+  const N=calls.length;
+  // Each tuple's body: 4 head words + padded callData
+  const tupleBodies=calls.map(c=>{
+    const data=c.callData.replace(/^0x/i,'').toLowerCase();
+    const dataBytes=data.length/2;
+    return _hex32(c.target.replace(/^0x/i,''))+_hex32(c.allowFailure?1:0)+_hex32(0x60)+_hex32(dataBytes)+_padRightTo32(data);
+  });
+  // Tuple offsets are byte offsets from the start of the outer array data
+  // (i.e., after arrayLen). First tuple starts after the offset table.
+  const offsetTableBytes=N*32;
+  const offsets=[];
+  let runningBytes=offsetTableBytes;
+  for(const body of tupleBodies){offsets.push(runningBytes);runningBytes+=body.length/2;}
+  const offsetWords=offsets.map(o=>_hex32(o)).join('');
+  const outerOffset=_hex32(0x20);
+  const arrayLen=_hex32(N);
+  return'0x82ad56cb'+outerOffset+arrayLen+offsetWords+tupleBodies.join('');
+}
+function _decodeAggregate3Response(resultHex){
+  // Returns array of {success:bool, returnData:hex without 0x} matching input order.
+  const hex=(resultHex||'').replace(/^0x/i,'');
+  if(hex.length<128)return[];
+  const wordAt=i=>hex.slice(i*64,(i+1)*64);
+  // word 0: outer offset (always 0x20). word 1: array length.
+  const N=Number(BigInt('0x'+wordAt(1)));
+  const out=[];
+  // Tuple offsets are at words 2..2+N-1 (byte-offsets from start of array data,
+  // which is at the beginning of the offset table itself — i.e., word 2).
+  const arrayDataStart=2*32; // hex chars: 64 per word, so word 2 starts at 128 chars
+  for(let i=0;i<N;i++){
+    const tupleOffset=Number(BigInt('0x'+wordAt(2+i)));
+    const tupleStart=(arrayDataStart+tupleOffset)*2; // byte→hex char index
+    const success=BigInt('0x'+hex.slice(tupleStart,tupleStart+64))===1n;
+    // Skip bytesOffset word (always 0x40 for Result struct)
+    const retLen=Number(BigInt('0x'+hex.slice(tupleStart+128,tupleStart+192)));
+    const retData=hex.slice(tupleStart+192,tupleStart+192+retLen*2);
+    out.push({success,returnData:retData});
+  }
+  return out;
+}
+async function fetchTokenBalances(chain,owner,contracts){
+  // contracts: array of contract addresses (with or without 0x prefix).
+  // Returns Map<lowercaseContract, BigInt> for successful entries; failed entries omitted.
+  const rpc=EVM_RPCS[chain];
+  if(!rpc)throw new Error(`No RPC for chain ${chain}`);
+  if(!Array.isArray(contracts)||!contracts.length)return new Map();
+  const ownerHex=owner.replace(/^0x/i,'').toLowerCase();
+  const balanceOfCalldata='0x70a08231'+_hex32(ownerHex);
+  const calls=contracts.map(c=>({target:'0x'+c.replace(/^0x/i,'').toLowerCase(),allowFailure:true,callData:balanceOfCalldata}));
+  const data=_encodeAggregate3(calls);
+  const r=await fetch(rpc,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'eth_call',params:[{to:MULTICALL3_ADDRESS,data},'latest'],id:1})});
+  const j=await r.json();
+  if(j.error)throw new Error(j.error.message);
+  const results=_decodeAggregate3Response(j.result);
+  const out=new Map();
+  results.forEach((res,i)=>{
+    if(!res.success||!res.returnData||res.returnData.length<64)return;
+    try{out.set(calls[i].target.toLowerCase(),BigInt('0x'+res.returnData.slice(0,64)));}catch{}
+  });
+  return out;
+}
+
+/* ─── ERC-20 fiat lookup via DexScreener ─────────────────────────────────────
+   DexScreener (api.dexscreener.com) is the single source of truth for live
+   token prices in this toolkit. Empirical verification (2026-05-09):
+     • Per-contract endpoint /latest/dex/tokens/{c} returns up to 30 pairs
+       across all chains. We filter by chainId AND baseToken === queried
+       contract (some forked tokens like Polygon USDT crowd the response with
+       "ANY/USDT" pairs where priceUsd is wrong), then sort by liquidity desc.
+     • Concurrency 5 + 200ms gap is comfortable: 30 sequential requests with
+       200ms gap completed in 7.4s with 0 × 429.
+     • Free tier; no auth required.
+   Pair-cap edge case: highly forked tokens (Ethereum USDT) may have all 30
+   returned pairs come from forks (PulseChain, EthereumPoW), leaving no
+   ethereum-chain entries despite real Uniswap pools existing. Those tokens
+   render fiat=null. Acceptable; documented.
+
+   Cache: in-memory only, keyed by '0x'+lowercase contract+'@'+chain (the
+   chain qualifier matters because the same address may have different prices
+   on different chains — same contract address, different deployments).
+   5min TTL for hits, 1min for nulls so missing tokens get retried.            */
+const _DS_MAX_CONCURRENT=5;
+const _DS_MIN_GAP_MS=200;
+const _DS_TTL_HIT=300000;
+const _DS_TTL_MISS=60000;
+const _DS_CACHE=new Map(); // 'chain:lc0xContract' → {price:number|null, liquidity:number, ts:number}
+let _dsInFlight=0;
+let _dsEarliestNext=0;
+let _dsPausedUntil=0;
+async function _dsAcquireSlot(){
+  while(true){
+    const now=Date.now();
+    const wait=Math.max(_dsPausedUntil-now,_dsEarliestNext-now,0);
+    if(wait>0||_dsInFlight>=_DS_MAX_CONCURRENT){
+      await new Promise(r=>setTimeout(r,Math.max(wait,50)));
+      continue;
+    }
+    _dsInFlight++;
+    _dsEarliestNext=Date.now()+_DS_MIN_GAP_MS;
+    return;
+  }
+}
+function _dsReleaseSlot(){_dsInFlight--;}
+async function _dsFetchOne(dsChainId,lcContract){
+  // Returns {price:number|null, liquidity:number, rateLimited:bool}
+  await _dsAcquireSlot();
+  try{
+    const url=`https://api.dexscreener.com/latest/dex/tokens/${lcContract}`;
+    const r=await fetch(url);
+    if(r.status===429){
+      _dsPausedUntil=Math.max(_dsPausedUntil,Date.now()+30000);
+      return{price:null,liquidity:0,rateLimited:true};
+    }
+    if(!r.ok)return{price:null,liquidity:0,rateLimited:false};
+    const j=await r.json();
+    const pairs=Array.isArray(j?.pairs)?j.pairs:[];
+    // Pick best pair: chainId match AND queried token is the BASE token,
+    // sorted by liquidity desc. Discards pairs below the display floor.
+    const candidates=pairs
+      .filter(p=>p.chainId===dsChainId&&p.baseToken?.address?.toLowerCase()===lcContract&&(p.liquidity?.usd||0)>=DEXSCREENER_DISPLAY_LIQUIDITY_FLOOR)
+      .sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0));
+    if(!candidates.length)return{price:null,liquidity:0,rateLimited:false};
+    const top=candidates[0];
+    const price=parseFloat(top.priceUsd);
+    if(!isFinite(price)||price<=0)return{price:null,liquidity:top.liquidity?.usd||0,rateLimited:false};
+    return{price,liquidity:top.liquidity?.usd||0,rateLimited:false};
+  }catch{return{price:null,liquidity:0,rateLimited:false};}
+  finally{_dsReleaseSlot();}
+}
+/* ─── Layer 2 token discovery: proxyetherscan addresstokenbalance ───────────
+   When an EVM account expands and Layer 1 (extractAccounts + discoverTokensFromLog)
+   produced no tokens for it, we fall back to Ledger's etherscan-proxy backend
+   which Ledger Live itself uses. No auth — Ledger's proxy adds the API key
+   server-side. Verified 2026-05-09 with `0x0FED…D252` on Arbitrum: 200 OK,
+   no rate-limit at 10× concurrent (~1s wall).
+
+   Response shape (Etherscan v2 unified API):
+     { status:'1', message:'OK', result:[
+         {TokenAddress:'0x..', TokenName:'..', TokenSymbol:'..',
+          TokenQuantity:'<raw>', TokenDivisor:'<decimals>', TokenPriceUSD:'..'},
+         ...]}
+   `status:'0'` is returned for unsupported chains or addresses with no holdings.
+   The proxy does NOT filter spam/airdrop-bait tokens — symbols like
+   "Claim rewards at https://…" are common. We filter URL-laden symbols/names
+   client-side so they don't pollute the tile UI. Spam tokens that slip the
+   filter still won't show fiat (their DEX liquidity is below our floor).      */
+const PROXYETHERSCAN_BASE='https://proxyetherscan.api.live.ledger.com/v2/api';
+const _PROXY_TTL=300000; // 5 min; matches DexScreener positive-cache TTL
+const _PROXY_CACHE=new Map(); // 'chain:lcAddr' → {ts:number, tokens:[{contract,decimals,symbol,name,raw}]}
+function _isLikelySpamToken(t){
+  const sym=t.TokenSymbol||'',name=t.TokenName||'';
+  // URL in symbol or name (most blatant tell)
+  if(/https?:\/\//i.test(sym)||/https?:\/\//i.test(name))return true;
+  // Domain-style symbols (e.g. "merge-eth.io", "centreusd.org") — real tickers
+  // never contain a dot followed by a TLD-like 2+ letter sequence.
+  if(/\.[a-z]{2,}/i.test(sym))return true;
+  // Symbols with whitespace, or social/scam keywords
+  if(/\s/.test(sym)||/\b(claim|airdrop|visit|reward|gift|swap|t\.me)\b/i.test(sym))return true;
+  // Zero-width / formatting whitespace in symbol or name
+  if(/[​-‏﻿]/.test(sym)||/[​-‏﻿]/.test(name))return true;
+  // Symbol length: legit tickers are ≤12 chars (BTC, USDC, stETH, …)
+  if(sym.length>14)return true;
+  // Excessive whitespace padding in name (a.k.a. "rank manipulation" pattern)
+  if(/\s{4,}/.test(name))return true;
+  return false;
+}
+async function discoverTokensOnChain(chain,addr){
+  // Returns Promise<Array<{contract, decimals, symbol, name, raw}>>; empty array on miss/error.
+  const evmId=EVM_CHAIN_IDS[chain];
+  if(!evmId||!addr)return[];
+  const lcAddr='0x'+addr.replace(/^0x/i,'').toLowerCase();
+  const cacheKey=chain+':'+lcAddr;
+  const cached=_PROXY_CACHE.get(cacheKey);
+  if(cached&&Date.now()-cached.ts<_PROXY_TTL)return cached.tokens;
+  try{
+    const url=`${PROXYETHERSCAN_BASE}/${evmId}?module=account&action=addresstokenbalance&address=${addr}&tag=latest&page=1&offset=100`;
+    const r=await fetch(url);
+    if(!r.ok){
+      console.warn(`[token discovery] proxyetherscan ${chain}/${addr.slice(0,10)} returned ${r.status}`);
+      _PROXY_CACHE.set(cacheKey,{ts:Date.now(),tokens:[]});
+      return[];
+    }
+    const j=await r.json();
+    if(j.status!=='1'||!Array.isArray(j.result)){
+      _PROXY_CACHE.set(cacheKey,{ts:Date.now(),tokens:[]});
+      return[];
+    }
+    const tokens=j.result
+      .filter(t=>!_isLikelySpamToken(t))
+      .map(t=>({
+        contract:'0x'+(t.TokenAddress||'').replace(/^0x/i,'').toLowerCase(),
+        decimals:parseInt(t.TokenDivisor||'18',10),
+        symbol:t.TokenSymbol||'',
+        name:t.TokenName||'',
+        raw:t.TokenQuantity||'0',
+      }))
+      .filter(t=>/^0x[0-9a-f]{40}$/.test(t.contract));
+    _PROXY_CACHE.set(cacheKey,{ts:Date.now(),tokens});
+    return tokens;
+  }catch(e){
+    console.warn(`[token discovery] proxyetherscan ${chain} error:`,e.message);
+    _PROXY_CACHE.set(cacheKey,{ts:Date.now(),tokens:[]});
+    return[];
+  }
+}
+
+async function fetchTokenFiat(chain,contracts){
+  const dsChainId=DEXSCREENER_CHAIN_IDS[chain];
+  // Output: Map<'0x'+lcContract → {price:number|null, liquidity:number}>
+  const out=new Map();
+  if(!Array.isArray(contracts)||!contracts.length)return out;
+  if(!dsChainId){
+    // Coverage gap: no DexScreener mapping for this chain. Return null entries.
+    contracts.forEach(c=>out.set('0x'+c.replace(/^0x/i,'').toLowerCase(),{price:null,liquidity:0}));
+    return out;
+  }
+  const now=Date.now();
+  const lcKeys=[...new Set(contracts.map(c=>'0x'+c.replace(/^0x/i,'').toLowerCase()))];
+  const toFetch=[];
+  for(const k of lcKeys){
+    const cacheKey=chain+':'+k;
+    const cached=_DS_CACHE.get(cacheKey);
+    if(cached){
+      const ttl=cached.price==null?_DS_TTL_MISS:_DS_TTL_HIT;
+      if(now-cached.ts<ttl){out.set(k,{price:cached.price,liquidity:cached.liquidity});continue;}
+    }
+    toFetch.push(k);
+  }
+  if(!toFetch.length)return out;
+  const r1=await Promise.allSettled(toFetch.map(k=>_dsFetchOne(dsChainId,k)));
+  const retry=[];
+  r1.forEach((res,i)=>{
+    const k=toFetch[i];
+    const cacheKey=chain+':'+k;
+    if(res.status!=='fulfilled'){_DS_CACHE.set(cacheKey,{price:null,liquidity:0,ts:Date.now()});out.set(k,{price:null,liquidity:0});return;}
+    if(res.value.rateLimited){retry.push(k);return;}
+    _DS_CACHE.set(cacheKey,{price:res.value.price,liquidity:res.value.liquidity,ts:Date.now()});
+    out.set(k,{price:res.value.price,liquidity:res.value.liquidity});
+  });
+  if(retry.length){
+    const r2=await Promise.allSettled(retry.map(k=>_dsFetchOne(dsChainId,k)));
+    r2.forEach((res,i)=>{
+      const k=retry[i];
+      const cacheKey=chain+':'+k;
+      const ok=res.status==='fulfilled'&&!res.value.rateLimited;
+      const v=ok?{price:res.value.price,liquidity:res.value.liquidity}:{price:null,liquidity:0};
+      _DS_CACHE.set(cacheKey,{...v,ts:Date.now()});
+      out.set(k,v);
+    });
+  }
+  return out;
+}
+
 /* Live Balance — per-chain fetch functions (non-EVM). UTXO_NETS callback: cb(err, {bal, txs}) */
 const BALANCE_APIS={
   bitcoin:addr=>new Promise((res,rej)=>UTXO_NETS.BTC.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   litecoin:addr=>new Promise((res,rej)=>UTXO_NETS.LTC.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   dogecoin:addr=>new Promise((res,rej)=>UTXO_NETS.DOGE.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   bitcoin_cash:addr=>new Promise((res,rej)=>UTXO_NETS.BCH.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
+  zcash:addr=>new Promise((res,rej)=>UTXO_NETS.ZEC.fetchBal(addr,(e,d)=>e?rej(e):res(d.bal))),
   solana:async addr=>{const r=await fetch('https://solana-rpc.publicnode.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'getBalance',params:[addr],id:1})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result.value/1e9;},
   tezos:async addr=>{const r=await fetch(`https://api.tzkt.io/v1/accounts/${encodeURIComponent(addr)}/balance`);const t=await r.text();return Number(t)/1e6;},
   ripple:async addr=>{const r=await fetch('https://xrplcluster.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'account_info',params:[{account:addr,ledger_index:'validated'}]})});const j=await r.json();return Number(j.result.account_data.Balance)/1e6;},
@@ -1624,7 +1903,7 @@ const CURRENCY_TO_APP={
   ethereum:'Ethereum',bitcoin:'Bitcoin',tezos:'Tezos Wallet',cosmos:'Cosmos',
   solana:'Solana',tron:'Tron',ripple:'XRP',polkadot:'Polkadot',
   assethub_polkadot:'Polkadot',near:'NEAR',cardano:'Cardano ADA',ton:'TON',
-  stellar:'Stellar',litecoin:'Litecoin',dogecoin:'Dogecoin',bitcoin_cash:'Bitcoin Cash',
+  stellar:'Stellar',litecoin:'Litecoin',dogecoin:'Dogecoin',bitcoin_cash:'Bitcoin Cash',zcash:'Zcash',
   stacks:'Stacks',algorand:'Algorand',hedera:'Hedera',elrond:'MultiversX',
   filecoin:'Filecoin',vechain:'VeChain',mina:'Mina',kaspa:'Kaspa',
   aptos:'Aptos',sui:'Sui',celo:'Celo',internet_computer:'InternetComputer',
@@ -1644,11 +1923,10 @@ const TOKEN_DECIMALS_PATTERNS=[
   [/\/wrapped[_-]?bitcoin/i,8],[/\/wbtc/i,8],[/\/staked[_-]?ether/i,18],
   [/\/dai$/i,18],[/\/shiba[_-]?inu/i,18],[/\/chainlink/i,18],[/\/uni[_-]?swap/i,18],
 ];
+// Backwards-compatible decimals lookup. Prefers TOKEN_METADATA (live CAL data),
+// falls back to TOKEN_DECIMALS_PATTERNS regex (offline-friendly for the most common tokens).
 function getTokenDecimals(tokenId,parentCid){
-  if(!tokenId)return 18;
-  for(const[pat,dec]of TOKEN_DECIMALS_PATTERNS){if(pat.test(tokenId))return dec;}
-  if(parentCid==='solana')return 9;
-  return 18;
+  return getTokenInfo(tokenId,parentCid).decimals;
 }
 function cvGetRateMap(appJson){
   return appJson?.raw?.countervalues||appJson?.data?.countervalues||{};
@@ -1759,6 +2037,7 @@ const TX_EXPLORERS={
   litecoin:h=>`https://blockchair.com/litecoin/transaction/${h}`,
   dogecoin:h=>`https://blockchair.com/dogecoin/transaction/${h}`,
   bitcoin_cash:h=>`https://blockchair.com/bitcoin-cash/transaction/${h}`,
+  zcash:h=>`https://blockchair.com/zcash/transaction/${h}`,
   stellar:h=>`https://stellar.expert/explorer/public/tx/${h}`,
   hedera:h=>`https://hashscan.io/mainnet/transaction/${h}`,
   elrond:h=>`https://explorer.multiversx.com/transactions/${h}`,
@@ -1779,19 +2058,57 @@ const TX_EXPLORERS={
   hyperevm:h=>`https://www.hyperscan.xyz/tx/${h}`,
 };
 
-/* ─── Token Contract Resolver ────────────────────────────────────────────────
-   Loads Ledger's full published token list from their open-source repo on GitHub
-   and caches it in localStorage for 24h. Resolves token slugs (ethereum/erc20/usd__coin)
-   to contract addresses so every token badge becomes a clickable explorer link.
-   Falls back to a block-explorer search URL for any token not yet in cache.      */
+/* ─── Token Metadata Resolver ────────────────────────────────────────────────
+   Looks up token contract address, ticker, name, and decimals on demand from
+   Ledger's CAL service (https://crypto-assets-service.api.ledger.com/v1/tokens).
+   Per-token lookup, lazy: only fetches the tokens an account actually owns,
+   triggered when the account card expands. Cache is per-token in localStorage
+   with 24h TTL (key: ldt_tkm_v1).
+
+   The CAL service replaced the static cryptoassets/src/data/evm/N/erc20.json
+   files in early 2026 (LIVE-21487). Batch lookup (id__in, repeated id=) is
+   not supported — must fire one request per tokenId. Smoke test confirmed
+   30 parallel /v1/tokens?id=... requests complete in <1s with no rate-limit. */
 const TOKEN_CONTRACTS={};
-// Ledger chain identifier → EVM chain ID (for fetching erc20.json data files)
+const TOKEN_METADATA={};
+// Ledger chain identifier → EVM chain ID (for explorer-link mapping and Multicall3 routing)
 const EVM_CHAIN_IDS={
   ethereum:1,bsc:56,polygon:137,arbitrum:42161,optimism:10,base:8453,
   linea:59144,scroll:534352,blast:81457,zksync:324,mantle:5000,fantom:250,
   avalanche_c_chain:43114,cronos:25,moonbeam:1284,moonriver:1285,celo:42220,
   klaytn:8217,flare:14,neon_evm:245022934,lukso:42,hyperevm:999,
 };
+// DexScreener chainId strings — for /latest/dex/tokens/{contract} fiat lookups.
+// Verified 2026-05-09 by probing one known token per chain. The only non-obvious
+// mapping is neon_evm → 'neonevm' (no underscore).
+//
+// Coverage gaps (chains where DexScreener returns 0 pairs even for wrapped-native):
+//   • moonbeam — no DEX coverage on DS
+//   • klaytn (Kaia) — DS does not index Kaia under any chainId we tried
+//   • lukso — no DS coverage
+// Tokens on these chains will render fiat=null with "no live price" indicator.
+//
+// CoinGecko was the original target but the free tier hard-limits /simple/token_price
+// to 1 contract per request and 429s aggressively under burst load (~4 req before
+// extended cooldown). DexScreener is single-source for token fiat in this toolkit.
+const DEXSCREENER_CHAIN_IDS={
+  ethereum:'ethereum',polygon:'polygon',bsc:'bsc',
+  arbitrum:'arbitrum',optimism:'optimism',base:'base',
+  linea:'linea',scroll:'scroll',blast:'blast',zksync:'zksync',mantle:'mantle',
+  fantom:'fantom',avalanche_c_chain:'avalanche',cronos:'cronos',
+  moonriver:'moonriver',celo:'celo',
+  flare:'flare',neon_evm:'neonevm',hyperevm:'hyperevm',
+  // moonbeam, klaytn, lukso intentionally omitted — see coverage notes above.
+};
+// Liquidity floors — pulled out as named constants because these are the knobs
+// someone will need to find quickly if false positives/negatives surface in real logs.
+const DEXSCREENER_DISPLAY_LIQUIDITY_FLOOR=1000;     // pair must have >= this USD liq to show fiat at all
+const DEXSCREENER_DRIFT_LIQUIDITY_FLOOR=100000;     // pair must have >= this USD liq to qualify for cv-drift-tokens
+// Multicall3 — deterministic deploy across 250+ chains including all EVM_RPCS entries.
+// Source: github.com/mds1/multicall3. If a future chain doesn't have Multicall3 at
+// this address, gate it via a per-chain capability flag and fall back to N parallel
+// eth_call balanceOf requests.
+const MULTICALL3_ADDRESS='0xcA11bde05977b3631167028862bE2a173976CA11';
 // Per-chain token page URL builders (contract address known)
 const TOKEN_URLS={
   ethereum:(a,w)=>`https://etherscan.io/token/${a}?a=${w}`,
@@ -1829,44 +2146,159 @@ const TOKEN_SEARCH={
   fantom:s=>`https://ftmscan.com/search?f=1&q=${encodeURIComponent(s)}`,
   avalanche_c_chain:s=>`https://snowtrace.io/search?f=1&q=${encodeURIComponent(s)}`,
 };
-const TOKEN_CHAINS_FETCHED=new Set();
-// Restore token contracts from localStorage cache (sync, no network fetch on load)
+// Tracks tokenIds currently being fetched, to dedupe overlapping calls
+const TOKEN_METADATA_INFLIGHT=new Map();
+// localStorage cache: per-token entries with their own 24h TTL
+const TOKEN_CACHE_KEY='ldt_tkm_v1',TOKEN_CACHE_TTL=86400000;
+// Hydrate in-memory registries from localStorage on load (sync, no network)
 (()=>{
-  const KEY='ldt_tkc_v1',TTL=86400000;
+  // Drop legacy 'ldt_tkc_v1' cache — it stored data from the deleted erc20.json files
+  try{localStorage.removeItem('ldt_tkc_v1');}catch{}
   try{
-    const c=localStorage.getItem(KEY);
-    if(c){const{ts,d}=JSON.parse(c);if(Date.now()-ts<TTL){Object.assign(TOKEN_CONTRACTS,d);Object.keys(d).forEach(k=>TOKEN_CHAINS_FETCHED.add(k.split('/')[0]));}}
+    const c=localStorage.getItem(TOKEN_CACHE_KEY);
+    if(!c)return;
+    const cache=JSON.parse(c);
+    const now=Date.now();
+    for(const[id,entry] of Object.entries(cache||{})){
+      if(!entry||now-entry.ts>=TOKEN_CACHE_TTL)continue;
+      TOKEN_METADATA[id]=entry.data;
+      if(entry.data.contractAddress)TOKEN_CONTRACTS[id]=entry.data.contractAddress;
+    }
   }catch{}
 })();
-// Fetch token data for specific chains on demand (called when an account card is expanded)
-async function fetchTokenChains(chains){
-  const BASE='https://raw.githubusercontent.com/LedgerHQ/ledger-live/develop/libs/ledgerjs/packages/cryptoassets/src/data';
-  const toFetch=chains.filter(ch=>EVM_CHAIN_IDS[ch]&&!TOKEN_CHAINS_FETCHED.has(ch));
-  if(!toFetch.length)return false;
-  toFetch.forEach(ch=>TOKEN_CHAINS_FETCHED.add(ch));
-  const fresh={};
-  await Promise.allSettled(toFetch.map(async chain=>{
-    try{
-      const r=await fetch(`${BASE}/evm/${EVM_CHAIN_IDS[chain]}/erc20.json`);
-      if(!r.ok)return;
-      const tokens=await r.json();
-      for(const t of tokens){
-        if(!Array.isArray(t))continue;
-        const slug=t[0];
-        const addr=t.find(f=>typeof f==='string'&&/^0x[0-9a-fA-F]{40}$/.test(f));
-        if(slug&&addr)fresh[`${chain}/erc20/${slug}`]=addr;
-      }
-    }catch{}
-  }));
-  if(!Object.keys(fresh).length)return false;
-  Object.assign(TOKEN_CONTRACTS,fresh);
+function _writeTokenCache(updates){
   try{
-    const KEY='ldt_tkc_v1';
-    const existing={};try{const c=localStorage.getItem(KEY);if(c){const{d}=JSON.parse(c);Object.assign(existing,d);}}catch{}
-    Object.assign(existing,fresh);
-    localStorage.setItem(KEY,JSON.stringify({ts:Date.now(),d:existing}));
+    const c=localStorage.getItem(TOKEN_CACHE_KEY);
+    const cache=c?JSON.parse(c):{};
+    const now=Date.now();
+    for(const[id,data] of Object.entries(updates))cache[id]={ts:now,data};
+    localStorage.setItem(TOKEN_CACHE_KEY,JSON.stringify(cache));
   }catch{}
-  return true;
+}
+// Fetch a single token's metadata from CAL (returns null on miss/error, never throws)
+async function _fetchOneTokenMeta(tokenId){
+  if(TOKEN_METADATA_INFLIGHT.has(tokenId))return TOKEN_METADATA_INFLIGHT.get(tokenId);
+  const p=(async()=>{
+    try{
+      const url=`https://crypto-assets-service.api.ledger.com/v1/tokens?id=${encodeURIComponent(tokenId)}&limit=1&output=id,name,ticker,contract_address,decimals,delisted`;
+      const r=await fetch(url);
+      if(!r.ok)return null;
+      const arr=await r.json();
+      const t=Array.isArray(arr)?arr[0]:null;
+      if(!t||!t.contract_address)return null;
+      return{
+        contractAddress:t.contract_address,
+        ticker:t.ticker||'',
+        name:t.name||'',
+        decimals:typeof t.decimals==='number'?t.decimals:18,
+        delisted:!!t.delisted,
+      };
+    }catch{return null;}
+  })();
+  TOKEN_METADATA_INFLIGHT.set(tokenId,p);
+  p.finally(()=>TOKEN_METADATA_INFLIGHT.delete(tokenId));
+  return p;
+}
+/* Lazy per-token metadata fetcher (CAL service).
+   Input: array of tokenIds (e.g. ['ethereum/erc20/usd__coin', ...]).
+   Output: Promise<boolean> — resolves true if any new token was added (so the
+     caller can re-render). Already-cached tokens are skipped. Failed lookups
+     are not cached (will retry next expand).                                  */
+async function fetchTokenMetadata(tokenIds){
+  if(!Array.isArray(tokenIds)||!tokenIds.length)return false;
+  const toFetch=[...new Set(tokenIds)].filter(id=>id&&!TOKEN_METADATA[id]);
+  if(!toFetch.length)return false;
+  const results=await Promise.allSettled(toFetch.map(id=>_fetchOneTokenMeta(id).then(data=>({id,data}))));
+  const fresh={};
+  let added=0;
+  for(const r of results){
+    if(r.status!=='fulfilled'||!r.value.data)continue;
+    const{id,data}=r.value;
+    TOKEN_METADATA[id]=data;
+    TOKEN_CONTRACTS[id]=data.contractAddress;
+    fresh[id]=data;
+    added++;
+  }
+  if(added>0)_writeTokenCache(fresh);
+  return added>0;
+}
+// Strip a Ledger tokenId slug down to a display-friendly tail: drop the trailing
+// `_0x<40hex>` contract-suffix that newer slugs carry, collapse `__`/`_` to spaces.
+// Returns the cleaned, lower-cased tail (e.g. "usds_stablecoin_0xdc..." → "usds stablecoin").
+function _tokenSlugTail(tokenId){
+  return(tokenId.split('/').pop()||'')
+    .replace(/_0x[a-fA-F0-9]{40}$/,'')
+    .replace(/__/g,' ')
+    .replace(/_/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+// Title-case helper for slug fallbacks ("usds stablecoin" → "Usds Stablecoin").
+function _titleCaseSlug(s){
+  return s.split(' ').filter(Boolean).map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+}
+/* Ledger token-icon CDN (https://crypto-icons.ledger.com/index.json).
+   The index is a flat map: { "ethereum/erc20/usd_coin": {icon:"USDC.png"}, ... }.
+   We fetch once per session, cache the {tokenId → filename} mapping in localStorage
+   for 24h (cache key `ldt_icons_v1`; bump the suffix if the cached shape changes).
+   Normalization: SyncSuccess events sometimes use the legacy `usd__coin` form while
+   the index keys are `usd_coin` — on miss we retry with `__` collapsed to `_`. */
+const ICON_CACHE_KEY='ldt_icons_v1',ICON_CACHE_TTL=86400000;
+let ICON_INDEX=null;             // {tokenId → filename} or null while pending/failed
+let _ICON_INDEX_PROMISE=null;    // dedupe concurrent loads
+// Hydrate from localStorage on script load
+(()=>{
+  try{
+    const c=localStorage.getItem(ICON_CACHE_KEY);
+    if(!c)return;
+    const{ts,map}=JSON.parse(c);
+    if(!ts||!map||Date.now()-ts>=ICON_CACHE_TTL)return;
+    ICON_INDEX=map;
+  }catch{}
+})();
+async function fetchIconIndex(){
+  if(ICON_INDEX)return ICON_INDEX;
+  if(_ICON_INDEX_PROMISE)return _ICON_INDEX_PROMISE;
+  _ICON_INDEX_PROMISE=(async()=>{
+    try{
+      const r=await fetch('https://crypto-icons.ledger.com/index.json');
+      if(!r.ok)return null;
+      const j=await r.json();
+      // Compress: keep only {tokenId → filename}, drop any unused fields
+      const map={};
+      for(const[k,v] of Object.entries(j||{})){
+        if(v&&typeof v.icon==='string')map[k]=v.icon;
+      }
+      ICON_INDEX=map;
+      try{localStorage.setItem(ICON_CACHE_KEY,JSON.stringify({ts:Date.now(),map}));}catch{}
+      return map;
+    }catch{return null;}
+    finally{_ICON_INDEX_PROMISE=null;}
+  })();
+  return _ICON_INDEX_PROMISE;
+}
+// Returns a CDN URL for the token's icon, or null if not in the index.
+// Caller is responsible for rendering a letter-circle fallback on null AND on <img> 404.
+function getTokenIconUrl(tokenId){
+  if(!ICON_INDEX||!tokenId)return null;
+  let f=ICON_INDEX[tokenId];
+  if(!f){
+    const norm=tokenId.replace(/__/g,'_');
+    if(norm!==tokenId)f=ICON_INDEX[norm];
+  }
+  return f?`https://crypto-icons.ledger.com/${f}`:null;
+}
+// Resolve token info, in order: TOKEN_METADATA (authoritative) → regex patterns → defaults.
+// Sync — reads from in-memory registry; callers ensure fetchTokenMetadata has been awaited.
+function getTokenInfo(tokenId,parentCid){
+  if(!tokenId)return{decimals:18,ticker:'',name:'',contractAddress:null,delisted:false};
+  const meta=TOKEN_METADATA[tokenId];
+  if(meta)return{decimals:meta.decimals,ticker:meta.ticker,name:meta.name,contractAddress:meta.contractAddress,delisted:meta.delisted};
+  let dec=18;
+  for(const[pat,d] of TOKEN_DECIMALS_PATTERNS){if(pat.test(tokenId)){dec=d;break;}}
+  if(parentCid==='solana')dec=9;
+  const tail=_tokenSlugTail(tokenId);
+  return{decimals:dec,ticker:tail.toUpperCase(),name:_titleCaseSlug(tail),contractAddress:null,delisted:false};
 }
 
 /* Error KB */
@@ -2411,6 +2843,82 @@ function extractAccounts(entries){
   return out;
 }
 
+/* Token discovery — Layer 1 (parse from log).
+   The account parser at ~line 2680 extracts tokens from SyncSuccess events
+   only (Source A in the brief). Many logs (mobile, no-sync diagnostic, partial
+   captures) lack SyncSuccess but still mention tokens elsewhere:
+     • Source B: countervalues messages and payload bodies that reference
+       full Ledger token IDs like "ethereum/erc20/usd__coin"
+     • Source D: Redux RTK-Query actions with endpointName === "findTokenById"
+       whose originalArgs.id is a Ledger token ID
+   This pass scans raw entries for both, dedupes against existing acct.toks,
+   and merges discovered tokens into each EVM account's toks array. Tags each
+   account with tokSource: 'sync' | 'mixed' | 'discovered' | 'none' so the UI
+   can show a "from log" label when the data isn't sync ground truth.
+   Source C (proxyetherscan URLs) is operationally handled by Layer 2 in
+   AcctCard — flagging accounts here would be redundant with that fallback. */
+const _LOG_TOKENID_RE=/([a-z_][a-z0-9_]+)\/erc20\/([a-zA-Z0-9_\-]+(?:_0x[a-fA-F0-9]{40})?)/g;
+function discoverTokensFromLog(accts,entries){
+  const tokensByCid={};
+  const add=(cid,tid)=>{
+    if(!cid||!tid||!EVM_CHAIN_IDS[cid])return;
+    (tokensByCid[cid]=tokensByCid[cid]||new Set()).add(tid);
+  };
+  const scanString=s=>{
+    if(typeof s!=='string'||s.length<10)return;
+    _LOG_TOKENID_RE.lastIndex=0;
+    let m;while((m=_LOG_TOKENID_RE.exec(s))){add(m[1],`${m[1]}/erc20/${m[2]}`);}
+  };
+  for(const e of entries){
+    // Source B: scan message + lightweight payload stringification
+    scanString(e.message);
+    // Source D: findTokenById action shape (Redux RTK-Query)
+    // Found nested at e.payload.action.payload OR e.payload (pending/fulfilled actions vary)
+    const ep1=e.payload?.action?.payload,ep2=e.payload;
+    for(const candidate of[ep1,ep2]){
+      if(candidate?.endpointName==='findTokenById'){
+        const tid=candidate?.originalArgs?.id;
+        if(typeof tid==='string'){
+          const mm=tid.match(/^([a-z_][a-z0-9_]+)\/erc20\//);
+          if(mm)add(mm[1],tid);
+        }
+      }
+    }
+    // Source B (continued): scan stringified payload bodies for embedded /erc20/ slugs
+    if(e.payload&&typeof e.payload==='object'){
+      try{scanString(JSON.stringify(e.payload));}catch{}
+    }
+    if(e.data&&typeof e.data==='object'){
+      try{scanString(JSON.stringify(e.data));}catch{}
+    }
+  }
+  for(const acct of accts){
+    const hadSync=acct.toks.length>0;
+    if(!EVM_CHAIN_IDS[acct.cid]){
+      acct.tokSource=hadSync?'sync':'none';
+      continue;
+    }
+    const discovered=tokensByCid[acct.cid];
+    if(!discovered||!discovered.size){
+      acct.tokSource=hadSync?'sync':'none';
+      continue;
+    }
+    const existingIds=new Set(acct.toks.map(t=>t.tokenId));
+    let added=0;
+    for(const tid of discovered){
+      if(existingIds.has(tid))continue;
+      acct.toks.push({
+        tokenId:tid,tokenTicker:null,operationsLength:0,
+        parentCurrencyName:null,parentDerivationMode:'',votesCount:0,
+        _discovered:true,
+      });
+      added++;
+    }
+    acct.tokSource=added===0?'sync':hadSync?'mixed':'discovered';
+  }
+  return accts;
+}
+
 function extractErrors(entries){
   const out=[];
   for(const e of entries){
@@ -2892,6 +3400,15 @@ const UTXO_NETS={
   BCH:{bech32:'bitcoincash',pubKeyHash:0x00,scriptHash:0x05,wif:0x80,label:'Bitcoin Cash',color:'#8dc351',delay:100,
     fetchBal:(addr,cb)=>{fetch(`https://api.blockchair.com/bitcoin-cash/dashboards/address/${encodeURIComponent(addr)}`).then(r=>r.json()).then(d=>{const s=d.data?.[addr]?.address;if(!s)return cb(new Error('no data'));cb(null,{bal:s.balance/1e8,txs:s.transaction_count||0});}).catch(e=>cb(e));},
     addrUrl:a=>`https://blockchair.com/bitcoin-cash/address/${a}`},
+  // Zcash transparent (t1) only — Ledger does not support shielded address signing.
+  // 2-byte version prefix [0x1C, 0xB8] doesn't fit bitcoinjs-lib's single-byte
+  // pubKeyHash convention (lib issue #865, closed won't-fix); address derivation
+  // is special-cased in XpubView.getAddr below using bs58 + manual base58check.
+  ZEC:{label:'Zcash',color:'#3790ca',delay:650,
+    fetchBal:(addr,cb)=>{fetch(`https://api.blockchair.com/zcash/dashboards/address/${encodeURIComponent(addr)}`).then(r=>{
+      if(r.status===429){cb._retries=(cb._retries||0)+1;if(cb._retries>5){cb(new Error('Rate limited (429)'));return null;}if(cb._warn)cb._warn(`Rate limited — retrying ${cb._retries}/5…`);setTimeout(()=>{if(cb._ctx?.stop)return;UTXO_NETS.ZEC.fetchBal(addr,cb);},1500*cb._retries);return null;}return r.json();
+    }).then(d=>{if(!d)return;const s=d.data?.[addr]?.address;if(cb._warn)cb._warn('');if(!s){cb(null,{bal:0,txs:0});return;}cb(null,{bal:s.balance/1e8,txs:s.transaction_count||0});}).catch(e=>cb(e));},
+    addrUrl:a=>`https://blockchair.com/zcash/address/${a}`},
 };
 
 function XpubView({xpub,coin,dm}){
@@ -2936,7 +3453,18 @@ function XpubView({xpub,coin,dm}){
   };
 
   const getAddr=(pub)=>{
-    const{bitcoin}=libRef.current;
+    const{bitcoin,bs58}=libRef.current;
+    // Zcash transparent t1 P2PKH: 2-byte version prefix [0x1C, 0xB8] + RIPEMD160(SHA256(pubkey)),
+    // base58check-encoded with double-SHA256 checksum. bitcoinjs-lib's payments.p2pkh
+    // can't produce this because it expects a single-byte pubKeyHash, so we encode manually.
+    // Verified end-to-end against a real Ledger device output — see ZEC implementation brief.
+    if(coin==='ZEC'){
+      const h160=bitcoin.crypto.hash160(pub);
+      const ver=window.Buffer.from([0x1c,0xb8]);
+      const payload=window.Buffer.concat([ver,h160]);
+      const cs=bitcoin.crypto.sha256(bitcoin.crypto.sha256(payload)).slice(0,4);
+      return bs58.encode(window.Buffer.concat([payload,cs]));
+    }
     let addrType='p2pkh';
     const pfx=xpub.slice(0,4);
     if(pfx==='ypub')addrType='p2sh-p2wpkh';
@@ -3017,7 +3545,7 @@ function XpubView({xpub,coin,dm}){
   return <div style={{marginTop:16,borderTop:`1px solid ${T.border}`,paddingTop:16}}>
     <div className="card-header" style={{color:net.color,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>
       <Ico.Scan/> {net.label} Address Scanner
-      <span style={{fontWeight:400,color:T.muted,fontSize:11}}>({coin==='DOGE'||coin==='BCH'?'Legacy':at})</span>
+      <span style={{fontWeight:400,color:T.muted,fontSize:11}}>({coin==='DOGE'||coin==='BCH'||coin==='ZEC'?'Legacy':at})</span>
     </div>
 
     {/* Key type badge */}
@@ -3080,14 +3608,87 @@ function XpubView({xpub,coin,dm}){
 }
 
 /* Account Card */
-function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,onTimelineClick}){
+function AcctCard({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiveTokenBalances,versionCheck,onErrClick,onTimelineClick}){
   const[open,setOpen]=useState(false);
   const[tokV,setTokV]=useState(0);
+  const[expandedToks,setExpandedToks]=useState({});
   useEffect(()=>{
-    if(!open||!acct.toks.length)return;
-    const chains=[...new Set(acct.toks.map(tk=>(tk.tokenId||'').split('/')[0]).filter(ch=>EVM_CHAIN_IDS[ch]))];
-    if(!chains.some(ch=>!TOKEN_CHAINS_FETCHED.has(ch)))return;
-    fetchTokenChains(chains).then(hadNew=>{if(hadNew)setTokV(v=>v+1);});
+    if(!open)return;
+    if(!EVM_CHAIN_IDS[acct.cid]){
+      // Non-EVM tokens (Tron, Stacks, Cardano) use TOKEN_URLS/TOKEN_SEARCH fallback only.
+      return;
+    }
+    let cancelled=false;
+    (async()=>{
+      setLiveTokenBalances?.(p=>({...p,[acct.id]:{status:'loading',tokens:p[acct.id]?.tokens||{}}}));
+      // Layer 2 fallback: if Layer 1 produced no tokens for this account, ask Ledger's
+      // proxyetherscan backend for the customer's actual on-chain holdings.
+      if(acct.toks.length===0&&/^0x[0-9a-fA-F]{40}$/.test(acct.addr||'')){
+        const discovered=await discoverTokensOnChain(acct.cid,acct.addr);
+        if(cancelled)return;
+        for(const d of discovered){
+          const tid=`${acct.cid}/erc20/${d.contract}`;
+          TOKEN_METADATA[tid]={contractAddress:d.contract,ticker:d.symbol,name:d.name,decimals:d.decimals,delisted:false};
+          TOKEN_CONTRACTS[tid]=d.contract;
+          acct.toks.push({tokenId:tid,tokenTicker:d.symbol,operationsLength:0,parentCurrencyName:null,parentDerivationMode:'',votesCount:0,_discovered:true});
+        }
+        if(discovered.length>0){
+          if(!acct.tokSource||acct.tokSource==='none')acct.tokSource='discovered';
+          setTokV(v=>v+1);
+        }
+      }
+      // Existing pipeline: filter EVM token ids, fetch CAL metadata for any not yet known,
+      // then run Multicall3 (live balance) + DexScreener (live fiat) in parallel.
+      const evmTokenIds=acct.toks.map(tk=>tk.tokenId||'').filter(id=>{
+        const ch=id.split('/')[0];
+        return id&&EVM_CHAIN_IDS[ch];
+      });
+      if(!evmTokenIds.length){
+        if(!cancelled)setLiveTokenBalances?.(p=>({...p,[acct.id]:{status:'ok',tokens:{}}}));
+        return;
+      }
+      // Kick off icon-index hydration in parallel with CAL — we want both to land
+      // ASAP so the tile re-renders with proper labels AND icons together.
+      const iconPromise=ICON_INDEX?null:fetchIconIndex();
+      const newMeta=await fetchTokenMetadata(evmTokenIds.filter(id=>!TOKEN_METADATA[id]));
+      if(cancelled)return;
+      if(newMeta)setTokV(v=>v+1);
+      if(iconPromise){iconPromise.then(()=>{if(!cancelled)setTokV(v=>v+1);});}
+      const contractsByTokenId={};
+      for(const id of evmTokenIds){const ca=TOKEN_METADATA[id]?.contractAddress;if(ca)contractsByTokenId[id]=ca;}
+      const contracts=Object.values(contractsByTokenId);
+      if(!contracts.length){
+        if(!cancelled)setLiveTokenBalances?.(p=>({...p,[acct.id]:{status:'ok',tokens:{}}}));
+        return;
+      }
+      const chain=acct.cid;
+      const owner=acct.addr;
+      const[balRes,fiatRes]=await Promise.allSettled([
+        fetchTokenBalances(chain,owner,contracts).catch(()=>new Map()),
+        fetchTokenFiat(chain,contracts).catch(()=>new Map()),
+      ]);
+      if(cancelled)return;
+      const bals=balRes.status==='fulfilled'?balRes.value:new Map();
+      const fiats=fiatRes.status==='fulfilled'?fiatRes.value:new Map();
+      const tokens={};
+      for(const[tokenId,ca] of Object.entries(contractsByTokenId)){
+        const lc='0x'+ca.replace(/^0x/i,'').toLowerCase();
+        const rawBal=bals.get(lc);
+        const fiatEntry=fiats.get(lc);
+        const dec=getTokenInfo(tokenId,acct.cid).decimals;
+        const bal=rawBal!=null?Number(rawBal)/Math.pow(10,dec):null;
+        const price=fiatEntry?.price??null;
+        const liquidity=fiatEntry?.liquidity||0;
+        const fiat=bal!=null&&price!=null?bal*price:null;
+        tokens[tokenId]={
+          bal,fiat,rawBal:rawBal!=null?String(rawBal):null,
+          liquidity,price,
+          status:rawBal==null?'error':'ok',
+        };
+      }
+      setLiveTokenBalances?.(p=>({...p,[acct.id]:{status:'ok',tokens}}));
+    })();
+    return()=>{cancelled=true;};
   },[open]);
   const ch=acct.ch,liveFunded=liveBalance&&liveBalance.status==='ok'&&liveBalance.bal>0,hasFunds=acct.ops>0||liveFunded;
   const noSyncAcct=acct.dur==null&&acct.bal==null&&acct.ops===0;
@@ -3184,34 +3785,105 @@ function AcctCard({acct,errCount,deviceApps,liveBalance,versionCheck,onErrClick,
           {liveBalance.status==='error'&&<div className="mono" style={{color:T.muted}}>— (API unavailable)</div>}
         </div>}
         <div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:4}}>Account ID</div><div style={{display:'flex',alignItems:'center',gap:4,wordBreak:'break-all'}}><span className="mono" style={{color:T.muted}}>{acct.id}</span><CopyBtn text={acct.id}/></div></div>
-        {acct.toks.length>0&&<div style={{marginBottom:12}}><div className="label" style={{color:T.muted,marginBottom:6}}>Tokens</div><div data-tv={tokV} style={{display:'flex',flexWrap:'wrap',gap:6}}>{acct.toks.map(tk=>{
-          const lb=tk.tokenTicker||tk.tokenId||'token';
-          const turl=(()=>{
+        {acct.toks.length>0&&(()=>{
+          // Build a unified row model for every token; the existing data model (acct.toks,
+          // ajSubAccounts, liveTokenBalances) is untouched — only the render code changes.
+          const rows=acct.toks.map(tk=>{
             const tid=tk.tokenId||'';
-            const pts=tid.split('/');if(pts.length<3)return null;
-            const tch=pts[0],tslug=pts.slice(2).join('/');
-            // Already a contract address (EVM 0x... or Tron T...)
+            const info=getTokenInfo(tid,acct.cid);
+            const cal=TOKEN_METADATA[tid]||null;
+            const slugTail=_tokenSlugTail(tid);
+            const ticker=cal?.ticker||tk.tokenTicker||(slugTail.split(' ')[0]||'token').toUpperCase().slice(0,12);
+            const nameRaw=cal?.name||_titleCaseSlug(slugTail);
+            const displayName=nameRaw&&nameRaw.toUpperCase()!==ticker.toUpperCase()?nameRaw:null;
+            const liveTok=liveTokenBalance?.tokens?.[tid]||null;
+            const isEvm=!!EVM_CHAIN_IDS[(tid.split('/')[0])];
+            const tch=tid.split('/')[0],tslug=tid.split('/').slice(2).join('/');
             const isEvmAddr=/^0x[0-9a-f]{40}$/i.test(tslug);
-            const isTronAddr=/^T[A-Za-z0-9]{33}$/.test(tslug);
-            // Resolve: direct address > TOKEN_CONTRACTS cache
-            const resolved=isEvmAddr?tslug:(TOKEN_CONTRACTS[tid]||null);
-            // Build URL from resolved contract address
-            if(resolved&&TOKEN_URLS[tch])return TOKEN_URLS[tch](resolved,acct.addr);
-            // Tron: use slug directly if it looks like an address, else tronscan search
-            if(tch==='tron')return isTronAddr?TOKEN_URLS.tron(tslug):`https://tronscan.org/#/token20/${tslug}`;
-            // Stacks & Cardano: pass slug directly to their explorers
-            if(tch==='stacks')return TOKEN_URLS.stacks(tslug);
-            if(tch==='cardano')return TOKEN_URLS.cardano(tslug);
-            // Search fallback: opens block explorer search so agent can find the token
-            if(TOKEN_SEARCH[tch])return TOKEN_SEARCH[tch](tslug.replace(/__/g,' ').replace(/_/g,' '));
-            return null;
-          })();
-          const inner=<>{lb}<span style={{opacity:0.6,marginLeft:4}}>{tk.operationsLength||0} ops</span></>;
-          const s={display:'inline-block',padding:'4px 10px',borderRadius:4,fontSize:12,fontWeight:700,background:T.primary+'22',color:T.primary,fontFamily:MF};
-          return turl
-            ?<a key={lb} href={turl} target="_blank" rel="noopener noreferrer" style={{...s,textDecoration:'none'}}>{inner}</a>
-            :<span key={lb} style={s}>{inner}</span>;
-        })}</div></div>}
+            const contractAddr=isEvmAddr?tslug:(info.contractAddress||TOKEN_CONTRACTS[tid]||null);
+            const explorerUrl=(()=>{
+              if(contractAddr&&TOKEN_URLS[tch])return TOKEN_URLS[tch](contractAddr,acct.addr);
+              if(tch==='tron'&&/^T[A-Za-z0-9]{33}$/.test(tslug))return TOKEN_URLS.tron(tslug);
+              if(tch==='stacks')return TOKEN_URLS.stacks?.(tslug);
+              if(tch==='cardano')return TOKEN_URLS.cardano?.(tslug);
+              if(TOKEN_SEARCH[tch])return TOKEN_SEARCH[tch](tslug.replace(/__/g,' ').replace(/_/g,' '));
+              return null;
+            })();
+            const opsCount=tk.operationsLength||0;
+            const hasActivity=opsCount>0||(liveTok&&liveTok.bal!=null&&liveTok.bal>0);
+            return{tk,tid,ticker,displayName,liveTok,isEvm,contractAddr,explorerUrl,opsCount,hasActivity};
+          });
+          const activeRows=rows.filter(r=>r.hasActivity);
+          const inactiveRows=rows.filter(r=>!r.hasActivity);
+          const tokStatus=liveTokenBalance?.status||null;
+          const Row=({r})=>{
+            const{tk,tid,ticker,displayName,liveTok,isEvm,contractAddr,explorerUrl,opsCount,hasActivity}=r;
+            const isOpen=!!expandedToks[tid];
+            const balLine=liveTok?.bal!=null?liveTok.bal.toLocaleString(undefined,{maximumFractionDigits:liveTok.bal>=1?4:8}):null;
+            const fiatLine=liveTok?.fiat!=null?'$'+liveTok.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):null;
+            const iconUrl=getTokenIconUrl(tid);
+            const letterCircle=<span style={{display:'inline-flex',width:24,height:24,borderRadius:'50%',background:ch.color,alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',fontFamily:"'Inter',sans-serif",flexShrink:0}}>{(ticker||'?').charAt(0).toUpperCase()}</span>;
+            const iconNode=iconUrl
+              ?<><img src={iconUrl} alt="" width={24} height={24} style={{borderRadius:'50%',display:'block',flexShrink:0,background:'#FFFFFF08'}} onError={ev=>{const img=ev.currentTarget;img.style.display='none';const sib=img.nextSibling;if(sib)sib.style.display='inline-flex';}}/><span style={{display:'none',width:24,height:24,borderRadius:'50%',background:ch.color,alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',fontFamily:"'Inter',sans-serif",flexShrink:0}}>{(ticker||'?').charAt(0).toUpperCase()}</span></>
+              :letterCircle;
+            // Right side: balance + fiat (live), or ops-count for non-EVM / no-data rows.
+            const rightCol=(()=>{
+              if(!isEvm)return<div style={{textAlign:'right',fontFamily:MF}}>
+                <div style={{fontSize:11,color:T.muted}}>{opsCount} ops</div>
+              </div>;
+              if(tokStatus==='loading')return<div style={{fontSize:11,color:T.muted,opacity:0.6,fontFamily:MF}}>···</div>;
+              if(liveTok?.status==='error')return<div style={{fontSize:11,color:T.error,opacity:0.85,fontFamily:MF}}>fetch failed</div>;
+              if(!liveTok)return<div style={{textAlign:'right',fontFamily:MF}}><div style={{fontSize:11,color:T.muted}}>{opsCount} ops</div></div>;
+              return<div style={{textAlign:'right',fontFamily:MF}}>
+                <div style={{fontSize:12,color:T.text}}>{balLine||'0'}</div>
+                <div style={{fontSize:10,color:liveTok.fiat!=null?T.muted:'#666',opacity:liveTok.fiat!=null?1:0.6}}>{fiatLine||'no live price'}</div>
+              </div>;
+            })();
+            return<div key={tid} style={{borderBottom:`1px solid ${T.border}`}}>
+              <div role="button" tabIndex={0}
+                onClick={()=>setExpandedToks(p=>({...p,[tid]:!p[tid]}))}
+                onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setExpandedToks(p=>({...p,[tid]:!p[tid]}));}}}
+                style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto',alignItems:'center',gap:12,padding:'10px 12px',cursor:'pointer',transition:I.fast,background:isOpen?'rgba(255,255,255,0.02)':'transparent'}}
+                onMouseEnter={e=>{if(!isOpen)e.currentTarget.style.background='rgba(255,255,255,0.03)';}}
+                onMouseLeave={e=>{if(!isOpen)e.currentTarget.style.background='transparent';}}>
+                {iconNode}
+                <div style={{minWidth:0,display:'flex',flexDirection:'column',gap:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:12,fontWeight:700,color:ch.color,letterSpacing:0.2,fontFamily:MF}}>{ticker}</span>
+                    <span style={{fontSize:10,color:T.muted,opacity:0.7}}>{opsCount} op{opsCount!==1?'s':''}</span>
+                  </div>
+                  {displayName&&<div style={{fontSize:11,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:340}} title={displayName}>{displayName}</div>}
+                </div>
+                {rightCol}
+                <div style={{display:'flex',alignItems:'center',gap:6,color:T.muted}}>
+                  {liveTok?.status==='error'&&<span style={{width:6,height:6,borderRadius:'50%',background:T.error}} title="Live balance fetch failed"/>}
+                  {isEvm&&liveTok&&liveTok.bal!=null&&liveTok.fiat==null&&<span style={{fontSize:9,fontWeight:600,padding:'1px 5px',borderRadius:3,background:'rgba(148,148,148,0.10)',color:T.muted,border:`1px solid ${T.border}`,letterSpacing:0.3,textTransform:'uppercase'}} title="DexScreener did not return a qualifying pair for this token">no price</span>}
+                  <span style={{transform:isOpen?'rotate(90deg)':'none',transition:I.fast,display:'inline-flex',opacity:0.7}}><Ico.ChevR/></span>
+                </div>
+              </div>
+              {isOpen&&<div style={{padding:'8px 16px 12px 48px',background:'rgba(255,255,255,0.015)',fontSize:11,color:T.muted}}>
+                <div style={{display:'grid',gridTemplateColumns:'auto 1fr',gap:'6px 12px',alignItems:'center'}}>
+                  {contractAddr&&<><div>Contract</div><div style={{display:'flex',alignItems:'center',gap:6,wordBreak:'break-all'}}><span className="mono" style={{color:T.text}}>{contractAddr}</span><CopyBtn text={contractAddr}/></div></>}
+                  <div>Account ID</div><div style={{display:'flex',alignItems:'center',gap:6,wordBreak:'break-all'}}><span className="mono" style={{color:T.text}}>{`${acct.id}+${tid}`}</span><CopyBtn text={`${acct.id}+${tid}`}/></div>
+                  {explorerUrl&&<><div>Explorer</div><div><a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{color:T.primary,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4,fontSize:11}}><Ico.Link/> View on explorer</a></div></>}
+                </div>
+              </div>}
+            </div>;
+          };
+          return<div style={{marginBottom:12}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+              <div className="label" style={{color:T.muted}}>Tokens ({acct.toks.length})</div>
+              {(acct.tokSource==='discovered'||acct.tokSource==='mixed')&&<span style={{display:'inline-flex',alignItems:'center',gap:3,padding:'1px 6px',borderRadius:3,fontSize:9,fontWeight:600,letterSpacing:0.3,background:'rgba(255,189,66,0.10)',color:T.warning,border:'1px solid rgba(255,189,66,0.20)',textTransform:'uppercase'}} title={acct.tokSource==='discovered'?'Tokens parsed from log entries or discovered on-chain via Ledger Live’s etherscan proxy. Not from a sync-success ground truth.':'Some tokens from sync-success, others discovered from log entries or on-chain.'}>{acct.tokSource==='mixed'?'partial':'from log'}</span>}
+            </div>
+            <div data-tv={tokV} style={{border:`1px solid ${T.border}`,borderRadius:8,background:T.bg,overflow:'hidden'}}>
+              {activeRows.map(r=><Row key={r.tid} r={r}/>)}
+              {inactiveRows.length>0&&<>
+                {activeRows.length>0&&<div style={{padding:'8px 12px',fontSize:10,color:T.muted,letterSpacing:0.4,textTransform:'uppercase',background:'rgba(255,255,255,0.02)',borderTop:`1px solid ${T.border}`,borderBottom:`1px solid ${T.border}`}}>Discovered (no activity in log)</div>}
+                {inactiveRows.map(r=><Row key={r.tid} r={r}/>)}
+              </>}
+            </div>
+          </div>;
+        })()}
         {canX&&<XpubView xpub={acct.addr} dm={acct.dm} coin={ch.xc}/>}
         {acct.isXpub&&!canX&&hasExp&&<div style={{marginTop:12}}><a href={eUrl} target="_blank" rel="noopener noreferrer" style={{padding:'6px 12px',borderRadius:6,fontSize:11,fontWeight:600,background:ch.color+'15',color:ch.color,border:`1px solid ${ch.color}30`,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}><Ico.Link/> Search on explorer</a></div>}
       </div>
@@ -3833,7 +4505,7 @@ function CVEarn({enrichedAccts,appJson,onSelectAcct}){
   </div>;
 }
 
-function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
+function CVAgentInsights({logData,liveBalances,liveTokenBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
   const[selectedId,setSelectedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
   const[viewMode,setViewMode]=useState('issues');
@@ -4103,6 +4775,44 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
         });
       }
     }
+    // Token-level countervalue drift (mirrors cv-drift but for ERC-20 sub-accounts).
+    // Live token prices come from DexScreener; we only consider pairs above the
+    // drift liquidity floor to suppress noise from thin DEX pools.
+    if(hasAppJson&&liveTokenBalances&&Object.keys(liveTokenBalances).length>0){
+      const tokenDrifts=[];
+      const seenTokenIds=new Set();
+      (enrichedAccts||[]).forEach(a=>{
+        if(!a.enriched)return;
+        const acctTokens=liveTokenBalances[a.id]?.tokens||{};
+        (a.ajSubAccounts||[]).forEach(sub=>{
+          const tid=sub.tokenId||'';
+          if(!tid||seenTokenIds.has(tid))return;
+          if(!sub.balance||sub.balance==='0'||parseFloat(sub.balance)<=0)return;
+          const liveTok=acctTokens[tid];
+          if(!liveTok||liveTok.price==null)return;
+          if((liveTok.liquidity||0)<DEXSCREENER_DRIFT_LIQUIDITY_FLOOR)return;
+          const cached=cvLatestRate(appJson,tid);
+          if(!cached?.rate||cached.rate<=0)return;
+          const pct=Math.abs(liveTok.price-cached.rate)/cached.rate*100;
+          if(pct<=2)return;
+          seenTokenIds.add(tid);
+          const info=getTokenInfo(tid,a.cid);
+          tokenDrifts.push({tokenId:tid,ticker:info.ticker||(tid.split('/').pop()||'token').toUpperCase(),custRate:cached.rate,marketRate:liveTok.price,pctDrift:pct,date:cached.date||'?',parentTicker:a.ch.ticker});
+        });
+      });
+      if(tokenDrifts.length>0){
+        const top=tokenDrifts.sort((a,b)=>b.pctDrift-a.pctDrift);
+        const names=top.slice(0,3).map(d=>`${d.ticker} ${d.pctDrift.toFixed(1)}%`).join(', ');
+        f.push({id:'cv-drift-tokens',kind:'system',severity:top[0].pctDrift>10?'red':'amber',
+          title:`Token countervalue drift on ${tokenDrifts.length} token${tokenDrifts.length!==1?'s':''}: ${names}`,
+          detail:`The customer's cached fiat rates for ERC-20 tokens are out of date. ${top[0].ticker} (on ${top[0].parentTicker}) is cached at $${top[0].custRate.toFixed(4)} from ${top[0].date} but the live market rate is $${top[0].marketRate.toFixed(4)}. Token portfolio values may be inaccurate.`,
+          action:'Token fiat rates update when the customer opens the app and it syncs. No manual action needed — but token USD totals shown in the app may differ from current market prices.',
+          navigate:{type:'portfolio'},
+          copyText:`Token countervalue drift detected:\n${top.map(d=>`  ${d.ticker} on ${d.parentTicker}: customer sees $${d.custRate.toFixed(4)}, market is $${d.marketRate.toFixed(4)} (${d.pctDrift.toFixed(1)}% drift)`).join('\n')}\nNote: token rates update on app restart.`,
+          evidence:top.slice(0,4).map(d=>({label:d.ticker,detail:`$${d.custRate.toFixed(4)} cached → $${d.marketRate.toFixed(4)} market (${d.pctDrift.toFixed(1)}%)`}))
+        });
+      }
+    }
     // Firmware
     if(firmwareCheck?.status==='ok'){
       if(firmwareCheck.outdated){
@@ -4197,7 +4907,7 @@ function CVAgentInsights({logData,liveBalances,enrichedAccts,versionCheck,firmwa
     const order={red:0,amber:1,green:2};
     f.sort((a,b)=>order[a.severity]-order[b.severity]);
     return f;
-  },[enrichedAccts,liveBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,snapshotDate,daysSinceSnapshot]);
+  },[enrichedAccts,liveBalances,liveTokenBalances,firmwareCheck,versionCheck,appVersionCheck,appJson,errs,highCount,medCount,lowCount,fetchedCount,acctCount,hasAppJson,viewMode,snapshotDate,daysSinceSnapshot]);
 
   const redCount=findings.filter(f=>f.severity==='red').length;
   const amberCount=findings.filter(f=>f.severity==='amber').length;
@@ -4748,7 +5458,7 @@ function CVCopyText({text,full,mono}){
   </span>;
 }
 
-function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmwareCheck,appVersionCheck}){
+function CustomerView({logData,appJson,onAppJson,liveBalances,liveTokenBalances,versionCheck,firmwareCheck,appVersionCheck}){
   const[selectedAcct,setSelectedAcct]=useState(null);
   const[ajDragOver,setAjDragOver]=useState(false);
   const[summCopied,setSummCopied]=useState(false);
@@ -5339,7 +6049,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,versionCheck,firmw
       {cvSection==='earn'&&<CVEarn enrichedAccts={enrichedAccts} appJson={appJson} onSelectAcct={idx=>{setSelectedAcct(idx);setCvSection('accounts');}}/>}
       {cvSection==='myLedger'&&<CVMyLedger logData={logData} appJson={appJson} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
       {cvSection==='agentInsights'&&<CVAgentInsights
-        logData={logData} liveBalances={liveBalances} enrichedAccts={enrichedAccts}
+        logData={logData} liveBalances={liveBalances} liveTokenBalances={liveTokenBalances} enrichedAccts={enrichedAccts}
         versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}
         appJson={appJson}
         onViewAccount={idx=>{setSelectedAcct(idx);setCvSection('accounts');}}
@@ -6108,6 +6818,10 @@ function App(){
   const[parsing,setParsing]=useState(false);
   const[fileKey,setFileKey]=React.useState(0);
   const[liveBalances,setLiveBalances]=useState({});
+  // Per-account token balances + fiat, populated lazily on account expand. Shape:
+  //   liveTokenBalances[acctId] = { status:'loading'|'ok'|'error',
+  //     tokens: { [tokenId]: {bal, fiat, rawBal, liquidity, status} } }
+  const[liveTokenBalances,setLiveTokenBalances]=useState({});
   const[ledgerStatus,setLedgerStatus]=useState(null);
   const[versionCheck,setVersionCheck]=useState(null);
   const[firmwareCheck,setFirmwareCheck]=useState(null);
@@ -6263,7 +6977,7 @@ function App(){
           const entries=synthesizeMobileMeta(pr.entries, file.name);
           if(!entries||entries.length===0){setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');setParsing(false);return;}
           const types={};entries.forEach(e=>{if(e.type)types[e.type]=1;});
-          const dev=extractDevice(entries),accts=extractAccounts(entries),errs=extractErrors(entries);
+          const dev=extractDevice(entries),accts=discoverTokensFromLog(extractAccounts(entries),entries),errs=extractErrors(entries);
           const deviceApps=extractDeviceApps(entries);const requiredApps=inferRequiredApps(accts);
           // Backfill device info from deviceApps when extractDevice missed it (mobile logs)
           if(deviceApps){if(!dev.modelId&&deviceApps.deviceModelId){dev.modelId=deviceApps.deviceModelId;dev.modelName=DN[deviceApps.deviceModelId]||deviceApps.deviceModelId;}if(!dev.fw&&deviceApps.deviceInfo?.seVersion)dev.fw=deviceApps.deviceInfo.seVersion;if(!dev.fw&&deviceApps.firmware?.version)dev.fw=deviceApps.firmware.version;}
@@ -6278,7 +6992,7 @@ function App(){
   },[]);
 
   useEffect(()=>{
-    if(!logData?.accts?.length){setLiveBalances({});return;}
+    if(!logData?.accts?.length){setLiveBalances({});setLiveTokenBalances({});return;}
     const accts=logData.accts;
     const init={};
     accts.forEach(a=>{init[a.id]={bal:null,fiat:null,status:'loading',err:null,ts:null};});
@@ -6555,7 +7269,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setLiveBalances({});setAcctSort('fiat');setSortDropOpen(false);setNavigatedAcct(null);setHoveredTmRect(null);setDiagCatFilter(null);
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setLiveBalances({});setLiveTokenBalances({});setAcctSort('fiat');setSortDropOpen(false);setNavigatedAcct(null);setHoveredTmRect(null);setDiagCatFilter(null);
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -8023,7 +8737,7 @@ function App(){
                     used.add(a.id);
                   }
                 }
-                const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
+                const renderCard=(a)=><AcctCard key={a.id} acct={a} errCount={acctErrCounts[a.id]||0} deviceApps={logData.deviceApps} liveBalance={liveBalances[a.id]||null} liveTokenBalance={liveTokenBalances[a.id]||null} setLiveTokenBalances={setLiveTokenBalances} versionCheck={versionCheck} onErrClick={()=>{setErrAcctFilter(a.addr);setSection('errors');}} onTimelineClick={()=>{setTlAcctFilter({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});setSection('timeline');}}/>;
                 return groups.map((g,i)=>{
                   if(g.type==='single'){const cardRelevant=focusedAcct?focusedAcct.addr===g.acct.addr&&focusedAcct.cid===g.acct.cid:true;const isFocSingle=focusedAcct&&focusedAcct.addr===g.acct.addr&&focusedAcct.cid===g.acct.cid;return <div key={g.acct.id} data-acct-id={g.acct.id} onMouseEnter={()=>setHoveredAcct(g.acct.id)} onMouseLeave={()=>setHoveredAcct(null)} style={{opacity:cardRelevant?1:0.12,transition:I.medium,boxShadow:isFocSingle?`0 0 0 1px ${g.acct.ch.color}50, 0 4px 20px ${g.acct.ch.color}20, inset 0 1px 0 rgba(255,255,255,0.06)`:hoveredAcct===g.acct.id&&hoveredTmRect?`0 0 0 2px ${g.acct.ch.color}60`:'none',borderRadius:8,animation:navigatedAcct===g.acct.id?'filterRemind 0.6s ease-out':'none','--remind-color':g.acct.ch.color+'40'}}>{renderCard(g.acct)}</div>;}
                   const groupFiat=g.accts.reduce((s,a)=>{const lb=liveBalances[a.id];return s+(lb?.fiat||0);},0);
@@ -8711,7 +9425,7 @@ function App(){
       </div>
       </div>}
     </div>
-  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson} liveBalances={liveBalances} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
+  {logData&&viewMode==='customer'&&<CustomerView logData={logData} appJson={appJson} onAppJson={setAppJson} liveBalances={liveBalances} liveTokenBalances={liveTokenBalances} versionCheck={versionCheck} firmwareCheck={firmwareCheck} appVersionCheck={appVersionCheck}/>}
   {guideOpen&&<div onClick={()=>setGuideOpen(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeIn 0.15s ease'}}>
     <div onClick={e=>e.stopPropagation()} style={{width:'min(900px, 90vw)',height:'85vh',background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.6)'}}>
       <div style={{display:'flex',alignItems:'center',padding:'12px 20px',borderBottom:`1px solid ${T.border}`,flexShrink:0,gap:12}}>
