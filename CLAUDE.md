@@ -14,37 +14,42 @@ To inspect: use browser DevTools. There is no test suite, no package manager, no
 
 **Git push:** The pre-commit hook blocks sandbox pushes. Peter runs `! git push origin main` directly from the prompt to push to remote.
 
+**Stale-base check (mandatory):** Before editing, confirm you are on the current file: `grep -c "slice(0,500).map" ledger-toolkit.html` must return ≥1 and `grep -ci "fr-FR"` must return 0. A previous round shipped a regression because edits landed on an outdated copy. If the check fails, stop and ask Peter for the current file.
+
 ## Architecture
 
-`ledger-toolkit.html` (~8,762 lines) is the entire application — a single-file React 18.3.1 + Babel standalone app (no build step). It opens directly in any browser.
+`ledger-toolkit.html` (~10,200 lines) is the entire application — a single-file React 18.3.1 + Babel standalone app (no build step). It opens directly in any browser.
 
-**Two modes:**
-- **Diagnostic Mode** — fixed viewport (`height:100vh`, no page scrolling), sidebar navigation, sections: `overview`, `errors`, `accounts`, `timeline`, `network`, `apdu`, `raw`
-- **Customer View** — scrollable left-nav layout, sections: `portfolio`, `accounts`, `earn`, `myLedger`, `agentInsights`
+**Two modes, two design systems (do not mix):**
+- **Diagnostic Mode** — the 2026 "BI dashboard" redesign. Fixed viewport (`height:100vh`, no page scrolling). **Tab bar** navigation (the old sidebar is gone). Sections: `overview`, `errors`, `accounts`, `timeline`, `network`, `apdu`, `raw`. Styling uses the `bi-*` class system: near-black panels, hairline borders, **2px radii**, orange `#E85A1A` accent, mono data values. CSS custom properties `--bi-*` and `--ledger-*` at the top of the stylesheet are the source of truth.
+- **Customer View** — unchanged legacy layout: scrollable left-nav, sections `portfolio`, `accounts`, `earn`, `myLedger`, `agentInsights`. Still uses the legacy `T` theme object, `MF` mono constant, and 8/6/4px radius tiers. Do not port `bi-*` styles into Customer View or vice versa.
 
-The file is organized top-to-bottom: CSS → data constants → parse/diagnostic functions → React components → `ReactDOM.render`.
+The file is organized top-to-bottom: CSS → embedded guides → data constants → parse/diagnostic functions → React components → `ReactDOM.render`.
 
 ## App Component
 
-The `App` function (line ~6048) is ~2,678 lines with ~53 useState calls. Before adding new state, grep for existing related state and reuse or colocate. Do not add new useState without checking first.
+`function App()` (~line 7118) holds ~60 top-level useState calls (≈97 file-wide). Before adding new state, grep for existing related state and reuse or colocate.
 
-## Data Layer
+**Reset-list rule (this codebase's #1 historical bug source):** any new state that holds log-derived or per-session data MUST be reset in BOTH places: the `handleFile` success path (~line 7340) and `clearLog` (~line 7626). Both are long setter chains — append to them. Recent example: `selectedApdu` was missed and showed a previous customer's frame in the next log.
 
-**Functions — DO NOT MODIFY** (logic is load-bearing, parsers and diagnostics depend on exact behavior):
+## Data Layer — DO NOT MODIFY
 
-`parseLogs`, `parseAppJson`, `synthesizeMobileMeta`, `extractErrors`, `extractSync`, `extractApdu`, `extractActivity`, `extractAnalytics`, `inferRequiredApps`, `diagnose`, `ERR_DB` (82 patterns), `fetchEvmBalance`, `fetchPrices`, and all version check fetch/compare logic.
+These are stable, tested, and relied on by all rendering logic. Do not edit:
 
-**Registries — extension points** (additive only — never modify or remove existing entry semantics; add new chain/token entries by following the established pattern):
+`parseLogs`, `parseAppJson`, `synthesizeMobileMeta`, `extractDevice`, `extractAccounts`, `extractErrors`, `extractSync`, `extractApdu`, `extractActivity`, `extractAnalytics`, `extractDeviceApps`, `inferRequiredApps`, `diagnose`, `CHAINS` (60), `TX_EXPLORERS` (45+), `UTXO_NETS`, `getChain`, `DC`, `DECIMALS`, `TOKEN_CONTRACTS`, `fetchTokenChains`, `TOKEN_URLS`, `TOKEN_SEARCH`, `EVM_CHAIN_IDS`, `CURRENCY_TO_APP`, `COINGECKO_IDS`, `EVM_RPCS`, `BALANCE_APIS`, `fetchEvmBalance`, `fetchPrices`, and all version check fetch/compare logic.
 
-`CHAINS`, `UTXO_NETS`, `BALANCE_APIS`, `getChain`, `DECIMALS`, `TOKEN_CONTRACTS`, `TOKEN_METADATA`, `TOKEN_URLS`, `TOKEN_SEARCH`, `TOKEN_DECIMALS_PATTERNS`, `EVM_CHAIN_IDS`, `DEXSCREENER_CHAIN_IDS`, `CURRENCY_TO_APP`, `COINGECKO_IDS`, `EVM_RPCS`, `TX_EXPLORERS`, `DC`.
-
-**Token enrichment functions — extension points** (additive only — fetchers can grow new vendors/chains, but signatures and cache shapes are load-bearing for the lazy-fetch wiring):
-
-`fetchTokenMetadata` (CAL service, per-token, 24h localStorage cache), `fetchTokenBalances` (Multicall3 aggregate3 — one eth_call per chain for N tokens), `fetchTokenFiat` (DexScreener per-contract, concurrency 5, 200ms gap, 5min in-memory cache), `getTokenInfo`, `getTokenDecimals`.
-
-`MULTICALL3_ADDRESS` (`0xcA11bde05977b3631167028862bE2a173976CA11`) is hardcoded and assumed deployed at the standard address on every chain in `EVM_RPCS`. If a future chain doesn't have Multicall3 at this address, gate it via a per-chain capability flag and fall back to N parallel `eth_call balanceOf` requests; do not change the constant.
+**ERR_DB (85 patterns) — extend additively, never relax these invariants:**
+- User rejection is NOT an error (Ledger canonical rule): the seven rejection entries (`0x6985`/`27013`, `0x5501`/`21761`, `UserRefusedOnDevice`, `UserRefusedAddress`, `RefusedByUserDAError`) are `s:'medium'` and must never be raised to `'high'`. A reject-only log must show an amber banner, not red.
+- Decimal status-word matchers always carry `w:1` (word boundary) so they can't false-match inside other numbers.
+- No duplicate `m:` matchers (verified zero — keep it that way).
 
 **May extend (additive only):** `extractDevice`, `extractAccounts`, `extractDeviceApps` — for new log format support, without breaking existing parsers.
+
+## Formatting Invariants
+
+- **Money:** module-scope `fmtFiat(value, full?)` (en-US, `$`) is the ONLY fiat formatter — 17 call sites including all copy-report builders. Never call `toLocaleString` on a fiat value directly; never introduce locale-dependent money formatting (a fr-FR bug once rendered €1,965 for a €1.97 wallet).
+- **Durations:** `fmtDur(seconds)` → "Xm Ys". **Timestamps:** `fmtTime(ts, {ms:false})` where ms precision isn't wanted.
+- **Big-list caps:** Network call log, APDU frame stream, and the Timeline event log all render at most 500 rows with a "Showing first 500 …" footer. Keep this convention for any new large list.
 
 ## Key Data Shapes
 
@@ -52,6 +57,7 @@ The `App` function (line ~6048) is ~2,678 lines with ~53 useState calls. Before 
 logData.accts          — accounts array
 logData.errs           — errors array
 logData.entries        — all log entries
+logData.apdu           — APDU frames (.idx, .dir, .hex, timestamps)
 logData.dev            — device info { appVer, appBrand, fw, modelId, targetId }
 logData.quality        — quality score object
 
@@ -61,7 +67,8 @@ appJson.encrypted      — boolean
 Error objects:  .dg.s = severity ('high'/'medium'/'low'), .dg.t = title, .dg.a = action, .dg.u = support URL
 Account objects: .name, .currency, .ch (chain), .addr, .ops, .bal, .funded
 Enriched accounts (CustomerView): ajBalance, ajSpendable, ajOps, ajOperations, ajSubAccounts,
-  ajBlockHeight, ajStarred, ajSwapHistory, ajPendingOps, ajFreshAddressPath, enriched:true
+  ajBlockHeight, ajStarred, ajSwapHistory (.swapId, .status, .provider), ajPendingOps,
+  ajFreshAddressPath, enriched:true
 ```
 
 **CVAgentInsights finding kinds:** `kind:'account'` (balance mismatch), `kind:'system'` (firmware/apps/drift), `kind:'drain'` (seed compromise — unshifted to top of list)
@@ -70,61 +77,48 @@ Enriched accounts (CustomerView): ajBalance, ajSpendable, ajOps, ajOperations, a
 | Concept | Source field | UI label |
 |---|---|---|
 | Desktop app | `info.appVer`, `info.appBrand` | `llLabel(dev)` → "Ledger Wallet" or "Ledger Live" |
-| Firmware (SE OS) | `info.fw` | "Firmware" |
+| Firmware (SE OS) | `info.fw` | "Firmware" — badge says "on latest" ONLY when verified (`fwVerified`); otherwise "unverified" |
 | Device coin apps | `extractDeviceApps()` | "Device Apps" |
 
-## Design Tokens
+## Diagnostic-Mode Components (post-redesign)
 
-```js
-T.bg:'#1A1A1D'    T.panel:'#1A1A1D'    T.card:'#242528'
-T.border:'rgba(255,255,255,0.06)'       T.text:'#FFFFFF'
-T.muted:'#949494'  T.primary:'#BBB0FF'  T.success:'#7AC26C'
-T.error:'#E40046'  T.warning:'#FFBD42'  T.orange:'#FF5300'
-```
+- `AcctRow` / `AcctDrill` / `AcctFilterChip` — replaced the old `AcctCard` (gone; responsibilities split).
+- `OvTreemap` (Overview mini treemap; collapses tiles under 48px into "+N more"), `OvCopyChip` (userId copy chip), `Quad` (2×2 Customer Setup card).
+- `SwapStatusCheck` — renders a copy-the-CLI-command chip ONLY for swaps with `swapId` + `provider` whose status is not in `SWAP_FINAL_STATUS`.
+- **Focus Mode:** `focusedAcct` propagates via `focusAcctMatchesEntry(entry, acct)` to dim non-matching rows across Errors/Timeline/Overview; global focus banner with quick actions; Escape exits.
+- **Timeline:** brushable histogram (`tlBrush` drag-to-zoom), swimlane-by-type panel, grouped event log (GAP 1500ms, MIN_GROUP 3).
+- Known dead code: `DIAG_WF` / `classifyDiag` (the Diagnostic Priority Map UI was removed by product decision; the helpers have no callers — safe to delete in a cleanup pass).
 
-Two-tier elevation: bg (`#1A1A1D`) → card (`#242528`). No third tier.
+## Motion System (2026 pass)
 
-**Border-radius tiers (strict):**
-- `8px` — cards, panels, containers, overlays
-- `6px` — buttons, inputs, filter chips
-- `4px` — small badges, pills, tags
-
-## Typography
-
-- **Body:** `'Inter','Darker Grotesque',-apple-system,...` — Inter is primary
-- **Mono (`MF` constant):** `'JetBrains Mono','SF Mono','Fira Code',Consolas,ui-monospace,monospace` — data values only: addresses, hashes, balances, timestamps, hex, derivation paths
-- **`.stat-value`:** Darker Grotesque (display font for large numbers)
-- **`.guide-embed`:** Darker Grotesque (documentation overlay)
-- Labels/headings/nav: Inter, sentence case, no `textTransform`, no `letterSpacing` (except MOBILE badge)
-- **`purposeLabel`** style: `{fontSize:11, color:'#666666', fontWeight:400, flexShrink:0}` — quiet hints
+- Easing/durations: `var(--ledger-ease)` `cubic-bezier(.2,.8,.2,1)`, 120/200/400ms. No bounce.
+- `useCountUp` / `<CountUp>` — KPI numbers; re-animates on value change; instant under reduced motion.
+- `useSettleFlash(status)` + `.bi-skel` shimmer — loading→ok balance transitions; settle flash is NEUTRAL white, not green.
+- `.bi-check-draw` — checkmark stroke draw, gated to `vsev==='ok'` ONLY. Hard rule: no playful/celebratory motion on warning/critical verdicts or anywhere drain findings render.
+- Severity = motion: only critical pulses (once); amber/info stay still.
+- `prefers-reduced-motion` is supported via a global CSS block + `prefersReducedMotion()` JS gate in rAF hooks. Any new animation must respect both. No `box-shadow` inside `@keyframes` (pulses use outline/opacity/transform).
 
 ## Key Helpers
 
 | Helper | Purpose |
 |---|---|
-| `MF` | Monospace font stack constant |
-| `T` | Theme colors object |
-| `TC` | Type badge colors (`action`, `analytics`, `network`, `error`, etc.) |
-| `I` | Interaction timing (`I.fast=150ms`, `I.medium=250ms`, `I.slow=350ms`) |
+| `fmtFiat(v, full?)` | THE fiat formatter (see invariants) |
+| `fmtDur(sec)` / `fmtTime(ts,{ms})` | Duration / timestamp formatting |
+| `MF` / `T` | Legacy mono stack / theme object (Customer View only) |
 | `DN` | Device name map (nanoS, nanoSP, nanoX, stax, europa→Flex, apex→Nano Gen5) |
-| `DIAG_WF` | 5 workflow categories for Diagnostic Priority Map |
-| `classifyDiag(dg)` | Maps ERR_DB entry → workflow category |
-| `llLabel(dev, isMobile)` | Returns "Ledger Wallet" or "Ledger Live" |
-| `llText(text, dev)` | Runtime string replacement for app branding |
+| `llLabel(dev, isMobile)` / `llText(text, dev)` | "Ledger Wallet"/"Ledger Live" branding |
 | `chainIconUrl(id)` | CDN URL for chain icon |
 | `jumpTo(li)` | Navigate to Timeline + scroll to entry |
 | `goToAcct(addr)` | Navigate to Accounts with filter |
 | `sevColor(s)` | Severity → color |
-| `cvFiatValue(appJson, cid, rawBalance)` | Raw balance → fiat |
-| `cvFmtFiat(value, appJson)` | Formats fiat value with currency symbol |
-
-## Sidebar Nav Pattern
-
-`SectionHeader` component: pill shape (`borderRadius:8`, `margin:2px 8px`), flat active (`rgba(255,255,255,0.06)`), muted inactive (`#8A8A8E`), Inter 14px/500. No subtitle, no left border, no gradient. Hover: `rgba(255,255,255,0.04)`. Customer View sidebar matches this pattern exactly.
+| `cvFiatValue(appJson, cid, raw)` / `cvFmtFiat(v, appJson)` | Customer View fiat (app.json currency) |
+| `useCountUp` / `useSettleFlash` / `prefersReducedMotion` | Motion hooks |
 
 ## Guides Drift Warning
 
-`GUIDE_AGENT` (line ~263) and `GUIDE_TECHNICAL` (line ~749) inside ledger-toolkit.html must stay byte-identical to the body content of `agent-guide.html` and `technical-reference.html`. No automation enforces this. If you edit one, edit both. If unsure, ask before touching either.
+`GUIDE_AGENT` (~line 471) and `GUIDE_TECHNICAL` (~line 949) are embedded in ledger-toolkit.html and are the single source of truth (the standalone `agent-guide.html` is deprecated — do not edit it back to life).
+
+**Hard rule learned the expensive way: never document a feature that does not exist in the code.** Before adding any guide sentence describing UI behavior, grep for the implementing code. Two rounds of fixes were spent removing guide claims about a nonexistent Accounts-tab hover popover and EVM account grouping.
 
 ## Making Changes
 
@@ -137,4 +131,4 @@ Two-tier elevation: bg (`#1A1A1D`) → card (`#242528`). No third tier.
 
 Sequential agents avoid merge conflicts in a single-file codebase. Parallel agents only work if they have clearly non-overlapping line ranges.
 
-Always give agents: design tokens, the DO NOT MODIFY list, existing helper names, and exact field names when known.
+Always give agents: design tokens, the DO NOT MODIFY list, the formatting/ERR_DB invariants above, existing helper names, and exact field names when known. After every pass, re-run the stale-base greps plus: rejections still `medium` (7 entries), `fmtFiat(` ≥17, guide overclaims 0.
