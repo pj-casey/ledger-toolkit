@@ -110,11 +110,11 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 .jt-copy-path:hover{opacity:1;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes focusPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.8;transform:scale(1.08);}}
-@keyframes selectPulse{0%{opacity:1;box-shadow:0 0 0 0 var(--pulse-color,rgba(228,0,70,0.6));}30%{opacity:1;box-shadow:0 0 16px 4px var(--pulse-color,rgba(228,0,70,0.4));}100%{opacity:1;box-shadow:0 0 0 0 var(--pulse-color,rgba(228,0,70,0));}}
+@keyframes selectPulse{0%{outline:2px solid var(--pulse-color,rgba(228,0,70,0.6));outline-offset:0;}100%{outline:2px solid transparent;outline-offset:6px;}}
 @keyframes confirmFlash{0%{background-color:var(--confirm-bg,rgba(110,200,92,0.25));}100%{background-color:transparent;}}
 @keyframes stripDraw{from{clip-path:inset(0 100% 0 0);}to{clip-path:inset(0 0 0 0);}}
 @keyframes listFade{0%{opacity:0.6;}100%{opacity:1;}}
-@keyframes filterRemind{0%{box-shadow:0 0 8px 2px var(--remind-color,rgba(187,176,255,0.4));}100%{box-shadow:none;}}
+@keyframes filterRemind{0%{outline:2px solid var(--remind-color,rgba(187,176,255,0.5));outline-offset:1px;}100%{outline:2px solid transparent;outline-offset:1px;}}
 @keyframes focusEngage{0%{background-color:var(--focus-color,rgba(187,176,255,0.08));}100%{background-color:transparent;}}
 
 
@@ -309,15 +309,32 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 @keyframes bi-hbar-fill { to { width: var(--pct, 0%); } }
 .bi-overview .bi-slide-down { animation: bi-slide-down 280ms var(--bi-ease) both; }
 @keyframes bi-slide-down { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-.bi-overview .bi-pulse-once {
+.bi-overview .bi-pulse-once { position: relative; border-radius: 2px; }
+.bi-overview .bi-pulse-once::after {
+  content: ''; position: absolute; inset: -1px; border-radius: 3px;
+  border: 1px solid rgba(217,71,71,0.55);
   animation: bi-pulse-once 1400ms var(--bi-ease) 600ms both;
-  border-radius: 2px;
+  pointer-events: none;
 }
 @keyframes bi-pulse-once {
-  0%   { box-shadow: 0 0 0 0 rgba(217,71,71,0.55); }
-  60%  { box-shadow: 0 0 0 10px rgba(217,71,71,0); }
-  100% { box-shadow: 0 0 0 0 rgba(217,71,71,0); }
+  0%   { opacity: 0.9; transform: scale(1); }
+  60%  { opacity: 0;   transform: scale(1.15); }
+  100% { opacity: 0;   transform: scale(1.15); }
 }
+/* ── Motion & delight (DESIGN.md §7 — ease var(--ledger-ease), durs 120/200/400) ── */
+@keyframes bi-skel-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.bi-skel {
+  display: inline-block; width: 56px; height: 10px; border-radius: 2px; vertical-align: middle;
+  background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.12), rgba(255,255,255,.05));
+  background-size: 200% 100%;
+  animation: bi-skel-shimmer 1.2s linear infinite;
+}
+/* Neutral one-shot settle when a balance resolves (loading→ok). Neutral white, NOT green —
+   a resolved balance is just data arriving, not a "success". */
+.bi-settle { animation: confirmFlash 400ms var(--ledger-ease); --confirm-bg: rgba(255,255,255,.10); border-radius: 2px; }
+/* Clean-session checkmark stroke-draw — see M5 / ok-verdict only. */
+@keyframes bi-check-draw { to { stroke-dashoffset: 0; } }
+.bi-check-draw { stroke-dasharray: var(--bi-check-len, 26); stroke-dashoffset: var(--bi-check-len, 26); animation: bi-check-draw 400ms var(--ledger-ease) forwards; }
 .bi-overview .bi-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .bi-overview .bi-tbl td { padding: 4px 0; }
 .bi-overview .bi-row { display: flex; align-items: center; gap: 8px; }
@@ -327,6 +344,16 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 }
 .bi-overview .bi-dot {
   display: inline-block; border-radius: 50%; flex-shrink: 0;
+}
+/* prefers-reduced-motion — DESIGN.md motion-checklist compliance. Collapses every animation
+   and transition (CSS + the JS rAF hooks gate themselves separately via matchMedia). */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 </style>
 </head>
@@ -409,7 +436,15 @@ const I={
 };
 const bdg=c=>({display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:700,background:c+'22',color:c,fontFamily:MF});
 const sGet=(o,p,fb)=>{try{let c=o;for(const k of p.split('.')){if(c==null)return fb;c=c[k];}return c??fb;}catch{return fb;}};
-const fmtTime=ts=>{try{const d=new Date(ts);return d.toLocaleTimeString('en-US',{hour12:false})+'.'+String(d.getMilliseconds()).padStart(3,'0');}catch{return '';}};
+const fmtTime=(ts,opt)=>{try{const d=new Date(ts);const base=d.toLocaleTimeString('en-US',{hour12:false});return opt&&opt.ms===false?base:base+'.'+String(d.getMilliseconds()).padStart(3,'0');}catch{return '';}};
+// Shared duration formatter — "Xm Ys" (or "Xh Ym Zs" past an hour). Used by the header
+// session range, the Overview session-timeline card, and the Timeline section so all three
+// render identical strings for the same span.
+const fmtDur=secs=>{const s=Math.max(0,Math.round(secs));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;if(h)return h+'h '+m+'m '+sec+'s';if(m)return m+'m '+sec+'s';return sec+'s';};
+// Single source of truth for live (USD) fiat formatting across Diagnostic Mode. en-US grouping
+// guarantees a "." decimal separator everywhere (never a locale-specific comma). `full` mode is for the
+// Portfolio header total — 2 decimals under $100 so dust portfolios aren't rounded to an integer.
+const fmtFiat=(v,full)=>{v=v||0;const opts=full?(v<100?{minimumFractionDigits:2,maximumFractionDigits:2}:{maximumFractionDigits:0}):{maximumFractionDigits:v>=10?0:v>=1?2:4};return '$'+v.toLocaleString('en-US',opts);};
 const fmtDate=ts=>{try{return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return '';}};
 const trunc=(s,n=60)=>s?.length>n?s.slice(0,n)+'…':(s||'');
 const DN={nanoS:'Nano S',nanoSP:'Nano S Plus',nanoX:'Nano X',stax:'Stax',europa:'Flex',apex:'Nano Gen5'};
@@ -461,7 +496,7 @@ const GUIDE_AGENT=`<!-- Hero -->
     </div>
     <div>
       <a href="#interface"><span class="toc-icon">🖥</span> The Interface</a>
-      <a class="indent" href="#diag-map">Diagnostic Priority Map</a>
+      <a class="indent" href="#tab-bar">Tab bar &amp; popovers</a>
       <a class="indent" href="#xpub-scanner">Xpub Scanner</a>
       <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
       <a class="indent" href="#timeline-strip">Timeline Session Strip</a>
@@ -499,13 +534,13 @@ const GUIDE_AGENT=`<!-- Hero -->
 <div class="step">
   <div class="step-num">2</div>
   <div class="step-content">
-    <p><strong>Read the Overview.</strong> The <strong>triage row</strong> at the top has a severity-colored left border — <span class="badge badge-green">green</span> = clean session, <span class="badge badge-yellow">yellow</span> = warnings, <span class="badge badge-red">red</span> = critical issues. Clickable stat badges (Issues, Accounts, Network, Quality) let you jump to any section. Below, the <strong>Diagnostic Priority Map</strong> shows every finding sized by importance — the biggest, reddest block is where you start.</p>
+    <p><strong>Read the Overview.</strong> The top of the page is a tab bar (Overview / Errors / Accounts / Timeline / Network / APDU / Raw JSON) plus a right-hand cluster: <strong>📋 Copy report ▾</strong>, <strong>Help ▾</strong> (contextual articles), a <strong>📊 quality</strong> chip (score / 100, amber under 60), and the <strong>Live</strong> data popover. The Overview is a multi-card bento — Customer setup (firmware + device apps + dev mode), Issues by impact, Activity &amp; infrastructure (network · APDU · Ledger status), Portfolio (treemap + top accounts).</p>
   </div>
 </div>
 <div class="step">
   <div class="step-num">3</div>
   <div class="step-content">
-    <p><strong>Click the relevant section</strong> in the sidebar — Issues, Accounts, Timeline, or Advanced. Each is a single click.</p>
+    <p><strong>Click the relevant tab</strong> at the top of the page — Errors, Accounts, Timeline, Network, APDU, Raw JSON. Each is a single click. For a quick read on funded accounts and fiat values, check the <strong>Portfolio</strong> card's Top accounts list on the Overview — click a row to jump straight to that account.</p>
   </div>
 </div>
 <div class="step">
@@ -515,7 +550,7 @@ const GUIDE_AGENT=`<!-- Hero -->
   </div>
 </div>
 
-<div class="tip">The tool analyzes the log automatically. The Overview shows a triage row with stat badges (Issues, Accounts, Network, Quality) and a <strong>Diagnostic Priority Map</strong> below — blocks sized by severity, organized into workflow categories: Connection, Sync, Activity, App &amp; Updates, Server. The biggest, reddest block is your starting point. If the ticket is about one account, use <strong>Focus Mode</strong> (Shift+click a tile or use the Focus Investigation button) to filter every section to that account. Mobile logs (from Ledger Wallet iOS/Android) are supported — a solid purple <strong>MOBILE</strong> badge appears next to the file name.</div>
+<div class="tip">The tool analyzes the log automatically. The Overview is a bento of four cards — Customer setup, Issues by impact, Activity &amp; infrastructure, and Portfolio. Skim each card; jump deeper via the tab bar or by clicking any row. If the ticket is about one account, use <strong>Focus Mode</strong> (Shift+click a tile in Accounts, or use the <strong>Focus</strong> button in the top bar) — non-matching content dims across Errors / Timeline / Overview, and a Focus banner with the account's balance, fiat, ops, and quick actions (Errors → / Timeline → / Explorer ↗) appears below the tab bar. Mobile logs (from Ledger Wallet iOS/Android) are supported — a purple <strong>MOBILE</strong> badge appears in the top bar.</div>
 
 
 <div class="section-divider"></div>
@@ -528,7 +563,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3 id="s-balance">"My balance is wrong / I'm missing funds"</h3>
 <div class="card">
   <p><strong>Start here:</strong> Focus on the affected account — use the <strong>Focus Investigation</strong> button on the Overview or <strong>Shift+click</strong> the account's tile in Accounts. This filters every section to that account. Check <strong>Accounts</strong> for the live on-chain balance and fiat value — compare with what the customer reports.</p>
-  <p><strong>Look for:</strong> Mismatches between live balance and what the customer sees. If the log has no sync data, accounts show an amber "no data" badge — the live balance is your only reference. The sidebar also shows fiat values next to funded accounts for a quick scan.</p>
+  <p><strong>Look for:</strong> Mismatches between live balance and what the customer sees. If the log has no sync data, accounts show an amber "no data" badge — the live balance is your only reference. Check the Portfolio card's Top accounts list on the Overview for funded accounts with fiat values.</p>
   <p><strong>For deeper investigation:</strong> Switch to <span class="badge badge-purple">Customer View</span> → load the customer's <kbd>app.json</kbd> for the balances their app was displaying. Compare app.json balances with the live balances shown in Diagnostic mode.</p>
   <p><strong>For Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, or Zcash:</strong> Open the account in <strong>Accounts</strong> — if it stores an xpub, the tool shows an <strong>Xpub Scanner</strong>. Click "Scan" to derive individual addresses and check on-chain balances. This shows exactly where funds are, even if the app's sync is wrong.</p>
   <p><strong>For Cardano, TON, or Stacks:</strong> The tool derives explorer-ready addresses from the raw data in the log. Look for the "Derived Address" block when you expand the account — click the explorer link to verify the balance on-chain.</p>
@@ -548,7 +583,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Click <strong>Issues</strong> in the sidebar. Use the severity chips at the top to focus — click <span class="badge badge-red">Critical</span> to filter to critical errors only. Click a category chip (<span class="badge badge-muted">Hardware</span> / <span class="badge badge-muted">Software</span>) to narrow further.</p>
+  <p><strong>Start here:</strong> Click the <strong>Errors</strong> tab in the top tab bar. Use the severity chips at the top to focus — click <span class="badge badge-red">Critical</span> to filter to critical errors only. Click a category chip (<span class="badge badge-muted">Hardware</span> / <span class="badge badge-muted">Software</span>) to narrow further.</p>
   <p><strong>Look for:</strong> The error strip shows where errors occurred in the session — red segments stand out against muted session context. Hover any bar for details. Click to select that error in the detail panel.</p>
   <p><strong>Dig deeper:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 log entries leading up to the error. This shows you what triggered it. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
   <p><strong>Next:</strong> Check <strong>Affected account</strong> on the error card. Check <strong>Advanced → Network</strong> for failed API calls. If the error mentions device rejection, check <strong>Advanced → APDU</strong>.</p>
@@ -557,17 +592,17 @@ const GUIDE_AGENT=`<!-- Hero -->
 
 <h3 id="s-device">"My device won't connect / isn't recognized"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Look at the <strong>Overview</strong>. Check the <strong>Diagnostic Priority Map</strong> for a Connection or App &amp; Updates block — a red block there is your first lead. The device status line shows model, firmware, and sync state. If it says "Device —", the device never identified itself. Check the <strong>Network</strong> stat badge — 0 failures with 0 total requests means no API activity at all.</p>
-  <p><strong>Look for:</strong> Device model and firmware version in the device card (the expandable panel on the Overview). Check if firmware is outdated — the tool shows "FW 2.6.1 ⬆ 2.7.0 avail." when an update is needed. The Diagnostic Priority Map will also show a firmware finding in App &amp; Updates.</p>
-  <p><strong>Next:</strong> Check <strong>Issues</strong> for hardware/USB errors. Check <strong>Advanced → APDU</strong> for device communication. If there's zero APDU data, the device never established a connection at all.</p>
+  <p><strong>Start here:</strong> Look at the <strong>Overview</strong>'s <strong>Customer setup</strong> card. It surfaces the device model, firmware status, device apps, and developer mode. A red firmware row or missing required app is your first lead. The <strong>Activity &amp; infrastructure</strong> card shows network and APDU counts — 0 calls or 0 frames means no real session ever happened.</p>
+  <p><strong>Look for:</strong> Device model and firmware version in Customer setup. Check if firmware is outdated — the tool shows "FW 2.6.1 ⬆ 2.7.0" when an update is needed.</p>
+  <p><strong>Next:</strong> Open the <strong>Errors</strong> tab for hardware/USB errors. Open the <strong>APDU</strong> tab for device communication. If there's zero APDU data, the device never established a connection at all.</p>
   <div class="warn">No APDU data = no device communication during this session. Check USB cable, port, or Bluetooth before investigating software.</div>
 </div>
 
 <h3 id="s-crash">"The app crashes / won't open / is slow"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Check the <strong>Overview</strong>. The severity and issue count in the triage row tell you how bad the session was. The <strong>Diagnostic Priority Map</strong> shows which category of problem dominates — Connection, Sync, Activity, App &amp; Updates, or Server.</p>
-  <p><strong>Look for:</strong> Critical errors (red). In the <strong>Issues</strong> section, check for repeating pattern badges at the top — "↻ Unexpected error ×6" means the same error is looping. The error strip shows whether problems are clustered (cascade) or spread across the session.</p>
-  <p><strong>Next:</strong> Check <strong>Advanced → Network</strong> for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. Check the <strong>Overview</strong> device card's Environment section for OS and platform — some issues are platform-specific.</p>
+  <p><strong>Start here:</strong> Check the <strong>Overview</strong>. The <strong>Issues by impact</strong> card shows the severity tile counts (Critical / Warning / Notice) and the top-six errors. The <strong>Activity &amp; infrastructure</strong> card surfaces the network call count and Ledger status banner.</p>
+  <p><strong>Look for:</strong> Critical errors (red). On the <strong>Errors</strong> tab, check for repeating pattern badges at the top — "↻ Unexpected error ×6" means the same error is looping. The error strip shows whether problems are clustered (cascade) or spread across the session.</p>
+  <p><strong>Next:</strong> Check the <strong>Network</strong> tab for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. The Customer setup card on Overview also shows OS / platform if it was captured in the log.</p>
   <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
 </div>
 
@@ -587,13 +622,13 @@ const GUIDE_AGENT=`<!-- Hero -->
 
 <h3 id="s-general">General investigation (no specific complaint)</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Read the <strong>Overview</strong> for the overall picture — triage row (severity, stat badges), and the <strong>Diagnostic Priority Map</strong> below it. The map shows every finding sized by severity and organized by category. Click any block to jump to the relevant section. Filter by category (Connection, Sync, Activity, App &amp; Updates, Server) to focus on a specific area.</p>
+  <p><strong>Start here:</strong> Read the <strong>Overview</strong> for the overall picture. The four bento cards (Customer setup, Issues by impact, Activity &amp; infrastructure, Portfolio) each link out to the dedicated tab via an "Open →" affordance. The Portfolio card's Top accounts list gives a quick read of funded accounts.</p>
   <p><strong>Recommended flow:</strong></p>
   <p><strong>Overview</strong> → device health + big picture<br>
-     <strong>Issues</strong> → what went wrong and when<br>
+     <strong>Errors</strong> → what went wrong and when<br>
      <strong>Accounts</strong> → what exists<br>
      <strong>Timeline</strong> → what happened in sequence<br>
-     <strong>Advanced</strong> → deeper data if needed</p>
+     <strong>Network / APDU / Raw JSON</strong> → deeper data if needed</p>
   <p>Big picture first, problems second, context third.</p>
 </div>
 
@@ -606,13 +641,13 @@ const GUIDE_AGENT=`<!-- Hero -->
 <p>Two modes, switchable from the top bar toggle. <span class="badge badge-purple">Diagnostic</span> for technical investigation. <span class="badge badge-purple">Customer View</span> to see the customer's wallet.</p>
 
 <h3>Diagnostic Mode</h3>
-<p>Sidebar on the left for navigation. Main area on the right for detail. The sidebar is always visible — you never lose your place. Everything fits in one screen — no page scrolling.</p>
+<p>A tab bar runs across the top of the page — Overview, Errors, Accounts, Timeline, Network, APDU, Raw JSON — with a right-hand action cluster (📋 Copy report ▾, Help ▾, 📊 quality chip, Live data). The active tab is the orange one. Everything below the tab bar is the working area for that section. Everything fits in one screen — no page scrolling.</p>
 
 <div class="feat-grid">
   <div class="feat-item">
     <div class="icon">📊</div>
     <div class="label">Overview</div>
-    <div class="desc">Default landing. Triage row: severity-colored left border, stat badges (Issues, Accounts, Network, Log Quality), Focus Investigation dropdown, Copy report dropdown, Guide 📖 button. Below: <strong>Diagnostic Priority Map</strong> — a treemap of all findings (errors + firmware + app updates + device app status + sync + network + swaps) sized by severity and organized into workflow categories. Biggest, reddest block = where to start. Device card with firmware, app chips, and environment info. No scrolling.</div>
+    <div class="desc">Default landing. A four-card bento: <strong>Customer setup</strong> (device, firmware, required apps, dev mode), <strong>Issues by impact</strong> (severity tiles + top errors), <strong>Activity &amp; infrastructure</strong> (network · APDU · status.ledger.com banner), and <strong>Portfolio</strong> (chain treemap + top accounts). Each card has an "Open →" affordance that switches to the matching tab. No scrolling.</div>
   </div>
   <div class="feat-item">
     <div class="icon">⚠️</div>
@@ -622,7 +657,7 @@ const GUIDE_AGENT=`<!-- Hero -->
   <div class="feat-item">
     <div class="icon">👛</div>
     <div class="label">Accounts</div>
-    <div class="desc">Health tiles with ticker labels — hover for account details, click to filter, Shift+click to activate Focus Mode (filters all sections to that account). Portfolio overlay shows proportional fiat distribution. EVM chains sharing an address are auto-grouped. Error badges link to Issues. Live on-chain balances with fiat values for 40+ chains. When Focus Mode is active, non-focused tiles dim to 25%.</div>
+    <div class="desc">A treemap on the left (chain tiles sized by fiat value) + a filterable account table on the right. Click any tile to inspect, Shift+click (or use the Focus button up top) to activate Focus Mode — non-matching tiles, rows, and downstream sections dim. Hovering a treemap tile outlines the matching account row and vice versa. EVM chains sharing an address are auto-grouped. Live on-chain balances with fiat values for 40+ chains.</div>
   </div>
   <div class="feat-item">
     <div class="icon">📋</div>
@@ -651,25 +686,18 @@ const GUIDE_AGENT=`<!-- Hero -->
   </div>
 </div>
 
-<h3 id="diag-map">Diagnostic Priority Map</h3>
+<h3 id="tab-bar">Tab bar &amp; popovers</h3>
 <div class="card">
-  <p>The <strong>Diagnostic Priority Map</strong> is the main content area of the Overview. It shows every finding from the current session as a treemap — blocks sized by severity weight, colored red to amber to green. The biggest, reddest block is always your starting point.</p>
-  <p><strong>Multi-source findings:</strong> The map aggregates from seven data sources — log errors, firmware update status, desktop app version, device app status (missing/outdated), no-sync flag, network failures, and incomplete swaps — into one unified view. Errors are the dominant input on most sessions, but system-level findings surface in the same map so nothing is missed.</p>
-  <p><strong>Workflow categories:</strong> Every block is classified into one of five investigation categories:</p>
+  <p>Everything navigation lives in the top bar. The left side is a row of tabs (the active one is the orange pill); the right cluster holds compact popovers and a status chip.</p>
+  <p><strong>Tabs:</strong> Overview, Errors, Accounts, Timeline, Network, APDU, Raw JSON. Each tab shows a count where one applies. For an at-a-glance list of funded accounts with chain swatch, fiat value, and error badges, use the <strong>Portfolio</strong> card's Top accounts list on the Overview — click a row to jump straight to that account.</p>
+  <p><strong>Right-hand cluster:</strong></p>
   <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
-    <strong style="color:var(--text)">🔌 Connection</strong> — device hardware errors, USB/Bluetooth issues<br>
-    <strong style="color:var(--text)">🔄 Sync</strong> — balance sync failures, price data, bridge issues<br>
-    <strong style="color:var(--text)">⚡ Activity</strong> — failed transactions, user rejections, swap failures<br>
-    <strong style="color:var(--text)">📱 App &amp; Updates</strong> — outdated firmware, missing/outdated device apps, app version<br>
-    <strong style="color:var(--text)">☁️ Server</strong> — Ledger server errors, API failures
+    <strong style="color:var(--text)">📋 Copy report ▾</strong> — four formats (Quick Summary, Full Export, Customer Summary, Errors Only), color-coded by destination<br>
+    <strong style="color:var(--text)">Help ▾</strong> — contextual help articles surfaced from the current log<br>
+    <strong style="color:var(--text)">📊 quality chip</strong> — log quality score (0–100, amber under 60); click for the breakdown popover<br>
+    <strong style="color:var(--text)">Live ▾</strong> — Manager, GitHub, Balances, Prices, Ledger Status sources with live/loading/idle dots
   </p>
-  <p><strong>Interacting with the map:</strong></p>
-  <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
-    <strong style="color:var(--text)">Click any block</strong> — jumps to the relevant section (Issues for errors, Accounts for account findings)<br>
-    <strong style="color:var(--text)">Category chips</strong> above the map — click to filter to one category. Click again to clear.<br>
-    <strong style="color:var(--text)">Focus Mode</strong> — when an account is focused, blocks linked to other accounts dim. System-wide findings stay visible.
-  </p>
-  <div class="tip">When you see both sync errors and a firmware update needed, the map shows two blocks — one in Sync, one in App &amp; Updates. Start with the App &amp; Updates block: fixing the firmware first often resolves sync issues that appear to be separate.</div>
+  <p><strong>Focus button</strong> sits in the top bar (above the tabs). Click it to open a searchable list of accounts; selecting one activates Focus Mode. When focus is active, the button shows the focused account's color + ticker, and a Focus banner appears below the tabs with metrics and quick actions.</p>
 </div>
 
 <h3 id="timeline-strip">Timeline: Session Strip &amp; Legend</h3>
@@ -678,7 +706,7 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p><strong>Legend chips</strong> below the strip show every event type with its color and count. Hover a chip to highlight matching segments — everything else dims. Click to filter the row list. Click again to clear. The type dropdown and chips share state.</p>
   <p><strong>Error dots</strong> sit on a baseline below the bars — click any dot to scroll to that error entry.</p>
   <p><strong>Smart grouping:</strong> Bursts of same-type events (40 bridge events during sync) collapse into expandable group headers. Toggle with the Grouped/Flat button. Errors never collapse.</p>
-  <p><strong>Account filtering:</strong> When <strong>Focus Mode</strong> is active (Shift+click a tile, or use the Focus Investigation button), Timeline automatically filters to that account's events. A banner shows which account is focused with a "Show all" option to clear. You can also click the Timeline button on any account card for a quick filter.</p>
+  <p><strong>Account filtering:</strong> When <strong>Focus Mode</strong> is active (Shift+click a tile, or use the Focus button in the top bar), Timeline <em>dims</em> entries that don't match the focused account — matching rows stay bright. To <em>filter</em> instead, click the Timeline → action in the Focus banner; that explicitly sets the timeline account filter and shows a chip you can clear.</p>
   <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch orange light up — next time you see orange, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
 </div>
 
@@ -692,15 +720,13 @@ const GUIDE_AGENT=`<!-- Hero -->
   <div class="tip">The error strip and Timeline strip share the same visual language. Colors you learned in Timeline work here — yellow bars during errors means the error happened during sync.</div>
 </div>
 
-<h3 id="account-tiles">Account Health Tiles</h3>
+<h3 id="account-tiles">Accounts: treemap + row table</h3>
 <div class="card">
-  <p>At the top of <strong>Accounts</strong>, colored tiles give you a quick visual map. Each tile = one account, colored by chain, showing a chain icon or 3-letter ticker label as fallback.</p>
-  <p><strong>Corner dots:</strong> Red (top-right) = errors for this account. Purple (bottom-right) = xpub/scannable. <strong>?</strong> = unsupported for live balance.</p>
-  <p><strong>Hover</strong> any tile for a popover: chain name, address, live balance + fiat, status, error count, and xpub/explorer flags.</p>
-  <p><strong>Click</strong> to filter the account list to that chain. <strong>Shift+click</strong> to activate <strong>Focus Mode</strong> — every section filters to that account, non-focused elements dim, and a Context Ribbon appears at the top of the content area.</p>
-  <p><strong>Portfolio ▸</strong> button opens a proportional overlay — bigger tile = more value. Click any tile to filter and close.</p>
-  <p><strong>EVM grouping:</strong> Accounts sharing the same 0x address (Ethereum + L2 chains) are grouped with a shared header, combined fiat, and a copy button.</p>
-  <div class="tip">Health tiles are the fastest way to answer "what does this customer have?" One glance shows funded chains, problem accounts (red dots), and portfolio shape.</div>
+  <p>The <strong>Accounts</strong> tab is a two-pane layout. On the left, a fiat-weighted treemap of every account (tiles colored by chain, with chain ticker + fiat label). On the right, a filter chip strip + the account row table.</p>
+  <p><strong>Cross-highlight:</strong> Hover a treemap tile and the matching row in the right table is outlined and scrolled into view; hover a row and the matching tile gains an outline. A red dot at the top-right of a tile means errors are linked to that account.</p>
+  <p><strong>Click</strong> a tile to inspect that account in the drill panel below. <strong>Shift+click</strong> activates <strong>Focus Mode</strong> — non-matching tiles, rows, and downstream sections dim; the focused tile pulses. The Focus banner at the top shows balance, fiat, ops, error count, plus Errors → / Timeline → / Explorer ↗ actions.</p>
+  <p><strong>EVM chains:</strong> Ethereum and L2 chains (Polygon, Arbitrum, Base, etc.) share the same 0x address but appear as separate rows — use the Chain filter chip to narrow to one, and note that Focus Mode is chain-specific even for shared addresses.</p>
+  <div class="tip">When you arrive at this tab via the focused-account flow, the row you came from flashes briefly and the table auto-scrolls to it.</div>
 </div>
 
 <h3 id="focus-mode">Account Focus Mode</h3>
@@ -708,17 +734,15 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p>Focus Mode is your primary investigation tool. Most tickets center on one account — focus on it and every section becomes relevant to that account.</p>
   <p><strong>How to activate:</strong></p>
   <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
-    <strong style="color:var(--text)">Shift+click</strong> any health tile in Accounts<br>
-    <strong style="color:var(--text)">Focus button</strong> in the tile hover popover<br>
-    <strong style="color:var(--text)">Affected account</strong> link on any error card in Issues<br>
-    <strong style="color:var(--text)">Focus Investigation</strong> dropdown button on the Overview<br>
-    <strong style="color:var(--text)">Diagnostic Priority Map block</strong>, when linked to an account
+    <strong style="color:var(--text)">Shift+click</strong> any tile in the Accounts treemap (or any row in the table)<br>
+    <strong style="color:var(--text)">Focus button</strong> in the top bar — searchable picker over all accounts<br>
+    <strong style="color:var(--text)">Affected account</strong> link on any error card in Errors
   </p>
-  <p><strong>What happens:</strong> A purple indicator appears in the sidebar showing which account is focused. The content area gets a colored left border matching the account's chain. A <strong>Context Ribbon</strong> appears at the top of the content area showing your investigation thread — click any segment to navigate (account → Accounts, error title → Issues, timestamp → Timeline). Every section filters to that account: Issues shows only related errors, Timeline shows only that account's events, and the sidebar account list highlights the focused row.</p>
-  <p><strong>Adaptive Dimming:</strong> Everything not related to your focused account dims — tiles, account cards, sidebar rows, error strip segments. Blocks in the Diagnostic Priority Map that are linked to other accounts dim; system-wide findings (firmware, app version, etc.) stay fully visible. Your investigation path stays bright. The focused tile gently pulses so you always know which account you're looking at.</p>
-  <p><strong>EVM precision:</strong> For EVM chains sharing the same address (Ethereum + L2s like Polygon, Arbitrum, Base), focus is chain-specific. Focusing Ethereum shows only Ethereum activity — Polygon and Arbitrum stay dim even though they share the address.</p>
-  <p><strong>How to clear:</strong> Click the <strong>✕</strong> on the sidebar focus indicator, press <kbd>Escape</kbd>, click ✕ on the Context Ribbon, or Shift+click the same tile again.</p>
-  <div class="tip">Focus Mode is your fastest path from "the customer has a problem with Ethereum" to "here's everything that happened to their Ethereum account." One Shift+click and you're there. <em>See the Technical Reference (🔬 button on the landing page) for implementation details.</em></div>
+  <p><strong>What happens:</strong> The Focus button in the top bar adopts the account's chain color and shows its ticker. A <strong>Focus banner</strong> slides in below the tab bar showing balance, fiat, ops count, error count, and three quick actions — <strong>Errors →</strong> (sets the errors-by-account filter), <strong>Timeline →</strong> (sets the timeline filter), and <strong>Explorer ↗</strong>. Across the rest of the app, content that doesn't match the focused account dims; matching content stays bright.</p>
+  <p><strong>Adaptive Dimming:</strong> Errors / Timeline / Overview Issues / Overview Portfolio rows dim (~0.35 opacity) when they don't reference the focused account. Customer setup and Activity &amp; infrastructure cards on Overview are system-wide findings and never dim. On the Accounts tab, non-matching treemap tiles dim to ~0.18 opacity and the focused tile gently pulses.</p>
+  <p><strong>Filter vs dim:</strong> Focus <em>dims</em> by default — you still see the full lists, just emphasized. To <em>filter</em> Errors or Timeline down to only the matched rows, click the corresponding action in the Focus banner.</p>
+  <p><strong>EVM precision:</strong> For EVM chains sharing the same address (Ethereum + L2s like Polygon, Arbitrum, Base), focus is chain-specific. Focusing Ethereum dims Polygon and Arbitrum even though they share the address.</p>
+  <p><strong>How to clear:</strong> Click the ✕ on the Focus banner, press <kbd>Escape</kbd>, or open the Focus button menu and choose Clear.</p>
 </div>
 
 <h3 id="xpub-scanner">Xpub Scanner (Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Zcash)</h3>
@@ -753,10 +777,10 @@ const GUIDE_AGENT=`<!-- Hero -->
 <div class="card">
   <p>The tool automatically fetches live blockchain balances for every account in the log — no app.json needed. As soon as you load a file, balances start appearing on each account card in the Accounts section with a green dollar value.</p>
   <p><strong>Coverage:</strong> 40+ chains including all EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.), Bitcoin, Litecoin, Dogecoin, Bitcoin Cash, Zcash, Solana, Tezos, XRP, Cardano, NEAR, Tron, TON, Cosmos, and more.</p>
-  <p><strong>Portfolio total:</strong> The sidebar shows fiat values next to funded accounts for a quick scan. The Accounts section header shows the total funded/empty split. For a full portfolio view, use the <strong>Portfolio ▸</strong> overlay on the Accounts health tiles.</p>
+  <p><strong>Portfolio total:</strong> The Overview's <strong>Portfolio</strong> card sums every funded account into one total (with the chain treemap above). The Top accounts list below the treemap shows the top funded accounts with fiat. The Accounts tab itself shows the chain treemap on the left + a fiat-sortable account table on the right.</p>
   <p><strong>Copy exports:</strong> All copy formats (Summary, Full, Customer) now include live balances and fiat values per account, plus a PORTFOLIO total line.</p>
   <p>Balances are fetched from public blockchain APIs and priced via CoinGecko. No API keys required. Accounts that show "live ···" are still loading. Xpub accounts (Bitcoin-family) use the existing Xpub Scanner for balance — live fetch doesn't apply to those.</p>
-  <div class="tip">This is your fastest way to answer "is this a high-value customer?" — check the sidebar fiat values or the Portfolio overlay in Accounts. No app.json needed.</div>
+  <div class="tip">This is your fastest way to answer "is this a high-value customer?" — check the Portfolio card on Overview or the Accounts tab treemap. No app.json needed.</div>
 </div>
 
 <h3 id="mobile-logs">Mobile Log Support</h3>
@@ -770,7 +794,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3 id="no-sync">No-Sync Visibility</h3>
 <div class="card">
   <p>When a log has accounts but no sync data (common with mobile logs and some short sessions), the tool shows <strong>amber warnings everywhere</strong> so you don't mistake "no data" for "empty account."</p>
-  <p><strong>What you'll see:</strong> An amber banner on the Overview, amber ⚠ next to the Accounts count in the sidebar, amber borders on account cards, and "no data" badges instead of "empty." Live blockchain balances are fetched automatically — the sidebar shows fiat values where available. Accounts that show a green fiat value are confirmed live-funded; use the live balance as your reference even without sync data.</p>
+  <p><strong>What you'll see:</strong> An amber banner on the Overview, "no data" badges instead of "empty," and amber accents on the affected accounts in the row table. Live blockchain balances are fetched automatically and shown in the Accounts table and the Overview Top accounts popover. Accounts that show a green fiat value are confirmed live-funded; use the live balance as your reference even without sync data.</p>
   <p>Copy exports include a "⚠ NO SYNC DATA" warning at the top so recipients know the data source.</p>
   <div class="tip">When you see amber everywhere, it means the log didn't capture sync. The accounts are real — they just have no operation history in this log. Live balances tell you what's actually on-chain.</div>
 </div>
@@ -908,6 +932,9 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3>Device apps show "Not installed"</h3>
 <p>A red chip marked <strong>✕ AppName</strong> on the Overview means the app is required by the customer's accounts but wasn't found on their device. It may have been removed after a firmware update. Ask the customer to open <strong>Ledger Wallet → My Ledger</strong> to reinstall. Amber chips marked <strong>⚠</strong> mean the app is installed but outdated.</p>
 
+<h3>Overview says "Manager catalog unavailable" / firmware reads "unverified"</h3>
+<p>Device-management data (the firmware and app catalog) comes from a live connection to Ledger's backend <em>during the session</em> — it isn't available offline. If the session was offline or the connection dropped, the log won't contain manager data, so the Required apps quad can't confirm what's installed and the Firmware quad reads <strong>unverified</strong> rather than claiming "on latest". This is a missing-data state, not a fault. If you need app or firmware verification, ask the customer to reconnect with the device plugged in and re-export logs.</p>
+
 <h3>The error strip says "likely cascade"</h3>
 <p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Click the first error, then expand <strong>"What happened before"</strong> to see what triggered it. Use the <span class="badge badge-red">Critical</span> chip to isolate the root cause — the rest are typically consequences.</p>
 
@@ -971,7 +998,6 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
       <a class="indent" href="#diagnostic-pathways">Diagnostic Pathways</a>
       <a class="indent" href="#adaptive-dimming">Adaptive Dimming</a>
       <a class="indent" href="#overview-arch">Overview Architecture</a>
-      <a class="indent" href="#diag-map-arch">Diagnostic Priority Map</a>
       <a class="indent" href="#triangulation">Multi-Source Data Triangulation</a>
       <a href="#customer-view-arch"><span class="toc-icon">🖥</span> Customer View Architecture</a>
       <a class="indent" href="#enrichment-pipeline">Enrichment Pipeline</a>
@@ -1227,7 +1253,6 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   </ul>
   <p><strong>Hover popover:</strong> chain name, truncated address, live balance and fiat value, sync status (no sync / loading / empty), derivation mode, error count, and xpub/explorer availability flags. Popover has <span class="mono">onMouseEnter</span>/<span class="mono">onMouseLeave</span> handlers to stay visible when the cursor moves from the tile to the popover. Clamped to container width.</p>
   <p><strong>Adaptive dimming:</strong> When account focus is active, non-focused tiles dim to 25% opacity with a 0.2s transition. The focused tile displays a <span class="mono">focusPulse</span> CSS animation (scale + opacity breathing). See <a href="#adaptive-dimming" style="color:var(--primary)">Adaptive Dimming</a> for full details.</p>
-  <p><strong>Portfolio overlay:</strong> Activated via "Portfolio ▸" button. Tiles are resized proportionally to fiat value (36–80px) and sorted by value descending. Clicking any tile applies a chain filter and closes the overlay.</p>
 </div>
 
 
@@ -1246,7 +1271,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Major L1s</strong> — Solana, Tezos, Cosmos, XRP, Polkadot, Cardano, NEAR, Tron, TON, Stellar, Hedera, Algorand, and others via chain-specific REST/RPC APIs</li>
   </ul>
   <p><strong>Fiat pricing:</strong> CoinGecko API with chain currency IDs mapped via a 40+ entry <span class="mono">COINGECKO_IDS</span> constant. USD prices batch-fetched after balances complete.</p>
-  <p>Request staggering at 200ms intervals to avoid rate limiting. Per-account status tracking: loading, ok, error, unsupported. Portfolio aggregation: sum of all accounts' fiat values available in the sidebar and Accounts section Portfolio overlay. Accounts with <span class="mono">unsupported</span> status are identified with a <span class="mono">?</span> indicator on health tiles.</p>
+  <p>Request staggering at 200ms intervals to avoid rate limiting. Per-account status tracking: loading, ok, error, unsupported. Accounts with <span class="mono">unsupported</span> status are identified with a <span class="mono">?</span> indicator on health tiles.</p>
 </div>
 
 <h3 id="token-resolution">Token Resolution</h3>
@@ -1271,7 +1296,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Account → Timeline</strong> — Shift+click on a health tile or the Timeline button on account cards applies account-correlated filtering to the full event stream</li>
     <li><strong>Timeline → Entry detail</strong> — clicking any point on the session visualization strip navigates to the corresponding raw event</li>
     <li><strong>Overview → All sections</strong> — stat cards display Issues, Accounts, Network failure, and Log Quality counts that establish baseline expectations before investigation</li>
-    <li><strong>Focus → All sections</strong> — <span class="mono">focusedAcct</span> state propagates to <span class="mono">tlAcctFilter</span>, <span class="mono">errAcctFilter</span>, and visual dimming across tiles, cards, sidebar rows, and strip segments</li>
+    <li><strong>Focus → All sections</strong> — <span class="mono">focusedAcct</span> state propagates to <span class="mono">tlAcctFilter</span>, <span class="mono">errAcctFilter</span>, and visual dimming across treemap tiles, account rows, and Errors / Timeline / Overview entries</li>
     <li><strong>Overview error tile → Focus + Issues</strong> — clicking an error tile with a linked account sets <span class="mono">focusedAcct</span> and navigates to Issues</li>
     <li><strong>ErrCard "Affected account" → Focus</strong> — clicking the linked account chip sets <span class="mono">focusedAcct</span> and navigates to Accounts</li>
     <li><strong>Context Ribbon → Navigation</strong> — each ribbon segment is a clickable navigation target (account → Accounts, error → Issues, timestamp → Timeline jumpTo)</li>
@@ -1291,8 +1316,8 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Overview error tile click</strong> — when the error is linked to an account, sets focus and navigates to Issues</li>
   </ul>
   <p><strong>Downstream effects:</strong> A <span class="mono">useEffect</span> propagates <span class="mono">focusedAcct</span> to <span class="mono">tlAcctFilter</span> (Timeline account filter) and <span class="mono">errAcctFilter</span> (Issues account filter). Visual effects are applied via inline opacity styles on non-focused elements.</p>
-  <p><strong>Visual indicators:</strong> Sidebar focus indicator (purple pill with chain color swatch and ticker), content area left border (3px, chain color), <span class="mono">focusPulse</span> CSS animation on the focused tile (scale 1→1.08 + opacity breathing at 2s interval).</p>
-  <p><strong>Clear triggers:</strong> <kbd>Escape</kbd> key, ✕ on sidebar indicator, ✕ on Context Ribbon, Shift+click same tile. State is also reset in <span class="mono">handleFile</span> and <span class="mono">clearLog</span>.</p>
+  <p><strong>Visual indicators:</strong> Content area left border (3px, chain color), <span class="mono">focusPulse</span> CSS animation on the focused tile (scale 1→1.08 + opacity breathing at 2s interval).</p>
+  <p><strong>Clear triggers:</strong> <kbd>Escape</kbd> key, ✕ on Context Ribbon, Shift+click same tile. State is also reset in <span class="mono">handleFile</span> and <span class="mono">clearLog</span>.</p>
   <div class="tip">For investigation workflows using Focus Mode, see the Agent Guide (📖 button) → Account Focus Mode.</div>
 </div>
 
@@ -1330,8 +1355,6 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <ul class="def-list">
     <li><strong>Health tiles</strong> — 0.25</li>
     <li><strong>AcctCards (single + grouped)</strong> — 0.25</li>
-    <li><strong>Sidebar account rows</strong> — 0.4</li>
-    <li><strong>Diagnostic Priority Map blocks (account-linked findings)</strong> — dimmed when linked account is not the focused account; system-wide findings (<span class="mono">linkedAccts.length===0</span>) remain at full opacity</li>
     <li><strong>Issues strip segments</strong> — 0.2</li>
     <li><strong>Network entries</strong> — 0.3</li>
   </ul>
@@ -1343,29 +1366,8 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 <div class="card">
   <p>Two-zone vertical layout within a flex column container (Zone 3 bottom bar was removed):</p>
   <p><strong>Zone 1 — Triage row (flexShrink:0):</strong> No-sync warning banner (conditional), device status line (compact one-liner: model · firmware status · app count status · sync status), stat badges row (Issues hero with severity-colored left border, Accounts, Network with failure count, Log Quality with score), action bar (Focus Investigation dropdown, Copy report dropdown, Guide 📖 button, activity badges).</p>
-  <p><strong>Zone 2 — Content (flex:1, overflow:hidden, overflowY:auto):</strong> Two-column layout when findings exist. Left column: unified device card. Right column: <strong>Diagnostic Priority Map</strong> — a squarified treemap of all findings from 7 data sources (log errors, firmware status, app version, device app status, no-sync flag, network failures, incomplete swaps). Blocks sized by severity weight, colored by severity (red / amber / green). Interactive category chips (Connection, Sync, Activity, App &amp; Updates, Server) filter the treemap. Each block is clickable and navigates to the relevant section. When no errors and no system findings: device card spans full width with green "no issues" confirmation. See <a href="#diag-map-arch" style="color:var(--primary)">Diagnostic Priority Map</a> for detailed architecture.</p>
   <p><strong>Stat badge computation:</strong> Issues badge shows count with severity-based label and color. Network badge counts entries with <span class="mono">status ≥ 400</span> or <span class="mono">level='error'</span>. Quality badge shows the computed 0–100 score. All stat numbers use <span class="mono">clamp(28px, 4vh, 42px)</span> sizing.</p>
   <div class="tip">For step-by-step usage, see the Agent Guide (📖 button) → Quick Start.</div>
-</div>
-
-<h3 id="diag-map-arch">Diagnostic Priority Map</h3>
-<div class="card">
-  <p>A squarified treemap rendered in the right column of the Overview when findings exist. Uses the same <span class="mono">squarify()</span> module-scope algorithm as the Accounts portfolio overlay.</p>
-  <p><strong>Findings engine (IIFE in Overview render):</strong> Collects findings from 7 sources into a flat <span class="mono">findings[]</span> array:</p>
-  <ul class="def-list">
-    <li><strong>A — Log errors</strong> — one block per unique error title from <span class="mono">enrichedErrs</span>. Weight: 10 (critical), 4 (warning), 1 (info). Category via <span class="mono">classifyDiag(dg)</span>. <span class="mono">linkedAccts</span> populated from error-to-account correlation.</li>
-    <li><strong>B — App version</strong> — when <span class="mono">appVersionCheck.outdated</span>. Weight 5, category <span class="mono">'app'</span>, <span class="mono">linkedAccts:[]</span>.</li>
-    <li><strong>C — Firmware</strong> — when <span class="mono">firmwareCheck.outdated</span>. Weight 5, category <span class="mono">'app'</span>. Action text prepends "Update Ledger Wallet first." when app update is also pending.</li>
-    <li><strong>D — Device apps</strong> — missing apps (weight 6, high severity) and outdated apps (weight 2, medium severity) from <span class="mono">versionCheck</span>. Both have <span class="mono">linkedAccts:[]</span>.</li>
-    <li><strong>E — No-sync</strong> — when <span class="mono">noSync</span> flag is true. Weight 3, category <span class="mono">'sync'</span>.</li>
-    <li><strong>F — Network failures</strong> — when <span class="mono">netStats.fails &gt; 0</span>. Weight proportional to fail count, category <span class="mono">'server'</span>.</li>
-    <li><strong>G — Incomplete swaps</strong> — from <span class="mono">logData.activity</span>. Weight 3, category <span class="mono">'activity'</span>.</li>
-  </ul>
-  <p><strong>Workflow categories (<span class="mono">DIAG_WF</span> constant, <span class="mono">classifyDiag(dg)</span> function — both at module scope):</strong> Five categories: <span class="mono">connection</span>, <span class="mono">sync</span>, <span class="mono">activity</span>, <span class="mono">app</span>, <span class="mono">server</span>. Classification uses ERR_DB <span class="mono">cat</span> field combined with title-string heuristics to resolve ambiguous software-category errors.</p>
-  <p><strong>State:</strong> <span class="mono">diagTmSize</span> <span class="mono">{w, h}</span> measured via <span class="mono">ResizeObserver</span> + <span class="mono">getBoundingClientRect</span> + <span class="mono">requestAnimationFrame</span> on the container ref (<span class="mono">diagTreemapRef</span>). <span class="mono">diagCatFilter</span> (nullable category string). Observer dep array: <span class="mono">[section, logData]</span> to re-measure on navigation and file load.</p>
-  <p><strong>Block rendering:</strong> Each block is positioned absolutely with <span class="mono">left/top/width/height</span> from squarify output. CSS transitions on all four coordinates at <span class="mono">0.3s ease</span> enable animated reflow when category filter changes. Color: severity color at 40% opacity background + 3px left border at full color. <span class="mono">key={f.id}</span> is a stable string (<span class="mono">'err-'+title</span>, <span class="mono">'fw-outdated'</span>, etc.) ensuring DOM element reuse across filter changes and enabling CSS transition animation.</p>
-  <p><strong>Focus Mode integration:</strong> Per-block relevance: <span class="mono">errRelevant = focusedAcct ? (f.linkedAccts.length===0 || f.linkedAccts.some(a =&gt; a.addr === focusedAcct.addr)) : true</span>. Non-relevant blocks dim to <span class="mono">opacity:0.12</span>. System-wide findings (<span class="mono">linkedAccts.length===0</span>) always remain fully visible regardless of focus state.</p>
-  <p><strong>Reset:</strong> <span class="mono">setDiagCatFilter(null)</span> called in both <span class="mono">handleFile</span> paths and <span class="mono">clearLog</span>.</p>
 </div>
 
 <h3 id="triangulation">Multi-Source Data Triangulation</h3>
@@ -1554,7 +1556,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Runtime</strong> — React 18.3.1 + Babel standalone 7.26.10 for JSX transpilation. No webpack, no npm, no dependencies to install. The HTML file is self-contained.</li>
     <li><strong>Three-tier parser</strong> — structured JSON → recovery parser for malformed JSON → brace scanner for corrupted or partially-truncated files. Handles desktop and mobile Ledger Wallet log formats including the LLv4 (Ledger Wallet 4.0) format.</li>
     <li><strong>82-pattern error knowledge base</strong> — <span class="mono">ERR_DB</span> with regex and substring matchers, severity classifications, agent action text, common causes, and direct support article links for 33 entries. Priority matching selects the highest-severity match; APDU subcode extraction escalates generic transport errors to specific rejection codes.</li>
-    <li><strong>60-chain registry</strong> — <span class="mono">CHAINS</span> constant with brand colors, ticker symbols, explorer URLs, and derivation metadata. Drives tile rendering, EVM grouping, address derivation, and on-chain verification across all sections.</li>
+    <li><strong>60-chain registry</strong> — <span class="mono">CHAINS</span> constant with brand colors, ticker symbols, explorer URLs, and derivation metadata. Drives tile rendering, address derivation, and on-chain verification across all sections.</li>
     <li><strong>Live on-chain verification</strong> — 40+ chains fetched from public blockchain APIs (publicnode.com JSON-RPC for EVM, mempool.space, BlockCypher, chain-specific REST endpoints). USD pricing via CoinGecko batch fetch. No API keys required.</li>
     <li><strong>Zero data transmission</strong> — all log parsing, analysis, and pattern matching runs client-side. Only account addresses leave the browser to query on-chain balances. No log content, error data, or user metadata is ever transmitted.</li>
     <li><strong>Fixed viewport</strong> — <span class="mono">height:100vh, overflow:hidden</span>. The page never scrolls. Each section uses a fixed header zone + scrollable content panel. All features are accessible within one screen.</li>
@@ -2533,8 +2535,11 @@ const ERR_DB=[
   {m:'AppNotFound',c:'software',s:'low',t:'App not found on device',a:'Install the required app via My Ledger.',causes:['App not installed on device','Wrong firmware version for app','App removed after firmware update']},
   {m:'AppAlreadyInstalled',c:'software',s:'medium',t:'App already installed',a:'Uninstall the existing app first, then reinstall if needed.',causes:['Duplicate install attempt','Partial install left stale entry','Firmware update did not clean app list']},
   // APDU status codes (hex)
-  {m:'0x6985',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.'},
-  {m:'27013',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device.',w:1},
+  // User rejection/cancellation is a user choice, not a fault — classified medium (amber), never critical, per Ledger's DMK spec.
+  {m:'0x6985',c:'hardware',s:'medium',t:'User rejected on device',a:'Customer pressed reject on the device — a user choice, not a fault. Ask whether the cancellation was intentional; if not, retry the operation.'},
+  {m:'27013',c:'hardware',s:'medium',t:'User rejected on device',a:'Customer pressed reject on the device — a user choice, not a fault. Ask whether the cancellation was intentional; if not, retry the operation.',w:1},
+  {m:'0x5501',c:'hardware',s:'medium',t:'Action cancelled on device',a:'Customer pressed reject — a user choice, not a fault. Ask whether the cancellation was intentional; retry if not.',causes:['User pressed reject button','User changed their mind','Prompt timeout on device']},
+  {m:'21761',c:'hardware',s:'medium',t:'Action cancelled on device',a:'Customer pressed reject — a user choice, not a fault. Ask whether the cancellation was intentional; retry if not.',causes:['User pressed reject button','User changed their mind','Prompt timeout on device'],w:1},
   {m:'0x6982',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met']},
   {m:'27010',c:'hardware',s:'medium',t:'Security not satisfied / device locked',a:'Ensure device is unlocked and the correct app is open.',causes:['Device locked','PIN not entered','Security condition not met'],w:1},
   {m:'0x6a82',c:'hardware',s:'medium',t:'App not open / file not found on device',a:'Open the required coin app on the device before retrying.',causes:['App not installed','Wrong app open','App crashed']},
@@ -2558,8 +2563,9 @@ const ERR_DB=[
   {m:'DeviceGenuineSocketEarlyClose',c:'hardware',s:'high',t:'Genuine check connection dropped',a:'Retry genuine check. If it persists more than 3 times, escalate.',causes:['USB disconnection during genuine check','Network drop during check','Server-side timeout']},
   {m:'AppInstallFail',c:'software',s:'medium',t:'App installation failed',a:'Retry install. Ensure device has sufficient storage. Uninstall unused apps if needed.',causes:['Insufficient device storage','Interrupted install','Firmware / Manager API error']},
   {m:'EthAppPleaseEnableContractData',c:'hardware',s:'medium',t:'Enable blind signing / contract data',a:'On device: go to Ethereum app \u2192 Settings \u2192 Blind signing / Contract data \u2192 Enable.',causes:['Blind signing disabled in ETH app settings','Smart contract interaction attempted without enabling setting']},
-  {m:'UserRefusedOnDevice',c:'hardware',s:'high',t:'User rejected on device',a:'User pressed the reject button. Ask them to retry and confirm on device if the action was unintentional.',causes:['User pressed X/reject button','Prompt timeout']},
-  {m:'UserRefusedAddress',c:'hardware',s:'high',t:'Address rejected on device',a:'User rejected address verification. Ask them to retry and confirm if the address is correct.',causes:['User pressed X during address verification','Suspicious address','Unintentional rejection']},
+  {m:'UserRefusedOnDevice',c:'hardware',s:'medium',t:'User rejected on device',a:'Customer pressed reject on the device — a user choice, not a fault. Ask whether the cancellation was intentional; if not, retry the operation.',causes:['User pressed X/reject button','Prompt timeout']},
+  {m:'RefusedByUserDAError',c:'hardware',s:'medium',t:'Action cancelled on device',a:'Customer pressed reject — a user choice, not a fault. Ask whether the cancellation was intentional; retry if not.',causes:['User pressed reject button','User changed their mind']},
+  {m:'UserRefusedAddress',c:'hardware',s:'medium',t:'Address rejected on device',a:'Customer declined address verification on the device — a user choice, not a fault. If the displayed address looked correct, ask them to retry and confirm; if it did not, treat the address mismatch as the real issue.',causes:['User pressed X during address verification','Suspicious address','Unintentional rejection']},
   {m:'UserRefusedFirmwareUpdate',c:'hardware',s:'medium',t:'Firmware update rejected',a:'User cancelled the firmware update. Advise them to retry if update is desired.',causes:['User pressed cancel on device','Accidental rejection','User not ready to update']},
   {m:'NoAccessToCamera',c:'software',s:'low',t:'Camera access denied',a:'Grant camera permission to Ledger Live in browser or OS settings for QR code scanning.',causes:['Camera permission denied','OS privacy settings blocking camera','Browser permission not granted']},
   {m:'LedgerAPINotAvailable',c:'server',s:'medium',t:'Ledger API unavailable',a:'Check status.ledger.com. Ask customer to retry after a few minutes.',causes:['Ledger API service down','Network outage','Maintenance window']},
@@ -3852,13 +3858,28 @@ function AcctFilterChip({label,value,valueDisplay,options,onChange,accent='var(-
   </div>;
 }
 
-function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,onSelect,onFocus}){
+function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,isHovered,isNavigated,onSelect,onFocus,onHover}){
   const ch=acct.ch;
   const liveFunded=liveBalance&&liveBalance.status==='ok'&&liveBalance.bal>0;
   const fiat=liveBalance?.fiat;
   const bal=liveBalance?.status==='ok'?liveBalance.bal:(acct.bal!=null?Number(acct.bal):null);
   const iconUrl=chainIconUrl(acct.cid);
+  const settle=useSettleFlash(liveBalance?.status);
+  const rowRef=React.useRef(null);
+  React.useEffect(()=>{
+    if(isHovered&&rowRef.current){
+      const el=rowRef.current;
+      const scroller=el.closest('[data-accounts-scroll]');
+      if(!scroller)return;
+      const sr=scroller.getBoundingClientRect();
+      const er=el.getBoundingClientRect();
+      if(er.top<sr.top||er.bottom>sr.bottom){
+        el.scrollIntoView({block:'nearest',behavior:'smooth'});
+      }
+    }
+  },[isHovered]);
   return <div
+    ref={rowRef}
     role="button" tabIndex={0} data-acct-id={acct.id} aria-selected={isSelected}
     onClick={(e)=>{if(e.shiftKey)onFocus(acct);else onSelect(acct);}}
     onKeyDown={ev=>{
@@ -3871,16 +3892,18 @@ function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,onSele
       gap:10,alignItems:'center',
       padding:'7px 12px 7px 10px',
       cursor:'pointer',
-      background:isFocused?ch.color+'1A':isSelected?ch.color+'14':'transparent',
+      background:isFocused?ch.color+'1A':isSelected?ch.color+'14':isHovered?ch.color+'10':'transparent',
       borderLeft:'3px solid '+(isFocused?ch.color:isSelected?ch.color:'transparent'),
       borderBottom:'1px solid var(--bi-border)',
-      opacity:isDimmed?0.22:1,
-      transition:'background 80ms linear, opacity 200ms ease, border-left-color 120ms ease',
-      outline:isFocused?'2px solid '+ch.color+'A0':'none',
+      opacity:isDimmed?0.35:1,
+      transition:'background 80ms linear, opacity 200ms ease, border-left-color 120ms ease, box-shadow 120ms ease',
+      outline:isFocused?'2px solid '+ch.color+'A0':isHovered?'1px solid '+ch.color+'60':'none',
       outlineOffset:-2,
+      animation:isNavigated?'filterRemind 0.6s ease-out':undefined,
+      '--remind-color':ch.color+'60',
     }}
-    onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='var(--bi-bg-card-alt)';}}
-    onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
+    onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background=isHovered?ch.color+'18':'var(--bi-bg-card-alt)';if(onHover)onHover(acct.id);}}
+    onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background=isHovered?ch.color+'10':'transparent';if(onHover)onHover(null);}}
   >
     {/* Chain icon */}
     <div style={{width:22,height:22,borderRadius:2,background:ch.color+'20',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
@@ -3899,13 +3922,13 @@ function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,onSele
       <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr||(acct.cid+'…')}</span>
     </div>
     {/* Balance + fiat */}
-    <div className="mono" style={{textAlign:'right',minWidth:0}}>
+    <div className={'mono'+(settle?' bi-settle':'')} style={{textAlign:'right',minWidth:0}}>
       {liveBalance?.status==='loading'
-        ?<span style={{fontSize:10,color:'var(--bi-fg-3)',opacity:0.6}}>···</span>
+        ?<span className="bi-skel" style={{width:48,height:9}}/>
         :bal!=null
           ?<>
             <div style={{fontSize:11,color:liveFunded?'var(--bi-positive)':'var(--bi-fg-2)',fontWeight:500,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{bal.toLocaleString(undefined,{maximumFractionDigits:bal>=1?4:6})} <span style={{color:'var(--bi-fg-4)',fontWeight:400}}>{ch.ticker}</span></div>
-            {fiat!=null&&fiat>0&&<div style={{fontSize:9,color:'var(--bi-fg-3)',marginTop:1}}>${fiat.toLocaleString(undefined,{maximumFractionDigits:fiat>=10?0:2})}</div>}
+            {fiat!=null&&fiat>0&&<div style={{fontSize:9,color:'var(--bi-fg-3)',marginTop:1}}>{fmtFiat(fiat)}</div>}
           </>
           :<span style={{fontSize:10,color:'var(--bi-fg-3)'}}>—</span>}
     </div>
@@ -3921,6 +3944,7 @@ function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,onSele
 function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiveTokenBalances,versionCheck,onErrClick,onTimelineClick,onFocus,focusedAcct}){
   const[tokV,setTokV]=useState(0);
   const[expandedToks,setExpandedToks]=useState({});
+  const settle=useSettleFlash(liveBalance?.status);
   // Token loading: re-fires when the selected acct.id changes (replaces the old `open` trigger).
   useEffect(()=>{
     if(!acct)return;
@@ -4115,11 +4139,11 @@ function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiv
 
       {/* Live balance — fontSize:22 per spec, with ticker + fiat */}
       <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap',flexShrink:0}}>
-        {liveBalance&&liveBalance.status==='loading'&&<span className="mono" style={{fontSize:22,fontWeight:700,color:'var(--bi-fg-3)',opacity:0.55}}>···</span>}
+        {liveBalance&&liveBalance.status==='loading'&&<span className="bi-skel" style={{width:90,height:16}}/>}
         {liveBalance&&liveBalance.status==='ok'&&<>
-          <span className="mono" style={{fontSize:22,fontWeight:700,color:'var(--bi-fg-1)',lineHeight:1.05}}>{liveBalance.bal!=null?liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:liveBalance.bal>=1?4:6}):'0'}</span>
+          <span className={'mono'+(settle?' bi-settle':'')} style={{fontSize:22,fontWeight:700,color:'var(--bi-fg-1)',lineHeight:1.05}}>{liveBalance.bal!=null?liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:liveBalance.bal>=1?4:6}):'0'}</span>
           <span style={{fontSize:11,fontWeight:700,color:ch.color}}>{ch.ticker}</span>
-          {liveBalance.fiat!=null&&<span style={{fontSize:11,color:'var(--bi-fg-3)'}}>≈ <span className="mono" style={{color:'var(--bi-fg-1)'}}>${liveBalance.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span></span>}
+          {liveBalance.fiat!=null&&<span style={{fontSize:11,color:'var(--bi-fg-3)'}}>≈ <span className="mono" style={{color:'var(--bi-fg-1)'}}>{fmtFiat(liveBalance.fiat)}</span></span>}
         </>}
         {(!liveBalance||liveBalance.status==='error'||liveBalance.status==='unsupported')&&acct.bal!=null&&<>
           <span className="mono" style={{fontSize:22,fontWeight:700,color:'var(--bi-cat-3)',lineHeight:1.05}}>{Number(acct.bal).toLocaleString(undefined,{maximumFractionDigits:6})}</span>
@@ -4327,7 +4351,7 @@ function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiv
       const renderRow=(r,i,isInactive)=>{
         const{tid,ticker,displayName,liveTok,isEvm,contractAddr,explorerUrl,opsCount}=r;
         const balLine=liveTok?.bal!=null?liveTok.bal.toLocaleString(undefined,{maximumFractionDigits:liveTok.bal>=1?4:8}):null;
-        const fiatLine=liveTok?.fiat!=null?'$'+liveTok.fiat.toLocaleString(undefined,{maximumFractionDigits:2}):null;
+        const fiatLine=liveTok?.fiat!=null?fmtFiat(liveTok.fiat):null;
         const balCell=(()=>{
           if(!isEvm)return <span className="mono" style={{color:'var(--bi-fg-3)',fontSize:11}}>{opsCount} op{opsCount!==1?'s':''}</span>;
           if(tokStatus==='loading')return <span className="mono" style={{color:'var(--bi-fg-3)',opacity:0.55,fontSize:11}}>···</span>;
@@ -6545,6 +6569,7 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,liveTokenBalances,
                     <div style={{fontSize:12,color:'#FFFFFF'}}>{sw.provider||'Unknown'}</div>
                     <div style={{fontSize:11,color:'#8A8A8E'}}>{sw.status||'—'}{sw.swapId?' · ID: '+sw.swapId.slice(0,12):''}</div>
                   </div>
+                  <SwapStatusCheck sw={sw}/>
                 </div>
               ))}
             </div>}
@@ -6807,7 +6832,7 @@ function fmtAcctLine(a,short,liveBalances,isMobile){
   const addr=short?(a.addr.length>20?a.addr.slice(0,20)+'...':a.addr):(a.addr.length>30?a.addr.slice(0,16)+'...'+a.addr.slice(-8):a.addr);
   const lb=liveBalances?liveBalances[a.id]:null;
   const balStr=lb&&lb.status==='ok'&&lb.bal!=null&&lb.bal>0
-    ?`${lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} ${a.ch.ticker}${lb.fiat!=null?' ($'+lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})+')':''}`
+    ?`${lb.bal.toLocaleString('en-US',{maximumFractionDigits:6})} ${a.ch.ticker}${lb.fiat!=null?' ('+fmtFiat(lb.fiat)+')':''}`
     :null;
   const opsStr=!isMobile&&a.ops>0?`${a.ops} ops`:null;
   return '  '+[a.ch.name,balStr,opsStr,addr].filter(Boolean).join(' — ');
@@ -6882,7 +6907,7 @@ function buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwar
     ...buildDeviceAppsLines(logData,false),`ACCOUNTS (${accts.length})`,
     ...accts.slice(0,10).map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
     ...(accts.length>10?[`  ... and ${accts.length-10} more`]:[]),
-    (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
+    (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: ${fmtFiat(t)} USD`:undefined;})(),
     '',`ERRORS (${errs.length})`,
     ...errs.slice(0,8).map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${llText(e.dg?.a,d)||''}`),
     ...(errs.length>8?[`  ... and ${errs.length-8} more`]:[]),
@@ -6911,7 +6936,7 @@ function buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCh
     `  Platform:   ${d.platform||'Unknown'}`,`  User ID:    ${d.userId||'Unknown'}`,'',
     ...buildDeviceAppsLines(logData,true),`ACCOUNTS (${accts.length})`,
     ...accts.map(a=>fmtAcctLine(a,true,liveBalances,logData.isMobile)),
-    (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: $${t.toLocaleString(undefined,{maximumFractionDigits:2})} USD`:undefined;})(),
+    (()=>{const t=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);return t>0?`PORTFOLIO: ${fmtFiat(t)} USD`:undefined;})(),
     '',`ERRORS (${errs.length})`,
     ...errs.map(e=>`  [${(e.dg?.s||'?').toUpperCase()}] ${e.dg?.t||e.msg||'?'}: ${llText(e.dg?.a,d)||''}`),
     '',`APDU exchanges: ${logData.apdu?.length||0}`,`Log quality: ${logData.quality?.score||0}/100 (${logData.quality?.label||'?'})`,
@@ -6941,7 +6966,7 @@ function buildCustomerText(logData,liveBalances){
   if(confirmedEmpty>0)lines.push(`  (${confirmedEmpty} empty account${confirmedEmpty!==1?'s':''})`);
   if(noDataCount>0)lines.push(`  (${noDataCount} account${noDataCount!==1?'s':''} — no balance data)`);
   const portfolioTotal=Object.values(liveBalances||{}).reduce((s,lb)=>s+(lb.fiat||0),0);
-  if(portfolioTotal>0){lines.push('');lines.push(`PORTFOLIO: $${portfolioTotal.toLocaleString(undefined,{maximumFractionDigits:2})} USD`);}
+  if(portfolioTotal>0){lines.push('');lines.push(`PORTFOLIO: ${fmtFiat(portfolioTotal)} USD`);}
   if(errs.length>0){lines.push('');lines.push(`ISSUES (${errs.length})`);const seen=new Set();for(const e of errs){const t=e.dg?.t||e.msg||'Unknown';if(seen.has(t))continue;seen.add(t);lines.push(`  [${(e.dg?.s||'?').toUpperCase()}] ${t}`);}}
   lines.push('');lines.push('===========================');
   return lines.join('\n');
@@ -6985,6 +7010,110 @@ const OvSevPip=({s})=>{
   return <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:c,textTransform:'uppercase'}}>{l}</span>;
 };
 const OvCard=({i,children,style})=><div className="bi-card bi-mount-up" style={{'--i':i,padding:0,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:0,...style}}>{children}</div>;
+// Copy-on-click chip used for the User ID in the Customer setup card. copyText() copies silently
+// (no global toast), so this provides its own transient "copied" feedback like other copy affordances.
+const OvCopyChip=({value})=>{
+  const[copied,setCopied]=useState(false);
+  if(!value)return null;
+  return <span className="bi-link" title={'User ID: '+value+' (click to copy)'} style={{cursor:'pointer'}}
+    onClick={()=>{copyText(value);setCopied(true);setTimeout(()=>setCopied(false),1500);}}>{copied?'✓ copied':'ID '+value.slice(0,8)+'…'}</span>;
+};
+// Stuck-swap helper: for a swap still in a non-final state, copy a ready-to-run Ledger CLI command
+// so an agent with @ledgerhq/wallet-cli installed can pull the live status in one paste. Renders
+// nothing for terminal statuses or when the swap lacks an id/provider (needed by the CLI command).
+const SWAP_FINAL_STATUS=['finished','refunded','failed','expired','cancelled','complete','completed'];
+const SwapStatusCheck=({sw})=>{
+  const[copied,setCopied]=useState(false);
+  const status=(sw.status||'').toLowerCase();
+  if(!sw.swapId||!sw.provider||SWAP_FINAL_STATUS.includes(status))return null;
+  const cmd='wallet-cli swap status --swap-id '+sw.swapId+' --provider '+sw.provider;
+  return <span onClick={()=>{copyText(cmd);setCopied(true);setTimeout(()=>setCopied(false),1500);}}
+    title={'Copies a Ledger CLI command to check this swap\'s live status:\n'+cmd+'\n\nRun it in a terminal with @ledgerhq/wallet-cli installed. Nobody without the CLI is affected.'}
+    style={{fontSize:10,color:copied?'#4FC46B':'#BBB0FF',cursor:'pointer',flexShrink:0,padding:'2px 8px',borderRadius:4,border:'1px solid rgba(187,176,255,0.30)',background:'rgba(187,176,255,0.08)',whiteSpace:'nowrap'}}>{copied?'✓ Copied command':'⧉ Check live status'}</span>;
+};
+// Portfolio treemap row. Measures its own width and collapses any tile that would render below
+// ~48px into a single neutral "+N more" tile (proportional flex preserved) so the chain breakdown
+// stays legible; the "+N more" tile navigates to Accounts where the full list lives.
+const OvTreemap=({chains,onPick,onMore})=>{
+  const ref=useRef(null);
+  const[w,setW]=useState(0);
+  useEffect(()=>{
+    const el=ref.current;if(!el||typeof ResizeObserver==='undefined'){if(el)setW(el.clientWidth);return;}
+    const ro=new ResizeObserver(es=>{for(const e of es)setW(e.contentRect.width);});
+    ro.observe(el);setW(el.clientWidth);
+    return()=>ro.disconnect();
+  },[]);
+  const MIN=48,GAP=2;
+  const total=chains.reduce((s,c)=>s+c._w,0)||1;
+  let kept=chains,rest=[];
+  if(w>0&&chains.length){
+    const avail=w-(chains.length-1)*GAP;
+    const k=[],r=[];
+    chains.forEach(c=>{((c._w/total)*avail>=MIN?k:r).push(c);});
+    // Always keep at least the largest tile so a flat all-tiny portfolio still renders something.
+    if(!k.length&&r.length){k.push(r.shift());}
+    kept=k;rest=r;
+  }
+  const restW=rest.reduce((s,c)=>s+c._w,0);
+  return <div ref={ref} style={{display:'flex',height:50,gap:GAP}}>
+    {kept.map((c,i)=>(
+      <div key={c.name} className="bi-tile-pop" onClick={()=>onPick(c)} style={{'--i':i,flex:c._w,background:c.color,opacity:c.hasUnsynced?0.6:1,color:'#0a0a0a',padding:'4px 6px',borderRadius:1,cursor:'pointer',overflow:'hidden',position:'relative',minWidth:MIN}}>
+        <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',lineHeight:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name}</div>
+        <div className="mono" style={{fontSize:11,fontWeight:700,marginTop:2,lineHeight:1}}>{c.fiat>0?fmtFiat(c.fiat):c.ops+' ops'}</div>
+      </div>
+    ))}
+    {rest.length>0&&<div key="__more" className="bi-tile-pop" onClick={onMore} title={rest.map(c=>c.name).join(', ')} style={{'--i':kept.length,flex:Math.max(restW,total*0.12),background:'var(--bi-bg-card-alt)',border:'1px solid var(--bi-border)',color:'var(--bi-fg-2)',padding:'4px 6px',borderRadius:1,cursor:'pointer',overflow:'hidden',display:'flex',flexDirection:'column',justifyContent:'center',minWidth:MIN}}>
+      <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',lineHeight:1,whiteSpace:'nowrap'}}>+{rest.length} more</div>
+      <div style={{fontSize:10,color:'var(--bi-fg-3)',marginTop:2,lineHeight:1}}>view all →</div>
+    </div>}
+  </div>;
+};
+
+// ── Motion helpers (DESIGN.md §7). Every one respects prefers-reduced-motion. ──
+const prefersReducedMotion=()=>{try{return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);}catch{return false;}};
+// Count-up: eases a displayed number from its previous value to `target` over `dur` ms
+// (easeOutCubic ≈ brand ease), re-firing whenever `target` changes. No animation on first mount
+// or when value is unchanged; jumps straight to the final value under reduced motion.
+const useCountUp=(target,{dur=400,fmt=(v=>String(Math.round(v)))}={})=>{
+  const[val,setVal]=useState(target||0);
+  const fromRef=useRef(target||0);
+  const rafRef=useRef(0);
+  useEffect(()=>{
+    const to=target||0;
+    if(prefersReducedMotion()||dur<=0){fromRef.current=to;setVal(to);return;}
+    const from=fromRef.current;
+    if(from===to){setVal(to);return;}
+    const t0=performance.now();
+    cancelAnimationFrame(rafRef.current);
+    const tick=now=>{
+      const p=Math.min(1,(now-t0)/dur);
+      const e=1-Math.pow(1-p,3);
+      setVal(from+(to-from)*e);
+      if(p<1)rafRef.current=requestAnimationFrame(tick);
+      else fromRef.current=to;
+    };
+    rafRef.current=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(rafRef.current);
+  },[target,dur]);
+  return fmt(val);
+};
+// Component wrapper so count-up can be dropped into the Overview IIFE (which can't call hooks directly).
+const CountUp=({value,dur=400,fmt,className,style})=>{const txt=useCountUp(value,{dur,fmt});return <span className={className} style={style}>{txt}</span>;};
+// One-shot neutral settle: true for ~one cycle when status flips loading→ok (suppressed under reduced motion).
+const useSettleFlash=status=>{
+  const prev=useRef(status);
+  const[flash,setFlash]=useState(false);
+  useEffect(()=>{
+    if(prev.current==='loading'&&status==='ok'&&!prefersReducedMotion()){
+      setFlash(true);
+      prev.current=status;
+      const t=setTimeout(()=>setFlash(false),420);
+      return()=>clearTimeout(t);
+    }
+    prev.current=status;
+  },[status]);
+  return flash;
+};
 
 function App(){
   const purposeLabel={fontSize:11,color:'#666666',fontWeight:400,flexShrink:0};
@@ -7011,7 +7140,6 @@ function App(){
   const[dragOver,setDragOver]=useState(false);
   const[acctFilter,setAcctFilter]=useState('');
   const[acctSort,setAcctSort]=useState('fiat');
-  const[sortDropOpen,setSortDropOpen]=useState(false);
   // ── Diagnostic Accounts tab: row-click selection + chip filters (separate from Customer View's selectedAcct) ──
   const[selectedDiagAcct,setSelectedDiagAcct]=useState(null);
   const[chainFilter,setChainFilter]=useState('');     // '' → all chains
@@ -7020,9 +7148,6 @@ function App(){
   const[errorsFilter,setErrorsFilter]=useState('all');// all | yes | no
   const[tmSize,setTmSize]=useState({w:300,h:400});
   const[diagTmSize,setDiagTmSize]=useState({w:300,h:300});
-  const[diagCatFilter,setDiagCatFilter]=useState(null);
-  const[hoveredTmRect,setHoveredTmRect]=useState(null);
-  const[qualityOpen,setQualityOpen]=useState(false);
   const[otherAppsOpen,setOtherAppsOpen]=useState(false);
   const[devDetailOpen,setDevDetailOpen]=useState(false);
   const[deviceExpanded,setDeviceExpanded]=useState(true);
@@ -7084,8 +7209,8 @@ function App(){
   },[parsing,logData,liveBalances,versionCheck,firmwareCheck,appVersionCheck,ledgerStatus]);
   const[guideOpen,setGuideOpen]=useState(null);
   const[guideSearch,setGuideSearch]=useState('');
-  const[focusDropOpen,setFocusDropOpen]=useState(false);
   const[copyOpen,setCopyOpen]=useState(false);
+  const[acctTabHover,setAcctTabHover]=useState(false);
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
   const acctTreemapRef=React.useRef(null);
@@ -7094,17 +7219,9 @@ function App(){
   const hoverTimeoutRef=React.useRef(null);
   const[tlBrush,setTlBrush]=useState(null);
   const[tlBrushing,setTlBrushing]=useState(false);
-  const[tlSwimlane,setTlSwimlane]=useState(false);
   const tlBrushRef=React.useRef(null);
   const tlTimeRef=React.useRef({t0:0,t1:1,ents:[]});
 
-
-  useEffect(()=>{
-    if(!qualityOpen)return;
-    const h=(e)=>{if(!e.target.closest('[data-quality-popover]'))setQualityOpen(false);};
-    const t=setTimeout(()=>document.addEventListener('click',h),0);
-    return()=>{clearTimeout(t);document.removeEventListener('click',h);};
-  },[qualityOpen]);
 
   useEffect(()=>{
     if(!devDetailOpen)return;
@@ -7114,25 +7231,11 @@ function App(){
   },[devDetailOpen]);
 
   useEffect(()=>{
-    if(!focusDropOpen)return;
-    const h=(e)=>{if(!e.target.closest('[data-focus-drop]'))setFocusDropOpen(false);};
-    const t=setTimeout(()=>document.addEventListener('click',h),0);
-    return()=>{clearTimeout(t);document.removeEventListener('click',h);};
-  },[focusDropOpen]);
-
-  useEffect(()=>{
     if(!copyOpen)return;
-    const h=(e)=>{if(!e.target.closest('[data-copy-drop]')&&!e.target.closest('[data-help-pop]')&&!e.target.closest('[data-live-pop]'))setCopyOpen(false);};
+    const h=(e)=>{if(!e.target.closest('[data-copy-pop]')&&!e.target.closest('[data-help-pop]')&&!e.target.closest('[data-live-pop]')&&!e.target.closest('[data-quality-pop]'))setCopyOpen(false);};
     const t=setTimeout(()=>document.addEventListener('click',h),0);
     return()=>{clearTimeout(t);document.removeEventListener('click',h);};
   },[copyOpen]);
-
-  useEffect(()=>{
-    if(!sortDropOpen)return;
-    const h=(e)=>{if(!e.target.closest('[data-sort-drop]'))setSortDropOpen(false);};
-    const t=setTimeout(()=>document.addEventListener('click',h),0);
-    return()=>{clearTimeout(t);document.removeEventListener('click',h);};
-  },[sortDropOpen]);
 
   React.useEffect(()=>{
     if(!tlBrushing)return;
@@ -7190,21 +7293,29 @@ function App(){
   },[section,logData]);
 
   useEffect(()=>{
-    setQualityOpen(false);
     setDevDetailOpen(false);
-    setFocusDropOpen(false);
     setCopyOpen(false);
     setHoveredAcct(null);
   },[section]);
 
-  useEffect(()=>{
-    if(!focusedAcct){setTlAcctFilter(null);setErrAcctFilter(null);return;}
-    setTlAcctFilter({addr:focusedAcct.addr,cid:focusedAcct.cid,ticker:focusedAcct.ticker,name:focusedAcct.name,color:focusedAcct.color});
-    setErrAcctFilter(focusedAcct.addr);
-  },[focusedAcct]);
+  // Focus dims rather than filters: leave tlAcctFilter / errAcctFilter for explicit user actions
+  // (filter chips, "View errors →" button). Per-row dim is computed at render time from focusedAcct.
+  const focusAcctMatchesEntry=useCallback((e,fa)=>{
+    if(!fa)return true;
+    const addr=fa.addr?fa.addr.toLowerCase():null;
+    const cid=fa.cid?fa.cid.toLowerCase():null;
+    const ticker=fa.ticker?fa.ticker.toLowerCase():null;
+    const name=fa.name?fa.name.toLowerCase():null;
+    const hay=[(e.message||e.msg||''),(e.type||''),JSON.stringify(e.data||''),JSON.stringify(e.queryArg||''),JSON.stringify(e.payload||''),JSON.stringify(e.raw||'')].join(' ').toLowerCase();
+    if(addr&&addr.length>8&&hay.includes(addr))return true;
+    if(cid&&hay.includes(cid))return true;
+    if(ticker&&hay.includes(ticker))return true;
+    if(name&&hay.includes(name))return true;
+    return false;
+  },[]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setDiagCatFilter(null);
+    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);
     const reader=new FileReader();
     reader.onload=ev=>{
       // Watchdog: if extraction doesn't finish in 30s, surface a clear error instead of
@@ -7226,7 +7337,7 @@ function App(){
           setLoadErr('');
           setLogData({parseStats:pr.stats,entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
-          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setDiagCatFilter(null);
+          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setSelectedApdu(null);setRawSearch('');setFocusSearch('');setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
         clearTimeout(watchdog);
         setParsing(false);
@@ -7512,7 +7623,7 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setFocusDropOpen(false);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setTlSwimlane(false);setLiveBalances({});setLiveTokenBalances({});setAcctSort('fiat');setSortDropOpen(false);setNavigatedAcct(null);setHoveredTmRect(null);setDiagCatFilter(null);setSelectedDiagAcct(null);setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');
+    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setSelectedApdu(null);setRawSearch('');setFocusSearch('');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setLiveBalances({});setLiveTokenBalances({});setAcctSort('fiat');setNavigatedAcct(null);setSelectedDiagAcct(null);setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
@@ -7720,7 +7831,7 @@ function App(){
             {(()=>{const ps=logData.parseStats;if(!ps||(ps.strategy===1&&ps.dropped===0))return null;const ratio=ps.attempted>0?ps.dropped/ps.attempted:0;const isUnreliable=ps.strategy===3||ratio>=0.05;const label=isUnreliable?'UNRELIABLE':'PARTIAL';const color=isUnreliable?'#D94747':'#E88A4A';const tip=isUnreliable?'This log file is heavily damaged and findings should not be trusted. Ask the customer to re-export logs from Ledger Wallet → Settings → Help → Export logs.':'Part of this log couldn\'t be read ('+ps.dropped+' entries skipped). Most of the diagnosis is reliable, but verify on-chain before escalating anything serious.';return <span title={tip} style={{fontSize:9,fontWeight:700,letterSpacing:'0.05em',padding:'1px 5px',borderRadius:2,background:color+'1A',color:color,flexShrink:0}}>{label}</span>;})()}
           </div>
           {logData.entries.length>1&&<span className="mono" style={{color:'#8A8A90',fontSize:10,letterSpacing:'0.02em'}}>
-            {(()=>{const t0=logData.entries[0].timestamp;const tN=logData.entries[logData.entries.length-1].timestamp;const dur=((new Date(tN)-new Date(t0))/1000);const durLabel=dur<60?dur.toFixed(1)+'s':dur<3600?(dur/60).toFixed(1)+'m':(dur/3600).toFixed(1)+'h';return fmtDate(t0)+' '+fmtTime(t0)+'–'+fmtTime(tN)+' · '+durLabel;})()}
+            {(()=>{const t0=logData.entries[0].timestamp;const tN=logData.entries[logData.entries.length-1].timestamp;const dur=((new Date(tN)-new Date(t0))/1000);return fmtDate(t0)+' '+fmtTime(t0,{ms:false})+'–'+fmtTime(tN,{ms:false})+' · '+fmtDur(dur);})()}
           </span>}
         </div>
         {/* ── Focus selector — explicit entrypoint for Focus Mode; shift+click any account row also works ── */}
@@ -7972,7 +8083,7 @@ function App(){
             {key:'errors',l:'Errors',c:errors.length,dot:critCount>0?'#D94747':warnCount>0?'#E88A4A':null},
             {key:'accounts',l:'Accounts',c:logData.accts?.length||0},
             {key:'timeline',l:'Timeline',c:logData.entries?.length||0},
-            {key:'network',l:'Network',c:logData.entries?.filter(e=>e.type==='network').length||0},
+            {key:'network',l:'Network',c:(logData.entries?.filter(e=>e.type==='network'||e.type==='network-error').length)||0},
             {key:'apdu',l:'APDU',c:logData.apdu?.length||0},
             {key:'raw',l:'Raw JSON',c:null},
           ];
@@ -8002,7 +8113,7 @@ function App(){
             <div style={{display:'flex',alignItems:'flex-end',gap:0,flex:1,minWidth:0,overflow:'auto'}}>
               {tabs.map(t=>{
                 const active=section===t.key;
-                return <div key={t.key} onClick={()=>setSection(t.key)} title={t.l} style={{
+                const tabEl=<div onClick={()=>setSection(t.key)} title={t.l} style={{
                   padding:'10px 16px 10px',display:'flex',alignItems:'center',gap:6,
                   fontSize:13,fontWeight:active?600:500,
                   background:active?'#E85A1A':'transparent',
@@ -8019,10 +8130,69 @@ function App(){
                   {t.c!=null&&<span className="mono" style={{fontSize:10,color:active?'rgba(255,255,255,0.78)':'#8A8A90',fontWeight:600}}>{t.c.toLocaleString()}</span>}
                   {t.dot&&<span style={{width:6,height:6,borderRadius:'50%',background:t.dot,flexShrink:0,marginLeft:t.c!=null?2:0}}/>}
                 </div>;
+                if(t.key==='accounts'&&(logData.accts?.length||0)>0){
+                  return <div key={t.key} style={{position:'relative'}} onMouseEnter={()=>setAcctTabHover(true)} onMouseLeave={()=>setAcctTabHover(false)}>
+                    {tabEl}
+                    {acctTabHover&&(()=>{
+                      const accts=logData.accts||[];
+                      const ranked=accts.map(a=>{
+                        const lb=liveBalances?.[a.id];
+                        const fiat=lb?.fiat||0;
+                        const bal=lb?.status==='ok'?lb.bal:null;
+                        const funded=(a.ops>0)||(bal!=null&&bal>0);
+                        const addrLow=a.addr?a.addr.toLowerCase():null;
+                        const errCount=addrLow&&a.addr.length>8?logData.errs.filter(e=>((e.msg||'')+' '+JSON.stringify(e.raw||'')).toLowerCase().includes(addrLow)).length:0;
+                        return{a,fiat,bal,funded,errCount};
+                      }).filter(r=>r.funded).sort((x,y)=>(y.fiat-x.fiat)||((y.a.ops||0)-(x.a.ops||0))).slice(0,8);
+                      if(ranked.length===0)return null;
+                      return <div style={{position:'absolute',top:'100%',left:0,background:'#18181B',border:'1px solid rgba(255,255,255,0.14)',borderRadius:2,boxShadow:'0 8px 20px rgba(0,0,0,0.45)',zIndex:50,minWidth:300,padding:'6px 0',fontFamily:'Inter'}}>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#5E5E64',padding:'4px 14px 6px'}}>Funded accounts {ranked.length<accts.length?`(${ranked.length} of ${accts.length})`:`(${ranked.length})`}</div>
+                        {ranked.map(r=>{
+                          const a=r.a;
+                          return <div key={a.id} onClick={()=>{setSelectedDiagAcct(a);setSection('accounts');setAcctTabHover(false);}} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 14px',cursor:'pointer',transition:'background 80ms'}} onMouseEnter={e=>e.currentTarget.style.background='#1C1C20'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                            <span style={{width:8,height:8,borderRadius:2,background:a.ch.color,flexShrink:0}}/>
+                            <span style={{fontSize:11,color:'#F4F4F5',fontWeight:500,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.ch.ticker} · <span style={{color:'#8A8A90',fontWeight:400}}>{(a.name||a.ch.name||'').slice(0,28)}</span></span>
+                            {r.errCount>0&&<span style={{fontSize:10,color:'#D94747',fontWeight:700,padding:'1px 6px',borderRadius:2,background:'rgba(217,71,71,0.12)',border:'1px solid rgba(217,71,71,0.30)'}}>⚠ {r.errCount}</span>}
+                            <span className="mono" style={{fontSize:10,color:r.fiat>0?'#4FBFE8':'#5E5E64',fontWeight:600,minWidth:60,textAlign:'right'}}>{r.fiat>0?fmtFiat(r.fiat):'—'}</span>
+                          </div>;
+                        })}
+                      </div>;
+                    })()}
+                  </div>;
+                }
+                return <div key={t.key}>{tabEl}</div>;
               })}
             </div>
-            {/* Right side: Help + Live data popovers */}
+            {/* Right side: Copy + Help + Live data popovers */}
             <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0,paddingLeft:14,marginLeft:14,borderLeft:'1px solid rgba(255,255,255,0.07)'}}>
+              {logData&&<div data-copy-pop style={{position:'relative'}}>
+                <button onClick={()=>setCopyOpen(o=>o==='copy'?false:'copy')} style={{padding:'4px 10px',borderRadius:2,fontSize:11,fontWeight:500,fontFamily:'Inter',background:copyOpen==='copy'?'#1C1C20':'transparent',border:'1px solid rgba(255,255,255,0.07)',color:'#C8C8CC',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}} onMouseEnter={e=>{if(copyOpen!=='copy')e.currentTarget.style.background='#1C1C20';}} onMouseLeave={e=>{if(copyOpen!=='copy')e.currentTarget.style.background='transparent';}}>
+                  <span style={{fontSize:11}}>📋</span> Copy report
+                  <span style={{fontSize:8}}>▾</span>
+                </button>
+                {copyOpen==='copy'&&(()=>{
+                  const itemStyle={display:'block',width:'100%',padding:'7px 14px 7px 12px',background:'transparent',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:'3px solid transparent',color:'#F4F4F5',cursor:'pointer',textAlign:'left',fontFamily:'Inter',fontSize:12,transition:'background 80ms'};
+                  return <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:'#18181B',border:'1px solid rgba(255,255,255,0.14)',borderRadius:2,boxShadow:'0 8px 20px rgba(0,0,0,0.45)',zIndex:50,minWidth:240,padding:'6px 0',fontFamily:'Inter'}}>
+                    <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#5E5E64',padding:'4px 14px 6px'}}>Copy report</div>
+                    <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...itemStyle,borderLeftColor:'#7AC26C'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(122,194,108,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600}}>Quick Summary</div>
+                      <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>for ticket notes</div>
+                    </button>
+                    <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...itemStyle,borderLeftColor:'#BBB0FF'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600}}>Full Export</div>
+                      <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>for escalation</div>
+                    </button>
+                    {logData.accts.length>0&&<button onClick={()=>{copyText(buildCustomerText(logData,liveBalances));setCopyOpen(false);}} style={{...itemStyle,borderLeftColor:'#FF5300'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,83,0,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600}}>Customer Summary</div>
+                      <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>account-focused</div>
+                    </button>}
+                    {logData.errs.length>0&&<button onClick={()=>{copyText(buildErrorText(logData));setCopyOpen(false);}} style={{...itemStyle,borderBottom:'none',borderLeftColor:'#E40046'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(228,0,70,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600}}>Errors Only</div>
+                      <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>all errors with actions</div>
+                    </button>}
+                  </div>;
+                })()}
+              </div>}
               {displayArticles.length>0&&<div data-help-pop style={{position:'relative'}}>
                 <button onClick={()=>setCopyOpen(o=>o==='help'?false:'help')} style={{padding:'4px 10px',borderRadius:2,fontSize:11,fontWeight:500,fontFamily:'Inter',background:copyOpen==='help'?'#1C1C20':'transparent',border:'1px solid rgba(255,255,255,0.07)',color:'#C8C8CC',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}} onMouseEnter={e=>{if(copyOpen!=='help')e.currentTarget.style.background='#1C1C20';}} onMouseLeave={e=>{if(copyOpen!=='help')e.currentTarget.style.background='transparent';}}>
                   Help <span className="mono" style={{fontSize:9,color:'#8A8A90'}}>{displayArticles.length}</span>
@@ -8037,6 +8207,32 @@ function App(){
                   ))}
                 </div>}
               </div>}
+              {logData?.quality&&(()=>{
+                const q=logData.quality;
+                const low=q.score<60;
+                const accent=low?'#E88A4A':'#8A8A90';
+                return <div data-quality-pop style={{position:'relative'}}>
+                  <button onClick={()=>setCopyOpen(o=>o==='quality'?false:'quality')} title={`Log quality: ${q.score}/100 (${q.label||'?'})`} style={{padding:'4px 10px',borderRadius:2,fontSize:11,fontWeight:500,fontFamily:'Inter',background:copyOpen==='quality'?'#1C1C20':'transparent',border:'1px solid '+(low?'rgba(232,138,74,0.30)':'rgba(255,255,255,0.07)'),color:accent,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}} onMouseEnter={e=>{if(copyOpen!=='quality')e.currentTarget.style.background='#1C1C20';}} onMouseLeave={e=>{if(copyOpen!=='quality')e.currentTarget.style.background='transparent';}}>
+                    <span style={{fontSize:11}}>📊</span>
+                    <span className="mono" style={{fontSize:11,letterSpacing:'0.03em'}}>{q.score}/100</span>
+                    <span style={{fontSize:8,opacity:0.85}}>▾</span>
+                  </button>
+                  {copyOpen==='quality'&&<div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:'#18181B',border:'1px solid rgba(255,255,255,0.14)',borderRadius:2,boxShadow:'0 8px 20px rgba(0,0,0,0.45)',zIndex:50,minWidth:300,padding:'6px 0',fontFamily:'Inter'}}>
+                    <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',padding:'4px 14px 6px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                      <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#5E5E64'}}>Log quality</span>
+                      <span className="mono" style={{fontSize:11,color:accent,fontWeight:600}}>{q.score}/100 · {q.label||'?'}</span>
+                    </div>
+                    {(q.details||[]).map((det,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 14px',fontSize:11}}>
+                        <span style={{width:12,flexShrink:0,color:det.found?'#4FBFE8':'#D94747',fontWeight:700,textAlign:'center'}}>{det.found?'✓':'✗'}</span>
+                        <span style={{flex:1,color:'#F4F4F5',fontWeight:500}}>{det.field}</span>
+                        <span className="mono" style={{color:'#8A8A90',fontSize:10}}>{det.note}</span>
+                      </div>
+                    ))}
+                    {logData.isMobile&&<div style={{margin:'6px 14px 2px',paddingTop:6,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:10,color:'#8A8A90',lineHeight:1.5}}>Mobile logs typically score 50–65 due to reduced metadata. Expected — mobile exports don't include analytics, OS details, or user IDs.</div>}
+                  </div>}
+                </div>;
+              })()}
               <div data-live-pop style={{position:'relative'}}>
                 <button onClick={()=>setCopyOpen(o=>o==='live'?false:'live')} style={{padding:'4px 10px',borderRadius:2,fontSize:11,fontWeight:500,fontFamily:'Inter',background:copyOpen==='live'?'#1C1C20':'transparent',border:'1px solid rgba(255,255,255,0.07)',color:'#C8C8CC',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}} onMouseEnter={e=>{if(copyOpen!=='live')e.currentTarget.style.background='#1C1C20';}} onMouseLeave={e=>{if(copyOpen!=='live')e.currentTarget.style.background='transparent';}}>
                   <span style={{width:6,height:6,borderRadius:'50%',background:liveCount>0?'#4FBFE8':'#5E5E64'}}/>
@@ -8078,7 +8274,7 @@ function App(){
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,fontSize:11,color:'#8A8A90'}}>
               {hasBal&&<span><span style={{color:'#8A8A90'}}>Balance </span><span className="mono" style={{color:'#F4F4F5',fontWeight:600}}>{lb.bal.toLocaleString(undefined,{maximumFractionDigits:6})} {acct.ch.ticker}</span></span>}
-              {lb&&lb.fiat>0&&<span><span style={{color:'#8A8A90'}}>Fiat </span><span className="mono" style={{color:'#4FBFE8',fontWeight:600}}>${lb.fiat.toLocaleString(undefined,{maximumFractionDigits:2})}</span></span>}
+              {lb&&lb.fiat>0&&<span><span style={{color:'#8A8A90'}}>Fiat </span><span className="mono" style={{color:'#4FBFE8',fontWeight:600}}>{fmtFiat(lb.fiat)}</span></span>}
               <span><span style={{color:'#8A8A90'}}>Ops </span><span className="mono" style={{color:acct.ops>0?'#F4F4F5':'#8A8A90',fontWeight:600}}>{acct.ops||0}</span></span>
               {errCount>0&&<span><span style={{color:'#8A8A90'}}>Errors </span><span className="mono" style={{color:'#D94747',fontWeight:700}}>{errCount}</span></span>}
             </div>
@@ -8119,11 +8315,17 @@ function App(){
           const sevMed=errs.filter(e=>e.dg?.s==='medium').length;
           const sevLow=errs.filter(e=>e.dg?.s==='low').length;
           const errTotal=errs.length;
+          const sevBreak=[sevHigh&&sevHigh+' critical',sevMed&&sevMed+(sevMed>1?' warnings':' warning'),sevLow&&sevLow+(sevLow>1?' notices':' notice')].filter(Boolean).join(' · ');
 
           // ── Firmware ──
           const fwLive=firmwareCheck?.status==='ok';
-          const fwLatestVer=fwLive?(firmwareCheck.latest||null):(da?.source==='manager-result'&&da.firmware?da.firmware.version:null);
-          const fwOutdated=fwLive?firmwareCheck.outdated:(da?.source==='manager-result'&&da.firmware?da.firmware.version!==d.fw:false);
+          const fwHasMgr=da?.source==='manager-result'&&!!da.firmware;
+          const fwVerified=fwLive||fwHasMgr;
+          const fwLatestVer=fwLive?(firmwareCheck.latest||null):(fwHasMgr?da.firmware.version:null);
+          const fwOutdated=fwLive?firmwareCheck.outdated:(fwHasMgr?da.firmware.version!==d.fw:false);
+          // d.fw can be a raw path-like fallback (e.g. "nanox/2.7.1/iotex/…") from a URL param — show the
+          // semver segment in the quad, keep the full raw string in the tooltip.
+          const fwDisplay=d.fw?(d.fw.includes('/')?(d.fw.match(/\d+\.\d+(?:\.\d+)?/)?.[0]||d.fw):d.fw):null;
 
           // ── Required apps state ──
           let appsOk=0,appsMissing=0,appsOutdated=0;
@@ -8210,20 +8412,25 @@ function App(){
           }
           const tlMax=Math.max(1,...tlBuckets.map(b=>b.total));
 
-          // ── Key events (first error of each severity + session bookends) ──
-          const fmtTime=t=>{try{return new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch{return '—';}};
+          // ── Key events (first error of each severity + session bookends), sorted chronologically ──
+          //    Severity is conveyed by dot color, so we present moments in time order, not severity order.
+          const startTs=ents.length?new Date(ents[0].timestamp||ents[0].date).getTime():0;
+          const endTs=ents.length?new Date(ents[ents.length-1].timestamp||ents[ents.length-1].date).getTime():0;
           const keyEvents=[];
-          if(ents.length){keyEvents.push({t:fmtTime(ents[0].timestamp||ents[0].date),l:'Session start',c:'var(--bi-fg-3)'});}
+          if(ents.length){keyEvents.push({t:fmtTime(ents[0].timestamp||ents[0].date,{ms:false}),_ts:startTs,l:'Session start',c:'var(--bi-fg-3)'});}
           for(const sev of ['high','medium','low']){
             const e=errs.find(x=>x.dg?.s===sev);
-            if(e){keyEvents.push({t:fmtTime(e.ts),l:e.dg.t||'Issue detected',c:sev==='high'?'var(--bi-rank-4)':sev==='medium'?'var(--bi-rank-3)':'var(--bi-cat-3)',sev});}
+            if(e){keyEvents.push({t:fmtTime(e.ts,{ms:false}),_ts:new Date(e.ts).getTime(),l:e.dg.t||'Issue detected',c:sev==='high'?'var(--bi-rank-4)':sev==='medium'?'var(--bi-rank-3)':'var(--bi-cat-3)',sev});}
             if(keyEvents.length>=5)break;
           }
-          if(logData.activity?.swapBrowsed){keyEvents.push({t:'',l:logData.activity.swapExecuted?'Swap executed':'Swap browsed',c:'var(--bi-cat-1)'});}
-          if(ents.length){keyEvents.push({t:fmtTime(ents[ents.length-1].timestamp||ents[ents.length-1].date),l:'Session end',c:'var(--bi-fg-3)'});}
+          // Swap has no timestamp of its own — pin it just before Session end.
+          if(logData.activity?.swapBrowsed){keyEvents.push({t:'',_ts:endTs-1,l:logData.activity.swapExecuted?'Swap executed':'Swap browsed',c:'var(--bi-cat-1)'});}
+          if(ents.length){keyEvents.push({t:fmtTime(ents[ents.length-1].timestamp||ents[ents.length-1].date,{ms:false}),_ts:endTs,l:'Session end',c:'var(--bi-fg-3)'});}
+          keyEvents.sort((a,b)=>a._ts-b._ts);
 
           // ── Network stats ──
-          const netCalls=ents.filter(e=>e.type==='network').length;
+          const netErr=ents.filter(e=>e.type==='network-error').length;
+          const netCalls=ents.filter(e=>e.type==='network').length+netErr;
           const apduCount=logData.apdu?.length||0;
 
           // ── Helper components — hoisted to module scope as OvQuad/OvSwatch/OvDot/OvHBar/OvSevPip/OvCard.
@@ -8236,6 +8443,10 @@ function App(){
 
             {/* ── Verdict ribbon — hidden when an account is focused; the focus banner + Customer Setup quadrants carry the verdict context for that account ── */}
             {!focusedAcct&&<div className="bi-slide-down" style={{background:'var(--bi-bg-card)',border:'1px solid var(--bi-border)',borderLeft:'3px solid '+vc,borderRadius:2,padding:'8px 14px',display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
+              {/* HARD RULE: this check-draw delight exists ONLY for the ok ("Clean session") verdict.
+                  Never add celebratory/playful motion to critical/warning verdicts, nor anywhere a
+                  drain / seed-compromise finding renders. Do not "extend" this to other states. */}
+              {vsev==='ok'&&<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{flexShrink:0}}><path d="M3 8.5 L6.5 12 L13 4.5" stroke="var(--bi-positive)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="bi-check-draw" style={{'--bi-check-len':18}}/></svg>}
               <span className={vsev==='critical'?'bi-pulse-once':''} style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:vc,textTransform:'uppercase',background:vc+'15',border:'1px solid '+vc+'50',padding:'3px 8px',borderRadius:2}}>{vLabel}</span>
               <span style={{color:'var(--bi-fg-1)',fontSize:13,flex:1}}>{vMsgParts}</span>
               <span style={{display:'flex',gap:6}}>
@@ -8252,12 +8463,12 @@ function App(){
                 <div className="bi-card-hd">
                   <div>
                     <div className="bi-title">Customer setup</div>
-                    <div className="bi-sub">{d.modelName||d.modelId||'—'} · {d.platform||'desktop'} · Ledger Wallet {d.appVer||'—'}</div>
+                    <div className="bi-sub">{d.platform||'desktop'} · Ledger Wallet {d.appVer||'—'}</div>
                   </div>
-                  <span className="bi-link">{d.userId?d.userId.slice(0,8)+'…':''}</span>
+                  <OvCopyChip value={d.userId}/>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',flex:1,minHeight:0}}>
-                  <Quad title="Device" right={d.modelName?'connected':'unknown'} rightColor={d.modelName?'var(--bi-positive)':'var(--bi-fg-4)'}>
+                  <Quad title="Device" right={d.modelName?'detected':'not in log'} rightColor={d.modelName?'var(--bi-positive)':'var(--bi-fg-4)'}>
                     <div style={{display:'flex',alignItems:'baseline',gap:8}}>
                       <span className="bi-kpi">{d.modelName||'—'}</span>
                     </div>
@@ -8265,20 +8476,20 @@ function App(){
                     <div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:4}}>{d.os} {d.osVer} · {d.lang||'—'}</div>
                     {d.mev&&<div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:2}}>MEV protect: <span style={{color:'var(--bi-fg-1)'}}>{d.mev}</span></div>}
                   </Quad>
-                  <Quad title="Firmware" right={fwOutdated?'1 release behind':d.fw?'on latest':'unknown'} rightColor={fwOutdated?'var(--bi-rank-3)':d.fw?'var(--bi-positive)':'var(--bi-fg-4)'} borderLeft>
-                    <div style={{display:'flex',alignItems:'baseline',gap:8}}>
-                      <span className="bi-kpi" style={{color:fwOutdated?'var(--bi-rank-3)':'var(--bi-fg-1)'}}>{d.fw||'—'}</span>
+                  <Quad title="Firmware" right={firmwareCheck?.status==='loading'?'checking…':fwOutdated?'1 release behind':(fwVerified?'on latest':'unverified')} rightColor={firmwareCheck?.status==='loading'?'var(--bi-fg-4)':fwOutdated?'var(--bi-rank-3)':(fwVerified?'var(--bi-positive)':'var(--bi-fg-4)')} borderLeft>
+                    <div style={{display:'flex',alignItems:'baseline',gap:8,minWidth:0}}>
+                      <span className="bi-kpi" title={d.fw||''} style={{color:fwOutdated?'var(--bi-rank-3)':'var(--bi-fg-1)',display:'inline-block',maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fwDisplay||'—'}</span>
                       {fwOutdated&&fwLatestVer&&<>
-                        <span style={{color:'var(--bi-fg-3)',fontSize:16}}>→</span>
-                        <span className="mono" style={{color:'var(--bi-fg-1)',fontWeight:600,fontSize:16}}>{fwLatestVer}</span>
+                        <span style={{color:'var(--bi-fg-3)',fontSize:16,flexShrink:0}}>→</span>
+                        <span className="mono" style={{color:'var(--bi-fg-1)',fontWeight:600,fontSize:16,flexShrink:0}}>{fwLatestVer}</span>
                       </>}
                     </div>
-                    <div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:4}}>
-                      {firmwareCheck?.status==='loading'?'Checking manager…':fwLive?'verified vs manager.api.live.ledger.com':da?.source==='manager-result'?'from manager response':'—'}
-                    </div>
-                    {d.commit&&<div className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',marginTop:4}}>commit {d.commit}</div>}
+                    {(firmwareCheck?.status==='loading'||fwVerified)&&<div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:4}}>
+                      {firmwareCheck?.status==='loading'?'Checking manager…':fwLive?'verified vs manager.api.live.ledger.com':'from manager response'}
+                    </div>}
+                    {d.commit&&<div className="mono" title="Ledger Wallet build commit" style={{fontSize:10,color:'var(--bi-fg-3)',marginTop:4}}>LW commit {d.commit}</div>}
                   </Quad>
-                  <Quad title="Required apps" right={req.length>0?`${appsOk}/${req.length}`:'—'} rightColor={appsMissing>0?'var(--bi-rank-4)':appsOutdated>0?'var(--bi-rank-3)':appsOk===req.length&&req.length>0?'var(--bi-positive)':'var(--bi-fg-4)'} borderTop>
+                  <Quad title="Required apps" right={da?.source==='manager-result'&&req.length>0?`${appsOk}/${req.length}`:'—'} rightColor={da?.source!=='manager-result'?'var(--bi-fg-4)':appsMissing>0?'var(--bi-rank-4)':appsOutdated>0?'var(--bi-rank-3)':appsOk===req.length&&req.length>0?'var(--bi-positive)':'var(--bi-fg-4)'} borderTop>
                     {appList.length>0?<div style={{display:'flex',flexDirection:'column',gap:3,marginTop:2,maxHeight:120,overflow:'auto'}}>
                       {appList.slice(0,8).map((a,i)=>{
                         const col=a.state==='ok'?'var(--bi-positive)':a.state==='missing'?'var(--bi-rank-4)':'var(--bi-rank-3)';
@@ -8290,7 +8501,7 @@ function App(){
                         </div>;
                       })}
                       {appList.length>8&&<div style={{fontSize:10,color:'var(--bi-fg-3)',marginTop:2,fontStyle:'italic'}}>+{appList.length-8} more</div>}
-                    </div>:<div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:8}}>{req.length===0?'No accounts → no apps required':'Manager catalog unavailable'}</div>}
+                    </div>:<div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:8}}>{req.length===0?'No accounts → no apps required':'Manager catalog unavailable — manager data requires a live Ledger connection during the session; offline or interrupted sessions won\'t capture it.'}</div>}
                   </Quad>
                   <Quad title="Sync coverage" right={accts.length>0?`${syncedCount}/${accts.length}`:'—'} rightColor={syncedCount===0?'var(--bi-rank-4)':syncedCount<accts.length?'var(--bi-rank-3)':'var(--bi-positive)'} borderTop borderLeft>
                     <div style={{display:'flex',flexDirection:'column',gap:3,marginTop:2,maxHeight:120,overflow:'auto'}}>
@@ -8319,7 +8530,7 @@ function App(){
                   <div className="bi-card-hd">
                     <div>
                       <div className="bi-title">Issues by impact</div>
-                      <div className="bi-sub">{errTotal} event{errTotal!==1?'s':''} · click row to investigate</div>
+                      <div className="bi-sub">{errTotal} event{errTotal!==1?'s':''}{sevBreak?' · '+sevBreak:''}</div>
                     </div>
                     <span className="bi-link" onClick={()=>setSection('errors')}>Open Errors →</span>
                   </div>
@@ -8331,21 +8542,22 @@ function App(){
                       {l:'Notice',n:sevLow,c:'#5B9FE8',fg:'#0a0a0a'},
                     ].map((b,i)=><div key={b.l} className="bi-tile-pop" onClick={()=>{setSection('errors');setErrSevFilter(b.l==='Critical'?'high':b.l==='Warning'?'medium':'low');}} style={{'--i':i,background:b.c,color:b.fg,padding:'8px 10px',borderRadius:2,cursor:'pointer',opacity:b.n===0?0.45:1}}>
                       <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',opacity:0.85}}>{b.l}</div>
-                      <div className="mono" style={{fontSize:22,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1.1}}>{b.n}</div>
+                      <div className="mono" style={{fontSize:22,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1.1,fontVariantNumeric:'tabular-nums'}}><CountUp value={b.n} fmt={v=>String(Math.round(v))}/></div>
                     </div>)}
                   </div>
                   {/* List */}
                   <div style={{flex:1,overflow:'auto',minHeight:0,marginTop:4}}>
-                    {errs.length===0?<div style={{padding:'18px 14px',fontSize:12,color:'var(--bi-fg-3)',textAlign:'center'}}>No issues detected.</div>:errs.slice(0,6).map((e,i)=>(
-                      <div key={i} className="bi-tr" onClick={()=>{setSection('errors');setSelectedErr(e.li);}} style={{'--i':i+3,'--bi-row-pad':'14px',padding:'7px 14px',borderBottom:i<5?'1px solid var(--bi-border)':'none'}}>
+                    {errs.length===0?<div style={{padding:'18px 14px',fontSize:12,color:'var(--bi-fg-3)',textAlign:'center'}}>No issues detected.</div>:errs.slice(0,6).map((e,i)=>{
+                      const isFocDimmed=focusedAcct&&!focusAcctMatchesEntry(e,focusedAcct);
+                      return <div key={i} className="bi-tr" onClick={()=>{setSection('errors');setSelectedErr(e.li);}} style={{'--i':i+3,'--bi-row-pad':'14px',padding:'7px 14px',borderBottom:i<5?'1px solid var(--bi-border)':'none',opacity:isFocDimmed?0.35:1,transition:'opacity 200ms ease'}}>
                         <div style={{display:'flex',alignItems:'center',gap:10}}>
                           <SevPip s={e.dg?.s||'low'}/>
                           <span style={{fontSize:12,color:'var(--bi-fg-1)',fontWeight:500,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.dg?.t||(e.msg||'').slice(0,80)}</span>
-                          <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)'}}>{fmtTime(e.ts)}</span>
+                          <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)'}}>{fmtTime(e.ts,{ms:false})}</span>
                         </div>
-                        {e.dg?.c&&<div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:1,paddingLeft:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.dg.c}{e.msg?' · '+e.msg.slice(0,80):''}</div>}
-                      </div>
-                    ))}
+                        {(()=>{const cat=e.dg?.c&&e.dg.c!=='unknown'?e.dg.c:null;const m=e.msg?e.msg.slice(0,80):'';if(!cat&&!m)return null;return <div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:1,paddingLeft:65,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat?cat+(m?' · '+m:''):m}</div>;})()}
+                      </div>;
+                    })}
                     {errs.length>6&&<div style={{padding:'6px 14px',fontSize:11,color:'var(--bi-fg-3)',fontStyle:'italic'}}>+{errs.length-6} more</div>}
                   </div>
                 </Card>
@@ -8365,10 +8577,10 @@ function App(){
                         <span className="bi-link">Open →</span>
                       </div>
                       <div style={{display:'flex',alignItems:'baseline',gap:6,marginTop:4}}>
-                        <span className="bi-kpi" style={{fontSize:22}}>{netCalls.toLocaleString()}</span>
+                        <CountUp className="bi-kpi" style={{fontSize:22}} value={netCalls} fmt={v=>Math.round(v).toLocaleString()}/>
                         <span style={{fontSize:11,color:'var(--bi-fg-3)'}}>calls</span>
                       </div>
-                      <div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:4}}>{ents.filter(e=>e.type==='network-error').length} network-error events</div>
+                      <div style={{fontSize:11,color:netErr>0?'var(--bi-rank-3)':'var(--bi-fg-3)',marginTop:4}}>{netErr} failed</div>
                     </div>
                     <div style={{padding:'8px 12px 10px',cursor:'pointer'}} onClick={()=>setSection('apdu')}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
@@ -8376,7 +8588,7 @@ function App(){
                         <span className="bi-link">Open →</span>
                       </div>
                       <div style={{display:'flex',alignItems:'baseline',gap:6,marginTop:4}}>
-                        <span className="bi-kpi" style={{fontSize:22}}>{apduCount.toLocaleString()}</span>
+                        <CountUp className="bi-kpi" style={{fontSize:22}} value={apduCount} fmt={v=>Math.round(v).toLocaleString()}/>
                         <span style={{fontSize:11,color:'var(--bi-fg-3)'}}>frames</span>
                       </div>
                       <div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:4}}>{ents.filter(e=>e.type==='hw').length} hw events</div>
@@ -8401,20 +8613,13 @@ function App(){
                   <div className="bi-card-hd">
                     <div>
                       <div className="bi-title">Portfolio</div>
-                      <div className="bi-sub">{totalFiat>0?'€'+Math.round(totalFiat).toLocaleString('fr-FR'):accts.length+' accounts'} · {chains.length} chain{chains.length!==1?'s':''}{totalFiat===0?' · live balances pending':''}</div>
+                      <div className="bi-sub" style={{fontVariantNumeric:'tabular-nums'}}><CountUp value={totalFiat} fmt={v=>v>=0.005?fmtFiat(v,true):accts.length+' accounts'}/> · {chains.length} chain{chains.length!==1?'s':''}{totalFiat===0?' · live balances pending':''}</div>
                     </div>
                     <span className="bi-link" onClick={()=>setSection('accounts')}>Open Accounts →</span>
                   </div>
                   {/* Treemap row */}
                   <div style={{padding:'10px 12px 6px',flexShrink:0}}>
-                    <div style={{display:'flex',height:50,gap:2}}>
-                      {chainsForTm.slice(0,8).map((c,i)=>(
-                        <div key={c.name} className="bi-tile-pop" onClick={()=>{setSection('accounts');setAcctFilter(c.name);}} style={{'--i':i,flex:c._w,background:c.color,opacity:c.hasUnsynced?0.6:1,color:'#0a0a0a',padding:'4px 6px',borderRadius:1,cursor:'pointer',overflow:'hidden',position:'relative',minWidth:32}}>
-                          <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',lineHeight:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.name}</div>
-                          <div className="mono" style={{fontSize:11,fontWeight:700,marginTop:2,lineHeight:1}}>{c.fiat>0?'€'+c.fiat.toLocaleString('fr-FR'):c.ops+' ops'}</div>
-                        </div>
-                      ))}
-                    </div>
+                    <OvTreemap chains={chainsForTm.slice(0,8)} onPick={c=>{setSection('accounts');setAcctFilter(c.name);}} onMore={()=>setSection('accounts')}/>
                   </div>
                   {/* Top accounts list */}
                   <div style={{flex:1,overflow:'auto',minHeight:0,borderTop:'1px solid var(--bi-border)'}}>
@@ -8423,13 +8628,14 @@ function App(){
                       const fiat=lb?.fiat||0;
                       const shortAddr=a.addr?(a.addr.length>20?a.addr.slice(0,10)+'…'+a.addr.slice(-6):a.addr):'';
                       const noSync=a.dur==null&&a.bal==null&&lb?.status!=='ok';
-                      return <div key={a.id} className="bi-tr" onClick={()=>setSection('accounts')} style={{'--i':i+1,'--bi-row-pad':'14px',padding:'5px 14px',borderBottom:i<topAccts.length-1?'1px solid var(--bi-border)':'none'}}>
+                      const isFocDimmed=focusedAcct&&!(focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid);
+                      return <div key={a.id} className="bi-tr" onClick={()=>{setSelectedDiagAcct(a);setSection('accounts');}} style={{'--i':i+1,'--bi-row-pad':'14px',padding:'5px 14px',borderBottom:i<topAccts.length-1?'1px solid var(--bi-border)':'none',opacity:isFocDimmed?0.35:1,transition:'opacity 200ms ease',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12}}>
                           <Swatch color={a.ch.color}/>
                           <span style={{color:'var(--bi-fg-1)',minWidth:64,whiteSpace:'nowrap'}}>{a.ch.name}</span>
                           <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{shortAddr}</span>
                           <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',minWidth:32,textAlign:'right'}}>{a.ops||0} ops</span>
-                          <span className="mono" style={{color:noSync?'var(--bi-rank-3)':fiat>0?'var(--bi-fg-1)':'var(--bi-fg-4)',minWidth:72,textAlign:'right',fontSize:11,fontWeight:600}}>{noSync?'no sync':fiat>0?'€'+fiat.toLocaleString('fr-FR'):'—'}</span>
+                          <span className="mono" style={{color:noSync?'var(--bi-rank-3)':fiat>0?'var(--bi-fg-1)':'var(--bi-fg-4)',minWidth:72,textAlign:'right',fontSize:11,fontWeight:600}}>{lb?.status==='loading'?<span className="bi-skel" style={{width:44,height:8}}/>:noSync?'no sync':fiat>0?fmtFiat(fiat):'—'}</span>
                         </div>
                       </div>;
                     })}
@@ -8442,7 +8648,7 @@ function App(){
                   <div className="bi-card-hd">
                     <div>
                       <div className="bi-title">Session timeline</div>
-                      <div className="bi-sub">{ents.length.toLocaleString()} events{ents.length>1?(() => { const t0=new Date(ents[0].timestamp||ents[0].date).getTime(),t1=new Date(ents[ents.length-1].timestamp||ents[ents.length-1].date).getTime(),s=Math.round((t1-t0)/1000); return ' · '+(s<60?s+'s':Math.floor(s/60)+'m '+(s%60)+'s'); })():''}</div>
+                      <div className="bi-sub"><CountUp value={ents.length} fmt={v=>Math.round(v).toLocaleString()}/> events{ents.length>1?(() => { const t0=new Date(ents[0].timestamp||ents[0].date).getTime(),t1=new Date(ents[ents.length-1].timestamp||ents[ents.length-1].date).getTime(),s=Math.round((t1-t0)/1000); return ' · '+fmtDur(s); })():''}</div>
                     </div>
                     <span className="bi-link" onClick={()=>setSection('timeline')}>Open Timeline →</span>
                   </div>
@@ -8493,7 +8699,7 @@ function App(){
           const t1=new Date(ents[ents.length-1].timestamp||ents[ents.length-1].date).getTime();
           const span=t1-t0;
           const durSec=span/1000;
-          const durLabel=durSec<60?durSec.toFixed(1)+'s':(durSec<3600?(durSec/60).toFixed(1)+'m':(durSec/3600).toFixed(1)+'h');
+          const durLabel=fmtDur(durSec);
 
           const N=80;
           const buckets=Array.from({length:N},()=>({types:{},total:0,samples:[]}));
@@ -8611,6 +8817,14 @@ function App(){
                     })}
                   </div>;
                 })}
+                {/* Datum line — hairline + mono tick label tracking the cursor (positional, not animated). */}
+                {tlHoveredBucket&&(()=>{
+                  const dt=t0+(tlHoveredBucket.x/tlHoveredBucket.cw)*span;const lx=tlHoveredBucket.x;
+                  return <React.Fragment>
+                    <div style={{position:'absolute',left:lx,top:0,bottom:0,width:1,background:'var(--bi-border-strong)',pointerEvents:'none',zIndex:20}}/>
+                    <div className="mono" style={{position:'absolute',top:2,left:Math.min(lx+4,tlHoveredBucket.cw-50),fontSize:9,color:'var(--bi-fg-2)',background:'var(--bi-bg-card)',border:'1px solid var(--bi-border)',borderRadius:2,padding:'0 3px',pointerEvents:'none',zIndex:20,whiteSpace:'nowrap'}}>{isNaN(dt)?'—':fmtTime(new Date(dt).toISOString(),{ms:false})}</div>
+                  </React.Fragment>;
+                })()}
                 {tlHoveredBucket&&(()=>{
                   const b=buckets[tlHoveredBucket.idx];
                   if(!b||b.total===0)return null;
@@ -8796,9 +9010,10 @@ function App(){
                         const en=enrich(e);
                         const barColor=en.sevColor||(isExp?'var(--bi-orange)':'transparent');
                         const rowBg=en.sev==='CRITICAL'?'rgba(217,71,71,0.05)':en.sev==='WARNING'?'rgba(232,138,74,0.04)':isExp?'rgba(232,90,26,0.06)':'transparent';
+                        const isFocDimmed=focusedAcct&&!focusAcctMatchesEntry(e,focusedAcct);
                         return <div key={'row-'+e.logIndex} data-li={e.logIndex}>
                           <div onClick={()=>setExpandedRow(isExp?null:e.logIndex)}
-                            style={{padding:'7px 12px 7px 14px',borderBottom:'1px solid var(--bi-border)',background:rowBg,borderLeft:'2px solid '+barColor,cursor:'pointer',display:'grid',gridTemplateColumns:'88px 1fr auto',gap:10,alignItems:'flex-start',transition:'background 80ms linear'}}>
+                            style={{padding:'7px 12px 7px 14px',borderBottom:'1px solid var(--bi-border)',background:rowBg,borderLeft:'2px solid '+barColor,cursor:'pointer',display:'grid',gridTemplateColumns:'88px 1fr auto',gap:10,alignItems:'flex-start',opacity:isFocDimmed?0.35:1,transition:'background 80ms linear, opacity 200ms ease'}}>
                             <div className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',paddingTop:1,whiteSpace:'nowrap'}}>{en.tsMs}</div>
                             <div style={{minWidth:0,display:'flex',flexDirection:'column',gap:2}}>
                               <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
@@ -8817,7 +9032,7 @@ function App(){
                       };
                       let rowCount=0;
                       const MAX_ROWS=500;
-                      return <>{groupedTimeline.map((item,gi)=>{
+                      return <>{groupedTimeline.slice(0,500).map((item,gi)=>{
                         if(rowCount>=MAX_ROWS)return null;
                         if(item.type==='single'){
                           rowCount++;
@@ -8841,7 +9056,7 @@ function App(){
                           {isOpen&&item.entries.slice(0,12).map((e,j)=>renderSingle(e,gi+'-'+j))}
                         </div>;
                       })}
-                      {filtered.length>500&&<div style={{padding:12,textAlign:'center',color:'var(--bi-fg-3)',fontSize:11}}>Showing first 500 of {filtered.length.toLocaleString()}</div>}
+                      {groupedTimeline.length>500&&<div style={{padding:12,textAlign:'center',color:'var(--bi-fg-3)',fontSize:11}}>Showing first 500 of {groupedTimeline.length.toLocaleString()} rows — narrow with filters, search, or the brush</div>}
                       </>;
                     })()}
                 </div>
@@ -8978,10 +9193,10 @@ function App(){
                         }}
                         onMouseEnter={()=>setHoveredAcct(a.id)}
                         onMouseLeave={()=>setHoveredAcct(null)}
-                        style={{'--i':Math.min(i,8),position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,background:a.ch.color,color:'#0a0a0a',cursor:'pointer',overflow:'hidden',transition:'opacity 200ms ease, transform 120ms var(--bi-ease)',opacity:op,padding:showLg?'8px 10px':showMd?'5px 7px':'3px 5px',display:'flex',flexDirection:'column',justifyContent:showLg?'space-between':'center',outline:isFocused?'2px solid #fff':'none',outlineOffset:-2,animation:isFocused?'focusPulse 2s ease-in-out infinite':undefined,transformOrigin:'center'}}>
+                        style={{'--i':Math.min(i,8),position:'absolute',left:rect.x,top:rect.y,width:bw,height:bh,background:a.ch.color,color:'#0a0a0a',cursor:'pointer',overflow:'hidden',transition:'opacity 200ms ease, transform 120ms var(--bi-ease), box-shadow 120ms ease',opacity:op,padding:showLg?'8px 10px':showMd?'5px 7px':'3px 5px',display:'flex',flexDirection:'column',justifyContent:showLg?'space-between':'center',outline:isFocused?'2px solid #fff':'none',outlineOffset:-2,boxShadow:hoveredAcct===a.id&&!isFocused?'0 0 0 2px '+a.ch.color+'A0':'none',animation:isFocused?'focusPulse 2s ease-in-out infinite':undefined,transformOrigin:'center'}}>
                         {showMd&&<div style={{fontSize:showLg?12:10,fontWeight:700,letterSpacing:'0.02em',lineHeight:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.ch.ticker}</div>}
                         {showLg&&<div>
-                          <div className="mono" style={{fontSize:14,fontWeight:700,lineHeight:1,marginBottom:3}}>{lb?.fiat>0?'$'+Math.round(lb.fiat).toLocaleString():(a.ops>0?a.ops+' ops':'no sync')}</div>
+                          <div className="mono" style={{fontSize:14,fontWeight:700,lineHeight:1,marginBottom:3}}>{lb?.fiat>0?fmtFiat(lb.fiat):(a.ops>0?a.ops+' ops':'no sync')}</div>
                           <div style={{fontSize:9,opacity:0.7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.ch.name}</div>
                         </div>}
                         {hasErrs&&<div style={{position:'absolute',top:3,right:3,width:8,height:8,borderRadius:'50%',background:'#D94747',border:'1px solid var(--bi-bg-strip)'}}/>}
@@ -8998,7 +9213,7 @@ function App(){
                       <span style={{color:'var(--bi-fg-1)',minWidth:70,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</span>
                       <div style={{flex:1}}><div className="bi-hbar" style={{height:5}}><span className="bi-hbar-fill" style={{background:c.color,'--pct':((c.fiat||c.ops)/(chains[0].fiat||chains[0].ops||1)*100)+'%','--i':i+1}}/></div></div>
                       <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',minWidth:24,textAlign:'right'}}>{c.count}</span>
-                      <span className="mono" style={{fontSize:10,color:'var(--bi-fg-1)',fontWeight:600,minWidth:64,textAlign:'right'}}>{c.fiat>0?'$'+Math.round(c.fiat).toLocaleString():(c.ops>0?c.ops+' ops':'—')}</span>
+                      <span className="mono" style={{fontSize:10,color:'var(--bi-fg-1)',fontWeight:600,minWidth:64,textAlign:'right'}}>{c.fiat>0?fmtFiat(c.fiat):(c.ops>0?c.ops+' ops':'—')}</span>
                     </div>
                   ))}
                 </div>
@@ -9093,6 +9308,9 @@ function App(){
                         isSelected={isSelected}
                         isFocused={isFoc}
                         isDimmed={isDimmed}
+                        isHovered={hoveredAcct===a.id}
+                        isNavigated={navigatedAcct===a.id}
+                        onHover={setHoveredAcct}
                         onSelect={(acct)=>setSelectedDiagAcct(acct)}
                         onFocus={(acct)=>{
                           const isCur=focusedAcct&&focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid;
@@ -9275,18 +9493,7 @@ function App(){
                 {lowCount>0&&<> · <span style={{color:'#5B9FE8'}}>{lowCount} info</span></>}
                 {repeatingUniq.length>0&&<> · <span style={{color:'var(--bi-fg-3)'}}>{repeatingUniq.length} recurring</span></>}
               </span>
-              <span onClick={()=>{
-                const lines=['=== Error Summary ===',''];
-                for(const e of enrichedErrs){
-                  lines.push(`[${(e.dg.s||'?').toUpperCase()}] ${e.dg.t}`);
-                  lines.push(`  Action: ${llText(e.dg.a,logData.dev)}`);
-                  lines.push(`  Category: ${e.dg.c} · Entry #${e.li} · ${fmtTime(e.ts)}`);
-                  if(e.dg.causes&&e.dg.causes.length>0)lines.push(`  Causes: ${e.dg.causes.join(', ')}`);
-                  lines.push('');
-                }
-                lines.push('===================');
-                copyText(lines.join('\n'));
-              }} style={{fontSize:11,color:'#fff',padding:'5px 12px',background:'var(--bi-orange)',borderRadius:2,cursor:'pointer',fontWeight:600}}>Copy summary</span>
+              <span onClick={()=>copyText(buildErrorText(logData))} style={{fontSize:11,color:'#fff',padding:'5px 12px',background:'var(--bi-orange)',borderRadius:2,cursor:'pointer',fontWeight:600}}>Copy summary</span>
             </div>
 
             {/* ── Severity tiles ── */}
@@ -9306,7 +9513,7 @@ function App(){
                 }} style={{'--i':i,background:b.c,color:b.fg,padding:'12px 14px',borderRadius:2,cursor:'pointer',opacity:b.n===0?0.4:1,outline:(b.key==='recurring'?(errPatternFilter?'2px solid #fff':'none'):(errSevFilter===b.key?'2px solid #fff':'none'))}}>
                   <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between'}}>
                     <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',opacity:0.9}}>{b.l}</span>
-                    <span className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1}}>{b.n}</span>
+                    <span className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,fontVariantNumeric:'tabular-nums'}}><CountUp value={b.n} fmt={v=>String(Math.round(v))}/></span>
                   </div>
                   <div style={{fontSize:11,fontWeight:500,opacity:0.85,marginTop:4}}>
                     {b.key==='high'?(highCount>0?'investigate first':'no critical issues'):
@@ -9421,6 +9628,14 @@ function App(){
                     <div style={{flex:1,background:'var(--bi-cat-3)',opacity:0.5}}/>
                   </div>;
                 })}
+                {/* Datum line — hairline + mono tick tracking the cursor (positional, beneath tooltip). */}
+                {errStripHover&&(()=>{
+                  const frac=Math.max(0,Math.min(1,(errStripHover.x-14)/(errStripHover.cw-28)));const dt=t0+frac*span;const lx=errStripHover.x;
+                  return <React.Fragment>
+                    <div style={{position:'absolute',left:lx,top:0,bottom:0,width:1,background:'var(--bi-border-strong)',pointerEvents:'none'}}/>
+                    <div className="mono" style={{position:'absolute',top:2,left:Math.min(lx+4,errStripHover.cw-50),fontSize:9,color:'var(--bi-fg-2)',background:'var(--bi-bg-card)',border:'1px solid var(--bi-border)',borderRadius:2,padding:'0 3px',pointerEvents:'none',whiteSpace:'nowrap'}}>{isNaN(dt)?'—':fmtTime(new Date(dt).toISOString(),{ms:false})}</div>
+                  </React.Fragment>;
+                })()}
                 {/* Selected marker */}
                 {effectiveSel!=null&&(()=>{
                   const sel=enrichedErrs.find(e=>e.li===effectiveSel);
@@ -9493,12 +9708,15 @@ function App(){
                   const sc=sevColor(dg.s);
                   const isSelected=e.li===effectiveSel;
                   const linkedAcct=errAcctMap.get(e.li);
+                  const isFocDimmed=focusedAcct&&!focusAcctMatchesEntry(e,focusedAcct);
                   return <div key={e.li}
                     onClick={()=>setSelectedErr(e.li)}
                     className="bi-tr"
                     style={{'--i':Math.min(i,12),'--bi-row-pad':'14px',padding:'8px 14px',borderBottom:'1px solid var(--bi-border)',
                       background:isSelected?sc+'15':'transparent',
-                      borderLeft:isSelected?'2px solid '+sc:'2px solid transparent'}}>
+                      borderLeft:isSelected?'2px solid '+sc:'2px solid transparent',
+                      opacity:isFocDimmed?0.35:1,
+                      transition:'opacity 200ms ease, background 80ms linear'}}>
                     <div style={{display:'flex',alignItems:'center',gap:10}}>
                       <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:sc,textTransform:'uppercase',minWidth:54}}>{dg.s==='high'?'CRITICAL':dg.s==='medium'?'WARNING':'NOTICE'}</span>
                       <span style={{flex:1,fontSize:12,color:'var(--bi-fg-1)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.t||'Unknown error'}</span>
