@@ -1,0 +1,12 @@
+# ── Customer data — NEVER commit (wallet exports / diagnostic logs) ──
+app.json
+ledgerwallet-*.txt
+ledgerwallet-*.log
+*-logs.txt
+
+# ── OS / editor junk ──
+.DS_Store
+**/.DS_Store
+
+# ── Local dev config (per-machine; e.g. preview server port) ──
+.claude/launch.json
