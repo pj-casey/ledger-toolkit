@@ -89,14 +89,23 @@ Enriched accounts (CustomerView): ajBalance, ajSpendable, ajOps, ajOperations, a
 - **Timeline:** brushable histogram (`tlBrush` drag-to-zoom), swimlane-by-type panel, grouped event log (GAP 1500ms, MIN_GROUP 3).
 - Known dead code: `DIAG_WF` / `classifyDiag` (the Diagnostic Priority Map UI was removed by product decision; the helpers have no callers — safe to delete in a cleanup pass).
 
-## Motion System (2026 pass)
+## Motion System — two-tier budget model
 
-- Easing/durations: `var(--ledger-ease)` `cubic-bezier(.2,.8,.2,1)`, 120/200/400ms. No bounce.
-- `useCountUp` / `<CountUp>` — KPI numbers; re-animates on value change; instant under reduced motion.
-- `useSettleFlash(status)` + `.bi-skel` shimmer — loading→ok balance transitions; settle flash is NEUTRAL white, not green.
-- `.bi-check-draw` — checkmark stroke draw, gated to `vsev==='ok'` ONLY. Hard rule: no playful/celebratory motion on warning/critical verdicts or anywhere drain findings render.
-- Severity = motion: only critical pulses (once); amber/info stay still.
-- `prefers-reduced-motion` is supported via a global CSS block + `prefersReducedMotion()` JS gate in rAF hooks. Any new animation must respect both. No `box-shadow` inside `@keyframes` (pulses use outline/opacity/transform).
+**Governing rule: expressiveness is budgeted by frequency × importance, not by taste.** Motion involuntarily captures attention (Pratt et al. 2010); spend that budget only on moments that teach workflow pathways or signal danger. Everything is transform/opacity (grid-row animation in Q4 excepted) and respects `prefers-reduced-motion` (global CSS collapse block + `prefersReducedMotion()` JS gate in every rAF/imperative hook). No bounce; no `box-shadow` inside `@keyframes`.
+
+**Quiet tier** — high-frequency interactions an agent hits dozens/hundreds of times a shift. 100–300ms, subtle, informative, NEVER attention-seeking. Examples:
+- Settle flash (`useSettleFlash`, `.bi-settle` 400ms interaction / `.bi-settle-slow` 700ms arrival) — neutral white = "a value arrived", NEVER semantic; green/red would misread as direction. Batched via `useSettleBatch` (>5 arrivals in 300ms in one group → one container flash, never a strobe). Nothing flashes on first paint.
+- FLIP sorts (`useFlipList`) — rows slide simultaneously, straight lines, ≤60 rows, viewport-only.
+- Expansions (`Expando` grid 0fr↔1fr, `.error-detail`/`.bi-exp`) — both directions, ~190ms.
+- Copy-report confirmation, live-activity pulse (only while fetches are in flight), parse→overview exit.
+
+**Expressive tier** — rare / navigational / critical moments that SHOULD grab attention because that is the point:
+- Landing flashes (`landingFlash`, `.bi-landing`) — orange, ~1.2s one-shot on every cross-navigation destination (jumpTo / goToAcct / navigatedAcct / first keyboard-shortcut use). Answers "where did I land and why."
+- Critical findings (`.bi-crit-enter`) — a `severity:'red'` finding flashes red ONCE per id per file load (`_critSeen`); green/amber stay quiet.
+- Focus Mode entrance (`.bi-focus-sweep` border + `.bi-chip-pulse`) — once per focus change; exit is quiet.
+- Empty states may LOOP a gentle cue (`.bi-breathe`, `.bi-underline-sweep`) on their primary affordance — allowed ONLY in empty states, where nothing else competes.
+
+`useCountUp`/`<CountUp>` (KPI numbers) and `.bi-check-draw` (checkmark, gated to `vsev==='ok'` ONLY — no celebratory motion on warning/critical/drain) remain. **The boot splash remains the only theatrical moment.**
 
 ## Key Helpers
 

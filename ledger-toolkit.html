@@ -79,8 +79,9 @@ button:active{transform:scale(0.98);}
 /* Drop zone icon pulse on drag hover */
 @keyframes iconPulse{0%,100%{transform:scale(1);opacity:0.6;}50%{transform:scale(1.08);opacity:0.9;}}
 .drop-icon-pulse{animation:iconPulse 1.5s ease-in-out infinite;}
-/* Error detail expand/collapse */
-.error-detail{transition:max-height 200ms ease,opacity 200ms ease;overflow:hidden;}
+/* Error detail expand/collapse — migrated off max-height to the grid technique (Q4). */
+.error-detail{display:grid;grid-template-rows:0fr;transition:grid-template-rows 200ms ease;overflow:hidden;}
+.error-detail.open{grid-template-rows:1fr;}
 
 /* ── Customer View ── */
 .cv-frame{display:flex;height:calc(100vh - 52px);overflow:hidden;font-family:'Inter',sans-serif;}
@@ -197,6 +198,51 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 @keyframes splashLogoIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
 @keyframes splashLineIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
 @keyframes splashProgress{0%{width:0}60%{width:62%}100%{width:96%}}
+
+/* ══ Splash → app shared-element handoff (View Transitions API) ══
+   The splash-side transition names live in STATIC CSS; the matching header
+   counterparts receive their names only inside the transition callback (in JS),
+   so a name is never present on both elements in the same frame — which would
+   silently abort the transition. */
+#splash-logo{view-transition-name:logo-mark}
+#splash-title .tag{view-transition-name:brand-tag}
+#splash-title .name{view-transition-name:brand-name}
+::view-transition-group(logo-mark),
+::view-transition-group(brand-tag),
+::view-transition-group(brand-name){
+  animation-duration:450ms;
+  animation-timing-function:cubic-bezier(0.2,0,0,1);
+}
+/* Finish the old→new crossfade inside the first ~40% of the flight so the
+   3px→2px bracket-stroke change (and the shrinking text) never reads as
+   thinning / stretching mid-morph. */
+::view-transition-old(logo-mark),::view-transition-new(logo-mark),
+::view-transition-old(brand-tag),::view-transition-new(brand-tag),
+::view-transition-old(brand-name),::view-transition-new(brand-name){
+  animation-duration:180ms;
+}
+/* §2 Lock-on beat — the four corner brackets pull ~4px toward centre, then hold.
+   The 96px container is NOT resized (the morph measures it); only the marks move. */
+#splash-logo.lock::before,#splash-logo.lock::after,
+#splash-logo.lock > i:nth-child(1),#splash-logo.lock > i:nth-child(2){
+  transition:transform 120ms cubic-bezier(0.3,0,0.8,0.15);
+}
+#splash-logo.lock::before{transform:translate(4px,4px)}
+#splash-logo.lock::after{transform:translate(-4px,4px)}
+#splash-logo.lock > i:nth-child(1){transform:translate(4px,-4px)}
+#splash-logo.lock > i:nth-child(2){transform:translate(-4px,-4px)}
+/* §3 Exits — boot-log then progress strip peel away just before / into the morph. */
+#splash-log.exit,#splash-progress.exit{
+  animation:splashExit 160ms cubic-bezier(0.3,0,0.8,0.15) forwards;
+}
+@keyframes splashExit{to{opacity:0;transform:translateY(6px)}}
+/* §3 Closing beat — 2px orange loading strip wipes in beneath the top bar. */
+#splash-strip{
+  position:fixed;left:0;right:0;top:56px;height:2px;background:#E85A1A;z-index:9998;
+  transform:scaleX(0);transform-origin:left center;pointer-events:none;
+}
+#splash-strip.wipe{animation:splashStripWipe 420ms cubic-bezier(0.05,0.7,0.1,1) forwards}
+@keyframes splashStripWipe{0%{transform:scaleX(0);opacity:1}70%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
 
 /* ════════════════════════════════════════════════════════════════
    BI · Dark · scoped to .bi-overview only. Everything else in the
@@ -335,6 +381,9 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 /* Clean-session checkmark stroke-draw — see M5 / ok-verdict only. */
 @keyframes bi-check-draw { to { stroke-dashoffset: 0; } }
 .bi-check-draw { stroke-dasharray: var(--bi-check-len, 26); stroke-dashoffset: var(--bi-check-len, 26); animation: bi-check-draw 400ms var(--ledger-ease) forwards; }
+/* Accounts drill splitter — draggable divider between the row list (Region 2) and the detail panel (Region 3). Grip brightens to accent on hover/focus. */
+.bi-acct-split .bi-acct-grip { transition: background 120ms var(--ledger-ease); }
+.bi-acct-split:hover .bi-acct-grip, .bi-acct-split:focus-visible .bi-acct-grip { background: var(--bi-orange); }
 .bi-overview .bi-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .bi-overview .bi-tbl td { padding: 4px 0; }
 .bi-overview .bi-row { display: flex; align-items: center; gap: 8px; }
@@ -345,6 +394,56 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 .bi-overview .bi-dot {
   display: inline-block; border-radius: 50%; flex-shrink: 0;
 }
+/* ══════════════════════════════════════════════════════════════════
+   TWO-TIER MOTION SYSTEM (see CLAUDE.md "Motion System"). Quiet tier =
+   high-frequency, subtle, informative (100-300ms). Expressive tier =
+   rare/navigational/critical, deliberately attention-grabbing. Every
+   rule below is collapsed by the reduced-motion block that follows.
+   ══════════════════════════════════════════════════════════════════ */
+/* Q2 — slow neutral settle (700ms) for async values arriving after first paint.
+   The 400ms .bi-settle stays for interaction feedback. Neutral white ONLY —
+   green/red would misread as direction. */
+.bi-settle-slow { animation: confirmFlash 700ms var(--ledger-ease); --confirm-bg: rgba(255,255,255,.10); border-radius: 2px; }
+/* Q4 — grid expand/collapse. Wrapper animates grid-template-rows 0fr→1fr; the
+   inner element clips. transform/size only — no max-height guessing. */
+.bi-exp { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 190ms ease; }
+.bi-exp.bi-exp-open { grid-template-rows: 1fr; }
+.bi-exp > .bi-exp-inner { min-height: 0; overflow: hidden; }
+@supports (interpolate-size: allow-keywords){ :root { interpolate-size: allow-keywords; } }
+/* E1/E5 — navigation LANDING FLASH. Rare + navigational → deliberately obvious.
+   2px orange outline + tinted bg, holds ~300ms then fades over ~900ms (~1.2s). */
+@keyframes biLandingFlash{
+  0%   { outline-color: var(--bi-orange,#E85A1A); background-color: rgba(232,90,26,0.14); }
+  25%  { outline-color: var(--bi-orange,#E85A1A); background-color: rgba(232,90,26,0.14); }
+  100% { outline-color: rgba(232,90,26,0);       background-color: rgba(232,90,26,0); }
+}
+.bi-landing { outline: 2px solid var(--bi-orange,#E85A1A); outline-offset: -2px; border-radius: 2px; animation: biLandingFlash 1200ms var(--ledger-ease) forwards; }
+/* E2 — critical finding entrance: rise + fade in, then ONE red-tinted flash. */
+@keyframes biCritEnter{ from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes biCritFlash{ 0% { background-color: rgba(228,0,70,0.12); } 100% { background-color: transparent; } }
+.bi-crit-enter { animation: biCritEnter 350ms cubic-bezier(0.05,0.7,0.1,1) both, biCritFlash 900ms var(--ledger-ease) 350ms both; }
+/* E3 — Focus Mode entrance: colored top-bar border sweeps in from the left; the
+   focused account chip pulses once. Exit stays quiet (plain transition). */
+@keyframes biBorderSweep{ from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.bi-focus-sweep { transform-origin: left center; animation: biBorderSweep 450ms cubic-bezier(0.05,0.7,0.1,1) both; }
+@keyframes biChipPulse{ 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+.bi-chip-pulse { animation: biChipPulse 300ms var(--ledger-ease) both; }
+/* E4 — empty-state affordance cues. LOOPING motion is allowed ONLY in empty
+   states (nothing else competes for attention). */
+@keyframes biBreathe{ 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.bi-breathe { animation: biBreathe 2400ms ease-in-out infinite; }
+@keyframes biUnderlineSweep{ from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.bi-underline-sweep { position: relative; }
+.bi-underline-sweep::after { content:''; position:absolute; left:0; right:0; bottom:-2px; height:1px; background:currentColor; opacity:0.45; transform:scaleX(0); transform-origin:left center; animation: biUnderlineSweep 600ms cubic-bezier(0.05,0.7,0.1,1) 300ms forwards; }
+/* Q6 — live-activity pulse: slow opacity breathing ONLY while fetches are in flight. */
+@keyframes biActivityPulse{ 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+.bi-activity-pulse { animation: biActivityPulse 2500ms ease-in-out infinite; }
+/* Q1 — parsing block exits (translateY + fade) on top of the mounting overview. */
+@keyframes biParseExit{ to { opacity: 0; transform: translateY(6px); } }
+.bi-parse-exit { animation: biParseExit 160ms cubic-bezier(0.3,0,0.8,0.15) forwards; }
+/* Q5 — copy-report item confirmation. confirmFlash's default green tint (this is
+   interaction feedback on a deliberate action, not an arriving value). */
+.bi-copy-confirm { animation: confirmFlash 600ms var(--ledger-ease); }
 /* prefers-reduced-motion — DESIGN.md motion-checklist compliance. Collapses every animation
    and transition (CSS + the JS rAF hooks gate themselves separately via matchMedia). */
 @media (prefers-reduced-motion: reduce){
@@ -376,12 +475,13 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 <script>
 (function(){
   var t0=performance.now();
+  window._splashT0=t0;  // wall-clock origin for the minDisplay(400ms) handoff gate
   var log=document.getElementById('splash-log');
   window._splashLog=function(msg){
     var elapsed=((performance.now()-t0)/1000).toFixed(3);
     var line=document.createElement('div');
     line.textContent='['+elapsed+'s] '+msg;
-    if(msg==='ready')line.style.color='#FF5300';
+    if(msg==='ready')line.style.color='#E85A1A';  // one orange everywhere
     log.appendChild(line);
   };
   _splashLog('boot');
@@ -499,10 +599,10 @@ const GUIDE_AGENT=`<!-- Hero -->
       <a class="indent" href="#tab-bar">Tab bar &amp; popovers</a>
       <a class="indent" href="#xpub-scanner">Xpub Scanner</a>
       <a class="indent" href="#derived-addresses">Derived Addresses &amp; Tokens</a>
-      <a class="indent" href="#timeline-strip">Timeline Session Strip</a>
-      <a class="indent" href="#issues-interactive">Issues Interactive Filters</a>
+      <a class="indent" href="#timeline-strip">Timeline: density &amp; swimlanes</a>
+      <a class="indent" href="#issues-interactive">Errors: tiles &amp; detail</a>
       <a class="indent" href="#focus-mode">Account Focus Mode</a>
-      <a class="indent" href="#account-tiles">Account Health Tiles</a>
+      <a class="indent" href="#account-tiles">Accounts: treemap + rows</a>
       <a class="indent" href="#raw-json-search">Raw JSON Search</a>
       <a class="indent" href="#live-balances">Live On-Chain Balances</a>
       <a class="indent" href="#mobile-logs">Mobile Log Support</a>
@@ -583,11 +683,11 @@ const GUIDE_AGENT=`<!-- Hero -->
 
 <h3 id="s-tx">"My transaction failed / is stuck"</h3>
 <div class="card">
-  <p><strong>Start here:</strong> Click the <strong>Errors</strong> tab in the top tab bar. Use the severity chips at the top to focus — click <span class="badge badge-red">Critical</span> to filter to critical errors only. Click a category chip (<span class="badge badge-muted">Hardware</span> / <span class="badge badge-muted">Software</span>) to narrow further.</p>
-  <p><strong>Look for:</strong> The error strip shows where errors occurred in the session — red segments stand out against muted session context. Hover any bar for details. Click to select that error in the detail panel.</p>
-  <p><strong>Dig deeper:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 log entries leading up to the error. This shows you what triggered it. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
+  <p><strong>Start here:</strong> Click the <strong>Errors</strong> tab in the top tab bar. Use the severity tiles at the top to focus — click <span class="badge badge-red">Critical</span> to filter to critical errors only; each tile's subtitle lists the error-code patterns in that bucket. Click a category chip (<span class="badge badge-muted">Hardware</span> / <span class="badge badge-muted">Software</span>) to narrow further.</p>
+  <p><strong>Look for:</strong> The <strong>Investigation flow</strong> diagram groups errors by their shared trigger (network failure, APDU rejection, sync). Click a row to open it in the detail panel; switch the list between <strong>Grouped</strong> and <strong>Chronological</strong> to see one-per-diagnosis or every occurrence in time order.</p>
+  <p><strong>Dig deeper:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 log entries leading up to the error. This shows you what triggered it. Use the action row — <strong>Filter timeline →</strong> (opens the Timeline around the error) or <strong>Open raw at this path →</strong> — to jump into full context.</p>
   <p><strong>Next:</strong> Check <strong>Affected account</strong> on the error card. Check <strong>Advanced → Network</strong> for failed API calls. If the error mentions device rejection, check <strong>Advanced → APDU</strong>.</p>
-  <div class="tip">Repeating pattern badges at the top of Issues (like "↻ Price data unavailable ×4") flag cascade events. Click one to filter to just that pattern. APDU codes <span class="mono">6985</span> or <span class="mono">6982</span> mean the device rejected the transaction — the user didn't approve on-screen.</div>
+  <div class="tip">Patterns chips at the top of Errors (like "↻ Price data unavailable ×4") flag cascade events. Click one to filter to just that pattern. APDU codes <span class="mono">6985</span> or <span class="mono">6982</span> mean the device rejected the transaction — the user didn't approve on-screen.</div>
 </div>
 
 <h3 id="s-device">"My device won't connect / isn't recognized"</h3>
@@ -601,7 +701,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3 id="s-crash">"The app crashes / won't open / is slow"</h3>
 <div class="card">
   <p><strong>Start here:</strong> Check the <strong>Overview</strong>. The <strong>Issues by impact</strong> card shows the severity tile counts (Critical / Warning / Notice) and the top-six errors. The <strong>Activity &amp; infrastructure</strong> card surfaces the network call count and Ledger status banner.</p>
-  <p><strong>Look for:</strong> Critical errors (red). On the <strong>Errors</strong> tab, check for repeating pattern badges at the top — "↻ Unexpected error ×6" means the same error is looping. The error strip shows whether problems are clustered (cascade) or spread across the session.</p>
+  <p><strong>Look for:</strong> Critical errors (red). On the <strong>Errors</strong> tab, check for Patterns chips at the top — "↻ Unexpected error ×6" means the same error is looping. The Investigation flow diagram shows whether problems share a trigger (cascade); switch the list to Chronological to see whether they cluster in time or spread across the session.</p>
   <p><strong>Next:</strong> Check the <strong>Network</strong> tab for server errors (5xx). Timeouts or connectivity failures point to a server-side issue, not the app. The Customer setup card on Overview also shows OS / platform if it was captured in the log.</p>
   <div class="tip">Green diagnosis but customer reports crashes? The log may not capture the crash. Ask them to reproduce and export logs <em>immediately after</em>.</div>
 </div>
@@ -651,8 +751,8 @@ const GUIDE_AGENT=`<!-- Hero -->
   </div>
   <div class="feat-item">
     <div class="icon">⚠️</div>
-    <div class="label">Issues</div>
-    <div class="desc">Interactive severity and category filter chips. Error strip shows session context with error segments highlighted. Repeating pattern badges surface cascades. Error detail panel includes breadcrumbs ("What happened before") and "View in Timeline" for one-click context. Affected account links. Copy Errors for tickets.</div>
+    <div class="label">Errors</div>
+    <div class="desc">Severity tiles (with error-code subtitles) and category chips filter the list; recurring classes surface as Patterns chips. An Investigation flow diagram links each error to its trigger and account. The list toggles Grouped / Chronological. Detail panel: What happened · Next step · Raw payload · "What happened before" breadcrumbs, plus a Filter timeline / Copy ticket reply / Open raw / Find similar action row.</div>
   </div>
   <div class="feat-item">
     <div class="icon">👛</div>
@@ -700,24 +800,34 @@ const GUIDE_AGENT=`<!-- Hero -->
   <p><strong>Focus button</strong> sits in the top bar (above the tabs). Click it to open a searchable list of accounts; selecting one activates Focus Mode. When focus is active, the button shows the focused account's color + ticker, and a Focus banner appears below the tabs with metrics and quick actions.</p>
 </div>
 
-<h3 id="timeline-strip">Timeline: Session Strip &amp; Legend</h3>
+<h3 id="timeline-strip">Timeline: Density, Swimlanes &amp; Event Log</h3>
 <div class="card">
-  <p>The <strong>Timeline</strong> header shows a stacked bar chart of the entire session. Bar height = event density. Bar color = event type, using the same colors as the type badges on every row. You read the session left to right: "gray startup, purple analytics, gold price fetching, orange sync burst, blue network calls, red errors at the end."</p>
-  <p><strong>Legend chips</strong> below the strip show every event type with its color and count. Hover a chip to highlight matching segments — everything else dims. Click to filter the row list. Click again to clear. The type dropdown and chips share state.</p>
-  <p><strong>Error dots</strong> sit on a baseline below the bars — click any dot to scroll to that error entry.</p>
-  <p><strong>Smart grouping:</strong> Bursts of same-type events (40 bridge events during sync) collapse into expandable group headers. Toggle with the Grouped/Flat button. Errors never collapse.</p>
-  <p><strong>Account filtering:</strong> When <strong>Focus Mode</strong> is active (Shift+click a tile, or use the Focus button in the top bar), Timeline <em>dims</em> entries that don't match the focused account — matching rows stay bright. To <em>filter</em> instead, click the Timeline → action in the Focus banner; that explicitly sets the timeline account filter and shows a chip you can clear.</p>
-  <div class="tip">The legend chips teach the color system through interaction. Hover "bridge" and watch orange light up — next time you see orange, you'll know. The same colors appear everywhere: bars, row badges, Issues strip, breadcrumbs.</div>
+  <p>The <strong>Timeline</strong> tab has four stacked regions: an <strong>active-filters chip row</strong>, an <strong>event-density histogram</strong>, and — below — a <strong>swimlane panel</strong> (left) beside the <strong>event log</strong> (right). Each side scrolls independently.</p>
+  <p><strong>Event density histogram:</strong> the session split into time buckets, drawn as stacked bars. Bar height = event count in that slice; the color segments are event types, using the same colors as the row badges. You read the session left to right: "gray startup, purple analytics, gold price fetching, orange sync burst, blue network calls." An inline legend in the header names the top series. <strong>Drag across the histogram to zoom</strong> — the brushed range narrows the swimlanes and log to that window; <strong>click</strong> to jump to the nearest entry. Hovering shows a datum line plus a tooltip (top types + a sample message). A row of <strong>error dots</strong> sits below the bars — red = critical, amber = warning — click a dot to jump to that error.</p>
+  <p><strong>Active filters chips:</strong> a single row above the histogram is the one place that shows everything narrowing the view — <span class="mono">range</span> (the brush), <span class="mono">account</span>, <span class="mono">type</span>, and <span class="mono">search</span>. Each chip has a × to remove just that filter, plus <strong>Clear all</strong>. The row hides itself when nothing is filtering.</p>
+  <p><strong>Swimlane panel:</strong> one lane per event type, with a tick for each event placed within the current brush (or the full session when unbrushed). Click a lane to filter the log to that type; hover a tick for its timestamp and sample. This is the per-type breakdown — it ignores the type/search filters on purpose so the lanes always show the full shape of the current time slice.</p>
+  <p><strong>Event log:</strong> rich two-line rows — severity bar, mono millisecond timestamp, message, secondary metadata, a type badge, and account context. A search box filters by message/type, and a <strong>List / Grouped</strong> toggle collapses bursts of same-type events into expandable group headers (errors never collapse). <strong>Export →</strong> saves the currently filtered rows.</p>
+  <p><strong>Account filtering:</strong> when <strong>Focus Mode</strong> is active (Shift+click a treemap tile or account row, or use the Focus button in the top bar), the log <em>dims</em> entries that don't match the focused account. To <em>filter</em> instead, click the Timeline → action in the Focus banner; that sets an explicit account filter and adds a removable chip to the active-filters row.</p>
+  <div class="tip">Colors are consistent everywhere — histogram bars, swimlane ticks, row type badges, and error breadcrumbs all use the same map. Learn "bridge = orange" once and it holds across every view.</div>
 </div>
 
-<h3 id="issues-interactive">Issues: Interactive Filters &amp; Breadcrumbs</h3>
+<h3 id="issues-interactive">Errors: Tiles, Patterns &amp; Detail</h3>
 <div class="card">
-  <p><strong>Filter chips:</strong> Severity chips (<span class="badge badge-red">Critical</span> <span class="badge badge-yellow">Warning</span> <span class="badge badge-purple">Info</span>) and category chips (Hardware, Software, Server) at the top of Issues. Click to filter. Hover to highlight matching errors on the strip. Combine them: Critical + Hardware = only critical hardware errors.</p>
-  <p><strong>Error strip:</strong> Same color-coded session bars as the Timeline, but error segments are prominent (full opacity) while context is muted. Hover any bar for a tooltip showing what errors occurred at that moment. Click to select that error.</p>
-  <p><strong>Pattern badges:</strong> "↻ Price data unavailable ×4" — click to filter to just that repeating pattern. Cascades become obvious.</p>
-  <p><strong>Breadcrumbs:</strong> In the error detail panel, expand <strong>"What happened before"</strong> to see the 5 entries leading up to the error — type badges, messages, and relative timestamps. Click <strong>"View in Timeline"</strong> to jump to that moment in the full session.</p>
-  <p><strong>Diagnostic Pathways:</strong> Below the breadcrumbs, a <strong>Related Evidence</strong> section shows correlated events from the seconds before the error: network failures, APDU rejections, sync activity. Each link navigates directly to the relevant section (Network, APDU, or Timeline) so you can trace cause and effect without manual searching.</p>
-  <div class="tip">The error strip and Timeline strip share the same visual language. Colors you learned in Timeline work here — yellow bars during errors means the error happened during sync.</div>
+  <p><strong>Verdict header:</strong> a one-line count of diagnosed events with severity breakdown (critical / warning / notice / recurring) and a <strong>Copy summary</strong> button.</p>
+  <p><strong>Severity tiles:</strong> four tiles — <span class="badge badge-red">Critical</span> <span class="badge badge-yellow">Warning</span> <span class="badge badge-purple">Notice</span> and Info. Each shows a count; the subtitle lists the <strong>error-code patterns</strong> in that bucket (top codes by frequency, then "+N"). Click a tile to filter the list to that severity. (Info is always 0 — the diagnostic KB has no info-level class yet.)</p>
+  <p><strong>Patterns chips:</strong> when an error class recurs, a row of chips like "↻ Price data unavailable ×4" appears. Click one to filter the list to just that repeating pattern — cascades become obvious.</p>
+  <p><strong>Category chips</strong> (Hardware, Software, Server) narrow by category and combine with the severity tiles: Critical + Hardware = only critical hardware errors.</p>
+  <p><strong>Investigation flow:</strong> a trigger → error → account diagram correlates each diagnosed error with the events that preceded it (network failures, APDU rejections, sync activity) and the account it references. Click any node to jump to that error, section, or account.</p>
+  <p><strong>List — Grouped / Chronological:</strong> a toggle at the top of the error list. <strong>Grouped</strong> (default) shows one row per diagnosis with a ×N repeat badge; <strong>Chronological</strong> shows every occurrence as its own row in time order.</p>
+  <p><strong>Detail panel</strong> (right) is structured top-to-bottom:</p>
+  <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
+    <strong style="color:var(--text)">What happened</strong> — plain-English diagnosis, the raw signature, and common causes<br>
+    <strong style="color:var(--text)">Next step</strong> — the fix, rendered as a numbered list when it has multiple steps<br>
+    <strong style="color:var(--text)">Raw payload</strong> — the error's raw JSON, pretty-printed; collapsed when long with an expand control<br>
+    <strong style="color:var(--text)">What happened before</strong> — expand to see the 5 entries leading up to the error (type badges, messages, relative timestamps)
+  </p>
+  <p><strong>Action row:</strong> <strong>Filter timeline →</strong> (opens the Timeline brushed to a ±60s window around the error), <strong>Copy ticket reply</strong> (copies a draft customer-facing reply for common error classes — disabled with a tooltip when no template exists), <strong>Open raw at this path →</strong> (jumps to the Raw JSON tab and searches for the entry), and <strong>Find similar</strong> (filters the list to this error's pattern code).</p>
+  <div class="warn">Copy ticket reply templates are drafts — read and adapt each one before sending; they still need CS-team sign-off.</div>
 </div>
 
 <h3 id="account-tiles">Accounts: treemap + row table</h3>
@@ -803,11 +913,12 @@ const GUIDE_AGENT=`<!-- Hero -->
 <div class="card">
   <p>Small hint text appears below interactive elements to show available interactions:</p>
   <p style="padding-left:16px;color:var(--muted);font-size:13px;margin-bottom:10px">
-    <strong style="color:var(--text)">Health tiles:</strong> "hover for details · click to filter · shift+click to focus"<br>
-    <strong style="color:var(--text)">Timeline legend:</strong> "click to filter · hover to highlight"<br>
-    <strong style="color:var(--text)">Issues chips:</strong> "click to filter · hover to preview on strip"
+    <strong style="color:var(--text)">Accounts treemap:</strong> "click to inspect · shift+click to focus"<br>
+    <strong style="color:var(--text)">Timeline:</strong> "click a lane to filter · drag the histogram to zoom"<br>
+    <strong style="color:var(--text)">Errors tiles &amp; chips:</strong> "click to filter · toggle Grouped / Chronological"
   </p>
   <p>These hints are always visible but unobtrusive (9px, muted, 50% opacity). New agents learn the interactions; experienced agents stop noticing them.</p>
+  <p>In the Accounts tab, the layout adapts to your window. On a wide window, the account list and the detail panel sit side by side, both full height. On a narrower window they stack, with a thin drag handle between them — drag it up or down to resize, double-click to reset. The handle position is remembered across sessions and files.</p>
 </div>
 
 <h3 id="customer-view">Customer View — "See the customer's wallet"</h3>
@@ -886,7 +997,7 @@ const GUIDE_AGENT=`<!-- Hero -->
 
 <div class="shortcut-grid">
   <div class="shortcut-card"><kbd>Ctrl+1</kbd> <span>Overview</span></div>
-  <div class="shortcut-card"><kbd>Ctrl+2</kbd> <span>Issues</span></div>
+  <div class="shortcut-card"><kbd>Ctrl+2</kbd> <span>Errors</span></div>
   <div class="shortcut-card"><kbd>Ctrl+3</kbd> <span>Accounts</span></div>
   <div class="shortcut-card"><kbd>Ctrl+4</kbd> <span>Timeline</span></div>
   <div class="shortcut-card"><kbd>Ctrl+5</kbd> <span>Network</span></div>
@@ -935,8 +1046,8 @@ const GUIDE_AGENT=`<!-- Hero -->
 <h3>Overview says "Manager catalog unavailable" / firmware reads "unverified"</h3>
 <p>Device-management data (the firmware and app catalog) comes from a live connection to Ledger's backend <em>during the session</em> — it isn't available offline. If the session was offline or the connection dropped, the log won't contain manager data, so the Required apps quad can't confirm what's installed and the Firmware quad reads <strong>unverified</strong> rather than claiming "on latest". This is a missing-data state, not a fault. If you need app or firmware verification, ask the customer to reconnect with the device plugged in and re-export logs.</p>
 
-<h3>The error strip says "likely cascade"</h3>
-<p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. Click the first error, then expand <strong>"What happened before"</strong> to see what triggered it. Use the <span class="badge badge-red">Critical</span> chip to isolate the root cause — the rest are typically consequences.</p>
+<h3>Several errors fired at almost the same time</h3>
+<p>Multiple errors within 1-2 seconds usually mean one problem triggered a chain reaction. The <strong>Investigation flow</strong> diagram groups errors by their shared trigger; switch the list to <strong>Chronological</strong> to see the exact order, click the first error, then expand <strong>"What happened before"</strong> to see what triggered it. Click the <span class="badge badge-red">Critical</span> tile to isolate the root cause — the rest are typically consequences.</p>
 
 <h3>Live balances show "unsupported" or stay loading</h3>
 <p>"Unsupported" means the chain doesn't have a public API the tool can query — this affects a few uncommon chains. If balances stay on "live ···" for more than 10 seconds, the blockchain API may be rate-limited or down. This doesn't affect the rest of the tool. Xpub accounts (Bitcoin-family) don't use live fetch — use the Xpub Scanner instead.</p>
@@ -1101,7 +1212,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 
 <h3 id="event-classification">Temporal Event Classification</h3>
 <div class="card">
-  <p>Every log entry is classified by type: <span class="mono">action</span>, <span class="mono">analytics</span>, <span class="mono">bridge</span>, <span class="mono">countervalues</span>, <span class="mono">error</span>, <span class="mono">network</span>, <span class="mono">persistence</span>, <span class="mono">walletsync</span>, <span class="mono">live-dmk-logger</span>, and others. Each type is assigned a consistent color used identically across all visualizations — session strip bars, row type badges, legend chips, Issues strip, and ErrCard breadcrumbs.</p>
+  <p>Every log entry is classified by type: <span class="mono">action</span>, <span class="mono">analytics</span>, <span class="mono">bridge</span>, <span class="mono">countervalues</span>, <span class="mono">error</span>, <span class="mono">network</span>, <span class="mono">persistence</span>, <span class="mono">walletsync</span>, <span class="mono">live-dmk-logger</span>, and others. Each type is assigned a consistent color used identically across all visualizations — event-density histogram bars, swimlane ticks, row type badges, and ErrCard breadcrumbs.</p>
   <p><strong>Type color palette (<span class="mono">TC</span> constant):</strong></p>
   <ul class="def-list">
     <li><strong style="color:#808080">action</strong> — <span class="mono">#808080</span> gray — app startup, user interactions, navigation events</li>
@@ -1192,9 +1303,8 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
 
 <h3 id="sev-filter">Interactive Severity &amp; Category Filtering</h3>
 <div class="card">
-  <p>Severity filter chips (Critical / Warning / Info) and category filter chips (Hardware / Software / Server) are rendered in the Issues section header. Clicking a chip applies that filter. Filters combine with AND logic — activating Critical + Hardware returns only errors that are simultaneously critical severity and hardware category.</p>
-  <p><strong>Hover interaction:</strong> Hovering a severity chip dims non-matching error indicators on the session strip in real time, without applying a persistent filter. Hovering a category chip produces the same effect for the category dimension. This enables visual inspection of distribution before committing to a filter.</p>
-  <p><strong>Error session strip:</strong> Stacked bars using the same 80-bucket system as the Timeline strip. Context (non-error) segments use the TC type color palette at 35% opacity — same orange for bridge, blue for network, purple for analytics. Error segments render at full opacity with a red (<span class="mono">T.error</span>) glow. This means the strip simultaneously shows where in the session errors occurred and what else was happening around them. Hovering any bar renders a tooltip showing the timestamp, error count, total event count, and error details for that bucket. Clicking selects the nearest error. When Focus Mode is active, non-focused error segments dim to 20% opacity.</p>
+  <p>Severity tiles (Critical / Warning / Notice / Info) and category filter chips (Hardware / Software / Server) are rendered above the Errors list. Clicking a tile or chip applies that filter. Filters combine with AND logic — activating Critical + Hardware returns only errors that are simultaneously critical severity and hardware category. Each severity tile's subtitle lists the error-code patterns present in that bucket (top codes by frequency, then "+N"); the Info tile is always 0 because the diagnostic KB has no info-level class.</p>
+  <p><strong>Pattern codes:</strong> a stable slug derived from each diagnosis title (e.g. <span class="mono">sync_rate_limit</span>) drives the tile subtitles, the "Find similar" action, and the ticket-reply template lookup.</p>
 </div>
 
 
@@ -1291,13 +1401,13 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <p>The following data correlation pathways are implemented as direct navigation actions:</p>
   <ul class="def-list">
     <li><strong>Error → Account</strong> — address matching in error data links errors to specific accounts; linked account chips navigate to the Accounts section</li>
-    <li><strong>Error → Timeline</strong> — "View in Timeline" clears all active filters, disables grouping, expands the target entry, and scrolls to it</li>
-    <li><strong>Account → Issues</strong> — error badge on account cards applies an address filter to the Issues section, showing only errors referencing that account</li>
-    <li><strong>Account → Timeline</strong> — Shift+click on a health tile or the Timeline button on account cards applies account-correlated filtering to the full event stream</li>
-    <li><strong>Timeline → Entry detail</strong> — clicking any point on the session visualization strip navigates to the corresponding raw event</li>
-    <li><strong>Overview → All sections</strong> — stat cards display Issues, Accounts, Network failure, and Log Quality counts that establish baseline expectations before investigation</li>
+    <li><strong>Error → Timeline</strong> — "Filter timeline →" opens the Timeline brushed to a ±60s window around the error (chronological); "Open raw at this path →" jumps to the Raw JSON tab and searches for the entry</li>
+    <li><strong>Account → Errors</strong> — error badge on account cards applies an address filter to the Errors section, showing only errors referencing that account</li>
+    <li><strong>Account → Timeline</strong> — Shift+click on a treemap tile or the Timeline button on account cards applies account-correlated filtering to the full event stream</li>
+    <li><strong>Timeline → Entry detail</strong> — clicking the event-density histogram navigates to the corresponding raw event; dragging brushes a range</li>
+    <li><strong>Overview → All sections</strong> — stat cards display Errors, Accounts, Network failure, and Log Quality counts that establish baseline expectations before investigation</li>
     <li><strong>Focus → All sections</strong> — <span class="mono">focusedAcct</span> state propagates to <span class="mono">tlAcctFilter</span>, <span class="mono">errAcctFilter</span>, and visual dimming across treemap tiles, account rows, and Errors / Timeline / Overview entries</li>
-    <li><strong>Overview error tile → Focus + Issues</strong> — clicking an error tile with a linked account sets <span class="mono">focusedAcct</span> and navigates to Issues</li>
+    <li><strong>Overview error tile → Focus + Errors</strong> — clicking an error tile with a linked account sets <span class="mono">focusedAcct</span> and navigates to Errors</li>
     <li><strong>ErrCard "Affected account" → Focus</strong> — clicking the linked account chip sets <span class="mono">focusedAcct</span> and navigates to Accounts</li>
     <li><strong>Context Ribbon → Navigation</strong> — each ribbon segment is a clickable navigation target (account → Accounts, error → Issues, timestamp → Timeline jumpTo)</li>
     <li><strong>Diagnostic Pathway → Section</strong> — "Related evidence" links navigate to Network, APDU, or Timeline with focus preserved</li>
@@ -1345,7 +1455,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Other errors</strong> — <span class="mono">level='error'</span>, excluding the current error entry</li>
   </ul>
   <p>Returns null if no correlated events are found in the window. When results exist, renders clickable "Related evidence" links: network failures → Network section (<span class="mono">onGoNetwork</span>), APDU rejections → APDU section (<span class="mono">onGoApdu</span>), sync entries → Timeline via <span class="mono">jumpTo(syncEntry.logIndex)</span>.</p>
-  <div class="tip">For practical use in error investigation, see the Agent Guide (📖 button) → Issues Interactive Filters.</div>
+  <div class="tip">For practical use in error investigation, see the Agent Guide (📖 button) → Errors: Tiles, Patterns &amp; Detail.</div>
 </div>
 
 <h3 id="adaptive-dimming">Adaptive Dimming</h3>
@@ -1355,7 +1465,6 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
   <ul class="def-list">
     <li><strong>Health tiles</strong> — 0.25</li>
     <li><strong>AcctCards (single + grouped)</strong> — 0.25</li>
-    <li><strong>Issues strip segments</strong> — 0.2</li>
     <li><strong>Network entries</strong> — 0.3</li>
   </ul>
   <p>Content area receives a <span class="mono">3px</span> left border in the focused account's chain color. The focused tile gets the <span class="mono">focusPulse</span> keyframe animation (scale 1→1.08, opacity 0.85→1, 2s ease-in-out infinite).</p>
@@ -1539,7 +1648,7 @@ const GUIDE_TECHNICAL=`<!-- Hero -->
     <li><strong>Public blockchain APIs</strong> — account addresses are sent to query on-chain balances. No log content, error data, or metadata is included.</li>
     <li><strong>CoinGecko API</strong> — chain currency identifiers (e.g., <span class="mono">ethereum</span>, <span class="mono">bitcoin</span>) are sent to retrieve USD prices. No account or user data is included.</li>
   </ul>
-  <p>No cookies are set. No data is written to localStorage or sessionStorage. No analytics or telemetry of any kind. The tool can operate fully offline except for live balance fetching and fiat pricing — all other features function without network access.</p>
+  <p>localStorage holds only a token-metadata cache (24-hour TTL) and UI layout preferences (accounts splitter position). No log content, addresses, or customer data is ever persisted. No cookies, no analytics, no telemetry. The tool can operate fully offline except for live balance fetching and fiat pricing — all other features function without network access.</p>
   <div class="tip">Log files may contain sensitive customer data including account addresses, device identifiers, and user IDs. Handle exported summaries and raw log data according to your organization's data handling and privacy policies.</div>
 </div>
 
@@ -2604,6 +2713,30 @@ function classifyDiag(dg){
 
 function errUrl(dg){const match=ERR_DB.find(r=>r.t===dg.t&&r.u);return match?match.u:null;}
 
+// Stable, code-like identifier for an error class, derived from its diagnosis title.
+// The KB has no explicit pattern-code field — dg.t (the title) is the pattern identity
+// (errPatternFilter keys on it). This slug is used for tile subtitles, "Find similar",
+// and as the TICKET_REPLIES key. e.g. "API rate limited (429)" -> "api_rate_limited_429".
+function patternCode(dg){if(!dg||!dg.t)return'unknown';return dg.t.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40);}
+
+// DRAFT COPY — requires CS team review before production use.
+// First-draft customer-facing reply templates keyed by patternCode() slug for the most
+// common error classes in ERR_DB. Missing keys => "Copy ticket reply" button disabled.
+const TICKET_REPLIES={
+  device_communication_failed:`Hi,\n\nThanks for reaching out. It looks like Ledger Live wasn't able to communicate with your device during this session.\n\nCould you please try the following:\n1. Unlock your Ledger device by entering your PIN.\n2. Open the app for the coin you're managing (e.g. Bitcoin, Ethereum).\n3. Connect the device directly to your computer with the original cable — avoid USB hubs or adapters.\n4. If you're still stuck, try a different USB cable or port.\n\nLet me know how it goes and we'll take it from there.\n\nBest regards,`,
+  device_disconnected:`Hi,\n\nThanks for the details. Our logs show your Ledger device disconnected partway through the operation.\n\nThis is usually caused by the connection dropping. Please:\n1. Reconnect the device directly to your computer (no USB hub).\n2. Try the original cable, or a different one if you have it handy.\n3. If you're on a Nano X over Bluetooth, make sure the device is charged.\n\nOnce reconnected, please retry the operation and let me know if it completes.\n\nBest regards,`,
+  device_is_locked:`Hi,\n\nThanks for getting in touch. The session shows your device was locked when Ledger Live tried to reach it.\n\nPlease unlock your Ledger by entering your PIN, then open the relevant coin app on the device and try again. Devices lock automatically after a short period of inactivity, so it helps to keep it awake while an operation is in progress.\n\nLet me know if that resolves it.\n\nBest regards,`,
+  account_sync_failed:`Hi,\n\nThanks for reaching out. We can see one or more of your accounts didn't finish synchronising.\n\nThis is almost always temporary. Please try:\n1. Checking your internet connection.\n2. Restarting Ledger Live.\n3. Waiting a few minutes and letting your accounts re-sync.\n\nYour funds are safe on the blockchain regardless of what Ledger Live displays — syncing only affects what's shown on screen. Let me know if the accounts don't recover after a restart.\n\nBest regards,`,
+  api_rate_limited_429:`Hi,\n\nThanks for your patience. Our logs indicate the app briefly hit a rate limit while fetching data, which can happen during periods of heavy activity.\n\nThis clears on its own. Please close Ledger Live completely, wait 2–3 minutes, then reopen it and allow your accounts to sync. No action is needed on the device itself, and your funds are unaffected.\n\nLet me know if you still see issues after that.\n\nBest regards,`,
+  ledger_api_unavailable:`Hi,\n\nThanks for reaching out. It looks like Ledger Live had trouble reaching our servers during this session.\n\nThis is typically a temporary connectivity issue. Please:\n1. Confirm your internet connection is working.\n2. Restart Ledger Live.\n3. If you use a VPN, firewall, or proxy, try temporarily disabling it and reconnecting.\n\nYou can also check our service status page for any ongoing incidents. Let me know if the problem continues.\n\nBest regards,`,
+  bridge_init_error:`Hi,\n\nThanks for the report. Ledger Live had trouble starting the internal component that talks to your device.\n\nPlease try:\n1. Fully quitting Ledger Live (make sure it isn't still running in the background) and reopening it.\n2. Making sure no other application (e.g. Ledger Live on another window, or a browser wallet) is using the device at the same time.\n3. Restarting your computer if it persists.\n\nLet me know if that clears it up.\n\nBest regards,`,
+  address_rejected_on_device:`Hi,\n\nThanks for getting in touch. The logs show a receive address was declined on the device rather than confirmed.\n\nThis simply means the address verification step was cancelled. When you're ready to receive funds, please:\n1. Open the relevant coin app on your device.\n2. In Ledger Live, choose Receive and follow the prompt.\n3. When the address appears on your device screen, review it and press to Approve/confirm.\n\nNothing is wrong with your device or funds — the step just needs to be confirmed. Let me know if you have any questions.\n\nBest regards,`,
+  action_cancelled_on_device:`Hi,\n\nThanks for reaching out. Our logs show the last action was cancelled on the device.\n\nIf that was intentional, no further action is needed. If you meant to go ahead, please retry the operation in Ledger Live and, when prompted, review the details on your device screen and confirm/approve them. Nothing is charged or moved unless you approve it on the device.\n\nLet me know if you'd like a hand walking through it.\n\nBest regards,`,
+  app_not_found_on_device:`Hi,\n\nThanks for the details. It looks like the app required for this coin isn't installed on your device.\n\nTo add it:\n1. Open Ledger Live and go to My Ledger.\n2. Connect and unlock your device, and allow Ledger Manager if prompted.\n3. Search for the coin's app (e.g. Bitcoin, Ethereum) and install it.\n4. Return to your accounts and try again.\n\nLet me know if the app doesn't appear in the catalogue and I'll help further.\n\nBest regards,`,
+  insufficient_balance:`Hi,\n\nThanks for reaching out. The transaction couldn't be completed because the account balance wasn't enough to cover the amount plus network fees.\n\nPlease note that blockchain network fees are taken on top of the amount you send, so the account needs a little extra to cover them. Try lowering the amount slightly, or topping up the account, then attempt the transaction again.\n\nLet me know if the numbers still don't add up and we'll take a closer look.\n\nBest regards,`,
+  enable_blind_signing_contract_data:`Hi,\n\nThanks for getting in touch. This transaction interacts with a smart contract, which requires a setting to be enabled on the device first.\n\nPlease:\n1. Open the Ethereum (or relevant network) app on your device.\n2. Go to Settings within that app.\n3. Enable "Blind signing" (also shown as "Contract data").\n4. Return to Ledger Live and retry the transaction.\n\nOnly enable this for transactions you initiated and trust. Let me know if you can't find the setting.\n\nBest regards,`,
+};
+
 const CONTEXT_HELP=[
   {id:'fw-outdated',test:(d)=>d.deviceApps&&d.deviceApps.firmware&&d.deviceApps.firmware.version!==d.dev.fw,label:'Firmware update guide',url:'https://support.ledger.com/article/360013349800-zd',icon:'🔄'},
   {id:'usb-issues',test:(d)=>d.apdu.length===0&&d.errs.some(e=>{const h=((e.msg||'')+JSON.stringify(e.raw||'')).toLowerCase();return h.includes('transport')||h.includes('cantopen')||h.includes('disconnect')||h.includes('webhid');}),label:'Fix USB connection issues',url:'https://support.ledger.com/article/115005165269-zd',icon:'🔌'},
@@ -3417,70 +3550,83 @@ function HighlightText({text,term}){
   </span>;
 }
 
-function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApdu}){
-  const d=err.dg,sv=SEV[d.s]||SEV.low,ct=CAT[d.c]||CAT.unknown;
-  const[detOpen,setDetOpen]=useState(false);
+// BI-styled error detail panel. Structure (top→bottom): header · WHAT HAPPENED ·
+// NEXT STEP · RAW PAYLOAD · "What happened before" breadcrumbs · action row.
+// Defined at module scope (NOT inside the section IIFE) so switching selected
+// errors re-renders in place instead of remounting (remounting caused flashing).
+function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onFilterTimeline,onOpenRaw,onFindSimilar}){
+  const d=err.dg;
+  const sc=d.s==='high'?'#D94747':d.s==='medium'?'#E88A4A':'#5B9FE8';
+  const sevLabel=d.s==='high'?'CRITICAL':d.s==='medium'?'WARNING':'NOTICE';
+  const ct=CAT[d.c]||CAT.unknown;
+  const code=patternCode(d);
+  const reply=TICKET_REPLIES[code]||null;
+  const[rawOpen,setRawOpen]=useState(false);
   const[ctxOpen,setCtxOpen]=useState(false);
-  const evidence=useMemo(()=>{
-    if(!entries||entries.length===0)return null;
-    const errIdx=entries.findIndex(e=>e.logIndex===err.li);
-    if(errIdx<1)return null;
-    const errTime=new Date(err.ts).getTime();
-    const windowMs=5000;
-    const preceding=[];
-    for(let i=errIdx-1;i>=0;i--){
-      const t=new Date(entries[i].timestamp).getTime();
-      if(errTime-t>windowMs)break;
-      preceding.push({...entries[i],delta:((errTime-t)/1000)});
-    }
-    if(preceding.length===0)return null;
-    const netFails=preceding.filter(e=>e.type==='network'&&(
-      (e.data?.status>=400)||(e.level==='error')||(e.message||'').toLowerCase().includes('fail')
-    ));
-    const apduRejects=preceding.filter(e=>{
-      const msg=((e.message||'')+(JSON.stringify(e.data||''))).toLowerCase();
-      return (e.type||'').toLowerCase().includes('apdu')&&(/6985|6982|6a82|6984|5515/.test(msg));
-    });
-    const syncEntries=preceding.filter(e=>(e.message||'').toLowerCase().includes('sync'));
-    const otherErrors=preceding.filter(e=>e.level==='error'&&e.logIndex!==err.li);
-    if(netFails.length===0&&apduRejects.length===0&&syncEntries.length===0&&otherErrors.length===0)return null;
-    const maxDelta=Math.max(...preceding.map(e=>e.delta));
-    const windowLabel=maxDelta<1?`${Math.round(maxDelta*1000)}ms`:`${maxDelta.toFixed(1)}s`;
-    return{netFails,apduRejects,syncEntries,otherErrors,windowLabel};
-  },[entries,err.li,err.ts]);
-  return <div className="err-hover" style={{background:sv.bg,border:`1px solid ${sv.bd}`,borderLeft:`3px solid ${sv.c}`,borderRadius:8,padding:16,marginBottom:12,transition:I.fast,borderTop:`1px solid rgba(255,255,255,0.04)`,boxShadow:`inset 6px 0 16px -4px ${sv.c}35`}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-      <div style={{display:'flex',alignItems:'center',gap:10}}>
-        <span style={{fontSize:18}}>{ct.i}</span>
-        <div>
-          <div style={{fontSize:15,fontWeight:600,color:sv.c}}>{d.t}</div>
-          <div style={{fontSize:11,color:T.muted,marginTop:2}}>
-            {ct.l} · {onJump?<span onClick={()=>onJump(err.li)} style={{cursor:'pointer',color:T.primary,textDecoration:'underline'}}>#{err.li}</span>:<span>#{err.li}</span>} · {fmtTime(err.ts)}
-          </div>
-        </div>
+  const[replyCopied,setReplyCopied]=useState(false);
+  // Reset per-error internal state when the selected error changes, without a key
+  // change (a key change would remount the component and cause a visible flash).
+  useEffect(()=>{setRawOpen(false);setCtxOpen(false);setReplyCopied(false);},[err.li]);
+
+  // NEXT STEP: split the action text into steps on sentence boundaries.
+  const steps=(d.a||'').split(/(?<=[.;!])\s+/).map(s=>s.trim()).filter(Boolean);
+  // RAW PAYLOAD: pretty-printed JSON, collapsed by default when over 20 lines.
+  const rawJson=(()=>{try{return JSON.stringify(err.raw,null,2);}catch{return String(err.raw==null?'':err.raw);}})();
+  const rawLines=rawJson.split('\n');
+  const rawLong=rawLines.length>20;
+  const rawShown=(!rawLong||rawOpen)?rawJson:rawLines.slice(0,20).join('\n');
+  const helpUrl=errUrl(d);
+
+  const lbl={fontSize:9,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--bi-fg-3)',display:'block',marginBottom:6};
+  const btnBase={fontFamily:'var(--bi-font-mono)',fontSize:10,fontWeight:600,letterSpacing:'0.02em',padding:'6px 10px',borderRadius:2,border:'1px solid var(--bi-border)',background:'var(--bi-bg-card-alt)',color:'var(--bi-fg-2)',display:'inline-flex',alignItems:'center',gap:5,transition:'border-color 120ms,color 120ms'};
+  const hov=e=>{e.currentTarget.style.borderColor='var(--bi-orange)';e.currentTarget.style.color='var(--bi-orange)';};
+  const unhov=e=>{e.currentTarget.style.borderColor='var(--bi-border)';e.currentTarget.style.color='var(--bi-fg-2)';};
+
+  return <div style={{display:'flex',flexDirection:'column',gap:16}}>
+    {/* ── Header ── */}
+    <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+      <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:sc,textTransform:'uppercase',border:`1px solid ${sc}55`,background:sc+'18',padding:'3px 8px',borderRadius:2}}>{sevLabel}</span>
+      <span className="mono" style={{fontSize:11,color:'var(--bi-fg-2)',fontWeight:600}}>{code}</span>
+      <span style={{flex:1}}/>
+      <span style={{fontSize:11,color:'var(--bi-fg-3)'}}>{ct.i} {ct.l}</span>
+      {onJump?<span onClick={()=>onJump(err.li)} className="mono" style={{fontSize:11,color:'var(--bi-orange)',cursor:'pointer'}}>#{err.li}</span>:<span className="mono" style={{fontSize:11,color:'var(--bi-fg-3)'}}>#{err.li}</span>}
+      <span className="mono" style={{fontSize:11,color:'var(--bi-fg-3)'}}>{fmtTime(err.ts)}</span>
+      {d.repeatCount>0&&<span className="mono" style={{fontSize:10,fontWeight:700,color:'var(--bi-notice)'}}>×{d.repeatCount+1}</span>}
+    </div>
+
+    {/* ── WHAT HAPPENED ── */}
+    <div>
+      <span style={lbl}>What happened</span>
+      <div style={{fontSize:14,fontWeight:600,color:'var(--bi-fg-1)',lineHeight:1.4}}>{d.t}</div>
+      {d.r&&<div className="mono" style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:6,wordBreak:'break-word',lineHeight:1.5}}>{d.r}</div>}
+      {d.causes&&d.causes.length>0&&<div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
+        <span style={{fontSize:10,color:'var(--bi-fg-3)',marginRight:2}}>Common causes:</span>
+        {d.causes.map(cause=><span key={cause} className="mono" style={{fontSize:10,padding:'2px 8px',borderRadius:2,background:'var(--bi-bg-card-alt)',border:'1px solid var(--bi-border)',color:'var(--bi-fg-2)'}}>{llText(cause,dev)}</span>)}
+      </div>}
+      {helpUrl&&<div style={{marginTop:8}}><a href={helpUrl} target="_blank" rel="noopener" style={{fontSize:11,color:'var(--bi-orange)',textDecoration:'none'}}>📄 Help article ↗</a></div>}
+    </div>
+
+    {/* ── NEXT STEP ── */}
+    {steps.length>0&&<div>
+      <span style={lbl}>Next step</span>
+      {steps.length>1?
+        <ol style={{margin:0,paddingLeft:18,display:'flex',flexDirection:'column',gap:5}}>
+          {steps.map((s,i)=><li key={i} style={{fontSize:13,color:'var(--bi-fg-1)',lineHeight:1.45}}>{llText(s,dev)}</li>)}
+        </ol>:
+        <div style={{fontSize:13,color:'var(--bi-fg-1)',lineHeight:1.45}}>{llText(steps[0],dev)}</div>
+      }
+    </div>}
+
+    {/* ── RAW PAYLOAD ── */}
+    <div>
+      <span style={lbl}>Raw payload</span>
+      <div style={{position:'relative'}}>
+        <pre className="mono" style={{margin:0,fontSize:11,lineHeight:1.5,color:'var(--bi-fg-2)',background:'var(--bi-bg-strip)',border:'1px solid var(--bi-border)',borderRadius:2,padding:'10px 12px',overflowX:'auto',whiteSpace:'pre',maxHeight:rawLong&&!rawOpen?360:'none'}}>{rawShown}{rawLong&&!rawOpen&&'\n…'}</pre>
       </div>
-      <span role="button" tabIndex={0} onClick={()=>setDetOpen(o=>!o)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setDetOpen(o=>!o);}}} style={{padding:'4px 10px',borderRadius:6,fontSize:10,fontWeight:600,background:'rgba(255,255,255,0.06)',color:T.muted,border:`1px solid ${T.border}`,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer',letterSpacing:'0.03em'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=T.primary;e.currentTarget.style.color=T.primary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>Details {detOpen?<Ico.ChevD/>:<Ico.ChevR/>}</span>
+      {rawLong&&<button onClick={()=>setRawOpen(o=>!o)} style={{...btnBase,marginTop:6,cursor:'pointer'}} onMouseEnter={hov} onMouseLeave={unhov}>{rawOpen?'Collapse':`Expand (${rawLines.length} lines)`}</button>}
     </div>
-    <div style={{fontSize:13,color:T.text,paddingLeft:34}}>{llText(d.a,dev)}</div>
-    {(()=>{const u=errUrl(d);return u?<div style={{paddingLeft:34,marginTop:6}}><a href={u} target="_blank" rel="noopener" style={{fontSize:11,color:T.orange,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:3}} onMouseEnter={e=>{e.currentTarget.style.textDecoration='underline';}} onMouseLeave={e=>{e.currentTarget.style.textDecoration='none';}}>📄 Help article ↗</a></div>:null;})()}
-    <div style={{paddingLeft:34,marginTop:8,display:'flex',alignItems:'center',flexWrap:'wrap',gap:6}}>
-      <span style={{fontFamily:MF,padding:'2px 8px',borderRadius:4,fontSize:9,fontWeight:700,background:sv.bg,color:sv.c,border:`1px solid ${sv.bd}`,letterSpacing:'0.06em'}}>{sv.l.toUpperCase()}</span>
-      {d.repeatCount>0&&<span style={{fontFamily:MF,padding:'2px 8px',borderRadius:4,fontSize:9,fontWeight:700,background:'rgba(255,189,66,0.15)',color:T.warning,border:'1px solid rgba(255,189,66,0.3)',letterSpacing:'0.04em'}}>&#x27F3; {d.repeatCount+1}× repeated</span>}
-    </div>
-    {onJump&&<div style={{paddingLeft:34,marginTop:8}}>
-      <span onClick={()=>onJump(err.li)} style={{fontFamily:MF,display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:6,fontSize:10,fontWeight:600,cursor:'pointer',background:'rgba(255,255,255,0.04)',border:`1px solid ${T.border}`,color:T.muted,transition:I.fast,letterSpacing:'0.03em'}}
-        onMouseEnter={e=>e.currentTarget.style.background=I.hoverStrong}
-        onMouseLeave={e=>e.currentTarget.style.background=I.hover}>
-        <Ico.Logs/> View in Timeline
-      </span>
-    </div>}
-    {linkedAcct&&onGoAcct&&<div style={{paddingLeft:34,marginTop:8}}>
-      <span onClick={()=>onGoAcct(linkedAcct.addr)} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'3px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.1)',border:'1px solid rgba(187,176,255,0.2)',color:T.primary,transition:I.fast}}>
-        <span style={{width:8,height:8,borderRadius:'50%',background:linkedAcct.ch.color||T.muted,flexShrink:0}}/>
-        Affected: {linkedAcct.ch.name}
-        <span style={{opacity:0.6,fontFamily:MF,fontSize:10}}>{linkedAcct.addr.slice(0,10)}…</span>
-      </span>
-    </div>}
+
+    {/* ── "What happened before" breadcrumbs (kept) ── */}
     {entries&&entries.length>0&&(()=>{
       const errIdx=entries.findIndex(e=>e.logIndex===err.li);
       if(errIdx<1)return null;
@@ -3488,61 +3634,53 @@ function ErrCard({err,onJump,linkedAcct,onGoAcct,dev,entries,onGoNetwork,onGoApd
       const crumbs=entries.slice(start,errIdx);
       if(crumbs.length===0)return null;
       const errTime=new Date(err.ts).getTime();
-      return <div style={{paddingLeft:34,marginTop:12}}>
+      return <div>
         <div onClick={()=>setCtxOpen(o=>!o)} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:6,marginBottom:ctxOpen?8:0}}>
-          <span style={{fontFamily:MF,color:T.muted,fontSize:10,fontWeight:600,letterSpacing:'0.06em'}}>What happened before</span>
-          <span style={{color:T.muted,fontSize:10}}>{ctxOpen?'▼':'▶'}</span>
+          <span style={{...lbl,marginBottom:0}}>What happened before</span>
+          <span style={{color:'var(--bi-fg-3)',fontSize:10}}>{ctxOpen?'▼':'▶'}</span>
         </div>
-        {ctxOpen&&<div style={{borderLeft:`2px solid ${T.border}`,paddingLeft:10}}>
+        {ctxOpen&&<div style={{borderLeft:'2px solid var(--bi-border)',paddingLeft:10}}>
           {crumbs.map((c,i)=>{
             const delta=((errTime-new Date(c.timestamp).getTime())/1000);
             const deltaLabel=delta<1?`−${(delta*1000).toFixed(0)}ms`:`−${delta.toFixed(1)}s`;
             const typeColor=TC[c.type?.toLowerCase()]||'#717070';
             return <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',fontSize:11}}>
-              <span style={{fontFamily:MF,fontSize:9,color:T.muted,minWidth:40,textAlign:'right',flexShrink:0}}>{deltaLabel}</span>
-              <span style={{display:'inline-block',padding:'1px 6px',borderRadius:4,fontSize:9,fontWeight:700,background:typeColor+'22',color:typeColor,fontFamily:MF,flexShrink:0}}>{c.type||'—'}</span>
-              <span style={{fontFamily:MF,color:T.muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{trunc(c.message,60)}</span>
+              <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',minWidth:40,textAlign:'right',flexShrink:0}}>{deltaLabel}</span>
+              <span className="mono" style={{display:'inline-block',padding:'1px 6px',borderRadius:2,fontSize:9,fontWeight:700,background:typeColor+'22',color:typeColor,flexShrink:0}}>{c.type||'—'}</span>
+              <span className="mono" style={{color:'var(--bi-fg-3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{trunc(c.message,60)}</span>
             </div>;
           })}
           <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:11,marginTop:2}}>
-            <span style={{fontFamily:MF,fontSize:9,color:sv.c,minWidth:40,textAlign:'right',flexShrink:0,fontWeight:700}}>→ ERR</span>
-            <span style={{display:'inline-block',padding:'1px 6px',borderRadius:4,fontSize:9,fontWeight:700,background:sv.c+'22',color:sv.c,fontFamily:MF,flexShrink:0}}>{err.raw?.type||'error'}</span>
-            <span className="mono" style={{color:sv.c,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,fontWeight:600}}>{trunc(err.msg||err.dg.t,60)}</span>
+            <span className="mono" style={{fontSize:9,color:sc,minWidth:40,textAlign:'right',flexShrink:0,fontWeight:700}}>→ ERR</span>
+            <span className="mono" style={{display:'inline-block',padding:'1px 6px',borderRadius:2,fontSize:9,fontWeight:700,background:sc+'22',color:sc,flexShrink:0}}>{err.raw?.type||'error'}</span>
+            <span className="mono" style={{color:sc,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,fontWeight:600}}>{trunc(err.msg||err.dg.t,60)}</span>
           </div>
         </div>}
       </div>;
     })()}
-    {evidence&&<div style={{paddingLeft:34,marginTop:12}}>
-      <div style={{color:T.muted,marginBottom:6,fontSize:10,fontWeight:600}}>Related evidence</div>
-      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-        {evidence.netFails.length>0&&<span onClick={()=>{if(onGoNetwork)onGoNetwork();}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(139,132,204,0.08)',border:'1px solid rgba(139,132,204,0.20)',color:'#8B84CC',transition:I.fast,width:'fit-content'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(139,132,204,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(139,132,204,0.08)'}>
-          <span style={{fontSize:13}}>🌐</span>
-          {evidence.netFails.length} network failure{evidence.netFails.length!==1?'s':''} in {evidence.windowLabel} before
-          <span style={{color:T.muted,marginLeft:4}}>→</span>
-        </span>}
-        {evidence.apduRejects.length>0&&<span onClick={()=>{if(onGoApdu)onGoApdu();}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(187,176,255,0.08)',border:'1px solid rgba(187,176,255,0.20)',color:T.primary,transition:I.fast,width:'fit-content'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'}>
-          <span style={{fontSize:13}}>📡</span>
-          {evidence.apduRejects.length} APDU rejection{evidence.apduRejects.length!==1?'s':''} at −{evidence.apduRejects[0].delta.toFixed(1)}s
-          <span style={{color:T.muted,marginLeft:4}}>→</span>
-        </span>}
-        {evidence.syncEntries.length>0&&<span onClick={()=>{if(onJump)onJump(evidence.syncEntries[0].logIndex);}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',background:'rgba(122,194,108,0.08)',border:'1px solid rgba(122,194,108,0.20)',color:T.success,transition:I.fast,width:'fit-content'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(122,194,108,0.15)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(122,194,108,0.08)'}>
-          <span style={{fontSize:13}}>🔄</span>
-          Sync active at time of error
-          <span style={{color:T.muted,marginLeft:4}}>→ Timeline</span>
-        </span>}
-        {evidence.otherErrors.length>0&&evidence.netFails.length===0&&evidence.apduRejects.length===0&&<span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:600,background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.20)',color:T.error,width:'fit-content'}}>
-          {evidence.otherErrors.length} other error{evidence.otherErrors.length!==1?'s':''} in {evidence.windowLabel} window
-        </span>}
-      </div>
+
+    {linkedAcct&&onGoAcct&&<div>
+      <span onClick={()=>onGoAcct(linkedAcct.addr)} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:2,cursor:'pointer',background:(linkedAcct.ch.color||'#8A8A90')+'18',border:`1px solid ${(linkedAcct.ch.color||'#8A8A90')}40`,color:linkedAcct.ch.color||'var(--bi-fg-1)',fontSize:11,fontWeight:600}}>
+        <span style={{width:8,height:8,borderRadius:2,background:linkedAcct.ch.color||'#8A8A90',flexShrink:0}}/>
+        Affected: {linkedAcct.ch.name}
+        <span className="mono" style={{opacity:0.7,fontSize:10}}>{linkedAcct.addr.slice(0,10)}…</span>
+      </span>
     </div>}
-    {d.causes&&d.causes.length>0&&<div style={{paddingLeft:34,marginTop:10}}>
-      <span style={{fontFamily:MF,color:T.muted,marginRight:6,fontSize:10,fontWeight:600,letterSpacing:'0.06em'}}>Common causes:</span>
-      {d.causes.map(cause=><span key={cause} style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:10,fontFamily:MF,letterSpacing:'0.02em',background:'rgba(255,255,255,0.06)',color:T.muted,marginRight:4,marginBottom:4}}>{llText(cause,dev)}</span>)}
-    </div>}
-    {detOpen&&<div className="error-detail" style={{paddingLeft:34,marginTop:12,borderTop:`1px solid ${sv.bd}`,paddingTop:10}}>
-      <div style={{fontFamily:MF,color:sv.c,marginBottom:6,fontSize:10,fontWeight:600,letterSpacing:'0.06em'}}>Technical Details</div>
-      <pre className="mono" style={{color:T.text,whiteSpace:'pre-wrap',wordBreak:'break-all',margin:0}}>{d.r}</pre>
-    </div>}
+
+    {/* ── Action row ── */}
+    <div style={{display:'flex',flexWrap:'wrap',gap:8,borderTop:'1px solid var(--bi-border)',paddingTop:14}}>
+      <button onClick={()=>onFilterTimeline&&onFilterTimeline(err)} style={{...btnBase,cursor:'pointer'}} onMouseEnter={hov} onMouseLeave={unhov}>Filter timeline →</button>
+      <button
+        onClick={()=>{if(!reply)return;copyText(reply);setReplyCopied(true);setTimeout(()=>setReplyCopied(false),1600);}}
+        disabled={!reply}
+        title={reply?'Copy a draft customer reply to the clipboard':'No template for this error class yet'}
+        style={{...btnBase,cursor:reply?'pointer':'not-allowed',opacity:reply?1:0.4,borderColor:replyCopied?'#6EC85C':'var(--bi-border)',color:replyCopied?'#6EC85C':'var(--bi-fg-2)'}}
+        onMouseEnter={e=>{if(reply&&!replyCopied)hov(e);}} onMouseLeave={e=>{if(!replyCopied)unhov(e);}}>
+        {replyCopied?'✓ Copied':'Copy ticket reply'}
+      </button>
+      <button onClick={()=>onOpenRaw&&onOpenRaw(err)} style={{...btnBase,cursor:'pointer'}} onMouseEnter={hov} onMouseLeave={unhov}>Open raw at this path →</button>
+      <button onClick={()=>onFindSimilar&&onFindSimilar(d)} style={{...btnBase,cursor:'pointer'}} onMouseEnter={hov} onMouseLeave={unhov}>Find similar</button>
+    </div>
   </div>;
 }
 
@@ -3858,13 +3996,13 @@ function AcctFilterChip({label,value,valueDisplay,options,onChange,accent='var(-
   </div>;
 }
 
-function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,isHovered,isNavigated,onSelect,onFocus,onHover}){
+function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,isHovered,isNavigated,onSelect,onFocus,onHover,isNarrowCol,settleGroup}){
   const ch=acct.ch;
   const liveFunded=liveBalance&&liveBalance.status==='ok'&&liveBalance.bal>0;
   const fiat=liveBalance?.fiat;
   const bal=liveBalance?.status==='ok'?liveBalance.bal:(acct.bal!=null?Number(acct.bal):null);
   const iconUrl=chainIconUrl(acct.cid);
-  const settle=useSettleFlash(liveBalance?.status);
+  const settle=useSettleFlash(liveBalance?.status,{slow:true,group:settleGroup});   // Q2: 700ms arrival flash, batched by the table
   const rowRef=React.useRef(null);
   React.useEffect(()=>{
     if(isHovered&&rowRef.current){
@@ -3880,15 +4018,15 @@ function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,isHove
   },[isHovered]);
   return <div
     ref={rowRef}
-    role="button" tabIndex={0} data-acct-id={acct.id} aria-selected={isSelected}
+    role="button" tabIndex={0} data-acct-id={acct.id} data-flip-key={acct.id} aria-selected={isSelected}
     onClick={(e)=>{if(e.shiftKey)onFocus(acct);else onSelect(acct);}}
     onKeyDown={ev=>{
       if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();if(ev.shiftKey)onFocus(acct);else onSelect(acct);}
     }}
-    title={(ch.name||'')+' · '+(acct.addr||'')+'  (shift+click to focus)'}
+    title={isSelected?undefined:(ch.name||'')+' · '+(acct.addr||'')+'  (shift+click to focus)'}
     style={{
       display:'grid',
-      gridTemplateColumns:'22px 56px minmax(0,1fr) 130px 64px 10px',
+      gridTemplateColumns:isNarrowCol?'22px 56px minmax(0,1fr) 10px':'22px 56px minmax(0,1fr) 130px 64px 10px',
       gap:10,alignItems:'center',
       padding:'7px 12px 7px 10px',
       cursor:'pointer',
@@ -3919,10 +4057,16 @@ function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,isHove
         {acct.toks.length>0&&<span className="mono" style={{fontSize:9,padding:'0px 4px',borderRadius:2,background:'rgba(155,123,217,0.14)',color:'#9B7BD9',border:'1px solid rgba(155,123,217,0.25)',fontWeight:600,flexShrink:0}}>+{acct.toks.length}tk</span>}
         {acct.isXpub&&<span style={{fontSize:8,padding:'0px 4px',borderRadius:2,background:ch.color+'15',color:ch.color,border:'1px solid '+ch.color+'30',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',flexShrink:0}}>xpub</span>}
       </div>
-      <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr||(acct.cid+'…')}</span>
+      {isNarrowCol
+        ? <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+            <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{acct.addr||(acct.cid+'…')}</span>
+            {/* Compact fiat — restores the sort-by-fiat value dropped from the narrow-column grid */}
+            <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',flexShrink:0,whiteSpace:'nowrap'}}>{fiat!=null&&fiat>0?fmtFiat(fiat):'—'}</span>
+          </div>
+        : <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{acct.addr||(acct.cid+'…')}</span>}
     </div>
-    {/* Balance + fiat */}
-    <div className={'mono'+(settle?' bi-settle':'')} style={{textAlign:'right',minWidth:0}}>
+    {/* Balance + fiat — hidden in narrow-column (wide side-by-side) mode; this data stays visible in the inspector header for the selected account */}
+    {!isNarrowCol&&<div className={'mono'+(settle?' bi-settle-slow':'')} style={{textAlign:'right',minWidth:0}}>
       {liveBalance?.status==='loading'
         ?<span className="bi-skel" style={{width:48,height:9}}/>
         :bal!=null
@@ -3931,20 +4075,22 @@ function AcctRow({acct,liveBalance,errCount,isSelected,isFocused,isDimmed,isHove
             {fiat!=null&&fiat>0&&<div style={{fontSize:9,color:'var(--bi-fg-3)',marginTop:1}}>{fmtFiat(fiat)}</div>}
           </>
           :<span style={{fontSize:10,color:'var(--bi-fg-3)'}}>—</span>}
-    </div>
-    {/* Ops */}
-    <span className="mono" style={{fontSize:10,color:acct.ops>0?'var(--bi-cat-3)':'var(--bi-fg-4)',textAlign:'right'}}>
+    </div>}
+    {/* Ops — hidden in narrow-column mode (same rationale as balance) */}
+    {!isNarrowCol&&<span className="mono" style={{fontSize:10,color:acct.ops>0?'var(--bi-cat-3)':'var(--bi-fg-4)',textAlign:'right'}}>
       {acct.ops>0?acct.ops+' op'+(acct.ops!==1?'s':''):'—'}
-    </span>
+    </span>}
     {/* Error indicator */}
     <span style={{width:8,height:8,borderRadius:'50%',background:errCount>0?'#D94747':'transparent',flexShrink:0}} title={errCount>0?errCount+' error'+(errCount!==1?'s':''):''}/>
   </div>;
 }
 
-function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiveTokenBalances,versionCheck,onErrClick,onTimelineClick,onFocus,focusedAcct}){
+// fullHeight (wide side-by-side mode): the inspector fills its column. The existing two-row split already
+// satisfies this — root is height:100%, Row 1 is flex '0 0 140px' when tokens/xpub, Row 2 is flex '1 1 0'
+// with internal overflow:auto — so no change to the protected two-row internals is needed to honor it.
+function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiveTokenBalances,versionCheck,onErrClick,onTimelineClick,onFocus,focusedAcct,fullHeight}){
   const[tokV,setTokV]=useState(0);
-  const[expandedToks,setExpandedToks]=useState({});
-  const settle=useSettleFlash(liveBalance?.status);
+  const settle=useSettleFlash(liveBalance?.status,{slow:true});   // Q2: 700ms arrival flash (single inspector value)
   // Token loading: re-fires when the selected acct.id changes (replaces the old `open` trigger).
   useEffect(()=>{
     if(!acct)return;
@@ -4073,11 +4219,11 @@ function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiv
     background:'var(--bi-bg-strip,var(--bi-bg-card))',
   }}>
 
-    {/* ═══ ROW 1 — 4-column summary grid (~140px) ═══ */}
+    {/* ═══ ROW 1 — 4-column summary grid (~140px; 170px in fullHeight/wide mode so the Tokens chip + Address line don't clip) ═══ */}
     <div style={{
       display:'grid',
       gridTemplateColumns:'0.9fr 1fr 1fr 1.1fr',
-      flex:showRow2?'0 0 140px':'1 1 0',
+      flex:showRow2?(fullHeight?'0 0 170px':'0 0 140px'):'1 1 0',
       minHeight:0,
       overflow:'hidden',
     }}>
@@ -4141,7 +4287,7 @@ function AcctDrill({acct,errCount,deviceApps,liveBalance,liveTokenBalance,setLiv
       <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap',flexShrink:0}}>
         {liveBalance&&liveBalance.status==='loading'&&<span className="bi-skel" style={{width:90,height:16}}/>}
         {liveBalance&&liveBalance.status==='ok'&&<>
-          <span className={'mono'+(settle?' bi-settle':'')} style={{fontSize:22,fontWeight:700,color:'var(--bi-fg-1)',lineHeight:1.05}}>{liveBalance.bal!=null?liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:liveBalance.bal>=1?4:6}):'0'}</span>
+          <span className={'mono'+(settle?' bi-settle-slow':'')} style={{fontSize:22,fontWeight:700,color:'var(--bi-fg-1)',lineHeight:1.05}}>{liveBalance.bal!=null?liveBalance.bal.toLocaleString(undefined,{maximumFractionDigits:liveBalance.bal>=1?4:6}):'0'}</span>
           <span style={{fontSize:11,fontWeight:700,color:ch.color}}>{ch.ticker}</span>
           {liveBalance.fiat!=null&&<span style={{fontSize:11,color:'var(--bi-fg-3)'}}>≈ <span className="mono" style={{color:'var(--bi-fg-1)'}}>{fmtFiat(liveBalance.fiat)}</span></span>}
         </>}
@@ -5039,6 +5185,30 @@ function CVEarn({enrichedAccts,appJson,onSelectAcct}){
   </div>;
 }
 
+// E2 — a single findings-list row. A severity:'red' finding gets a noticeable
+// entrance (rise + fade, then ONE red-tinted flash) the FIRST time it appears per
+// file load. The decision is frozen at mount via useMemo([]) so frequent parent
+// re-renders (balances arriving) never truncate or re-fire the animation. Green/
+// amber rows are unchanged.
+const CVFindingRow=({f,s,isSel,onClick})=>{
+  const enter=React.useMemo(()=>{
+    if(f.severity!=='red'||prefersReducedMotion()||_critSeen.has(f.id))return '';
+    _critSeen.add(f.id);return 'bi-crit-enter';
+  },[]);
+  return <div className={enter} onClick={onClick}
+    style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isSel?s.color+'0F':'transparent',borderLeft:isSel?`2px solid ${s.color}`:'2px solid transparent',transition:'background 120ms'}}>
+    <div style={{width:7,height:7,borderRadius:'50%',background:s.dot,flexShrink:0}}/>
+    <div style={{flex:1,minWidth:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:4}}>
+        <div style={{fontSize:12,fontWeight:isSel?600:400,color:isSel?'#FFFFFF':'#C0C0C0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',flex:1}}>{f.title}</div>
+        {f.hasStaking&&<span style={{fontSize:9,flexShrink:0}} title="Has staked/frozen funds">🥩</span>}
+      </div>
+      {f.kind==='account'&&(f.badges||[]).length>0&&<div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}>
+        {f.badges.map(b=><span key={b} style={{fontSize:9,padding:'1px 5px',borderRadius:2,background:s.color+'1A',color:s.color,fontWeight:700}}>{b}</span>)}
+      </div>}
+    </div>
+  </div>;
+};
 function CVAgentInsights({logData,liveBalances,liveTokenBalances,enrichedAccts,versionCheck,firmwareCheck,appVersionCheck,appJson,onViewAccount,onViewPortfolio,onViewMyLedger}){
   const[selectedId,setSelectedId]=useState(null);
   const[copiedId,setCopiedId]=useState(null);
@@ -5953,23 +6123,7 @@ function CVAgentInsights({logData,liveBalances,liveTokenBalances,enrichedAccts,v
       {/* Left — findings list */}
       <div style={{width:'38%',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.06)',overflowY:'auto',padding:'6px 0',scrollbarWidth:'none'}}>
         {displayFindings.length===0&&<div style={{padding:'24px 16px',color:'#8A8A8E',fontSize:12,textAlign:'center'}}>No issues — all checks healthy.</div>}
-        {displayFindings.map(f=>{
-          const s=sc(f);
-          const isSel=selectedId===f.id;
-          return <div key={f.id} onClick={()=>setSelectedId(f.id)}
-            style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.04)',background:isSel?s.color+'0F':'transparent',borderLeft:isSel?`2px solid ${s.color}`:'2px solid transparent',transition:'background 120ms'}}>
-            <div style={{width:7,height:7,borderRadius:'50%',background:s.dot,flexShrink:0}}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{display:'flex',alignItems:'center',gap:4}}>
-                <div style={{fontSize:12,fontWeight:isSel?600:400,color:isSel?'#FFFFFF':'#C0C0C0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',flex:1}}>{f.title}</div>
-                {f.hasStaking&&<span style={{fontSize:9,flexShrink:0}} title="Has staked/frozen funds">🥩</span>}
-              </div>
-              {f.kind==='account'&&(f.badges||[]).length>0&&<div style={{display:'flex',gap:3,marginTop:2,flexWrap:'wrap'}}>
-                {f.badges.map(b=><span key={b} style={{fontSize:9,padding:'1px 5px',borderRadius:2,background:s.color+'1A',color:s.color,fontWeight:700}}>{b}</span>)}
-              </div>}
-            </div>
-          </div>;
-        })}
+        {displayFindings.map(f=><CVFindingRow key={f.id} f={f} s={sc(f)} isSel={selectedId===f.id} onClick={()=>setSelectedId(f.id)}/>)}
       </div>
       {/* Right — detail panel */}
       <div style={{flex:1,overflow:'hidden',minWidth:0}}>
@@ -6237,9 +6391,9 @@ function CustomerView({logData,appJson,onAppJson,liveBalances,liveTokenBalances,
           :<div onDrop={handleAppJsonDrop} onDragOver={e=>{e.preventDefault();setAjDragOver(true);}} onDragLeave={()=>setAjDragOver(false)}
               style={{border:`2px dashed ${ajDragOver?T.orange:T.warning+'60'}`,borderRadius:8,padding:'14px 20px',display:'flex',alignItems:'center',gap:14,cursor:'pointer',transition:I.medium,background:ajDragOver?`${T.orange}08`:'rgba(255,189,66,0.03)',margin:'16px 24px 0'}}
               onClick={()=>{if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}}>
-              <div style={{width:32,height:32,borderRadius:8,background:'rgba(255,189,66,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico.Upload/></div>
+              <div className={ajDragOver?undefined:'bi-breathe'} style={{width:32,height:32,borderRadius:8,background:'rgba(255,189,66,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico.Upload/></div>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:2}}>Load customer's app.json</div>
+                <div className="bi-underline-sweep" style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:2,display:'inline-block'}}>Load customer's app.json</div>
                 <div style={{fontSize:11,color:T.muted}}>Drop here or click to browse — adds real balances, transaction history, and account names</div>
               </div>
               <button onClick={e=>{e.stopPropagation();if(appJsonRef.current){appJsonRef.current.value='';appJsonRef.current.click();}}} style={{padding:'8px 16px',borderRadius:6,border:`1px solid ${T.warning}40`,background:T.warning+'12',color:T.warning,fontSize:11,fontWeight:600,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>Browse</button>
@@ -7099,20 +7253,117 @@ const useCountUp=(target,{dur=400,fmt=(v=>String(Math.round(v)))}={})=>{
 };
 // Component wrapper so count-up can be dropped into the Overview IIFE (which can't call hooks directly).
 const CountUp=({value,dur=400,fmt,className,style})=>{const txt=useCountUp(value,{dur,fmt});return <span className={className} style={style}>{txt}</span>;};
-// One-shot neutral settle: true for ~one cycle when status flips loading→ok (suppressed under reduced motion).
-const useSettleFlash=status=>{
+// One-shot neutral settle: true for ~one cycle when status flips loading→ok
+// (suppressed under reduced motion). opts.slow → 700ms arrival flash (.bi-settle-slow);
+// default 420ms stays for interaction feedback. opts.group → batch through a
+// useSettleBatch controller so >5 near-simultaneous arrivals become ONE group flash
+// instead of a strobe (Q2). Nothing flashes on first paint (prev must be 'loading').
+const useSettleFlash=(status,opts={})=>{
+  const {slow=false,group=null}=opts;
   const prev=useRef(status);
   const[flash,setFlash]=useState(false);
+  const mounted=useRef(true);
+  useEffect(()=>()=>{mounted.current=false;},[]);
   useEffect(()=>{
     if(prev.current==='loading'&&status==='ok'&&!prefersReducedMotion()){
-      setFlash(true);
       prev.current=status;
-      const t=setTimeout(()=>setFlash(false),420);
-      return()=>clearTimeout(t);
+      const dur=slow?700:420;
+      const fire=()=>{if(!mounted.current)return;setFlash(true);setTimeout(()=>{if(mounted.current)setFlash(false);},dur);};
+      if(group&&group.report)group.report(fire);   // defer to the batch coordinator
+      else fire();
+      return;
     }
     prev.current=status;
   },[status]);
   return flash;
+};
+// Q2 batching coordinator. A container calls this and passes the returned object to
+// each child's useSettleFlash({group}). Collects every arrival flash in a 300ms
+// window from the first report: >5 ⇒ suppress per-cell flashes and flash the
+// container ONCE; ≤5 ⇒ let each cell flash itself.
+const useSettleBatch=containerRef=>{
+  const st=useRef({pending:[],timer:null});
+  const flush=useCallback(()=>{
+    const pending=st.current.pending;st.current.pending=[];st.current.timer=null;
+    if(pending.length>5){
+      const el=containerRef.current;
+      if(el){el.classList.remove('bi-settle-slow');void el.offsetWidth;el.classList.add('bi-settle-slow');
+        el.addEventListener('animationend',()=>el.classList.remove('bi-settle-slow'),{once:true});}
+    }else{pending.forEach(fn=>{try{fn();}catch(e){}});}
+  },[containerRef]);
+  const report=useCallback(fn=>{
+    st.current.pending.push(fn);
+    if(!st.current.timer)st.current.timer=setTimeout(flush,300);
+  },[flush]);
+  useEffect(()=>()=>{if(st.current.timer)clearTimeout(st.current.timer);},[]);
+  return useMemo(()=>({report}),[report]);
+};
+// Q3 — FLIP list motion. On a sort/filter change (deps), children tagged with
+// data-flip-key slide from their old Y to their new Y simultaneously (translateY
+// only, straight lines, no stagger). Guards: reduced motion, first render,
+// >60 rows, survivors only, nonzero deltas, viewport-intersecting only.
+const useFlipList=(listRef,deps)=>{
+  const prev=useRef(null);
+  const prevDeps=useRef(null);
+  const depsKey=JSON.stringify(deps);
+  // Runs every commit (no dep array) so the "before" baseline stays fresh even
+  // across balance-driven re-renders; it only ANIMATES when the sort/filter deps
+  // actually change, so the first change after entering the tab has a baseline.
+  React.useLayoutEffect(()=>{
+    const el=listRef.current;
+    if(!el){prev.current=null;prevDeps.current=depsKey;return;}
+    const kids=Array.from(el.querySelectorAll('[data-flip-key]'));
+    if(kids.length>60){prev.current=null;prevDeps.current=depsKey;return;}   // too many rows → don't track/animate
+    const nowRects=new Map();kids.forEach(k=>nowRects.set(k.getAttribute('data-flip-key'),k.getBoundingClientRect()));
+    const first=prev.current;
+    const depsChanged=prevDeps.current!==null&&prevDeps.current!==depsKey;
+    prev.current=nowRects;prevDeps.current=depsKey;
+    if(!first||!depsChanged||prefersReducedMotion())return;
+    const vh=window.innerHeight||document.documentElement.clientHeight||0;
+    kids.forEach(k=>{
+      const key=k.getAttribute('data-flip-key');
+      const f=first.get(key);if(!f)return;    // survivors only (skip entering rows)
+      const l=nowRects.get(key);
+      const dy=f.top-l.top;
+      if(!dy)return;                           // nonzero deltas only
+      if(l.bottom<0||l.top>vh)return;          // only rows intersecting the viewport
+      try{k.animate([{transform:'translateY('+dy+'px)'},{transform:'translateY(0)'}],{duration:200,easing:'cubic-bezier(0.2,0,0,1)'});}catch(e){}
+    });
+  });
+};
+// E1/E5 — LANDING FLASH: mark a navigation destination with the orange ~1.2s
+// one-shot (see .bi-landing). Reduced motion → no-op. Safe on already-visible
+// destinations (no scroll needed).
+const landingFlash=el=>{
+  if(!el||prefersReducedMotion())return;
+  el.classList.remove('bi-landing');void el.offsetWidth;el.classList.add('bi-landing');
+  el.addEventListener('animationend',()=>el.classList.remove('bi-landing'),{once:true});
+};
+// Session/file "seen once" ledgers. _critSeen (E2) is cleared on every file load;
+// _shortcutSeen (E5) persists for the whole session (page load = session).
+const _critSeen=new Set();
+const _shortcutSeen=new Set();
+// Q4 — grid expand/collapse wrapper. Animates BOTH directions (grid-template-rows
+// 0fr↔1fr) with content mounted only while open or during the ~200ms collapse
+// window, so collapsed rows cost nothing. instant→switch with no animation
+// (panels with >600px of content). Reduced motion → instant via the CSS collapse.
+const Expando=({open,children,style,instant=false})=>{
+  // Content must be present in the SAME commit that adds .bi-exp-open, else the 1fr
+  // track first resolves against an empty inner (→0px) and won't recover. So render
+  // children synchronously whenever open; only DELAY unmount during the collapse.
+  const[closing,setClosing]=useState(false);
+  const prevOpen=useRef(open);
+  useEffect(()=>{
+    if(!open&&prevOpen.current){
+      if(instant||prefersReducedMotion()){setClosing(false);}
+      else{setClosing(true);const t=setTimeout(()=>setClosing(false),210);prevOpen.current=open;return()=>clearTimeout(t);}
+    }
+    prevOpen.current=open;
+  },[open,instant]);
+  const showContent=open||closing;
+  return <div className={'bi-exp'+(open&&!instant?' bi-exp-open':'')} style={instant?{...style,display:open?'block':'none'}:style}>
+    <div className="bi-exp-inner">{showContent?children:null}</div>
+  </div>;
 };
 
 function App(){
@@ -7127,11 +7378,112 @@ function App(){
     const splash=document.getElementById('splash');
     if(!splash)return;
     if(window._splashLog)window._splashLog('ready');
-    const timer=setTimeout(()=>{
-      splash.classList.add('dismiss');
-      setTimeout(()=>splash.remove(),1200);
-    },400);
-    return()=>clearTimeout(timer);
+
+    // View Transitions does NOT auto-respect prefers-reduced-motion — gate it ourselves.
+    const reduced=(()=>{try{return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){return false;}})();
+
+    // §1 handoff gate: Promise.all([reactMounted, minDisplay(400ms)]). This effect
+    // running IS reactMounted; the timer enforces ≥400ms of total splash wall-clock.
+    const t0=window._splashT0||0;
+    const wait=Math.max(0,400-(performance.now()-t0));
+
+    let cancelled=false, strip=null;
+    // Header counterparts that receive the transition names inside the callback.
+    const markEl=document.querySelector('[data-splash-target]');
+    const tagEl=document.querySelector('[data-splash-tag]');
+    const nameEl=document.querySelector('[data-splash-name]');
+
+    const assignHeaderNames=()=>{
+      if(markEl)markEl.style.viewTransitionName='logo-mark';
+      if(tagEl)tagEl.style.viewTransitionName='brand-tag';
+      if(nameEl)nameEl.style.viewTransitionName='brand-name';
+    };
+    // Test 5: no leftover view-transition-name side effects after the flight.
+    const clearHeaderNames=()=>{
+      if(markEl)markEl.style.viewTransitionName='';
+      if(tagEl)tagEl.style.viewTransitionName='';
+      if(nameEl)nameEl.style.viewTransitionName='';
+    };
+    const playStrip=()=>{
+      try{
+        strip=document.createElement('div');
+        strip.id='splash-strip';
+        document.body.appendChild(strip);
+        void strip.offsetWidth;               // reflow so the wipe starts from scaleX(0)
+        strip.classList.add('wipe');
+        strip.addEventListener('animationend',()=>{if(strip)strip.remove();},{once:true});
+      }catch(e){}
+    };
+
+    // §4 FLIP fallback (engines without startViewTransition, e.g. older Firefox).
+    const flipFallback=()=>{
+      try{
+        const pairs=[
+          [splash.querySelector('#splash-logo'),markEl],
+          [splash.querySelector('#splash-title .tag'),tagEl],
+          [splash.querySelector('#splash-title .name'),nameEl]
+        ];
+        // Measure the splash rects BEFORE removing it.
+        const measured=pairs.map(([from,to])=>(from&&to)?[from.getBoundingClientRect(),to]:null);
+        splash.remove();
+        let ok=false;
+        measured.forEach(m=>{
+          if(!m)return;
+          const fromRect=m[0], to=m[1], toRect=to.getBoundingClientRect();
+          if(!fromRect.width||!toRect.width)return;   // degrade to instant if measuring fails
+          const dx=fromRect.left-toRect.left, dy=fromRect.top-toRect.top;
+          const sx=fromRect.width/toRect.width, sy=fromRect.height/toRect.height;
+          to.animate(
+            [{transformOrigin:'top left',transform:'translate('+dx+'px,'+dy+'px) scale('+sx+','+sy+')'},
+             {transformOrigin:'top left',transform:'none'}],
+            {duration:450,easing:'cubic-bezier(0.2,0,0,1)',fill:'both'}
+          );
+          ok=true;
+        });
+        if(ok)playStrip();
+      }catch(e){try{splash.remove();}catch(_){}}   // never a broken frame
+    };
+
+    const morph=()=>{
+      if(cancelled)return;
+      if(document.startViewTransition){
+        const vt=document.startViewTransition(()=>{
+          // Names must never coexist on both sides: remove the splash FIRST,
+          // then hand the names to the header counterparts, all synchronously.
+          splash.remove();
+          assignHeaderNames();
+        });
+        const done=()=>{clearHeaderNames();playStrip();};
+        vt.finished.then(done,done);
+      }else{
+        flipFallback();   // §4
+      }
+    };
+
+    const doHandoff=()=>{
+      if(cancelled)return;
+      if(reduced){splash.remove();return;}   // §5 instant — no lock-on, no morph, no FLIP
+
+      // §2 lock-on (~250ms): snap the progress bar to 100% and pull the brackets in.
+      const fill=splash.querySelector('#splash-progress .bar > span');
+      if(fill){try{const w=getComputedStyle(fill).width;fill.animate([{width:w},{width:'100%'}],{duration:150,easing:'cubic-bezier(0.3,0,0.8,0.15)',fill:'forwards'});}catch(e){}}
+      const logo=splash.querySelector('#splash-logo');
+      if(logo)logo.classList.add('lock');
+
+      // §3 exits (staggered) then the morph, slightly overlapping. The title does
+      // NOT exit — it morphs (§1). Total handoff ≈700ms including the lock-on.
+      setTimeout(()=>{
+        if(cancelled)return;
+        const slog=splash.querySelector('#splash-log');
+        const sprog=splash.querySelector('#splash-progress');
+        if(slog)slog.classList.add('exit');
+        setTimeout(()=>{if(sprog)sprog.classList.add('exit');},35);
+        setTimeout(morph,90);
+      },250);
+    };
+
+    const timer=setTimeout(doHandoff,wait);
+    return()=>{cancelled=true;clearTimeout(timer);};
   },[]);
   React.useEffect(()=>{if(prevSectionRef.current!==section){setSectionChanged(true);const t=setTimeout(()=>setSectionChanged(false),600);prevSectionRef.current=section;return()=>clearTimeout(t);}}, [section]);
   const[searchTerm,setSearchTerm]=useState('');
@@ -7142,6 +7494,11 @@ function App(){
   const[acctSort,setAcctSort]=useState('fiat');
   // ── Diagnostic Accounts tab: row-click selection + chip filters (separate from Customer View's selectedAcct) ──
   const[selectedDiagAcct,setSelectedDiagAcct]=useState(null);
+  // ── Accounts drill splitter position (px, drill-panel height). null = no user pref → adaptive default (360 with Row 2, else 140). Workspace preference — persisted to localStorage, intentionally NOT in any reset path. ──
+  const[acctSplitPx,setAcctSplitPx]=useState(()=>{try{const v=parseInt(localStorage.getItem('ldt_acct_split_v1'),10);return Number.isFinite(v)?v:null;}catch{return null;}});
+  const[acctDragging,setAcctDragging]=useState(false);
+  // ── Accounts inspector responsive mode: side-by-side (list column + full-height inspector) when the right-pane card is ≥920px wide, else the stacked layout with the splitter. Measured, not assumed. ──
+  const[acctPaneWide,setAcctPaneWide]=useState(false);
   const[chainFilter,setChainFilter]=useState('');     // '' → all chains
   const[syncFilter,setSyncFilter]=useState('all');    // all | synced | unsynced
   const[tokensFilter,setTokensFilter]=useState('all');// all | yes | no
@@ -7155,9 +7512,9 @@ function App(){
   const[errSevFilter,setErrSevFilter]=useState(null);
   const[errCatFilter,setErrCatFilter]=useState(null);
   const[errPatternFilter,setErrPatternFilter]=useState(null);
+  const[errListView,setErrListView]=useState('grouped');
   const[errHoveredSev,setErrHoveredSev]=useState(null);
   const[errHoveredCat,setErrHoveredCat]=useState(null);
-  const[errStripHover,setErrStripHover]=useState(null);
   const[errAcctFilter,setErrAcctFilter]=useState(null);
   const[hoveredAcct,setHoveredAcct]=useState(null);
   const[navigatedAcct,setNavigatedAcct]=useState(null);
@@ -7177,6 +7534,8 @@ function App(){
   const[viewMode,setViewMode]=useState('diagnostic');
   const[appJson,setAppJson]=useState(null);
   const[parsing,setParsing]=useState(false);
+  const[parseExiting,setParseExiting]=useState(false);   // Q1: parsing block fades out over the mounting overview
+  const parseBlockRef=useRef(null);
   const[fileKey,setFileKey]=React.useState(0);
   const[liveBalances,setLiveBalances]=useState({});
   // Per-account token balances + fiat, populated lazily on account expand. Shape:
@@ -7210,12 +7569,28 @@ function App(){
   const[guideOpen,setGuideOpen]=useState(null);
   const[guideSearch,setGuideSearch]=useState('');
   const[copyOpen,setCopyOpen]=useState(false);
+  const[copyConfirm,setCopyConfirm]=useState(null);   // Q5: which copy-report item just confirmed ('✓ Copied')
+  const copyTimerRef=useRef(null);
+  const doCopyReport=(key,text)=>{
+    if(copyConfirm)return;                              // ignore repeat clicks during the ~600ms confirm window
+    copyText(text);
+    setCopyConfirm(key);
+    copyTimerRef.current=setTimeout(()=>{setCopyConfirm(null);setCopyOpen(false);copyTimerRef.current=null;},600);
+  };
   const[acctTabHover,setAcctTabHover]=useState(false);
   const fileRef=useRef();
   const timelineScrollRef=useRef(null);
   const acctTreemapRef=React.useRef(null);
   const diagTreemapRef=React.useRef(null);
   const acctScrollRef=React.useRef(null);
+  const acctSettleGroup=useSettleBatch(acctScrollRef);   // Q2: batch balance-arrival flashes for the accounts table
+  useFlipList(acctScrollRef,[acctSort,acctFilter,chainFilter,syncFilter,tokensFilter,errorsFilter]);   // Q3: slide rows on re-sort/filter
+  const errListRef=React.useRef(null);   // Q3: errors/issues list container (FLIP)
+  useFlipList(errListRef,[errSevFilter,errCatFilter,errPatternFilter,errAcctFilter,errListView]);   // Q3: slide error rows on filter/view change
+  const acctDrillRef=React.useRef(null);   // Region 3 drill-panel container (measured for splitter clamps)
+  const acctListRef=React.useRef(null);    // Region 2 row-list container (measured for splitter clamps)
+  const acctPaneRef=React.useRef(null);    // Accounts right-pane card (measured for wide/narrow responsive mode)
+  const acctDragRef=React.useRef(null);    // in-flight drag state {startY,startHeight,maxDrill,last}
   const hoverTimeoutRef=React.useRef(null);
   const[tlBrush,setTlBrush]=useState(null);
   const[tlBrushing,setTlBrushing]=useState(false);
@@ -7232,7 +7607,7 @@ function App(){
 
   useEffect(()=>{
     if(!copyOpen)return;
-    const h=(e)=>{if(!e.target.closest('[data-copy-pop]')&&!e.target.closest('[data-help-pop]')&&!e.target.closest('[data-live-pop]')&&!e.target.closest('[data-quality-pop]'))setCopyOpen(false);};
+    const h=(e)=>{if(!e.target.closest('[data-copy-pop]')&&!e.target.closest('[data-help-pop]')&&!e.target.closest('[data-live-pop]')&&!e.target.closest('[data-quality-pop]')){setCopyOpen(false);setCopyConfirm(null);if(copyTimerRef.current){clearTimeout(copyTimerRef.current);copyTimerRef.current=null;}}};
     const t=setTimeout(()=>document.addEventListener('click',h),0);
     return()=>{clearTimeout(t);document.removeEventListener('click',h);};
   },[copyOpen]);
@@ -7270,6 +7645,29 @@ function App(){
     return()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
   },[tlBrushing]);
 
+  // ── Accounts drill splitter drag: gated on acctDragging; window-level listeners so a drag that leaves the
+  //    window still tracks and releases. Clamps live in acctDragRef.maxDrill (list floor 280, drill floor 140). ──
+  React.useEffect(()=>{
+    if(!acctDragging)return;
+    const onMove=(ev)=>{
+      const d=acctDragRef.current;if(!d)return;
+      let next=d.startHeight+(d.startY-ev.clientY);
+      next=Math.max(140,Math.min(next,Math.max(140,d.maxDrill)));
+      d.last=next;
+      setAcctSplitPx(next);
+    };
+    const onUp=()=>{
+      const d=acctDragRef.current;
+      if(d&&Number.isFinite(d.last)){try{localStorage.setItem('ldt_acct_split_v1',String(Math.round(d.last)));}catch{}}
+      acctDragRef.current=null;
+      document.body.style.userSelect='';
+      setAcctDragging(false);
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);document.body.style.userSelect='';};
+  },[acctDragging]);
+
   React.useEffect(()=>{
     const el=acctTreemapRef.current;
     if(!el)return;
@@ -7279,6 +7677,20 @@ function App(){
     ro.observe(el);
     return()=>ro.disconnect();
   },[section]);
+  // ── Accounts right-pane width observer → wide (side-by-side) vs narrow (stacked). 920px = 300px list column + 600px inspector floor. Measure synchronously on mount (+rAF) so it doesn't depend on the observer's first async delivery; the observer then tracks live resizes. ──
+  React.useEffect(()=>{
+    const el=acctPaneRef.current;
+    if(!el)return;
+    const measure=()=>{const w=el.getBoundingClientRect().width;if(w>0)setAcctPaneWide(w>=920);};
+    measure();
+    requestAnimationFrame(measure);
+    if(typeof ResizeObserver==='undefined')return;
+    const ro=new ResizeObserver(entries=>{
+      for(const entry of entries){const w=entry.contentRect.width;if(w>0)setAcctPaneWide(w>=920);}
+    });
+    ro.observe(el);
+    return()=>ro.disconnect();
+  },[section,logData]);
   useEffect(()=>{
     const el=diagTreemapRef.current;
     if(!el)return;
@@ -7315,7 +7727,7 @@ function App(){
   },[]);
 
   const handleFile=useCallback(file=>{
-    if(!file)return;setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);
+    if(!file)return;_critSeen.clear();setParseExiting(false);setAppJson(null);setViewMode('diagnostic');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setSection('overview');setFileName(file.name);setParsing(true);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);
     const reader=new FileReader();
     reader.onload=ev=>{
       // Watchdog: if extraction doesn't finish in 30s, surface a clear error instead of
@@ -7337,7 +7749,9 @@ function App(){
           setLoadErr('');
           setLogData({parseStats:pr.stats,entries,dev,accts,errs,sync:extractSync(entries),types:Object.keys(types).sort(),apdu:extractApdu(entries),quality:logQualityScore(entries,dev,accts,errs,deviceApps),activity:extractActivity(entries),analytics:extractAnalytics(entries),deviceApps,requiredApps,rawText:ev.target.result,isMobile:entries.some(e=>e._isMobile)});
           setFileKey(k=>k+1);
-          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setSelectedApdu(null);setRawSearch('');setFocusSearch('');setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);
+          setSection('overview');setSearchTerm('');setTypeFilter('all');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setErrSevFilter(null);setSelectedApdu(null);setRawSearch('');setFocusSearch('');setErrCatFilter(null);setErrPatternFilter(null);setErrListView('grouped');setErrHoveredSev(null);setErrHoveredCat(null);
+          // Q1: reveal the data now; play the parsing-block exit concurrently over the mounting overview.
+          if(!prefersReducedMotion()){setParseExiting(true);setTimeout(()=>setParseExiting(false),220);}
         }catch(e){console.error(e);setLoadErr('This file couldn\'t be parsed. It may be empty, corrupted, or in a format the tool doesn\'t recognize. Accepted formats: Ledger Wallet log exports (.json or .txt). The customer can export from Ledger Wallet → Settings → Help → Export logs.');setFileName('');}
         clearTimeout(watchdog);
         setParsing(false);
@@ -7623,12 +8037,12 @@ function App(){
   },[logData]);
 
   const clearLog=()=>{
-    setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setSelectedApdu(null);setRawSearch('');setFocusSearch('');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrHoveredSev(null);setErrHoveredCat(null);setErrStripHover(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setLiveBalances({});setLiveTokenBalances({});setAcctSort('fiat');setNavigatedAcct(null);setSelectedDiagAcct(null);setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');
+    _critSeen.clear();setParseExiting(false);setLogData(null);setFileName('');setLoadErr('');setSection('overview');setViewMode('diagnostic');setAppJson(null);setSearchTerm('');setTypeFilter('all');setSelectedApdu(null);setRawSearch('');setFocusSearch('');setTlHighlightType(null);setTlAcctFilter(null);setExpandedGroups({});setExpandedRow(null);setAcctFilter('');setParsing(false);setErrSevFilter(null);setErrCatFilter(null);setErrPatternFilter(null);setErrListView('grouped');setErrHoveredSev(null);setErrHoveredCat(null);setSelectedErr(null);setErrAcctFilter(null);setHoveredAcct(null);setFocusedAcct(null);setCopyOpen(false);setLedgerStatus(null);setVersionCheck(null);setFirmwareCheck(null);setAppVersionCheck(null);setTlBrush(null);setLiveBalances({});setLiveTokenBalances({});setAcctSort('fiat');setNavigatedAcct(null);setSelectedDiagAcct(null);setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');
   };
   const openPicker=()=>{if(fileRef.current){fileRef.current.value='';fileRef.current.click();}};
   const onFC=ev=>{handleFile(ev.target.files[0]);ev.target.value='';};
-  const jumpTo=li=>{setSection('timeline');setTypeFilter('all');setSearchTerm('');setTlAcctFilter(null);setTlHighlightType(null);setTlGrouping(false);setTimeout(()=>{setExpandedRow(li);setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${li}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);},50);};
-  const goToAcct=useCallback(addr=>{setSection('accounts');setAcctFilter(addr.slice(0,12));setTimeout(()=>setAcctFilter(addr.slice(0,12)),50);if(logData){const match=logData.accts.find(a=>a.addr&&a.addr.toLowerCase()===addr.toLowerCase());if(match)setSelectedDiagAcct(match);}},[logData]);
+  const jumpTo=li=>{setSection('timeline');setTypeFilter('all');setSearchTerm('');setTlAcctFilter(null);setTlHighlightType(null);setTlGrouping(false);setTimeout(()=>{setExpandedRow(li);setTimeout(()=>{const el=timelineScrollRef.current?.querySelector(`[data-li="${li}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});landingFlash(el);}},120);},50);};   // E1: mark the timeline destination
+  const goToAcct=useCallback(addr=>{setSection('accounts');setAcctFilter(addr.slice(0,12));setTimeout(()=>setAcctFilter(addr.slice(0,12)),50);if(logData){const match=logData.accts.find(a=>a.addr&&a.addr.toLowerCase()===addr.toLowerCase());if(match){setSelectedDiagAcct(match);setTimeout(()=>{const el=acctScrollRef.current?.querySelector(`[data-acct-id="${match.id}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});landingFlash(el);}},140);}}},[logData]);   // E1: mark the account destination
 
   const filtered=useMemo(()=>{
     if(!logData)return[];let f=logData.entries;
@@ -7737,9 +8151,8 @@ function App(){
   };
   const scrollToAcct=(acctId)=>{
     setNavigatedAcct(acctId);
-    const el=acctScrollRef.current?.querySelector(`[data-acct-id="${acctId}"]`);
-    if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
-    setTimeout(()=>setNavigatedAcct(null),800);
+    setTimeout(()=>{const el=acctScrollRef.current?.querySelector(`[data-acct-id="${acctId}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});landingFlash(el);}},60);   // E1: mark the account destination
+    setTimeout(()=>setNavigatedAcct(null),1300);   // hold the navigated highlight across the ~1.2s landing flash
   };
 
 
@@ -7749,7 +8162,15 @@ function App(){
       if(e.key==='Escape'){if(focusDropdownOpen){setFocusDropdownOpen(false);setFocusSearch('');return;}if(focusedAcct){setFocusedAcct(null);}return;}
       if(!e.ctrlKey&&!e.metaKey)return;
       const map={'1':'overview','2':'errors','3':'accounts','4':'timeline','5':'network','6':'apdu','7':'raw'};
-      if(map[e.key]){e.preventDefault();setSection(map[e.key]);}
+      if(map[e.key]){
+        e.preventDefault();const sec=map[e.key];setSection(sec);
+        // E5: the FIRST time each section shortcut is used this session, flash the
+        // destination tab (LandingFlash) so the key→section mapping is learned.
+        if(!_shortcutSeen.has(sec)){
+          _shortcutSeen.add(sec);
+          setTimeout(()=>landingFlash(document.querySelector(`[data-section-tab="${sec}"]`)),90);
+        }
+      }
     };
     window.addEventListener('keydown',handler);
     return()=>window.removeEventListener('keydown',handler);
@@ -7796,10 +8217,12 @@ function App(){
 
   return <div style={{height:'100vh',overflow:'hidden',display:'flex',flexDirection:'column',background:focusedAcct?`radial-gradient(ellipse at 0% 0%, ${focusedAcct.color}06 0%, ${T.bg} 50%)`:T.bg,color:T.text,transition:'background 0.4s ease'}}>
     {/* Top bar */}
-    <div style={{height:56,flexShrink:0,borderBottom:focusedAcct?'1px solid '+focusedAcct.color+'40':'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px 0 18px',background:'#18181B',zIndex:10,transition:'border-bottom 0.4s ease',gap:20}}>
+    <div style={{height:56,flexShrink:0,borderBottom:focusedAcct?'1px solid '+focusedAcct.color+'40':'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px 0 18px',background:'#18181B',zIndex:10,transition:'border-bottom 0.4s ease',gap:20,position:'relative'}}>
+      {/* E3: account-colored border sweeps in from the left on Focus entry (keyed per focus change → plays once; unmounts quietly on exit) */}
+      {focusedAcct&&<div key={'fsweep-'+focusedAcct.cid+focusedAcct.addr} className="bi-focus-sweep" style={{position:'absolute',left:0,right:0,bottom:-1,height:2,background:focusedAcct.color,transformOrigin:'left center',pointerEvents:'none',zIndex:11}}/>}
       {/* Identity: bracket-corner logomark + wordmark */}
       <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
-        <div data-splash-target style={{width:24,height:20,position:'relative',flexShrink:0}}>
+        <div data-splash-target style={{width:24,height:24,position:'relative',flexShrink:0}}>
           {['tl','tr','bl','br'].map(k=>{
             const s={position:'absolute',width:7,height:7,borderColor:'#F4F4F5',borderStyle:'solid',borderWidth:0};
             if(k==='tl')Object.assign(s,{top:0,left:0,borderTopWidth:2,borderLeftWidth:2});
@@ -7810,9 +8233,9 @@ function App(){
           })}
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:1,lineHeight:1.1}}>
-          <span style={{color:'#E85A1A',fontSize:10,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase'}}>Customer Support</span>
+          <span data-splash-tag style={{color:'#E85A1A',fontSize:10,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase'}}>Customer Support</span>
           <div style={{display:'flex',alignItems:'baseline',gap:7}}>
-            <span style={{fontSize:15,fontWeight:700,color:'#F4F4F5',letterSpacing:'-0.01em'}}>Diagnostic Toolkit</span>
+            <span data-splash-name style={{fontSize:15,fontWeight:700,color:'#F4F4F5',letterSpacing:'-0.01em'}}>Diagnostic Toolkit</span>
             {logData&&viewMode==='diagnostic'&&<>
               <span style={{fontSize:13,color:'#5E5E64',fontWeight:400}}>›</span>
               <span style={{fontSize:13,fontWeight:500,color:'#C8C8CC',letterSpacing:'-0.005em'}}>{({overview:'Overview',errors:'Errors',accounts:'Accounts',timeline:'Timeline',network:'Network',apdu:'APDU',raw:'Raw JSON'}[section])||''}</span>
@@ -7838,6 +8261,8 @@ function App(){
         <div style={{position:'relative',flexShrink:0}}>
           <button
             ref={focusBtnRef}
+            key={focusedAcct?('fb-'+focusedAcct.cid+focusedAcct.addr):'fb-none'}
+            className={focusedAcct?'bi-chip-pulse':undefined}
             onClick={()=>setFocusDropdownOpen(o=>!o)}
             title={focusedAcct?'Switch focus or clear':'Focus a single account'}
             aria-haspopup="listbox"
@@ -7969,10 +8394,10 @@ function App(){
     <input key={fileKey} ref={fileRef} type="file" accept=".json,.txt,.log" style={{display:'none'}} onChange={onFC}/>
 
     {/* Main */}
-    <div style={{flex:1,overflow:'hidden',display:viewMode==='customer'?'none':'flex',flexDirection:'column',padding:0}}>
+    <div style={{flex:1,overflow:'hidden',display:viewMode==='customer'?'none':'flex',flexDirection:'column',padding:0,position:'relative'}}>
       {/* Error state for failed file loads */}
       {loadErr&&!logData&&<div style={{background:'rgba(228,0,70,0.08)',border:'1px solid rgba(228,0,70,0.3)',borderRadius:8,padding:'12px 16px',margin:'16px 24px 0',fontSize:13,color:T.error,display:'flex',alignItems:'center',gap:10}}><Ico.Alert/>{loadErr}</div>}
-      {parsing&&!logData&&<div className="bi-overview" style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px',gap:24}}>
+      {((parsing&&!logData)||parseExiting)&&<div ref={parseBlockRef} className={"bi-overview"+(parseExiting?' bi-parse-exit':'')} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px',gap:24,...(parseExiting?{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',background:'var(--bi-bg-page)'}:{flex:1})}}>
 
         {/* Bracket logo */}
         <div style={{width:80,height:80,position:'relative'}}>
@@ -7987,7 +8412,7 @@ function App(){
         </div>
 
         <div style={{textAlign:'center'}}>
-          <div style={{color:'var(--bi-orange)',fontSize:10,fontWeight:600,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8,fontFamily:'var(--bi-font-mono)'}}>● Diagnostic active</div>
+          <div className={isLoading?'bi-activity-pulse':''} style={{color:'var(--bi-orange)',fontSize:10,fontWeight:600,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8,fontFamily:'var(--bi-font-mono)'}}>● Diagnostic active</div>
           <div style={{fontSize:22,fontWeight:700,color:'var(--bi-fg-1)',marginBottom:4,letterSpacing:'-0.01em'}}>Parsing log file</div>
           <div style={{fontSize:12,color:'var(--bi-fg-3)'}}>{fileName||'—'}</div>
         </div>
@@ -7995,7 +8420,7 @@ function App(){
         {/* Progress strip */}
         <div style={{width:280}}>
           <div style={{height:2,background:'var(--bi-bg-card)',position:'relative',overflow:'hidden',borderRadius:1}}>
-            <div style={{position:'absolute',left:0,top:0,bottom:0,width:loadProgress+'%',background:'var(--bi-orange)',transition:'width 0.6s cubic-bezier(0.45,0,0.55,1)'}}/>
+            <div style={{position:'absolute',left:0,top:0,bottom:0,width:parseExiting?'100%':loadProgress+'%',background:'var(--bi-orange)',transition:parseExiting?'width 120ms linear':'width 0.6s cubic-bezier(0.45,0,0.55,1)'}}/>
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:10,color:'var(--bi-fg-3)',fontFamily:'var(--bi-font-mono)',letterSpacing:'0.04em'}}>
             <span>{loadProgress<100?'parsing entries… (may take a moment for large logs)':'finalizing'}</span>
@@ -8009,8 +8434,8 @@ function App(){
 
         {/* LEFT — Drop affordance */}
         <div className="bi-mount-up" style={{background:'var(--bi-bg-card)',border:dragOver?'2px dashed var(--bi-orange)':'1.5px dashed var(--bi-border-strong)',borderRadius:3,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 32px',transition:'border 200ms ease, background 200ms ease',background:dragOver?'rgba(232,90,26,0.06)':'var(--bi-bg-card)'}}>
-          {/* Bracket-corner logomark, large */}
-          <div style={{width:96,height:96,position:'relative',marginBottom:24}}>
+          {/* Bracket-corner logomark, large — E4: breathes gently while idle on the upload screen (empty-state cue); stops during drag-hover */}
+          <div className={dragOver?undefined:'bi-breathe'} style={{width:96,height:96,position:'relative',marginBottom:24}}>
             {['tl','tr','bl','br'].map(k=>{
               const s={position:'absolute',width:28,height:28,borderColor:dragOver?'var(--bi-orange)':'var(--bi-fg-1)',borderStyle:'solid',borderWidth:0,transition:'border-color 200ms ease'};
               if(k==='tl')Object.assign(s,{top:0,left:0,borderTopWidth:3,borderLeftWidth:3});
@@ -8020,7 +8445,7 @@ function App(){
               return <span key={k} style={s}/>;
             })}
           </div>
-          <div style={{fontSize:24,fontWeight:700,color:'var(--bi-fg-1)',letterSpacing:'-0.01em',marginBottom:8,textAlign:'center'}}>{dragOver?'Drop to load':'Drop a log file'}</div>
+          <div className="bi-underline-sweep" style={{fontSize:24,fontWeight:700,color:'var(--bi-fg-1)',letterSpacing:'-0.01em',marginBottom:8,textAlign:'center',display:'inline-block'}}>{dragOver?'Drop to load':'Drop a log file'}</div>
           <div style={{fontSize:13,color:'var(--bi-fg-3)',marginBottom:24,textAlign:'center',maxWidth:480,lineHeight:1.5}}>or <span style={{color:'var(--bi-fg-1)',textDecoration:'underline',textUnderlineOffset:3}}>click to browse</span></div>
           <div className="mono" style={{display:'flex',alignItems:'center',gap:8,fontSize:10,letterSpacing:'0.1em',color:'var(--bi-fg-3)',textTransform:'uppercase'}}>
             <span style={{padding:'3px 8px',border:'1px solid var(--bi-border)',borderRadius:2}}>.json</span>
@@ -8113,7 +8538,7 @@ function App(){
             <div style={{display:'flex',alignItems:'flex-end',gap:0,flex:1,minWidth:0,overflow:'auto'}}>
               {tabs.map(t=>{
                 const active=section===t.key;
-                const tabEl=<div onClick={()=>setSection(t.key)} title={t.l} style={{
+                const tabEl=<div data-section-tab={t.key} onClick={()=>setSection(t.key)} title={t.l} style={{
                   padding:'10px 16px 10px',display:'flex',alignItems:'center',gap:6,
                   fontSize:13,fontWeight:active?600:500,
                   background:active?'#E85A1A':'transparent',
@@ -8174,20 +8599,20 @@ function App(){
                   const itemStyle={display:'block',width:'100%',padding:'7px 14px 7px 12px',background:'transparent',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',borderLeft:'3px solid transparent',color:'#F4F4F5',cursor:'pointer',textAlign:'left',fontFamily:'Inter',fontSize:12,transition:'background 80ms'};
                   return <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:'#18181B',border:'1px solid rgba(255,255,255,0.14)',borderRadius:2,boxShadow:'0 8px 20px rgba(0,0,0,0.45)',zIndex:50,minWidth:240,padding:'6px 0',fontFamily:'Inter'}}>
                     <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'#5E5E64',padding:'4px 14px 6px'}}>Copy report</div>
-                    <button onClick={()=>{copyText(buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...itemStyle,borderLeftColor:'#7AC26C'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(122,194,108,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                      <div style={{fontWeight:600}}>Quick Summary</div>
+                    <button onClick={()=>doCopyReport('summary',buildSummaryText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck))} className={copyConfirm==='summary'?'bi-copy-confirm':''} style={{...itemStyle,borderLeftColor:'#7AC26C'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(122,194,108,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600,color:copyConfirm==='summary'?'#6EC85C':undefined}}>{copyConfirm==='summary'?'✓ Copied':'Quick Summary'}</div>
                       <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>for ticket notes</div>
                     </button>
-                    <button onClick={()=>{copyText(buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck));setCopyOpen(false);}} style={{...itemStyle,borderLeftColor:'#BBB0FF'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                      <div style={{fontWeight:600}}>Full Export</div>
+                    <button onClick={()=>doCopyReport('full',buildFullText(logData,liveBalances,ledgerStatus,versionCheck,firmwareCheck,appVersionCheck))} className={copyConfirm==='full'?'bi-copy-confirm':''} style={{...itemStyle,borderLeftColor:'#BBB0FF'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(187,176,255,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600,color:copyConfirm==='full'?'#6EC85C':undefined}}>{copyConfirm==='full'?'✓ Copied':'Full Export'}</div>
                       <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>for escalation</div>
                     </button>
-                    {logData.accts.length>0&&<button onClick={()=>{copyText(buildCustomerText(logData,liveBalances));setCopyOpen(false);}} style={{...itemStyle,borderLeftColor:'#FF5300'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,83,0,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                      <div style={{fontWeight:600}}>Customer Summary</div>
+                    {logData.accts.length>0&&<button onClick={()=>doCopyReport('customer',buildCustomerText(logData,liveBalances))} className={copyConfirm==='customer'?'bi-copy-confirm':''} style={{...itemStyle,borderLeftColor:'#FF5300'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,83,0,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600,color:copyConfirm==='customer'?'#6EC85C':undefined}}>{copyConfirm==='customer'?'✓ Copied':'Customer Summary'}</div>
                       <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>account-focused</div>
                     </button>}
-                    {logData.errs.length>0&&<button onClick={()=>{copyText(buildErrorText(logData));setCopyOpen(false);}} style={{...itemStyle,borderBottom:'none',borderLeftColor:'#E40046'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(228,0,70,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                      <div style={{fontWeight:600}}>Errors Only</div>
+                    {logData.errs.length>0&&<button onClick={()=>doCopyReport('errors',buildErrorText(logData))} className={copyConfirm==='errors'?'bi-copy-confirm':''} style={{...itemStyle,borderBottom:'none',borderLeftColor:'#E40046'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(228,0,70,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{fontWeight:600,color:copyConfirm==='errors'?'#6EC85C':undefined}}>{copyConfirm==='errors'?'✓ Copied':'Errors Only'}</div>
                       <div style={{color:'#8A8A90',fontSize:10,marginTop:2}}>all errors with actions</div>
                     </button>}
                   </div>;
@@ -8396,7 +8821,7 @@ function App(){
             for(const e of ents){
               const t=new Date(e.timestamp||e.date).getTime();
               const i=Math.min(tlBins-1,Math.floor(((t-t0)/span)*tlBins));
-              const b=tlBuckets[i];b.total++;
+              const b=tlBuckets[i];if(!b)continue;b.total++;
               const tp=e.type||'';
               if(tp==='network')b.network++;
               else if(tp==='action')b.action++;
@@ -8706,7 +9131,7 @@ function App(){
           const typeTotals={};
           for(const e of ents){
             const idx=Math.min(Math.floor((((new Date(e.timestamp||e.date).getTime())-t0)/span)*N),N-1);
-            const b=buckets[idx];
+            const b=buckets[idx];if(!b)continue;
             const tp=e.type||'unknown';
             b.types[tp]=(b.types[tp]||0)+1;
             b.total++;
@@ -9027,7 +9452,7 @@ function App(){
                               {en.acctCtx&&<span className="mono" style={{fontSize:9,color:en.acctCtx.color||'var(--bi-fg-3)',whiteSpace:'nowrap'}} title={en.acctCtx.label}>{en.acctCtx.label}</span>}
                             </div>
                           </div>
-                          {isExp&&<pre style={{padding:'10px 14px',margin:0,fontFamily:'var(--bi-font-mono)',fontSize:11,color:'var(--bi-fg-2)',background:'var(--bi-bg-page)',whiteSpace:'pre-wrap',borderBottom:'1px solid var(--bi-border)',borderLeft:'2px solid var(--bi-orange)',lineHeight:1.55,maxHeight:240,overflow:'auto'}}>{JSON.stringify(e,null,2)}</pre>}
+                          <Expando open={isExp}><pre style={{padding:'10px 14px',margin:0,fontFamily:'var(--bi-font-mono)',fontSize:11,color:'var(--bi-fg-2)',background:'var(--bi-bg-page)',whiteSpace:'pre-wrap',borderBottom:'1px solid var(--bi-border)',borderLeft:'2px solid var(--bi-orange)',lineHeight:1.55,maxHeight:240,overflow:'auto'}}>{JSON.stringify(e,null,2)}</pre></Expando>
                         </div>;
                       };
                       let rowCount=0;
@@ -9053,7 +9478,7 @@ function App(){
                             </div>
                             <span style={{fontSize:9,color:'var(--bi-fg-4)',fontStyle:'italic',whiteSpace:'nowrap'}}>{isOpen?'collapse':'expand'}</span>
                           </div>
-                          {isOpen&&item.entries.slice(0,12).map((e,j)=>renderSingle(e,gi+'-'+j))}
+                          <Expando open={!!isOpen}>{item.entries.slice(0,12).map((e,j)=>renderSingle(e,gi+'-'+j))}</Expando>
                         </div>;
                       })}
                       {groupedTimeline.length>500&&<div style={{padding:12,textAlign:'center',color:'var(--bi-fg-3)',fontSize:11}}>Showing first 500 of {groupedTimeline.length.toLocaleString()} rows — narrow with filters, search, or the brush</div>}
@@ -9164,7 +9589,7 @@ function App(){
                 <div className="bi-card-hd">
                   <div>
                     <div className="bi-title">Portfolio · treemap</div>
-                    <div className="bi-sub">{allAccts.length} account{allAccts.length!==1?'s':''} · click to focus</div>
+                    <div className="bi-sub">{allAccts.length} account{allAccts.length!==1?'s':''} · click to inspect · shift+click to focus</div>
                   </div>
                 </div>
 
@@ -9185,11 +9610,14 @@ function App(){
                       const showLg=bw>110&&bh>50;
                       const showMd=bw>60&&bh>30;
                       return <div key={a.id} className="bi-tile-pop"
-                        onClick={()=>{
-                          if(isFocused)setFocusedAcct(null);
-                          else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});
-                          setSelectedDiagAcct(a);
-                          scrollToAcct(a.id);
+                        onClick={(e)=>{
+                          if(e.shiftKey){
+                            if(isFocused)setFocusedAcct(null);
+                            else setFocusedAcct({addr:a.addr,cid:a.cid,ticker:a.ch.ticker,name:a.ch.name,color:a.ch.color});
+                          }else{
+                            setSelectedDiagAcct(a);
+                            scrollToAcct(a.id);
+                          }
                         }}
                         onMouseEnter={()=>setHoveredAcct(a.id)}
                         onMouseLeave={()=>setHoveredAcct(null)}
@@ -9219,8 +9647,8 @@ function App(){
                 </div>
               </div>
 
-              {/* ═══ ACCOUNTS CARD (3 vertical regions: filter strip → row table → drill panel) ═══ */}
-              <div className="bi-card bi-mount-up" style={{'--i':2,padding:0,display:'flex',flexDirection:'column',minHeight:0,overflow:'hidden',borderLeft:isFocActive?'3px solid '+focusedAcct.color:undefined}}>
+              {/* ═══ ACCOUNTS CARD — responsive inspector. Wide (right pane ≥920px): side-by-side (300px list column + full-height inspector). Narrow: stacked (chips → list → splitter → drill). One source of truth per region (chipsRegion / listRegion / drillEl), composed into both branches. ═══ */}
+              <div ref={acctPaneRef} className="bi-card bi-mount-up" style={{'--i':2,padding:0,display:'flex',flexDirection:'column',minHeight:0,overflow:'hidden',borderLeft:isFocActive?'3px solid '+focusedAcct.color:undefined}}>
                 <div className="bi-card-hd">
                   <div>
                     <div className="bi-title">Accounts</div>
@@ -9232,117 +9660,179 @@ function App(){
                   </div>
                 </div>
 
-                {/* ── Region 1 — Filter chip strip ── */}
-                <div style={{display:'flex',gap:6,padding:'8px 12px',borderBottom:'1px solid var(--bi-border)',flexWrap:'wrap',flexShrink:0,alignItems:'center',background:'var(--bi-bg-strip)'}}>
-                  <AcctFilterChip
-                    label="Chain"
-                    value={chainFilter}
-                    valueDisplay={chainFilter||'All chains'}
-                    leadingSwatch={chainFilter?(chains.find(c=>c.name===chainFilter)?.color||null):null}
-                    isActive={!!chainFilter}
-                    options={[{value:'',label:'All chains'},...chains.map(c=>({value:c.name,label:c.name+' ('+c.count+')',swatch:c.color}))]}
-                    onChange={setChainFilter}
-                  />
-                  <AcctFilterChip
-                    label="Sync"
-                    value={syncFilter}
-                    valueDisplay={syncLabel}
-                    isActive={syncFilter!=='all'}
-                    options={[{value:'all',label:'All'},{value:'synced',label:'Synced (has ops)'},{value:'unsynced',label:'Not synced'}]}
-                    onChange={setSyncFilter}
-                  />
-                  <AcctFilterChip
-                    label="Tokens"
-                    value={tokensFilter}
-                    valueDisplay={tokensLabel}
-                    isActive={tokensFilter!=='all'}
-                    options={[{value:'all',label:'All'},{value:'yes',label:'Has tokens'},{value:'no',label:'No tokens'}]}
-                    onChange={setTokensFilter}
-                  />
-                  <AcctFilterChip
-                    label="Errors"
-                    value={errorsFilter}
-                    valueDisplay={errorsLabel}
-                    isActive={errorsFilter!=='all'}
-                    options={[{value:'all',label:'All'},{value:'yes',label:'Has errors'},{value:'no',label:'No errors'}]}
-                    onChange={setErrorsFilter}
-                  />
-                  <AcctFilterChip
-                    label="Sort"
-                    value={acctSort}
-                    valueDisplay={sortLabel}
-                    isActive={acctSort!=='fiat'}
-                    options={[{value:'fiat',label:'Fiat value'},{value:'balance',label:'Core balance'},{value:'activity',label:'Activity'},{value:'health',label:'Health'},{value:'chain',label:'Chain'},{value:'alpha',label:'Alphabetical'}]}
-                    onChange={setAcctSort}
-                  />
-                  {hasChipFilters&&<span onClick={()=>{setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');}} className="bi-link" style={{marginLeft:4,fontSize:10,letterSpacing:'0.04em',textTransform:'uppercase',fontWeight:600}}>✕ Clear filters</span>}
-                </div>
-
-                {/* ── Region 2 — Row list: grows to fill leftover space, scrolls internally. Sibling drill panel is fixed-height so the list reliably gets the long tail. ── */}
-                <div style={{display:'flex',flexDirection:'column',flex:'1 1 auto',minHeight:0,borderBottom:'1px solid var(--bi-border)'}}>
-                  {/* Address lookup — small inline search bar (not a chip; lives in the row-table region) */}
-                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'5px 12px',borderBottom:'1px solid var(--bi-border)',flexShrink:0,background:'var(--bi-bg-card)'}}>
-                    <div style={{flex:1,position:'relative'}}>
-                      <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Find by chain, ticker, or address (e.g. 0x742d, BTC…)" className="mono" style={{width:'100%',padding:'3px 10px',paddingRight:acctFilter?24:10,background:'transparent',border:'none',color:'var(--bi-fg-1)',fontSize:11,outline:'none'}}/>
-                      {acctFilter&&<button onClick={()=>setAcctFilter('')} style={{position:'absolute',right:4,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'var(--bi-fg-3)',cursor:'pointer',fontSize:12,padding:2,lineHeight:1}}>✕</button>}
-                    </div>
-                    <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',letterSpacing:'0.06em',flexShrink:0}}>{visibleAccts.length}/{allAccts.length}</span>
-                  </div>
-                  {/* Row table */}
-                  <div ref={acctScrollRef} data-accounts-scroll style={{flex:1,overflow:'auto',minHeight:0}}>
-                    {visibleAccts.length===0?(
-                      <div style={{padding:'24px 14px',textAlign:'center',color:'var(--bi-fg-3)'}}>
-                        <div style={{fontSize:12,fontWeight:600,color:'var(--bi-fg-1)',marginBottom:4}}>No matches</div>
-                        <div style={{fontSize:11,marginBottom:10}}>Adjust filters or clear the address lookup</div>
-                        <span onClick={()=>{setAcctFilter('');setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');}} className="bi-link">Reset all filters</span>
-                      </div>
-                    ):visibleAccts.map((a)=>{
-                      const isSelected=resolvedSelectedAcct&&resolvedSelectedAcct.addr===a.addr&&resolvedSelectedAcct.cid===a.cid;
-                      const isFoc=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;
-                      const isDimmed=isFocActive&&!matchesFocus(a);
-                      return <AcctRow
-                        key={a.id}
-                        acct={a}
-                        liveBalance={liveBalances[a.id]||null}
-                        errCount={errCounts[a.id]||0}
-                        isSelected={isSelected}
-                        isFocused={isFoc}
-                        isDimmed={isDimmed}
-                        isHovered={hoveredAcct===a.id}
-                        isNavigated={navigatedAcct===a.id}
-                        onHover={setHoveredAcct}
-                        onSelect={(acct)=>setSelectedDiagAcct(acct)}
-                        onFocus={(acct)=>{
-                          const isCur=focusedAcct&&focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid;
-                          if(isCur)setFocusedAcct(null);
-                          else setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});
-                        }}/>;
-                    })}
-                  </div>
-                </div>
-
-                {/* ── Region 3 — Drill panel: adaptive height. Simple chains (no tokens, no scannable xpub) collapse to ~140px showing only the 4-column summary row; chains with tokens (EVM/SPL) or scannable xpubs (BTC family) expand to ~360px to make room for the full-width Row 2 detail. Each Row 1 column scrolls independently. ── */}
                 {(()=>{
                   const sa=resolvedSelectedAcct;
                   const hasRow2=sa?(sa.toks?.length>0)||(sa.isXpub&&sa.ch?.xc):false;
-                  return <div style={{flex:hasRow2?'0 0 360px':'0 0 140px',minHeight:0,overflow:'hidden',display:'flex',flexDirection:'column',transition:'flex-basis 200ms cubic-bezier(.2,.6,.2,1)'}}>
-                  <AcctDrill
-                    acct={resolvedSelectedAcct}
-                    errCount={resolvedSelectedAcct?(errCounts[resolvedSelectedAcct.id]||0):0}
-                    deviceApps={logData.deviceApps}
-                    liveBalance={resolvedSelectedAcct?(liveBalances[resolvedSelectedAcct.id]||null):null}
-                    liveTokenBalance={resolvedSelectedAcct?(liveTokenBalances[resolvedSelectedAcct.id]||null):null}
-                    setLiveTokenBalances={setLiveTokenBalances}
-                    versionCheck={versionCheck}
-                    onErrClick={resolvedSelectedAcct?()=>{setErrAcctFilter(resolvedSelectedAcct.addr);setSection('errors');}:null}
-                    onTimelineClick={resolvedSelectedAcct?()=>{setTlAcctFilter({addr:resolvedSelectedAcct.addr,cid:resolvedSelectedAcct.cid,ticker:resolvedSelectedAcct.ch.ticker,name:resolvedSelectedAcct.ch.name,color:resolvedSelectedAcct.ch.color});setSection('timeline');}:null}
-                    onFocus={(acct)=>{
-                      const isCur=focusedAcct&&focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid;
-                      if(isCur)setFocusedAcct(null);
-                      else setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});
-                    }}
-                    focusedAcct={focusedAcct}/>
-                </div>;
+                  const drillDefault=hasRow2?360:140;
+                  const drillPx=hasRow2?Math.max(140,(acctSplitPx??drillDefault)):140;
+                  const beginDrag=(e)=>{
+                    e.preventDefault();
+                    const dh=acctDrillRef.current?acctDrillRef.current.offsetHeight:drillPx;
+                    const lh=acctListRef.current?acctListRef.current.offsetHeight:280;
+                    acctDragRef.current={startY:e.clientY,startHeight:dh,maxDrill:dh+lh-120,last:dh};
+                    setAcctSplitPx(dh); // initialize to measured height so the relaxed 120px floor applies from the first drag frame
+                    document.body.style.userSelect='none';
+                    setAcctDragging(true);
+                  };
+                  const nudge=(dir)=>{
+                    const dh=acctDrillRef.current?acctDrillRef.current.offsetHeight:drillPx;
+                    const lh=acctListRef.current?acctListRef.current.offsetHeight:280;
+                    const maxDrill=Math.max(140,dh+lh-120);
+                    let next=(acctSplitPx??drillDefault)+dir*24;
+                    setAcctSplitPx(Math.max(140,Math.min(next,maxDrill)));
+                  };
+
+                  // ── Region 1 — Filter chip strip (identical in both modes) ──
+                  const chipsRegion=(
+                    <div style={{display:'flex',gap:6,padding:'8px 12px',borderBottom:'1px solid var(--bi-border)',flexWrap:'wrap',flexShrink:0,alignItems:'center',background:'var(--bi-bg-strip)'}}>
+                      <AcctFilterChip
+                        label="Chain"
+                        value={chainFilter}
+                        valueDisplay={chainFilter||'All chains'}
+                        leadingSwatch={chainFilter?(chains.find(c=>c.name===chainFilter)?.color||null):null}
+                        isActive={!!chainFilter}
+                        options={[{value:'',label:'All chains'},...chains.map(c=>({value:c.name,label:c.name+' ('+c.count+')',swatch:c.color}))]}
+                        onChange={setChainFilter}
+                      />
+                      <AcctFilterChip
+                        label="Sync"
+                        value={syncFilter}
+                        valueDisplay={syncLabel}
+                        isActive={syncFilter!=='all'}
+                        options={[{value:'all',label:'All'},{value:'synced',label:'Synced (has ops)'},{value:'unsynced',label:'Not synced'}]}
+                        onChange={setSyncFilter}
+                      />
+                      <AcctFilterChip
+                        label="Tokens"
+                        value={tokensFilter}
+                        valueDisplay={tokensLabel}
+                        isActive={tokensFilter!=='all'}
+                        options={[{value:'all',label:'All'},{value:'yes',label:'Has tokens'},{value:'no',label:'No tokens'}]}
+                        onChange={setTokensFilter}
+                      />
+                      <AcctFilterChip
+                        label="Errors"
+                        value={errorsFilter}
+                        valueDisplay={errorsLabel}
+                        isActive={errorsFilter!=='all'}
+                        options={[{value:'all',label:'All'},{value:'yes',label:'Has errors'},{value:'no',label:'No errors'}]}
+                        onChange={setErrorsFilter}
+                      />
+                      <AcctFilterChip
+                        label="Sort"
+                        value={acctSort}
+                        valueDisplay={sortLabel}
+                        isActive={acctSort!=='fiat'}
+                        options={[{value:'fiat',label:'Fiat value'},{value:'balance',label:'Core balance'},{value:'activity',label:'Activity'},{value:'health',label:'Health'},{value:'chain',label:'Chain'},{value:'alpha',label:'Alphabetical'}]}
+                        onChange={setAcctSort}
+                      />
+                      {hasChipFilters&&<span onClick={()=>{setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');}} className="bi-link" style={{marginLeft:4,fontSize:10,letterSpacing:'0.04em',textTransform:'uppercase',fontWeight:600}}>✕ Clear filters</span>}
+                    </div>
+                  );
+
+                  // ── Region 2 — Row list. flex:1 (basis 0) in both modes so the list fills leftover space and scrolls internally rather than claiming its content height — this is what lets the drill's flex-basis (acctSplitPx) be authoritative when stacked. Narrow: 280px floor (drops to 120px once the splitter is engaged) so it can shrink under the drill. Wide: no floor — it owns the full column height. ──
+                  const listRegion=(
+                    <div ref={acctListRef} style={{display:'flex',flexDirection:'column',flex:1,minHeight:acctPaneWide?0:(acctSplitPx!=null?120:280),...(acctPaneWide?{}:{borderBottom:'1px solid var(--bi-border)'})}}>
+                      {/* Address lookup — small inline search bar (not a chip; lives in the row-table region) */}
+                      <div style={{display:'flex',alignItems:'center',gap:8,padding:'5px 12px',borderBottom:'1px solid var(--bi-border)',flexShrink:0,background:'var(--bi-bg-card)'}}>
+                        <div style={{flex:1,position:'relative'}}>
+                          <input value={acctFilter} onChange={e=>setAcctFilter(e.target.value)} placeholder="Find by chain, ticker, or address (e.g. 0x742d, BTC…)" className="mono" style={{width:'100%',padding:'3px 10px',paddingRight:acctFilter?24:10,background:'transparent',border:'none',color:'var(--bi-fg-1)',fontSize:11,outline:'none'}}/>
+                          {acctFilter&&<button onClick={()=>setAcctFilter('')} style={{position:'absolute',right:4,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'var(--bi-fg-3)',cursor:'pointer',fontSize:12,padding:2,lineHeight:1}}>✕</button>}
+                        </div>
+                        <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)',letterSpacing:'0.06em',flexShrink:0}}>{visibleAccts.length}/{allAccts.length}</span>
+                      </div>
+                      {/* Row table */}
+                      <div ref={acctScrollRef} data-accounts-scroll style={{flex:1,overflow:'auto',minHeight:0}}>
+                        {visibleAccts.length===0?(
+                          <div style={{padding:'24px 14px',textAlign:'center',color:'var(--bi-fg-3)'}}>
+                            <div style={{fontSize:12,fontWeight:600,color:'var(--bi-fg-1)',marginBottom:4}}>No matches</div>
+                            <div style={{fontSize:11,marginBottom:10}}>Adjust filters or clear the address lookup</div>
+                            <span onClick={()=>{setAcctFilter('');setChainFilter('');setSyncFilter('all');setTokensFilter('all');setErrorsFilter('all');}} className="bi-link">Reset all filters</span>
+                          </div>
+                        ):visibleAccts.map((a)=>{
+                          const isSelected=resolvedSelectedAcct&&resolvedSelectedAcct.addr===a.addr&&resolvedSelectedAcct.cid===a.cid;
+                          const isFoc=focusedAcct&&focusedAcct.addr===a.addr&&focusedAcct.cid===a.cid;
+                          const isDimmed=isFocActive&&!matchesFocus(a);
+                          return <AcctRow
+                            key={a.id}
+                            acct={a}
+                            liveBalance={liveBalances[a.id]||null}
+                            errCount={errCounts[a.id]||0}
+                            isSelected={isSelected}
+                            isFocused={isFoc}
+                            isDimmed={isDimmed}
+                            isHovered={hoveredAcct===a.id}
+                            isNavigated={navigatedAcct===a.id}
+                            isNarrowCol={acctPaneWide}
+                            settleGroup={acctSettleGroup}
+                            onHover={setHoveredAcct}
+                            onSelect={(acct)=>setSelectedDiagAcct(acct)}
+                            onFocus={(acct)=>{
+                              const isCur=focusedAcct&&focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid;
+                              if(isCur)setFocusedAcct(null);
+                              else setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});
+                            }}/>;
+                        })}
+                      </div>
+                    </div>
+                  );
+
+                  // ── Region 3 — the inspector (single AcctDrill instance, one source of truth). fullHeight in wide mode. ──
+                  const drillEl=(
+                    <AcctDrill
+                      acct={resolvedSelectedAcct}
+                      errCount={resolvedSelectedAcct?(errCounts[resolvedSelectedAcct.id]||0):0}
+                      deviceApps={logData.deviceApps}
+                      liveBalance={resolvedSelectedAcct?(liveBalances[resolvedSelectedAcct.id]||null):null}
+                      liveTokenBalance={resolvedSelectedAcct?(liveTokenBalances[resolvedSelectedAcct.id]||null):null}
+                      setLiveTokenBalances={setLiveTokenBalances}
+                      versionCheck={versionCheck}
+                      fullHeight={acctPaneWide}
+                      onErrClick={resolvedSelectedAcct?()=>{setErrAcctFilter(resolvedSelectedAcct.addr);setSection('errors');}:null}
+                      onTimelineClick={resolvedSelectedAcct?()=>{setTlAcctFilter({addr:resolvedSelectedAcct.addr,cid:resolvedSelectedAcct.cid,ticker:resolvedSelectedAcct.ch.ticker,name:resolvedSelectedAcct.ch.name,color:resolvedSelectedAcct.ch.color});setSection('timeline');}:null}
+                      onFocus={(acct)=>{
+                        const isCur=focusedAcct&&focusedAcct.addr===acct.addr&&focusedAcct.cid===acct.cid;
+                        if(isCur)setFocusedAcct(null);
+                        else setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});
+                      }}
+                      focusedAcct={focusedAcct}/>
+                  );
+
+                  // ── Wide (side-by-side): chips span full width above the split (they filter the whole tab), then list column + full-height inspector, no splitter ──
+                  if(acctPaneWide){
+                    return <React.Fragment>
+                      {chipsRegion}
+                      <div style={{display:'flex',flex:1,minHeight:0}}>
+                        <div style={{width:300,flexShrink:0,display:'flex',flexDirection:'column',minHeight:0,borderRight:'1px solid var(--bi-border)'}}>
+                          {listRegion}
+                        </div>
+                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',minHeight:0}}>
+                          {drillEl}
+                        </div>
+                      </div>
+                    </React.Fragment>;
+                  }
+
+                  // ── Narrow (stacked): chips → list → splitter → drill. The drill takes its height from acctSplitPx (flex '0 1', can shrink under the list to its own 140px min). Simple chains ignore the splitter and stay at 140px. ──
+                  return <React.Fragment>
+                    {chipsRegion}
+                    {listRegion}
+                    {hasRow2&&<div
+                      className="bi-acct-split"
+                      role="separator" aria-orientation="horizontal" tabIndex={0}
+                      onMouseDown={beginDrag}
+                      onDoubleClick={()=>{setAcctSplitPx(null);try{localStorage.removeItem('ldt_acct_split_v1');}catch{}}}
+                      onKeyDown={(e)=>{if(e.key==='ArrowUp'){e.preventDefault();nudge(1);}else if(e.key==='ArrowDown'){e.preventDefault();nudge(-1);}}}
+                      onKeyUp={(e)=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){try{localStorage.setItem('ldt_acct_split_v1',String(Math.round(acctSplitPx??drillDefault)));}catch{}}}}
+                      style={{flex:'0 0 10px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'row-resize',outline:'none'}}
+                      title="Drag to resize · double-click to reset">
+                      <div className="bi-acct-grip" style={{width:34,height:3,borderRadius:2,background:'var(--bi-border-strong)'}}/>
+                    </div>}
+                    {/* Drill takes its height from acctSplitPx (flex '0 1', can shrink to its 140px min under the list). No flex-basis transition: on a space-constrained flex item it freezes mid-animation, leaving the panel at a stale height — the drag is instant, so resize stays correct and snappy. */}
+                    <div ref={acctDrillRef} style={{flex:'0 1 '+drillPx+'px',minHeight:140,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+                      {drillEl}
+                    </div>
+                  </React.Fragment>;
                 })()}
               </div>
             </div>
@@ -9421,6 +9911,11 @@ function App(){
           const medCount=enrichedErrs.filter(e=>e.dg.s==='medium').length;
           const lowCount=enrichedErrs.filter(e=>e.dg.s==='low').length;
 
+          // Pattern codes present per severity bucket (for tile subtitles)
+          const sevCodes={high:{},medium:{},low:{}};
+          for(const e of enrichedErrs){const s=e.dg.s;if(sevCodes[s]){const cd=patternCode(e.dg);sevCodes[s][cd]=(sevCodes[s][cd]||0)+1;}}
+          const codeSummary=obj=>{const ent=Object.entries(obj).sort((a,b)=>b[1]-a[1]);if(ent.length===0)return null;const top=ent.slice(0,3).map(x=>x[0]).join(' · ');const extra=ent.length-3;return top+(extra>0?` +${extra}`:'');};
+
           // Recurring patterns
           const repeating=enrichedErrs.filter(e=>e.dg.repeatCount>0);
           const seenTitles=new Set();
@@ -9445,38 +9940,14 @@ function App(){
             return f;
           })();
           const sorted=filteredErrs.slice().sort((a,b)=>{const r={high:3,medium:2,low:1};return(r[b.dg.s]||0)-(r[a.dg.s]||0)});
+          // Grouped: one row per diagnosis (severity-sorted, ×N via repeatCount).
+          // Chronological: every occurrence as its own row, oldest→newest.
+          const groupedList=(()=>{const seen=new Set();const out=[];for(const e of sorted){if(seen.has(e.dg.t))continue;seen.add(e.dg.t);out.push(e);}return out;})();
+          const chronoList=filteredErrs.slice().sort((a,b)=>(new Date(a.ts).getTime()||0)-(new Date(b.ts).getTime()||0));
+          const listErrs=errListView==='chrono'?chronoList:groupedList;
           const effectiveSel=selectedErr!=null?selectedErr:(sorted[0]?.li??null);
           const detailErr=displayErrs.find(e=>e.li===effectiveSel)||null;
           const sevColor=s=>s==='high'?'#D94747':s==='medium'?'#E88A4A':'#5B9FE8';
-
-          // Build error strip data
-          const ents=logData.entries;
-          const stripCanRender=ents.length>=2&&enrichedErrs.length>0;
-          let t0,t1,span;
-          if(stripCanRender){
-            t0=new Date(ents[0].timestamp||ents[0].date).getTime();
-            t1=new Date(ents[ents.length-1].timestamp||ents[ents.length-1].date).getTime();
-            span=t1-t0;
-            if(span<=0)t0=t1=null;
-          }
-          const N=60;
-          const stripBuckets=stripCanRender&&span>0?(()=>{
-            const b=Array.from({length:N},()=>({total:0,err:0,types:{}}));
-            for(const e of ents){
-              const t=new Date(e.timestamp||e.date).getTime();
-              const i=Math.min(N-1,Math.floor(((t-t0)/span)*N));
-              b[i].total++;
-              const tp=e.type||'';
-              b[i].types[tp]=(b[i].types[tp]||0)+1;
-            }
-            for(const er of enrichedErrs){
-              const t=new Date(er.ts).getTime();
-              const i=Math.min(N-1,Math.max(0,Math.floor(((t-t0)/span)*N)));
-              b[i].err++;
-            }
-            return b;
-          })():null;
-          const stripMax=stripBuckets?Math.max(1,...stripBuckets.map(b=>b.total)):1;
 
           const allFilters=errSevFilter||errCatFilter||errPatternFilter||errAcctFilter;
           const fmtTimeShort=t=>{try{return new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch{return '—';}};
@@ -9490,39 +9961,35 @@ function App(){
                 <strong style={{fontWeight:700}}>{enrichedErrs.length}</strong> diagnosed event{enrichedErrs.length!==1?'s':''}
                 {highCount>0&&<> · <span style={{color:'#D94747',fontWeight:700}}>{highCount} critical</span></>}
                 {medCount>0&&<> · <span style={{color:'#E88A4A',fontWeight:600}}>{medCount} warning{medCount!==1?'s':''}</span></>}
-                {lowCount>0&&<> · <span style={{color:'#5B9FE8'}}>{lowCount} info</span></>}
+                {lowCount>0&&<> · <span style={{color:'#5B9FE8'}}>{lowCount} notice</span></>}
                 {repeatingUniq.length>0&&<> · <span style={{color:'var(--bi-fg-3)'}}>{repeatingUniq.length} recurring</span></>}
               </span>
               <span onClick={()=>copyText(buildErrorText(logData))} style={{fontSize:11,color:'#fff',padding:'5px 12px',background:'var(--bi-orange)',borderRadius:2,cursor:'pointer',fontWeight:600}}>Copy summary</span>
             </div>
 
-            {/* ── Severity tiles ── */}
+            {/* ── Severity tiles — CRITICAL / WARNING / NOTICE / INFO. Subtitles show the
+                 pattern codes present in each bucket (top 3 by count, then +N). The KB has
+                 no info-level severity class, so INFO is always 0 and inert for now. ── */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:10,flexShrink:0}}>
               {[
-                {key:'high',l:'Critical',n:highCount,c:'#D94747',fg:'#fff'},
-                {key:'medium',l:'Warning',n:medCount,c:'#E88A4A',fg:'#0a0a0a'},
-                {key:'low',l:'Info',n:lowCount,c:'#5B9FE8',fg:'#0a0a0a'},
-                {key:'recurring',l:'Recurring',n:repeatingUniq.length,c:'#9B7BD9',fg:'#0a0a0a'},
-              ].map((b,i)=>(
-                <div key={b.key} className="bi-tile-pop" onClick={()=>{
-                  if(b.key==='recurring'){
-                    if(repeatingUniq[0])setErrPatternFilter(errPatternFilter===repeatingUniq[0].dg.t?null:repeatingUniq[0].dg.t);
-                  }else{
-                    setErrSevFilter(errSevFilter===b.key?null:b.key);
-                  }
-                }} style={{'--i':i,background:b.c,color:b.fg,padding:'12px 14px',borderRadius:2,cursor:'pointer',opacity:b.n===0?0.4:1,outline:(b.key==='recurring'?(errPatternFilter?'2px solid #fff':'none'):(errSevFilter===b.key?'2px solid #fff':'none'))}}>
+                {key:'high',l:'Critical',n:highCount,c:'#D94747',fg:'#fff',codes:codeSummary(sevCodes.high),empty:'no critical issues'},
+                {key:'medium',l:'Warning',n:medCount,c:'#E88A4A',fg:'#0a0a0a',codes:codeSummary(sevCodes.medium),empty:'no warnings'},
+                {key:'low',l:'Notice',n:lowCount,c:'#5B9FE8',fg:'#0a0a0a',codes:codeSummary(sevCodes.low),empty:'none'},
+                {key:'info',l:'Info',n:0,c:'#6B7280',fg:'#fff',codes:null,empty:'no info-level events'},
+              ].map((b,i)=>{
+                const inert=b.key==='info';
+                const active=errSevFilter===b.key;
+                return <div key={b.key} className="bi-tile-pop" onClick={inert?undefined:()=>setErrSevFilter(active?null:b.key)}
+                  style={{'--i':i,background:b.c,color:b.fg,padding:'12px 14px',borderRadius:2,cursor:inert?'default':'pointer',opacity:b.n===0?0.4:1,outline:active?'2px solid #fff':'none'}}>
                   <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between'}}>
                     <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',opacity:0.9}}>{b.l}</span>
                     <span className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,fontVariantNumeric:'tabular-nums'}}><CountUp value={b.n} fmt={v=>String(Math.round(v))}/></span>
                   </div>
-                  <div style={{fontSize:11,fontWeight:500,opacity:0.85,marginTop:4}}>
-                    {b.key==='high'?(highCount>0?'investigate first':'no critical issues'):
-                     b.key==='medium'?(medCount>0?'review':'no warnings'):
-                     b.key==='low'?(lowCount>0?'routine':'none'):
-                     repeatingUniq.length>0?`pattern: ${repeatingUniq[0].dg.t.slice(0,28)}${repeatingUniq[0].dg.t.length>28?'…':''}`:'no patterns'}
+                  <div className="mono" title={b.n>0&&b.codes?b.codes:undefined} style={{fontSize:10,fontWeight:500,opacity:0.85,marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {b.n>0&&b.codes?b.codes:b.empty}
                   </div>
-                </div>
-              ))}
+                </div>;
+              })}
             </div>
 
             {/* ── Recurring patterns (chips when >1) ── */}
@@ -9596,77 +10063,6 @@ function App(){
               </div>
             </div>}
 
-            {/* ── Strip with error markers ── */}
-            {stripBuckets&&<div className="bi-card bi-mount-up" style={{'--i':2,padding:0,flexShrink:0}}>
-              <div className="bi-card-hd" style={{padding:'8px 14px'}}>
-                <div>
-                  <span className="bi-sublabel">Session strip · {ents.length.toLocaleString()} events · {enrichedErrs.length} error{enrichedErrs.length!==1?'s':''} marked</span>
-                </div>
-                <span style={{fontSize:10,color:'var(--bi-fg-3)'}}>click strip to jump to nearest error</span>
-              </div>
-              <div onClick={ev=>{
-                const rect=ev.currentTarget.getBoundingClientRect();
-                const pct=(ev.clientX-rect.left)/rect.width;
-                const clickTime=t0+pct*span;
-                let closest=enrichedErrs[0],closestD=Infinity;
-                for(const e of enrichedErrs){const d=Math.abs(new Date(e.ts).getTime()-clickTime);if(d<closestD){closestD=d;closest=e;}}
-                if(closest)setSelectedErr(closest.li);
-              }} onMouseMove={ev=>{
-                const rect=ev.currentTarget.getBoundingClientRect();
-                const pct=(ev.clientX-rect.left)/rect.width;
-                const idx=Math.min(Math.floor(pct*N),N-1);
-                const bucketStart=t0+(idx/N)*span;
-                const bucketEnd=t0+((idx+1)/N)*span;
-                const bucketErrs=enrichedErrs.filter(e=>{const et=new Date(e.ts).getTime();return et>=bucketStart&&et<bucketEnd;});
-                setErrStripHover({idx,x:ev.clientX-rect.left,cw:rect.width,errs:bucketErrs,time:bucketStart});
-              }} onMouseLeave={()=>setErrStripHover(null)} style={{padding:'8px 14px',position:'relative',cursor:'crosshair',display:'flex',alignItems:'flex-end',gap:1,height:54,background:'var(--bi-bg-strip)'}}>
-                {stripBuckets.map((b,i)=>{
-                  const h=Math.max(2,(b.total/stripMax)*44);
-                  const errH=b.err>0?Math.min(8,b.err*4):0;
-                  return <div key={i} style={{flex:1,height:h,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
-                    {b.err>0&&<div style={{height:errH,background:'#D94747',boxShadow:'0 0 4px #D94747'}}/>}
-                    <div style={{flex:1,background:'var(--bi-cat-3)',opacity:0.5}}/>
-                  </div>;
-                })}
-                {/* Datum line — hairline + mono tick tracking the cursor (positional, beneath tooltip). */}
-                {errStripHover&&(()=>{
-                  const frac=Math.max(0,Math.min(1,(errStripHover.x-14)/(errStripHover.cw-28)));const dt=t0+frac*span;const lx=errStripHover.x;
-                  return <React.Fragment>
-                    <div style={{position:'absolute',left:lx,top:0,bottom:0,width:1,background:'var(--bi-border-strong)',pointerEvents:'none'}}/>
-                    <div className="mono" style={{position:'absolute',top:2,left:Math.min(lx+4,errStripHover.cw-50),fontSize:9,color:'var(--bi-fg-2)',background:'var(--bi-bg-card)',border:'1px solid var(--bi-border)',borderRadius:2,padding:'0 3px',pointerEvents:'none',whiteSpace:'nowrap'}}>{isNaN(dt)?'—':fmtTime(new Date(dt).toISOString(),{ms:false})}</div>
-                  </React.Fragment>;
-                })()}
-                {/* Selected marker */}
-                {effectiveSel!=null&&(()=>{
-                  const sel=enrichedErrs.find(e=>e.li===effectiveSel);
-                  if(!sel)return null;
-                  const pct=((new Date(sel.ts).getTime()-t0)/span)*100;
-                  return <div style={{position:'absolute',left:'calc(14px + (100% - 28px) * '+(pct/100)+')',top:8,bottom:8,width:2,background:sevColor(sel.dg.s),boxShadow:'0 0 8px '+sevColor(sel.dg.s),pointerEvents:'none'}}/>;
-                })()}
-                {/* Hover tooltip */}
-                {errStripHover&&errStripHover.errs.length>0&&(()=>{
-                  const left=Math.max(14,Math.min(errStripHover.x,errStripHover.cw-220));
-                  return <div style={{position:'absolute',left,top:-2,transform:'translateY(-100%)',background:'var(--bi-bg-card)',border:'1px solid var(--bi-border-strong)',borderRadius:2,boxShadow:'var(--shadow-menu, 0 8px 20px rgba(0,0,0,0.45))',padding:'8px 10px',minWidth:200,maxWidth:280,pointerEvents:'none',zIndex:10}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8,borderBottom:'1px solid var(--bi-border)',paddingBottom:5,marginBottom:5}}>
-                      <span style={{fontSize:10,fontWeight:600,color:'var(--bi-fg-1)'}}>{errStripHover.errs.length} error{errStripHover.errs.length!==1?'s':''}</span>
-                      <span className="mono" style={{fontSize:9,color:'var(--bi-fg-3)'}}>{fmtTimeShort(new Date(errStripHover.time).toISOString())}</span>
-                    </div>
-                    {errStripHover.errs.slice(0,4).map((e,i)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,padding:'2px 0'}}>
-                        <span style={{width:6,height:6,borderRadius:'50%',background:sevColor(e.dg?.s),flexShrink:0}}/>
-                        <span style={{color:'var(--bi-fg-2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{e.dg?.t||'Error'}</span>
-                      </div>
-                    ))}
-                    {errStripHover.errs.length>4&&<div style={{fontSize:10,color:'var(--bi-fg-3)',fontStyle:'italic',marginTop:2}}>+{errStripHover.errs.length-4} more</div>}
-                  </div>;
-                })()}
-              </div>
-              <div style={{padding:'4px 14px 8px',display:'flex',justifyContent:'space-between',fontSize:9,color:'var(--bi-fg-3)',fontFamily:'var(--bi-font-mono)'}}>
-                <span>{fmtTimeShort(ents[0].timestamp||ents[0].date)}</span>
-                <span>{fmtTimeShort(ents[ents.length-1].timestamp||ents[ents.length-1].date)}</span>
-              </div>
-            </div>}
-
             {/* ── Filter chips bar ── */}
             {(cats.length>0||allFilters)&&<div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0,flexWrap:'wrap'}}>
               <span style={{fontSize:10,color:'var(--bi-fg-3)',letterSpacing:'0.06em',textTransform:'uppercase',fontWeight:600}}>Category</span>
@@ -9701,15 +10097,26 @@ function App(){
             ):(
             <div className="bi-card bi-mount-up" style={{'--i':3,padding:0,flex:1,display:'flex',minHeight:0,overflow:'hidden'}}>
               {/* LEFT: list */}
-              <div key={`${errSevFilter||'all'}-${errCatFilter||'all'}-${errPatternFilter||'all'}-${errAcctFilter||'all'}`} style={{width:'42%',borderRight:'1px solid var(--bi-border)',overflowY:'auto',flexShrink:0,minHeight:0}}>
-                {sorted.length===0?<div style={{padding:'20px 14px',fontSize:12,color:'var(--bi-fg-3)',textAlign:'center'}}>No errors match the current filters.</div>:
-                sorted.map((e,i)=>{
+              <div style={{width:'42%',borderRight:'1px solid var(--bi-border)',display:'flex',flexDirection:'column',flexShrink:0,minHeight:0}}>
+                {/* Grouped / Chronological toggle (mirrors the Timeline event-log toggle) */}
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',borderBottom:'1px solid var(--bi-border)',flexShrink:0}}>
+                  <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--bi-fg-3)'}}>Errors</span>
+                  <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)'}}>{listErrs.length}{errListView==='grouped'&&listErrs.length!==filteredErrs.length?' of '+filteredErrs.length:''}</span>
+                  <span style={{flex:1}}/>
+                  <div style={{display:'inline-flex',borderRadius:2,overflow:'hidden',border:'1px solid var(--bi-border)'}}>
+                    <button onClick={()=>setErrListView('grouped')} style={{padding:'3px 10px',border:'none',background:errListView==='grouped'?'var(--bi-bg-card-alt)':'transparent',color:errListView==='grouped'?'var(--bi-fg-1)':'var(--bi-fg-3)',fontFamily:'var(--bi-font-mono)',fontSize:10,cursor:'pointer'}}>Grouped</button>
+                    <button onClick={()=>setErrListView('chrono')} style={{padding:'3px 10px',border:'none',background:errListView==='chrono'?'var(--bi-bg-card-alt)':'transparent',color:errListView==='chrono'?'var(--bi-fg-1)':'var(--bi-fg-3)',fontFamily:'var(--bi-font-mono)',fontSize:10,cursor:'pointer'}}>Chronological</button>
+                  </div>
+                </div>
+                <div ref={errListRef} style={{flex:1,overflowY:'auto',minHeight:0}}>
+                {listErrs.length===0?<div style={{padding:'20px 14px',fontSize:12,color:'var(--bi-fg-3)',textAlign:'center'}}>No errors match the current filters.</div>:
+                listErrs.map((e,i)=>{
                   const dg=e.dg||{};
                   const sc=sevColor(dg.s);
                   const isSelected=e.li===effectiveSel;
                   const linkedAcct=errAcctMap.get(e.li);
                   const isFocDimmed=focusedAcct&&!focusAcctMatchesEntry(e,focusedAcct);
-                  return <div key={e.li}
+                  return <div key={e.li} data-flip-key={e.li}
                     onClick={()=>setSelectedErr(e.li)}
                     className="bi-tr"
                     style={{'--i':Math.min(i,12),'--bi-row-pad':'14px',padding:'8px 14px',borderBottom:'1px solid var(--bi-border)',
@@ -9720,7 +10127,7 @@ function App(){
                     <div style={{display:'flex',alignItems:'center',gap:10}}>
                       <span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:sc,textTransform:'uppercase',minWidth:54}}>{dg.s==='high'?'CRITICAL':dg.s==='medium'?'WARNING':'NOTICE'}</span>
                       <span style={{flex:1,fontSize:12,color:'var(--bi-fg-1)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dg.t||'Unknown error'}</span>
-                      {dg.repeatCount>0&&<span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',fontWeight:700}}>×{dg.repeatCount+1}</span>}
+                      {errListView==='grouped'&&dg.repeatCount>0&&<span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)',fontWeight:700}}>×{dg.repeatCount+1}</span>}
                       <span className="mono" style={{fontSize:10,color:'var(--bi-fg-3)'}}>{fmtTime(e.ts)}</span>
                     </div>
                     <div style={{fontSize:11,color:'var(--bi-fg-3)',marginTop:2,paddingLeft:64,display:'flex',gap:8,alignItems:'center'}}>
@@ -9732,10 +10139,27 @@ function App(){
                     </div>
                   </div>;
                 })}
+                </div>
               </div>
               {/* RIGHT: detail */}
               <div style={{flex:1,overflowY:'auto',padding:'16px 20px',background:'var(--bi-bg-card)',minHeight:0}}>
-                {detailErr?<ErrCard err={detailErr} onJump={jumpTo} linkedAcct={errAcctMap.get(detailErr.li)||null} onGoAcct={(addr)=>{const acct=logData.accts.find(a=>a.addr===addr);if(acct){setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});}goToAcct(addr);}} onGoNetwork={()=>setSection('network')} onGoApdu={()=>setSection('apdu')} dev={logData.dev} entries={logData.entries}/>:
+                {detailErr?<ErrCard err={detailErr} onJump={jumpTo} linkedAcct={errAcctMap.get(detailErr.li)||null} onGoAcct={(addr)=>{const acct=logData.accts.find(a=>a.addr===addr);if(acct){setFocusedAcct({addr:acct.addr,cid:acct.cid,ticker:acct.ch.ticker,name:acct.ch.name,color:acct.ch.color});}goToAcct(addr);}}
+                  onFilterTimeline={(er)=>{
+                    const ents=logData.entries;
+                    setTypeFilter('all');setSearchTerm('');setTlAcctFilter(null);setTlHighlightType(null);setTlGrouping(false);
+                    if(ents.length>=2){
+                      const bt0=new Date(ents[0].timestamp).getTime();
+                      const bt1=new Date(ents[ents.length-1].timestamp).getTime();
+                      const bspan=bt1-bt0;
+                      const et=new Date(er.ts).getTime();
+                      if(bspan>0&&!isNaN(et)){setTlBrush({start:Math.max(0,(et-60000-bt0)/bspan),end:Math.min(1,(et+60000-bt0)/bspan)});}
+                      else setTlBrush(null);
+                    }else setTlBrush(null);
+                    setSection('timeline');
+                  }}
+                  onOpenRaw={(er)=>{const needle=(er.msg||er.dg?.r||'').toString().slice(0,48).trim();setSection('raw');setRawSearch(needle||String(er.li));}}
+                  onFindSimilar={(dg)=>{setErrPatternFilter(dg.t);}}
+                  dev={logData.dev} entries={logData.entries}/>:
                   <div style={{textAlign:'center',padding:40,color:'var(--bi-fg-3)',fontSize:13}}>Select an error from the list to see details</div>
                 }
               </div>
