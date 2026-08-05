@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net https://crypto-icons.ledger.com; connect-src wss://xrplcluster.com https://eth.blockscout.com https://polygon.blockscout.com https://arbitrum.blockscout.com https://base.blockscout.com https://explorer.optimism.io https://api.routescan.io https://litecoinspace.org https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://crypto-assets-service.api.ledger.com https://crypto-icons.ledger.com https://proxyetherscan.api.live.ledger.com https://api.dexscreener.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net https://crypto-icons.ledger.com; connect-src https://blockstream.info wss://xrplcluster.com https://eth.blockscout.com https://polygon.blockscout.com https://arbitrum.blockscout.com https://base.blockscout.com https://explorer.optimism.io https://api.routescan.io https://litecoinspace.org https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://crypto-assets-service.api.ledger.com https://crypto-icons.ledger.com https://proxyetherscan.api.live.ledger.com https://api.dexscreener.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
 <title>Ledger Diagnostic Toolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3193,7 +3193,6 @@ async function _sfylXpubScan(cid,xpub,dm){
   const net={...baseNet,
     messagePrefix:coin==='LTC'?'\x19Litecoin Signed Message:\n':'\x18Bitcoin Signed Message:\n',
     bip32:{public:0x0488b21e,private:0x0488ade4}};
-  const host=cid==='bitcoin'?'https://mempool.space':'https://litecoinspace.org';
   const convertXpub=key=>{try{let raw=bs58.decode(key);raw=raw.slice(0,raw.length-4);const data=raw.slice(4);const pre=window.Buffer.from('0488b21e','hex');const payload=window.Buffer.concat([pre,data]);const h=bitcoin.crypto.sha256(bitcoin.crypto.sha256(payload));return bs58.encode(window.Buffer.concat([payload,h.slice(0,4)]));}catch(_){return key;}};
   let node;
   try{node=bitcoin.bip32.fromBase58(convertXpub(xpub),bitcoin.networks.bitcoin);}
@@ -3218,7 +3217,7 @@ async function _sfylXpubScan(cid,xpub,dm){
     while(gap<20&&idx<200){
       const addr=getAddr(cn.derive(idx).publicKey);
       mySet.add(addr);
-      const txs=await _sfylJson(host+'/api/address/'+addr+'/txs');
+      const txs=await _sfylEsploraGet(cid,'/api/address/'+addr+'/txs');
       const arr=Array.isArray(txs)?txs:[];
       if(arr.length>0){arr.forEach(tx=>{if(tx&&tx.txid&&!byId[tx.txid])byId[tx.txid]=tx;});gap=0;}else gap++;
       idx++;
@@ -3246,9 +3245,21 @@ async function _sfylXpubScan(cid,xpub,dm){
   });
   return rows;
 }
+/* BTC esplora hosts: blockstream.info first (browser-CORS confirmed in harness round 1);
+   mempool.space fallback (their ACAO is restricted to their own origin on some endpoints
+   — see mempool/mempool#5480 — so it cannot be the primary). */
+const _SFYL_ESPLORA_HOSTS={bitcoin:['https://blockstream.info','https://mempool.space'],litecoin:['https://litecoinspace.org']};
+async function _sfylEsploraGet(cid,path){
+  const hosts=_SFYL_ESPLORA_HOSTS[cid]||[];
+  let lastErr=null;
+  for(const h of hosts){
+    try{return await _sfylJson(h+path);}catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('No esplora host available');
+}
 const SFYL_FETCHERS={
-  bitcoin:{gap:600,xpubBlocked:true,fetch:async addr=>_sfylEsploraNorm(await _sfylJson('https://mempool.space/api/address/'+addr+'/txs'),addr,'BTC')},
-  litecoin:{gap:800,xpubBlocked:true,untested:true,fetch:async addr=>_sfylEsploraNorm(await _sfylJson('https://litecoinspace.org/api/address/'+addr+'/txs'),addr,'LTC')},
+  bitcoin:{gap:600,xpubBlocked:true,fetch:async addr=>_sfylEsploraNorm(await _sfylEsploraGet('bitcoin','/api/address/'+addr+'/txs'),addr,'BTC')},
+  litecoin:{gap:800,xpubBlocked:true,untested:true,fetch:async addr=>_sfylEsploraNorm(await _sfylEsploraGet('litecoin','/api/address/'+addr+'/txs'),addr,'LTC')},
   dogecoin:{gap:1600,xpubBlocked:true,fetch:async addr=>{
     const j=await _sfylJson('https://api.blockcypher.com/v1/doge/main/addrs/'+addr+'/full?limit=25');
     return (j.txs||[]).map(tx=>{
