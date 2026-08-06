@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SFYL bridge API CORS test</title>
+<style>
+  body{background:#0d0d0f;color:#e8e8e8;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:24px;max-width:900px;margin:0 auto}
+  h1{font-size:16px;color:#F04F52}
+  button{background:#F04F52;color:#fff;border:0;padding:10px 18px;font:inherit;cursor:pointer;border-radius:2px}
+  button:disabled{opacity:.4;cursor:wait}
+  #copyBtn{background:#333;margin-left:8px}
+  .row{border:1px solid #2a2a2e;border-radius:2px;padding:10px 12px;margin:8px 0}
+  .pass{color:#4ade80}.fail{color:#F04F52}.pending{color:#999}
+  .detail{color:#999;font-size:12px;white-space:pre-wrap;word-break:break-all;margin-top:4px;max-height:90px;overflow:auto}
+  textarea{width:100%;height:140px;background:#141416;color:#ccc;border:1px solid #2a2a2e;margin-top:16px;font:12px ui-monospace,monospace;padding:8px;box-sizing:border-box}
+</style>
+</head>
+<body>
+<h1>SFYL bridge API CORS test — throwaway page, delete after use</h1>
+<p>Click the button, wait ~20 seconds, then copy the summary box at the bottom and paste it back to Claude.</p>
+<button id="runBtn" onclick="runAll()">Run all 9 tests</button>
+<button id="copyBtn" onclick="copyOut()">Copy results</button>
+<div id="rows"></div>
+<textarea id="out" readonly placeholder="Results summary will appear here after the run."></textarea>
+
+<script>
+const TESTS = [
+  {n:1, name:"THORChain Midgard (Nine Realms)",
+   run:()=>fetch("https://midgard.ninerealms.com/v2/actions?txid=2F624637DE179665BA3322B864DB9F30001FD37B4E0D22A0B6ECE6A5B078DAB4").then(r=>r.json())},
+  {n:2, name:"THORChain via Liquify gateway",
+   run:()=>fetch("https://gateway.liquify.com/chain/thorchain_midgard/v2/actions?txid=2F624637DE179665BA3322B864DB9F30001FD37B4E0D22A0B6ECE6A5B078DAB4").then(r=>r.json())},
+  {n:3, name:"LI.FI multi-bridge status",
+   run:()=>fetch("https://li.quest/v1/status?txHash=0x32375265d54d2897f776b10729fb7ba8f7ed4cb329364d8fa0e13c89ecbb9085").then(r=>r.json())},
+  {n:4, name:"deBridge DLN",
+   run:()=>fetch("https://stats-api.dln.trade/api/Orders/creationTxHash/0x3fe11542154f53dcf3134eacb30ea5ca586c9e134c223e56bbe1893862469bc5").then(r=>r.json())},
+  {n:5, name:"LayerZero Scan",
+   run:()=>fetch("https://scan.layerzero-api.com/v1/messages/tx/0xc6071e98336996084a18a6c47ab38449e31d7d4b48040f35bbcd4106189e3036").then(r=>r.json())},
+  {n:6, name:"Wormholescan",
+   run:()=>fetch("https://api.wormholescan.io/api/v1/operations?address=0x05c009C4C1F1983d4B915C145F4E782de23d3A38").then(r=>r.json())},
+  {n:7, name:"Axelarscan GMP (any answer = PASS)",
+   run:()=>fetch("https://api.gmp.axelarscan.io/",{method:"POST",headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({method:"searchGMP",txHash:"0x0000000000000000000000000000000000000000000000000000000000000000"})}).then(r=>r.json())},
+  {n:8, name:"Bridgers (any answer = PASS)",
+   run:()=>fetch("https://api.bridgers.xyz/api/exchangeRecord/getTransDataById",{method:"POST",headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({orderId:"test"})}).then(r=>r.json())},
+  {n:9, name:"Socket/Bungee (checking if key needed)",
+   run:()=>fetch("https://api.socket.tech/v2/bridge-status?transactionHash=0xddb77ebf8e52e8dd5931ad82cb482feabdb019862eedde35c3e8f9c6df72a781&fromChainId=1&toChainId=137").then(r=>r.json())},
+];
+
+function el(html){const d=document.createElement('div');d.innerHTML=html;return d.firstElementChild;}
+
+async function runAll(){
+  const rows=document.getElementById('rows');
+  rows.innerHTML='';
+  document.getElementById('runBtn').disabled=true;
+  const lines=["SFYL CORS test — "+location.origin+" — "+new Date().toISOString()];
+  for(const t of TESTS){
+    const row=el('<div class="row"><span class="pending">RUNNING</span> TEST '+t.n+' — '+t.name+'<div class="detail"></div></div>');
+    rows.appendChild(row);
+    let status,detail;
+    try{
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout after 15s")),15000));
+      const data=await Promise.race([t.run(),timeout]);
+      status="PASS";
+      detail=JSON.stringify(data).slice(0,300);
+    }catch(e){
+      status="FAIL";
+      detail=(e&&e.message)?e.message:String(e);
+    }
+    row.firstElementChild.textContent=status;
+    row.firstElementChild.className=status==="PASS"?"pass":"fail";
+    row.querySelector('.detail').textContent=detail;
+    lines.push("TEST "+t.n+" ["+t.name+"]: "+status+" — "+detail);
+    await new Promise(r=>setTimeout(r,600)); // polite gap
+  }
+  document.getElementById('out').value=lines.join("\n\n");
+  document.getElementById('runBtn').disabled=false;
+}
+
+function copyOut(){
+  const ta=document.getElementById('out');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>alert("Copied."));
+}
+</script>
+</body>
+</html>
