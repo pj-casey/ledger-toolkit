@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net https://crypto-icons.ledger.com; connect-src https://blockstream.info wss://xrplcluster.com https://eth.blockscout.com https://polygon.blockscout.com https://arbitrum.blockscout.com https://base.blockscout.com https://explorer.optimism.io https://api.routescan.io https://litecoinspace.org https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://crypto-assets-service.api.ledger.com https://crypto-icons.ledger.com https://proxyetherscan.api.live.ledger.com https://api.dexscreener.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://bundle.run; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net https://crypto-icons.ledger.com; connect-src https://coins.llama.fi https://api.stellar.expert https://tonapi.io https://blockstream.info wss://xrplcluster.com https://eth.blockscout.com https://polygon.blockscout.com https://arbitrum.blockscout.com https://base.blockscout.com https://explorer.optimism.io https://api.routescan.io https://litecoinspace.org https://api.tzkt.io https://xrplcluster.com https://horizon.stellar.org https://api.koios.rest https://rpc.mainnet.near.org https://api.trongrid.io https://toncenter.com https://fullnode.mainnet.aptoslabs.com https://fullnode.mainnet.sui.io https://stacks-node-api.mainnet.stacks.co https://mainnet-public.mirrornode.hedera.com https://api.multiversx.com https://api.kaspa.org https://cosmos-rest.publicnode.com https://mainnet-api.algonode.cloud https://api.node.glif.io https://api.coingecko.com https://mempool.space https://api.blockchair.com https://api.blockcypher.com https://raw.githubusercontent.com https://api.github.com https://status.ledger.com https://manager.api.live.ledger.com https://crypto-assets-service.api.ledger.com https://crypto-icons.ledger.com https://proxyetherscan.api.live.ledger.com https://api.dexscreener.com https://*.publicnode.com https://flare-api.flare.network https://rpc.soniclabs.com https://rpc.lukso.gateway.fm https://rpc.hyperliquid.xyz; frame-src 'none'; object-src 'none'; base-uri 'none';">
 <title>Ledger Diagnostic Toolkit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -88,6 +88,12 @@ button:active{transform:scale(0.98);}
 .sfyl-acct-row:hover{background:rgba(255,255,255,0.04);}
 .sfyl-tx-row{transition:background 100ms ease;}
 .sfyl-tx-row:hover{background:rgba(255,255,255,0.03);}
+/* ── SFYL Stage A (redesign) ── */
+@keyframes sfylSuggestFlash{0%{background-color:rgba(255,189,66,0.22);}100%{background-color:transparent;}}
+.sfyl-suggest-flash{animation:sfylSuggestFlash 1200ms var(--ledger-ease) both;}
+.sfyl-cta{position:relative;padding:7px 18px;border:none;background:#D4A0FF;color:#0A0A0A;font-size:11px;font-weight:700;letter-spacing:0.01em;cursor:pointer;white-space:nowrap;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);transition:filter 120ms var(--ledger-ease);}
+.sfyl-cta:hover{filter:brightness(.92);}
+.sfyl-cta:active{transform:translateY(1px);}
 
 /* ── Customer View ── */
 .cv-frame{display:flex;height:calc(100vh - 52px);overflow:hidden;font-family:'Inter',sans-serif;}
@@ -502,7 +508,7 @@ button.cv-mode-btn.cv-active[aria-pressed="true"][data-mode-bi="diagnostic"]{bac
 <script src="https://bundle.run/bitcoinjs-lib@5.2.0" integrity="sha384-fQMDnQ8QikG9/DG7WeRejJss4rKJCOT4Gh633piKN+0/CjecWizXy79Q7C8uMsYA" crossorigin="anonymous" onload="_splashLog('bitcoinjs-lib 5.2.0')"></script>
 <script src="https://unpkg.com/lucide@1.28.0/dist/umd/lucide.min.js" integrity="sha384-VrnzGPiSyQxm3mI2VhlssyR85zugSHtxMkgO42qV3wUAbNk1oRdZkCWjXKOhuVu6" crossorigin="anonymous" onload="_splashLog('lucide')"></script>
 <div id="root"></div>
-<script>if(window._splashLog)_splashLog('transpiling\u2026');</script>
+<script>if(window._splashLog)_splashLog('transpiling…');</script>
 <script type="text/babel">
 const {useState,useMemo,useCallback,useRef,useEffect}=React;
 
@@ -3138,6 +3144,7 @@ function _sfylEvmTokNorm(items,addr){
     const dec=Number((t.total&&t.total.decimals!=null)?t.total.decimals:((t.token&&t.token.decimals!=null)?t.token.decimals:18))||0;
     return{hash:t.transaction_hash||t.tx_hash,ts:Date.parse(t.timestamp)||0,from,to,
       value:Number((t.total&&t.total.value)||0)/Math.pow(10,dec),asset:(t.token&&t.token.symbol)||'token',
+      contract:(t.token&&t.token.address)||null,
       dir:_sfylLower(from)===me?'out':'in',token:true,
       labelFrom:(t.from&&t.from.name)||null,labelTo:(t.to&&t.to.name)||null,
       scamFrom:!!(t.from&&t.from.is_scam),scamTo:!!(t.to&&t.to.is_scam)};
@@ -3167,10 +3174,44 @@ function _sfylEsNorm(result,addr,ticker){
     asset:tx.tokenSymbol||ticker,dir:_sfylLower(tx.from)===me?'out':'in',token:tx.tokenSymbol!=null
   })).filter(t=>t.hash&&(t.value>0||t.dir==='out'));
 }
-const _sfylBlockscout=(host,ticker)=>({gap:700,fetch:async addr=>{
-  const nat=await _sfylJson(host+'/api/v2/addresses/'+addr+'/transactions');
-  let tok=null;try{tok=await _sfylJson(host+'/api/v2/addresses/'+addr+'/token-transfers');}catch(_){}
-  return[..._sfylEvmNorm(nat&&nat.items,addr,ticker),..._sfylEvmTokNorm(tok&&tok.items,addr)];
+/* Ledger's own Etherscan-v2 proxy (proxyetherscan.api.live.ledger.com) — keyless, key added
+   server-side, CORS verified in-browser 2026-08-05 for txlist AND tokentx on chainid 1; chainid 56
+   returned proper Etherscan-format empty response (BSC routed). No labels / is_scam in responses —
+   proxy-sourced rows are honestly unlabeled and do NOT feed label-based heuristics.
+   Unpublished rate limits: be polite (sequential, generous gap). */
+const _sfylProxyEtherscanFetch=async(chainId,addr,ticker)=>{
+  const base=PROXYETHERSCAN_BASE+'/'+chainId+'?module=account&address='+addr+'&page=1&offset=200&sort=desc';
+  const nat=await _sfylJson(base+'&action=txlist');
+  if(nat.status!=='1'&&!(nat.status==='0'&&/No transactions found/i.test(nat.message||'')))throw new Error('proxy: '+(nat.message||'bad response'));
+  await new Promise(r=>setTimeout(r,250));
+  let tok=null;try{tok=await _sfylJson(base+'&action=tokentx');}catch(_){}
+  const me=_sfylLower(addr);
+  const natRows=(Array.isArray(nat.result)?nat.result:[]).filter(t=>t&&t.hash&&t.isError!=='1').map(t=>{
+    const out=_sfylLower(t.from)===me;
+    return{hash:t.hash,ts:(Number(t.timeStamp)||0)*1000,from:t.from||'',to:t.to||'',
+      value:Number(t.value||0)/1e18,asset:ticker,dir:out?'out':'in',token:false,
+      labelFrom:null,labelTo:null,scamFrom:false,scamTo:false};
+  }).filter(t=>t.value>0||t.dir==='out');
+  const tokRows=(tok&&Array.isArray(tok.result)?tok.result:[]).filter(t=>t&&t.hash).map(t=>{
+    const dec=Number(t.tokenDecimal!=null?t.tokenDecimal:18)||0;
+    return{hash:t.hash,ts:(Number(t.timeStamp)||0)*1000,from:t.from||'',to:t.to||'',
+      value:Number(t.value||0)/Math.pow(10,dec),asset:t.tokenSymbol||'token',
+      contract:t.contractAddress||null,
+      dir:_sfylLower(t.from)===me?'out':'in',token:true,
+      labelFrom:null,labelTo:null,scamFrom:false,scamTo:false};
+  }).filter(t=>t.value>0);
+  return[...natRows,...tokRows];
+};
+const _sfylBlockscout=(host,ticker,evmChainId)=>({gap:700,fetch:async addr=>{
+  try{
+    const nat=await _sfylJson(host+'/api/v2/addresses/'+addr+'/transactions');
+    let tok=null;try{tok=await _sfylJson(host+'/api/v2/addresses/'+addr+'/token-transfers');}catch(_){}
+    return[..._sfylEvmNorm(nat&&nat.items,addr,ticker),..._sfylEvmTokNorm(tok&&tok.items,addr)];
+  }catch(e){
+    /* Fallback tier: Blockscout down/blocked → Ledger proxy (no labels, still real data). */
+    if(evmChainId){try{return await _sfylProxyEtherscanFetch(evmChainId,addr,ticker);}catch(_){}}
+    throw e;
+  }
 }});
 /* Xpub wallet scan (BTC/LTC) — derivation logic mirrors XpubView (~line 3953);
    duplicated deliberately rather than refactoring a working feature.
@@ -3257,6 +3298,146 @@ async function _sfylEsploraGet(cid,path){
   }
   throw lastErr||new Error('No esplora host available');
 }
+/* ═══ SFYL Stage D — OFAC SDN sanctioned-address matching ═══
+   Source: US Treasury OFAC SDN list, machine-readable per-asset files from the
+   0xB10C/ofac-sanctioned-digital-currency-addresses repo (MIT tooling over US-Gov
+   public-domain data, regenerated nightly). Fetched LIVE at SFYL start — no
+   addresses are ever hardcoded. Reference data, not log-derived: intentionally
+   NOT on the reset list (persists across logs within a session).
+   Matching: EVM addresses (0x…) case-insensitive; all others exact-case
+   (base58/bech32 are case-sensitive — lowercasing would break matching). */
+/* ═══ SFYL Stage D — entity label store (exchange/service attribution) ═══
+   Tier-2 "curated" labels; every label carries its source into UI + report.
+   Reference data, not log-derived — intentionally NOT on the reset list.
+   BTC: DefiLlama bitcoin-book (github raw, curated per-exchange address arrays;
+        loader reads the file's own import list — no exchange addresses or names
+        are hardcoded here). BTC has no token contracts, so address-shape
+        extraction cannot mislabel a contract.
+   TON: Tonapi per-account lookup (name + is_scam), keyless, CORS verified
+        2026-08-05; strict rate limits so lookups are cached, one per address. */
+/* ═══ SFYL Stage E — USD value at transaction time ═══
+   Source: DefiLlama coins API (coins.llama.fi/prices/historical/{ts}/{key}) —
+   keyless free tier; keys are coingecko:{id} for natives (COINGECKO_IDS map) and
+   {llamaChainSlug}:{contract} for tokens. Returns USD + confidence. Graceful:
+   unpriceable rows are counted and disclosed, never guessed. Cache is reference
+   data (price of asset X on day Y), intentionally NOT on the reset list. */
+const _SFYL_LLAMA_SLUGS={ethereum:'ethereum',polygon:'polygon',arbitrum:'arbitrum',optimism:'optimism',base:'base',bsc:'bsc',avalanche_c_chain:'avax'};
+const _SFYL_PRICES=Object.create(null); /* key|dayBucket → {usd,conf}|null */
+function _sfylPriceKey(r){
+  if(r.token)return (r.contract&&_SFYL_LLAMA_SLUGS[r.acct&&r.acct.cid])?(_SFYL_LLAMA_SLUGS[r.acct.cid]+':'+r.contract):null;
+  const g=COINGECKO_IDS[r.acct&&r.acct.cid];
+  return g?('coingecko:'+g):null;
+}
+async function _sfylUsdAt(key,tsMs){
+  if(!key||!tsMs)return null;
+  const ck=key+'|'+Math.floor(tsMs/86400000);
+  if(_SFYL_PRICES[ck]!==undefined)return _SFYL_PRICES[ck];
+  try{
+    const j=await _sfylJson('https://coins.llama.fi/prices/historical/'+Math.floor(tsMs/1000)+'/'+encodeURIComponent(key));
+    const c=j&&j.coins&&j.coins[key];
+    _SFYL_PRICES[ck]=(c&&typeof c.price==='number')?{usd:c.price,conf:c.confidence}:null;
+  }catch(_){_SFYL_PRICES[ck]=null;}
+  return _SFYL_PRICES[ck];
+}
+const _SFYL_LABELS={map:Object.create(null),btcStatus:'idle',fetchedAt:null};
+const _sfylLabelKey=(cid,addr)=>cid+'|'+String(addr||'').trim();
+function sfylEntityLabel(cid,addr){
+  return _SFYL_LABELS.map[_sfylLabelKey(cid,addr)]||null;
+}
+const _SFYL_BTC_RE=[/^[13][1-9A-HJ-NP-Za-km-z]{25,34}$/,/^bc1[02-9ac-hj-np-z]{11,87}$/];
+const _sfylIsBtcAddr=s=>_SFYL_BTC_RE.some(re=>re.test(s));
+const _sfylPrettySlug=s=>String(s).replace(/-cex$/i,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+async function _sfylLoadBtcBook(){
+  if(_SFYL_LABELS.btcStatus==='loading'||_SFYL_LABELS.btcStatus==='done')return;
+  _SFYL_LABELS.btcStatus='loading';
+  const BASE='https://raw.githubusercontent.com/DefiLlama/DefiLlama-Adapters/main/projects/helper/bitcoin-book/';
+  const SRC='DefiLlama bitcoin-book (curated)';
+  const addAll=(text,slug)=>{
+    (text.match(/["'](?:[13][1-9A-HJ-NP-Za-km-z]{25,34}|bc1[02-9ac-hj-np-z]{11,87})["']/g)||[]).forEach(m=>{
+      const a=m.slice(1,-1);
+      if(!_sfylIsBtcAddr(a))return;
+      const k=_sfylLabelKey('bitcoin',a);
+      if(!_SFYL_LABELS.map[k])_SFYL_LABELS.map[k]={label:_sfylPrettySlug(slug),src:SRC,tier:2};
+    });
+  };
+  try{
+    const idx=await (await fetch(BASE+'index.js')).text();
+    /* inline exported arrays: const NAME = [...]  |  "name": [...]  |  name: [...] */
+    let m;
+    const arrRe=/(?:const\s+([A-Za-z0-9_]+)\s*=\s*\[|["']([\w.-]+)["']\s*:\s*\[|([A-Za-z0-9_]+)\s*:\s*\[)([\s\S]*?)\]/g;
+    while((m=arrRe.exec(idx))){
+      const key=m[1]||m[2]||m[3]||'';
+      if(!key||/import|blacklist|token/i.test(key))continue;
+      addAll(m[4],key);
+    }
+    /* follow the file's own import list, one fetch each, polite gap */
+    const impRe=/\[\s*["']([\w-]+)["']\s*,\s*["']\.\/([\w.-]+)["']\s*\]/g;
+    const imps=[];
+    while((m=impRe.exec(idx)))imps.push([m[1],m[2]]);
+    for(const pair of imps){
+      if(/^wbtc$/i.test(pair[0]))continue; /* wrapped-BTC custodian, not a CEX — skip to avoid a confusing label */
+      try{addAll(await (await fetch(BASE+pair[1])).text(),pair[0]);}catch(_){}
+      await new Promise(r=>setTimeout(r,250));
+    }
+    _SFYL_LABELS.btcStatus='done';
+    _SFYL_LABELS.fetchedAt=new Date().toISOString().slice(0,10);
+  }catch(e){_SFYL_LABELS.btcStatus='error';}
+}
+const _SFYL_TON_PENDING=Object.create(null);
+async function _sfylTonLookup(addr){
+  const k=_sfylLabelKey('ton',addr);
+  if(_SFYL_LABELS.map[k]!==undefined||_SFYL_TON_PENDING[k])return _SFYL_LABELS.map[k]||null;
+  _SFYL_TON_PENDING[k]=true;
+  try{
+    const j=await _sfylJson('https://tonapi.io/v2/accounts/'+encodeURIComponent(addr));
+    _SFYL_LABELS.map[k]=(j&&(j.name||j.is_scam))?{label:j.name||null,scam:!!j.is_scam,src:'Tonapi',tier:2}:null;
+  }catch(_){_SFYL_LABELS.map[k]=null;}
+  return _SFYL_LABELS.map[k];
+}
+const _SFYL_XLM_PENDING=Object.create(null);
+async function _sfylStellarLookup(addr){
+  /* stellar.expert Directory — community-curated, moderated by StellarExpert + SDF
+     (SEP-0037); CORS documented open, verified in-browser 2026-08-05. */
+  const k=_sfylLabelKey('stellar',addr);
+  if(_SFYL_LABELS.map[k]!==undefined||_SFYL_XLM_PENDING[k])return _SFYL_LABELS.map[k]||null;
+  _SFYL_XLM_PENDING[k]=true;
+  try{
+    const j=await _sfylJson('https://api.stellar.expert/explorer/directory/'+encodeURIComponent(addr));
+    const scam=!!(j&&Array.isArray(j.tags)&&j.tags.some(t=>/malicious|unsafe|scam/i.test(String(t))));
+    _SFYL_LABELS.map[k]=(j&&(j.name||scam))?{label:j.name||null,scam,src:'stellar.expert directory (curated)',tier:2}:null;
+  }catch(_){_SFYL_LABELS.map[k]=null;}
+  return _SFYL_LABELS.map[k];
+}
+const _SFYL_SANCTIONS={raw:new Set(),evm:new Set(),status:'idle',fetchedAt:null,codes:[]};
+const _SFYL_OFAC_CODES=['XBT','ETH','USDT','USDC','LTC','TRX','ZEC','DASH','BCH','ETC','ARB'];
+async function _sfylLoadSanctions(){
+  if(_SFYL_SANCTIONS.status==='loading'||_SFYL_SANCTIONS.status==='done')return _SFYL_SANCTIONS;
+  _SFYL_SANCTIONS.status='loading';
+  const base='https://raw.githubusercontent.com/0xB10C/ofac-sanctioned-digital-currency-addresses/lists/sanctioned_addresses_';
+  let okAny=false;
+  for(const code of _SFYL_OFAC_CODES){
+    try{
+      const r=await fetch(base+code+'.txt');
+      if(!r.ok)continue;
+      (await r.text()).split(/\r?\n/).forEach(a=>{
+        const s=a.trim();
+        if(!s||s.startsWith('#'))return;
+        _SFYL_SANCTIONS.raw.add(s);
+        if(/^0x[0-9a-fA-F]{40}$/.test(s))_SFYL_SANCTIONS.evm.add(s.toLowerCase());
+      });
+      okAny=true;_SFYL_SANCTIONS.codes.push(code);
+    }catch(_){}
+  }
+  _SFYL_SANCTIONS.status=okAny?'done':'error';
+  _SFYL_SANCTIONS.fetchedAt=new Date().toISOString().slice(0,10);
+  return _SFYL_SANCTIONS;
+}
+function sfylSanctioned(addr){
+  if(!addr)return false;
+  const s=String(addr).trim();
+  if(/^0x/i.test(s))return _SFYL_SANCTIONS.evm.has(s.toLowerCase());
+  return _SFYL_SANCTIONS.raw.has(s);
+}
 const SFYL_FETCHERS={
   bitcoin:{gap:600,xpubBlocked:true,fetch:async addr=>_sfylEsploraNorm(await _sfylEsploraGet('bitcoin','/api/address/'+addr+'/txs'),addr,'BTC')},
   litecoin:{gap:800,xpubBlocked:true,untested:true,fetch:async addr=>_sfylEsploraNorm(await _sfylEsploraGet('litecoin','/api/address/'+addr+'/txs'),addr,'LTC')},
@@ -3273,11 +3454,11 @@ const SFYL_FETCHERS={
         value:set.reduce((s2,o)=>s2+(o.value||0),0)/1e8,asset:'DOGE',dir,token:false};
     }).filter(t=>t.value>0);
   }},
-  ethereum:_sfylBlockscout('https://eth.blockscout.com','ETH'),
-  polygon:_sfylBlockscout('https://polygon.blockscout.com','POL'),
-  arbitrum:_sfylBlockscout('https://arbitrum.blockscout.com','ETH'),
-  optimism:_sfylBlockscout('https://explorer.optimism.io','ETH'),
-  base:_sfylBlockscout('https://base.blockscout.com','ETH'),
+  ethereum:_sfylBlockscout('https://eth.blockscout.com','ETH',1),
+  polygon:_sfylBlockscout('https://polygon.blockscout.com','POL',137),
+  arbitrum:_sfylBlockscout('https://arbitrum.blockscout.com','ETH',42161),
+  optimism:_sfylBlockscout('https://explorer.optimism.io','ETH',10),
+  base:_sfylBlockscout('https://base.blockscout.com','ETH',8453),
   avalanche_c_chain:{gap:800,fetch:async addr=>{
     const base='https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api?module=account&address='+addr+'&page=1&offset=40&sort=desc&action=';
     const ok=j=>(j&&Array.isArray(j.result))?j.result:[];
@@ -3403,7 +3584,7 @@ const SFYL_FETCHERS={
         value:set.reduce((s2,o)=>s2+Number(o.value||0),0)/1e6,asset:'ADA',dir,token:false};
     });
   }},
-  bsc:{explorerOnly:"BscScan's free API was retired (Dec 2025) — no keyless browser source exists for BNB Chain. Use the explorer link on the account."}
+  bsc:{gap:900,fetch:async addr=>_sfylProxyEtherscanFetch(56,addr,'BNB')} /* via Ledger proxy — verified 2026-08-05 */
 };
 /* end SFYL data layer */
 
@@ -4897,7 +5078,7 @@ function _sfylGroupDests(marked){
 }
 const _sfylIso=ts=>ts?new Date(ts).toISOString():'(no timestamp)';
 const _sfylRptVal=v=>v>=1000?v.toLocaleString('en-US',{maximumFractionDigits:4}):String(+v.toFixed(8));
-function _sfylReportText(marked,trace){
+function _sfylReportText(marked,trace,usd){
   const dests=_sfylGroupDests(marked);
   const byAsset={};marked.forEach(r=>{byAsset[r.asset]=(byAsset[r.asset]||0)+(r.value||0);});
   const srcAccts={};marked.forEach(r=>{if(r.acct)srcAccts[r.key]=r.acct;});
@@ -4911,6 +5092,7 @@ function _sfylReportText(marked,trace){
   L.push('  Victim accounts affected: '+Object.keys(srcAccts).length);
   L.push('  Destination addresses: '+dests.length);
   L.push('  Assets: '+Object.entries(byAsset).map(([a,v])=>_sfylRptVal(v)+' '+a).join(', '));
+  if(usd&&usd.priced>0)L.push('  Estimated USD value at time of transactions: '+fmtFiat(usd.total)+(usd.unpriced>0?(' (excludes '+usd.unpriced+' transaction(s) with no historical price data)'):'')+' — source: DefiLlama coins API (on-chain/aggregated prices at each transaction timestamp). Verify independently before official use.');
   if(chrono.length>0){
     L.push('  First theft: '+_sfylIso(chrono[0].ts));
     L.push('  Last theft:  '+_sfylIso(chrono[chrono.length-1].ts));
@@ -4925,7 +5107,8 @@ function _sfylReportText(marked,trace){
   L.push('DESTINATION ADDRESSES (order of first theft)');
   dests.forEach((d,i)=>{
     let url=null;try{url=CHAINS[d.cid]&&CHAINS[d.cid].url?CHAINS[d.cid].url(d.addr):null;}catch(_){}
-    L.push('  '+(i+1)+'. '+d.addr+(d.label?('  ["'+d.label+'"]'):'')+(d.scam?'  [FLAGGED AS SCAM by Blockscout]':''));
+    const _ent=!d.label?sfylEntityLabel(d.cid,d.addr):null;
+    L.push('  '+(i+1)+'. '+d.addr+(d.label?('  ["'+d.label+'" — label source: Blockscout]'):(_ent&&_ent.label?('  ["'+_ent.label+'" — label source: '+_ent.src+']'):''))+(d.scam?'  [FLAGGED AS SCAM — source: Blockscout, community-reported, not independently confirmed]':'')+(sfylSanctioned(d.addr)?('  [OFAC SDN-LISTED — US Treasury sanctions list via 0xB10C dataset, fetched '+(_SFYL_SANCTIONS.fetchedAt||'this session')+']'):''));
     L.push('     received: '+Object.entries(d.byAsset).map(([a,v])=>_sfylRptVal(v)+' '+a).join(', ')+' across '+d.txs.length+' tx');
     L.push('     first seen: '+_sfylIso(d.firstTs)+'  last seen: '+_sfylIso(d.lastTs));
     if(url)L.push('     explorer: '+url);
@@ -4969,6 +5152,7 @@ function _sfylReportText(marked,trace){
     });
   }
   L.push('');
+  L.push('LABEL PROVENANCE: exchange/bridge/scam labels come from public explorer APIs (Blockscout). OFAC matches come from the US Treasury SDN list (public domain), fetched live this session. Scam flags are community-reported and advisory; OFAC matches are authoritative.');
   L.push('NOTE: Transactions were individually reviewed and marked by a support agent. Verify all data against the linked block explorers before official submission (e.g. IC3 / law enforcement).');
   return L.join('\n');
 }
@@ -4987,25 +5171,25 @@ function SfylTraceNode({cid,addr,arrivalTs,sfylTrace,onTrace,depth,path,fmtVal,f
   const k=cid+':'+(addr||'').toLowerCase();
   const rec=sfylTrace[k];
   if(path.indexOf(k)>=0)return <div style={{fontSize:9,color:'#FFBD42',marginTop:4}}>↺ circular — funds return to an address earlier in this path (wash pattern)</div>;
-  if(!rec)return <button onClick={()=>onTrace(cid,addr,arrivalTs)} style={{marginTop:4,padding:'2px 8px',borderRadius:2,border:'1px solid rgba(234,67,53,0.4)',background:'transparent',color:'#EA4335',fontSize:9,fontWeight:700,cursor:'pointer'}}>Trace onward ▸</button>;
+  if(!rec)return <button onClick={()=>onTrace(cid,addr,arrivalTs)} style={{marginTop:4,padding:'2px 8px',borderRadius:2,border:'1px solid rgba(240,79,82,0.4)',background:'transparent',color:'#F04F52',fontSize:9,fontWeight:700,cursor:'pointer'}}>Trace onward ▸</button>;
   if(rec.status==='loading')return <div style={{fontSize:9,color:'#FFBD42',marginTop:4}}>tracing…</div>;
-  if(rec.status==='error')return <div style={{fontSize:9,color:'#EA4335',marginTop:4}}>trace failed: {rec.error} <span onClick={()=>onTrace(cid,addr,arrivalTs)} style={{textDecoration:'underline',cursor:'pointer'}}>retry</span></div>;
+  if(rec.status==='error')return <div style={{fontSize:9,color:'#F04F52',marginTop:4}}>trace failed: {rec.error} <span onClick={()=>onTrace(cid,addr,arrivalTs)} style={{textDecoration:'underline',cursor:'pointer'}}>retry</span></div>;
   if(rec.terminal==='dormant')return <div style={{fontSize:9,color:'#7AC26C',marginTop:4}}>■ No onward transfers after arrival — funds appear to remain at this address (contract-internal moves are not visible to this tool)</div>;
-  return <div style={{marginTop:6,borderLeft:'2px solid rgba(234,67,53,0.3)',paddingLeft:10}}>
+  return <div style={{marginTop:6,borderLeft:'2px solid rgba(240,79,82,0.3)',paddingLeft:10}}>
     {rec.outflows.map((o,i)=>{
       const term=o.kind==='exchange'||o.kind==='bridge';
       return <div key={i} style={{marginTop:i>0?6:0}}>
         <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-          <span style={{color:'#EA4335',fontSize:9}}>→</span>
+          <span style={{color:'#F04F52',fontSize:9}}>→</span>
           <span className="mono" style={{fontSize:9,color:'#FFFFFF',fontWeight:700}}>{fmtVal(o.value)} {o.asset}{o.count>1?' ('+o.count+' tx)':''}</span>
           {o.swapRecv&&<span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:2,background:'rgba(255,189,66,0.12)',color:'#FFBD42'}}>swap — received {o.swapRecv} same tx</span>}
           <span className="mono" style={{fontSize:9,color:'#C8C8CC'}} title={o.to}>{_sfylTrunc(o.to,20)}</span>
           <SfylCopy text={o.to}/>
           {o.label&&<span style={{fontSize:9,color:'#FFBD42'}}>"{o.label}"</span>}
-          {o.kind==='exchange'&&<span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:2,background:'rgba(234,67,53,0.14)',color:'#EA4335'}}>EXCHANGE/SERVICE — on-chain trace ends here; recovery continues via legal process</span>}
+          {o.kind==='exchange'&&<span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:2,background:'rgba(240,79,82,0.14)',color:'#F04F52'}}>EXCHANGE/SERVICE — on-chain trace ends here; recovery continues via legal process</span>}
           {o.kind==='bridge'&&<span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:2,background:'rgba(255,189,66,0.12)',color:'#FFBD42'}}>BRIDGE — funds left this chain; continue manually on the destination chain</span>}
           {o.kind==='swap'&&<span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:2,background:'rgba(255,189,66,0.12)',color:'#FFBD42'}}>DEX / router</span>}
-          {o.scam&&<span style={{fontSize:8,fontWeight:700,color:'#EA4335'}}>⚠ flagged scam</span>}
+          {o.scam&&<span style={{fontSize:8,fontWeight:700,color:'#F04F52'}}>⚠ flagged scam</span>}
           <span style={{fontSize:8,color:'#8A8A8E'}}>{fmtTs(o.firstTs)}</span>
         </div>
         {depth<6&&!term&&o.to&&<SfylTraceNode cid={cid} addr={o.to} arrivalTs={o.firstTs} sfylTrace={sfylTrace} onTrace={onTrace} depth={depth+1} path={path.concat([k])} fmtVal={fmtVal} fmtTs={fmtTs}/>}
@@ -5017,12 +5201,12 @@ function SfylFlow({marked,fmtVal,fmtTs,sfylTrace,onTrace}){
   if(marked.length===0)return <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:40}}>
     <div style={{textAlign:'center',maxWidth:420}}>
       <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',marginBottom:8}}>No theft transactions marked</div>
-      <div style={{fontSize:11,color:'#8A8A8E',lineHeight:1.6}}>Switch to the Ledger panel and tick <span style={{color:'#EA4335',fontWeight:700}}>Theft</span> on the outgoing transactions that are part of the drain. The flow diagram and forensic report build from those marks.</div>
+      <div style={{fontSize:11,color:'#8A8A8E',lineHeight:1.6}}>Click <span style={{color:'#F04F52',fontWeight:700}}>MARK</span> on the outgoing transactions that are part of the drain — this map and the forensic report build live from your marks.</div>
     </div>
   </div>;
   const dests=_sfylGroupDests(marked);
   return <div style={{flex:1,overflowY:'auto',padding:'14px 18px'}}>
-    <div style={{fontSize:10,color:'#8A8A8E',marginBottom:14}}>Destinations in order of first theft (top = earliest). <span style={{color:'#FFBD42'}}>Convergence</span> = multiple victim accounts draining to the same address — typically the attacker's collection wallet. Use <span style={{color:'#EA4335',fontWeight:700}}>Trace onward</span> to follow funds hop by hop until they go dormant, reach an exchange/service, or leave the chain via a bridge (40-trace budget per log).</div>
+    <div style={{fontSize:10,color:'#8A8A8E',marginBottom:14}}>Destinations in order of first theft (top = earliest). <span style={{color:'#FFBD42'}}>Convergence</span> = multiple victim accounts draining to the same address — typically the attacker's collection wallet. Use <span style={{color:'#F04F52',fontWeight:700}}>Trace onward</span> to follow funds hop by hop until they go dormant, reach an exchange/service, or leave the chain via a bridge (40-trace budget per log).</div>
     {dests.map((d,i)=>{
       const acctList=Object.values(d.accounts);
       const converge=acctList.length>1;
@@ -5039,22 +5223,23 @@ function SfylFlow({marked,fmtVal,fmtTs,sfylTrace,onTrace}){
           })}
         </div>
         <div style={{width:160,flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 8px'}}>
-          <div className="mono" style={{fontSize:9,color:'#EA4335',fontWeight:700,textAlign:'center'}}>
+          <div className="mono" style={{fontSize:9,color:'#F04F52',fontWeight:700,textAlign:'center'}}>
             {Object.entries(d.byAsset).map(([a2,v])=>fmtVal(v)+' '+a2).join(' · ')}
           </div>
-          <div style={{width:'100%',height:1,background:'linear-gradient(90deg,rgba(234,67,53,0.15),#EA4335)',margin:'4px 0',position:'relative'}}>
-            <span style={{position:'absolute',right:-2,top:-4,color:'#EA4335',fontSize:9}}>▶</span>
+          <div style={{width:'100%',height:1,background:'linear-gradient(90deg,rgba(240,79,82,0.15),#F04F52)',margin:'4px 0',position:'relative'}}>
+            <span style={{position:'absolute',right:-2,top:-4,color:'#F04F52',fontSize:9}}>▶</span>
           </div>
           <div style={{fontSize:8,color:'#8A8A8E'}}>{d.txs.length} tx</div>
         </div>
-        <div style={{flex:1,minWidth:0,padding:'8px 10px',borderRadius:2,background:'rgba(234,67,53,0.06)',border:'1px solid '+(converge?'#FFBD42':'rgba(234,67,53,0.35)')}}>
+        <div style={{flex:1,minWidth:0,padding:'8px 10px',borderRadius:2,background:'rgba(240,79,82,0.06)',border:'1px solid '+(converge?'#FFBD42':'rgba(240,79,82,0.35)')}}>
           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             <span style={{fontSize:9,fontWeight:700,color:'#8A8A8E'}}>#{i+1}</span>
             <span className="mono" style={{fontSize:10,color:'#FFFFFF',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'55%'}} title={d.addr}>{d.addr}</span>
             <SfylCopy text={d.addr}/>
             {addrUrl&&<a href={addrUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:'#8A8A8E',textDecoration:'none'}}>explorer ↗</a>}
-            {d.label&&<span style={{fontSize:9,color:'#FFBD42'}}>"{d.label}"</span>}
-            {d.scam&&<span style={{fontSize:9,fontWeight:700,color:'#EA4335'}}>⚠ flagged scam</span>}
+            {(()=>{const el=d.label||((sfylEntityLabel(d.cid,d.addr)||{}).label);return el?<span style={{fontSize:9,color:'#FFBD42'}}>"{el}"</span>:null;})()}
+            {d.scam&&<span style={{fontSize:9,fontWeight:700,color:'#F04F52'}}>⚠ flagged scam</span>}
+            {sfylSanctioned(d.addr)&&<span style={{fontSize:8,fontWeight:700,padding:'1px 4px',borderRadius:2,background:'#F04F52',color:'#0A0A0A'}}>OFAC SDN</span>}
             {converge&&<span style={{fontSize:9,fontWeight:700,color:'#FFBD42'}}>◈ convergence — {acctList.length} accounts</span>}
           </div>
           <div style={{fontSize:9,color:'#8A8A8E',marginTop:4}}>first {fmtTs(d.firstTs)} · last {fmtTs(d.lastTs)}</div>
@@ -5070,10 +5255,367 @@ function SfylCopy({text}){
   return <span onClick={e=>{e.stopPropagation();try{navigator.clipboard.writeText(text);}catch(_){ }setOk(true);setTimeout(()=>setOk(false),700);}}
     title="Copy" style={{cursor:'pointer',fontSize:9,color:ok?'#7AC26C':'#8A8A8E',marginLeft:4,userSelect:'none'}}>{ok?'✓':'⧉'}</span>;
 }
+/* ═══ SFYL Stage C — report console: HUD-framed summary, plain-language timeline,
+   evidence checklist, exports. All narrative text is deterministic template output
+   from marks + trace data — hedged wording, no claims beyond the data. ═══ */
+function _sfylPhases(marked,trace){
+  const chrono=[...marked].sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const dests=_sfylGroupDests(marked);
+  const srcAccts={};marked.forEach(r=>{if(r.acct)srcAccts[r.key]=r.acct;});
+  const first=chrono.length?chrono[0].ts:0,last=chrono.length?chrono[chrono.length-1].ts:0;
+  const mins=first&&last?Math.max(1,Math.round((last-first)/60000)):0;
+  const anyScam=dests.some(d=>d.scam);
+  const forwarded=dests.filter(d=>{
+    const rec=trace[d.cid+':'+((d.addr||'')+'').toLowerCase()];
+    return rec&&rec.status==='done'&&rec.outflows&&rec.outflows.length>0;
+  });
+  const exch=[],bridges=[];
+  Object.values(trace||{}).forEach(rec=>{
+    if(!rec||rec.status!=='done'||!rec.outflows)return;
+    rec.outflows.forEach(o=>{
+      if(o.kind==='exchange')exch.push(o);
+      if(o.kind==='bridge')bridges.push(o);
+    });
+  });
+  return{chrono,dests,srcAccts,first,last,mins,anyScam,forwarded,exch,bridges,
+    nAcct:Object.keys(srcAccts).length,nDest:dests.length,
+    byAsset:marked.reduce((m,r)=>{m[r.asset]=(m[r.asset]||0)+(r.value||0);return m;},{})};
+}
+function _sfylCustomerText(marked,trace){
+  const p=_sfylPhases(marked,trace);
+  const dstr=p.first?new Date(p.first).toISOString().slice(0,10):'(date unknown)';
+  const L=[];
+  L.push('WHAT WE FOUND — unauthorized transactions on '+dstr);
+  L.push('');
+  L.push('• '+marked.length+' transaction'+(marked.length!==1?'s':'')+' moved funds out of '+p.nAcct+' of your account'+(p.nAcct!==1?'s':'')+(p.mins?(' within about '+p.mins+' minute'+(p.mins!==1?'s':'')):'')+'. You told us you did not make these.');
+  L.push('• In total: '+Object.entries(p.byAsset).map(([a,v])=>_sfylRptVal(v)+' '+a).join(', ')+'.');
+  L.push('• The funds went to '+p.nDest+' address'+(p.nDest!==1?'es':'')+' not associated with your wallet.'+(p.anyScam?' At least one of these addresses is flagged as a scam address by public blockchain explorers.':''));
+  if(p.exch.length>0)L.push('• Part of the funds was deposited to '+[...new Set(p.exch.map(o=>o.label||'an exchange/service'))].join(', ')+'. Funds at an exchange can only be pursued through a legal request to that service — usually via law enforcement.');
+  if(p.bridges.length>0)L.push('• Part of the funds was moved to another blockchain via a bridge'+(p.bridges[0].label?(' ('+p.bridges[0].label+')'):'')+'.');
+  L.push('');
+  L.push('WHAT TO DO NEXT');
+  L.push('• Stop using the affected wallet. Set up a new wallet with a brand-new recovery phrase and move any remaining funds there.');
+  L.push('• Never share your recovery phrase with anyone — Ledger will never ask for it.');
+  L.push('• Report the theft to law enforcement (in the US: ic3.gov). Give them the technical report your support agent prepared — it contains the transaction IDs and addresses they need.');
+  L.push('• If funds reached an exchange, law enforcement can contact that exchange with the details in the technical report.');
+  L.push('');
+  L.push('This summary was prepared by Ledger support from public blockchain data. The transactions above were individually reviewed with you. Amounts are in the original crypto assets.');
+  return L.join('\n');
+}
+function SfylReport({marked,sfylTrace,fmtVal,fmtTs,usd,onBack}){
+  const R='#F04F52';
+  const[copied,setCopied]=React.useState(null);
+  const p=React.useMemo(()=>_sfylPhases(marked,sfylTrace),[marked,sfylTrace]);
+  if(marked.length===0)return <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:40}}>
+    <div style={{textAlign:'center',maxWidth:420}}>
+      <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',marginBottom:8}}>Nothing to report yet</div>
+      <div style={{fontSize:11,color:'#8A8A8E',lineHeight:1.6}}>Go back to the ledger and click <span style={{color:R,fontWeight:700}}>MARK</span> on the theft transactions — the report builds from those marks.</div>
+    </div>
+  </div>;
+  const chainsN=[...new Set(marked.map(r=>r.acct&&r.acct.cid).filter(Boolean))].length;
+  const untraced=p.dests.filter(d=>!sfylTrace[d.cid+':'+((d.addr||'')+'').toLowerCase()]).length;
+  const maxDepth=(()=>{let n=0;Object.values(sfylTrace||{}).forEach(r=>{if(r&&r.status==='done')n++;});return n;})();
+  const exchNames=[...new Set(p.exch.map(o=>o.label).filter(Boolean))];
+  const doCopy=(what,text)=>{try{navigator.clipboard.writeText(text);}catch(_){ }setCopied(what);setTimeout(()=>setCopied(null),900);};
+  const corner=(pos)=>{const s={position:'absolute',width:14,height:14,borderColor:'rgba(255,255,255,0.5)',borderStyle:'solid',borderWidth:0};
+    if(pos==='tl'){s.top=0;s.left=0;s.borderTopWidth=1.5;s.borderLeftWidth=1.5;}
+    if(pos==='tr'){s.top=0;s.right=0;s.borderTopWidth=1.5;s.borderRightWidth=1.5;}
+    if(pos==='bl'){s.bottom=0;s.left=0;s.borderBottomWidth=1.5;s.borderLeftWidth=1.5;}
+    if(pos==='br'){s.bottom=0;s.right=0;s.borderBottomWidth=1.5;s.borderRightWidth=1.5;}
+    return <span key={pos} style={s}/>;};
+  const evRow=(label,detail,ok)=>
+    <div key={label} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 12px',border:'1px '+(ok?'solid':'dashed')+' rgba(255,255,255,'+(ok?'0.12':'0.2')+')',borderRadius:2,marginBottom:8}}>
+      <span style={{fontSize:11,color:'#E8E8EA',flex:1}}>{label}</span>
+      <span className="mono" style={{fontSize:10,color:ok?'#C8C8CC':'#FFBD42'}}>{detail}</span>
+      <span style={{fontSize:11,color:ok?'#7AC26C':'#FFBD42',fontWeight:700}}>{ok?'✓':'incomplete'}</span>
+    </div>;
+  const phase=(time,tag,color,children)=>
+    <div key={tag} style={{display:'flex',gap:10,marginBottom:16}}>
+      <span style={{width:8,height:8,background:color,borderRadius:1,marginTop:3,flexShrink:0}}/>
+      <div style={{minWidth:0}}>
+        <div className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.08em',color}}>{time?time+' · ':''}{tag}</div>
+        <div style={{fontSize:12,color:'#D9D9D9',lineHeight:1.6,marginTop:3}}>{children}</div>
+      </div>
+    </div>;
+  const tRange=(a,b)=>{const f=ts=>ts?new Date(ts).toISOString().slice(11,16):'?';return a&&b&&a!==b?f(a)+'–'+f(b)+' UTC':f(a)+' UTC';};
+  return <div style={{flex:1,display:'flex',minHeight:0,overflow:'hidden'}}>
+    <div style={{flex:1,minWidth:0,overflowY:'auto',padding:'18px 26px'}}>
+      <button onClick={onBack} style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer',marginBottom:16}}>← Back to ledger</button>
+      {/* HUD-framed incident summary */}
+      <div style={{position:'relative',padding:'18px 22px',marginBottom:22}}>
+        {['tl','tr','bl','br'].map(corner)}
+        <div className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:R}}>INCIDENT SUMMARY · {p.first?new Date(p.first).toISOString().slice(0,10):'—'} · VERIFIED ON-CHAIN · AGENT-REVIEWED</div>
+        <div style={{display:'flex',gap:36,alignItems:'flex-end',marginTop:12,flexWrap:'wrap'}}>
+          <div>
+            {usd&&usd.priced>0&&<div style={{fontSize:34,fontWeight:800,color:'#FFFFFF',letterSpacing:'-0.02em',lineHeight:1.05}}>≈ {fmtFiat(usd.total)}{usd.unpriced>0?'*':''}</div>}
+            <div style={{fontSize:usd&&usd.priced>0?14:30,fontWeight:usd&&usd.priced>0?600:800,color:usd&&usd.priced>0?'#C8C8CC':'#FFFFFF',letterSpacing:'-0.01em',lineHeight:1.2,marginTop:usd&&usd.priced>0?4:0}}>
+              {Object.entries(p.byAsset).map(([a,v])=>_sfylRptVal(v)+' '+a).join(' · ')}
+            </div>
+            <div className="mono" style={{fontSize:9,color:'#8A8A8E',marginTop:4,letterSpacing:'0.06em'}}>TOTAL MARKED STOLEN{usd&&usd.priced>0?' · USD AT TRANSACTION TIME (DefiLlama)'+(usd.unpriced>0?' · *'+usd.unpriced+' ROW'+(usd.unpriced!==1?'S':'')+' UNPRICED':''):''}</div>
+          </div>
+          <div><div style={{fontSize:22,fontWeight:800,color:'#FFFFFF'}}><CountUp value={marked.length}/></div><div className="mono" style={{fontSize:9,color:'#8A8A8E'}}>THEFT TX</div></div>
+          <div><div style={{fontSize:22,fontWeight:800,color:'#FFFFFF'}}>{p.nAcct}</div><div className="mono" style={{fontSize:9,color:'#8A8A8E'}}>ACCOUNTS · {chainsN} CHAIN{chainsN!==1?'S':''}</div></div>
+          {exchNames.length>0&&<div><div style={{fontSize:22,fontWeight:800,color:R}}>{exchNames[0]}</div><div className="mono" style={{fontSize:9,color:'#8A8A8E'}}>TRACE ENDPOINT</div></div>}
+        </div>
+      </div>
+      {/* Plain-language timeline */}
+      <div className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:'#8A8A8E',marginBottom:12}}>WHAT HAPPENED — PLAIN-LANGUAGE TIMELINE</div>
+      {phase(tRange(p.first,p.last),'DRAIN',R,
+        <React.Fragment>{marked.length} outgoing transaction{marked.length!==1?'s':''} emptied funds from {p.nAcct} of the customer's account{p.nAcct!==1?'s':''}{p.mins?(' in about '+p.mins+' minute'+(p.mins!==1?'s':'')):''}, to {p.nDest} destination address{p.nDest!==1?'es':''}.{p.anyScam?' At least one destination is flagged as a scam address by public explorers.':''} Marks were individually reviewed by the support agent.</React.Fragment>)}
+      {p.forwarded.length>0&&phase(tRange(p.forwarded[0].firstTs,null),'ONWARD MOVEMENT','#FF8C42',
+        <React.Fragment>Funds moved onward from {p.forwarded.length} of {p.nDest} destination address{p.nDest!==1?'es':''} (see trace tree in the technical report). {untraced>0?untraced+' destination'+(untraced!==1?'s':'')+' not yet traced.':'All destinations traced.'}</React.Fragment>)}
+      {(p.exch.length>0||p.bridges.length>0)&&phase('','ENDPOINTS','#FFBD42',
+        <React.Fragment>
+          {p.exch.length>0&&<span>{p.exch.length} transfer{p.exch.length!==1?'s':''} reached {exchNames.length>0?exchNames.join(', '):'an exchange/service'} — on-chain tracing ends there; recovery continues via legal request to the service. </span>}
+          {p.bridges.length>0&&<span>{p.bridges.length} transfer{p.bridges.length!==1?'s':''} left the chain via a bridge{p.bridges[0].label?(' ('+p.bridges[0].label+')'):''} — continue manually on the destination chain.</span>}
+        </React.Fragment>)}
+      <div style={{fontSize:10,color:'#6A6A6A',marginTop:6,lineHeight:1.6}}>Labels (exchange, bridge, scam flags) come from public explorer APIs. Verify all data against the linked block explorers before official submission.</div>
+    </div>
+    {/* Right: evidence + export rail */}
+    <div style={{width:340,flexShrink:0,borderLeft:'1px solid rgba(255,255,255,0.07)',overflowY:'auto',padding:'18px 18px',display:'flex',flexDirection:'column'}}>
+      <div className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:'#8A8A8E',marginBottom:10}}>EVIDENCE ATTACHED</div>
+      {evRow('Theft transactions',marked.filter(r=>r.hash).length+' hashes',marked.every(r=>r.hash))}
+      {evRow('Destination addresses',String(p.nDest),p.nDest>0)}
+      {evRow('Trace coverage',untraced>0?(p.nDest-untraced)+'/'+p.nDest+' traced':maxDepth+' addresses traced',untraced===0)}
+      {evRow('Exchange endpoint detail',exchNames.length>0?exchNames.join(', '):'— none identified',exchNames.length>0)}
+      <div style={{flex:1}}/>
+      <div className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:'#8A8A8E',margin:'14px 0 10px'}}>EXPORT</div>
+      <button className="sfyl-cta" style={{width:'100%',marginBottom:8}} onClick={()=>doCopy('tech',_sfylReportText(marked,sfylTrace,usd))}>{copied==='tech'?'✓ Copied':'Copy fraud-team report'}</button>
+      <button style={{width:'100%',marginBottom:8,padding:'8px 12px',borderRadius:2,border:'1px solid rgba(255,255,255,0.2)',background:'transparent',color:copied==='cust'?'#7AC26C':'#E8E8EA',fontSize:11,fontWeight:700,cursor:'pointer'}} onClick={()=>doCopy('cust',_sfylCustomerText(marked,sfylTrace))}>{copied==='cust'?'✓ Copied':'Copy customer summary'}</button>
+      <button style={{width:'100%',padding:'8px 12px',borderRadius:2,border:'1px solid rgba(255,255,255,0.2)',background:'transparent',color:copied==='csv'?'#7AC26C':'#C8C8CC',fontSize:11,fontWeight:700,cursor:'pointer'}} onClick={()=>{
+        const blob=new Blob([_sfylReportCsv(marked)],{type:'text/csv'});
+        const u=URL.createObjectURL(blob);const el=document.createElement('a');
+        el.href=u;el.download='sfyl-report-'+new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')+'.csv';
+        document.body.appendChild(el);el.click();document.body.removeChild(el);
+        setTimeout(()=>URL.revokeObjectURL(u),2000);setCopied('csv');setTimeout(()=>setCopied(null),900);
+      }}>{copied==='csv'?'✓ Saved':'Download evidence CSV'}</button>
+      <div style={{fontSize:9,color:'#6A6A6A',marginTop:10,lineHeight:1.6}}>Fraud-team report includes full hashes, addresses and the onward-flow tree. Customer summary is plain language, no technical identifiers.</div>
+    </div>
+  </div>;
+}
+
+/* ═══ SFYL Stage B — full-width trace canvas: victims → destinations → hops → endpoints.
+   Layout is deterministic (fixed slots per column, SVG edges behind absolutely-positioned
+   node cards) — no DOM measuring, so it renders identically on first paint.
+   Balance checks show NATIVE coin balance only (tokens are not summed — labeled honestly). ═══ */
+async function _sfylNativeBal(cid,addr){
+  if(BALANCE_APIS[cid])return await BALANCE_APIS[cid](addr);
+  if(EVM_RPCS[cid])return await fetchEvmBalance(EVM_RPCS[cid],addr);
+  throw new Error('no keyless balance source');
+}
+function _sfylBuildGraph(marked,trace){
+  const NODE_W=236,NODE_H=98,GAP_X=72,GAP_Y=18,PAD=20,TOP=16;
+  /* Level 0 — victims (unique accounts among marks) */
+  const vics={};
+  marked.forEach(r=>{
+    if(!r.acct)return;
+    if(!vics[r.key])vics[r.key]={key:'V|'+r.key,type:'victim',acct:r.acct,cid:r.acct.cid,addr:r.acct.addr,byAsset:{}};
+    vics[r.key].byAsset[r.asset]=(vics[r.key].byAsset[r.asset]||0)+(r.value||0);
+  });
+  const nodes={},cols=[[]];
+  Object.values(vics).forEach(v=>{nodes[v.key]=v;cols[0].push(v.key);});
+  /* Level 1 — marked destinations */
+  const dests=_sfylGroupDests(marked);
+  cols.push([]);
+  const edges=[];
+  dests.forEach(d=>{
+    const k='N|'+d.cid+':'+((d.addr||'')+'').toLowerCase();
+    if(!nodes[k]){
+      nodes[k]={key:k,type:'dest',cid:d.cid,addr:d.addr,label:d.label,scam:d.scam,byAsset:d.byAsset,firstTs:d.firstTs,convergeN:Object.keys(d.accounts).length,kind:null};
+      cols[1].push(k);
+    }
+    Object.keys(d.accounts).forEach(ak=>{if(vics[ak])edges.push({from:'V|'+ak,to:k});});
+  });
+  /* Levels 2+ — walk trace records breadth-first; never place a node twice (cycle guard). */
+  let frontier=cols[1].slice();
+  for(let lvl=2;lvl<=7&&frontier.length;lvl++){
+    const next=[];
+    frontier.forEach(pk=>{
+      const n=nodes[pk];
+      const rec=trace[n.cid+':'+((n.addr||'')+'').toLowerCase()];
+      if(!rec||rec.status!=='done'||!rec.outflows)return;
+      rec.outflows.forEach(o=>{
+        if(!o.to)return;
+        const ck='N|'+n.cid+':'+((o.to||'')+'').toLowerCase();
+        if(nodes[ck]){edges.push({from:pk,to:ck,back:true});return;}
+        nodes[ck]={key:ck,type:'hop',cid:n.cid,addr:o.to,label:o.label,scam:!!o.scam,kind:o.kind||null,swapRecv:o.swapRecv||null,
+          byAsset:{[o.asset]:o.value},firstTs:o.firstTs,convergeN:1};
+        if(!cols[lvl])cols.push([]);
+        cols[lvl].push(ck);
+        next.push(ck);
+        edges.push({from:pk,to:ck});
+      });
+    });
+    frontier=next;
+  }
+  /* Positions */
+  cols.forEach((col,ci)=>col.forEach((k,ri)=>{
+    nodes[k].x=PAD+ci*(NODE_W+GAP_X);
+    nodes[k].y=TOP+ri*(NODE_H+GAP_Y);
+  }));
+  const maxRows=Math.max.apply(null,cols.map(c=>c.length).concat([1]));
+  return{nodes,edges,cols,W:PAD*2+cols.length*(NODE_W+GAP_X)-GAP_X,H:TOP+maxRows*(NODE_H+GAP_Y)+40,NODE_W,NODE_H};
+}
+function SfylTraceMap({marked,sfylTrace,onTrace,fmtVal,fmtTs,onBack}){
+  const R='#F04F52';
+  const[bal,setBal]=React.useState({});
+  const[batch,setBatch]=React.useState(null);
+  const balRunRef=React.useRef(false);
+  const g=React.useMemo(()=>_sfylBuildGraph(marked,sfylTrace),[marked,sfylTrace]);
+  const dests=React.useMemo(()=>_sfylGroupDests(marked),[marked]);
+  /* Auto balance-check level-1 destinations (≤12, sequential, 300ms gap, once per mount). */
+  React.useEffect(()=>{
+    if(balRunRef.current)return;balRunRef.current=true;
+    let dead=false;
+    (async()=>{
+      for(const d of dests.slice(0,12)){
+        const k='N|'+d.cid+':'+((d.addr||'')+'').toLowerCase();
+        if(dead)return;
+        setBal(p=>p[k]?p:Object.assign({},p,{[k]:{status:'loading'}}));
+        try{const v=await _sfylNativeBal(d.cid,d.addr);if(!dead)setBal(p=>Object.assign({},p,{[k]:{status:'done',val:v}}));}
+        catch(e){if(!dead)setBal(p=>Object.assign({},p,{[k]:{status:'error'}}));}
+        await new Promise(r=>setTimeout(r,300));
+      }
+    })();
+    return()=>{dead=true;};
+  },[dests]);
+  const checkBal=async n=>{
+    setBal(p=>Object.assign({},p,{[n.key]:{status:'loading'}}));
+    try{const v=await _sfylNativeBal(n.cid,n.addr);setBal(p=>Object.assign({},p,{[n.key]:{status:'done',val:v}}));}
+    catch(e){setBal(p=>Object.assign({},p,{[n.key]:{status:'error'}}));}
+  };
+  const traceAll=async()=>{
+    const todo=dests.filter(d=>!sfylTrace[d.cid+':'+((d.addr||'')+'').toLowerCase()]);
+    setBatch({done:0,total:todo.length});
+    for(let i=0;i<todo.length;i++){
+      await onTrace(todo[i].cid,todo[i].addr,todo[i].firstTs);
+      setBatch({done:i+1,total:todo.length});
+    }
+    setTimeout(()=>setBatch(null),1500);
+  };
+  const untraced=dests.filter(d=>!sfylTrace[d.cid+':'+((d.addr||'')+'').toLowerCase()]).length;
+  const colTitle=ci=>ci===0?'VICTIM ACCOUNTS':ci===1?'HOP 1 — DESTINATIONS':'HOP '+ci;
+  if(marked.length===0)return <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:40}}>
+    <div style={{textAlign:'center',maxWidth:420}}>
+      <div style={{fontSize:13,fontWeight:600,color:'#FFFFFF',marginBottom:8}}>Nothing to trace yet</div>
+      <div style={{fontSize:11,color:'#8A8A8E',lineHeight:1.6}}>Go back to the ledger and click <span style={{color:R,fontWeight:700}}>MARK</span> on the theft transactions — the trace canvas builds from those marks.</div>
+    </div>
+  </div>;
+  const nodeCard=n=>{
+    const ch=CHAINS[n.cid]||{};
+    let addrUrl=null;try{addrUrl=ch.url?ch.url(n.addr):null;}catch(_){}
+    const tk=n.cid+':'+((n.addr||'')+'').toLowerCase();
+    const rec=n.type!=='victim'?sfylTrace[tk]:null;
+    const b=bal[n.key];
+    const converge=n.type==='dest'&&n.convergeN>1;
+    const border=n.type==='victim'?'rgba(255,255,255,0.14)':converge?'#FFBD42':n.kind==='exchange'?R:n.kind==='bridge'?'#FFBD42':'rgba(240,79,82,0.4)';
+    return <div key={n.key} style={{position:'absolute',left:n.x,top:n.y,width:g.NODE_W,height:g.NODE_H,boxSizing:'border-box',padding:'7px 9px',borderRadius:2,
+      background:n.type==='victim'?'rgba(255,255,255,0.03)':'rgba(240,79,82,0.05)',border:'1px solid '+border,overflow:'hidden'}}>
+      <div style={{display:'flex',alignItems:'center',gap:5,minWidth:0}}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:ch.color||'#8A8A90',flexShrink:0}}/>
+        {n.type==='victim'
+          ?<span style={{fontSize:10,fontWeight:700,color:'#E8E8EA',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{ch.name||n.cid}</span>
+          :<span className="mono" style={{fontSize:9,fontWeight:700,color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',flex:1}} title={n.addr}>{_sfylTrunc(n.addr,22)}</span>}
+        {n.type!=='victim'&&<SfylCopy text={n.addr}/>}
+        {addrUrl&&<a href={addrUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:8,color:'#8A8A8E',textDecoration:'none',flexShrink:0}}>↗</a>}
+      </div>
+      {n.type==='victim'&&<div className="mono" style={{fontSize:8,color:'#8A8A8E',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{n.addr}</div>}
+      <div className="mono" style={{fontSize:9,color:n.type==='victim'?R:'#C8C8CC',marginTop:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+        {n.type==='victim'?'− ':'+ '}{Object.entries(n.byAsset||{}).map(([a,v])=>fmtVal(v)+' '+a).join(' · ')}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:5,marginTop:3,flexWrap:'wrap'}}>
+        {n.label&&<span style={{fontSize:8,color:'#FFBD42',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:110}}>"{n.label}"</span>}
+        {n.scam&&<span style={{fontSize:8,fontWeight:700,color:R}}>⚠ scam</span>}
+        {sfylSanctioned(n.addr)&&<span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:2,background:R,color:'#0A0A0A'}}>OFAC SDN</span>}
+        {converge&&<span style={{fontSize:8,fontWeight:700,color:'#FFBD42'}}>◈ ×{n.convergeN}</span>}
+        {n.kind==='exchange'&&<span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:2,background:'rgba(240,79,82,0.14)',color:R}}>EXCHANGE — trace ends</span>}
+        {n.kind==='bridge'&&<span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:2,background:'rgba(255,189,66,0.12)',color:'#FFBD42'}}>BRIDGE — left chain</span>}
+        {n.kind==='swap'&&<span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:2,background:'rgba(255,189,66,0.12)',color:'#FFBD42'}}>DEX{n.swapRecv?' → '+n.swapRecv:''}</span>}
+      </div>
+      {n.type!=='victim'&&<div style={{position:'absolute',left:9,right:9,bottom:6,display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap',overflow:'hidden'}}>
+        {b&&b.status==='done'&&<span className="mono" style={{fontSize:8,color:b.val===0?'#7AC26C':'#C8C8CC'}} title="Native coin only — token balances not included">{b.val===0?'holds 0 (native) — forwarded':'holds '+fmtVal(b.val)+' '+(ch.ticker||'')+' (native)'}</span>}
+        {b&&b.status==='loading'&&<span className="mono bi-activity-pulse" style={{fontSize:8,color:'#8A8A8E'}}>balance…</span>}
+        {(!b||b.status==='error')&&<span onClick={()=>checkBal(n)} className="mono" style={{fontSize:8,color:'#8A8A8E',textDecoration:'underline',cursor:'pointer'}}>{b&&b.status==='error'?'balance failed — retry':'check balance'}</span>}
+        {n.kind!=='exchange'&&n.kind!=='bridge'&&(
+          !rec?<span onClick={()=>onTrace(n.cid,n.addr,n.firstTs)} style={{marginLeft:'auto',fontSize:8,fontWeight:700,color:R,cursor:'pointer',border:'1px solid rgba(240,79,82,0.4)',borderRadius:2,padding:'1px 6px'}}>Trace ▸</span>
+          :rec.status==='loading'?<span className="mono bi-activity-pulse" style={{marginLeft:'auto',fontSize:8,color:'#FFBD42'}}>tracing…</span>
+          :rec.status==='error'?<span onClick={()=>onTrace(n.cid,n.addr,n.firstTs)} style={{marginLeft:'auto',fontSize:8,color:R,textDecoration:'underline',cursor:'pointer'}} title={rec.error}>trace failed — retry</span>
+          :rec.terminal==='dormant'?<span style={{marginLeft:'auto',fontSize:8,color:'#7AC26C'}}>■ dormant</span>
+          :null)}
+      </div>}
+    </div>;
+  };
+  return <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0,overflow:'hidden'}}>
+    <div style={{padding:'8px 16px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+      <button onClick={onBack} style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer'}}>← Back to ledger</button>
+      <span className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:'#8A8A8E'}}>TRACE — WHERE THE MONEY WENT</span>
+      <span style={{fontSize:10,color:'#8A8A8E'}}>{dests.length} destination{dests.length!==1?'s':''} · hop depth ≤6 · 40-trace budget per log</span>
+      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+        {batch&&<span className="mono bi-activity-pulse" style={{fontSize:9,color:'#FFBD42'}}>tracing {batch.done}/{batch.total}…</span>}
+        {untraced>0&&!batch&&<button onClick={traceAll} style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(240,79,82,0.5)',background:'transparent',color:R,fontSize:10,fontWeight:700,cursor:'pointer'}}>Trace all destinations ({untraced})</button>}
+      </div>
+    </div>
+    <div style={{flex:1,overflow:'auto',position:'relative'}}>
+      <div style={{position:'relative',width:g.W,height:g.H,minWidth:'100%'}}>
+        <svg width={g.W} height={g.H} style={{position:'absolute',left:0,top:0,pointerEvents:'none'}}>
+          {g.edges.map((e,i)=>{
+            const a=g.nodes[e.from],b2=g.nodes[e.to];
+            if(!a||!b2)return null;
+            const x1=a.x+g.NODE_W,y1=a.y+g.NODE_H/2,x2=b2.x,y2=b2.y+g.NODE_H/2;
+            const mx=(x1+x2)/2;
+            const bridge=b2.kind==='bridge';
+            return <path key={i} d={'M'+x1+' '+y1+' C'+mx+' '+y1+' '+mx+' '+y2+' '+x2+' '+y2}
+              fill="none" stroke={bridge?'rgba(255,189,66,0.6)':'rgba(240,79,82,0.55)'} strokeWidth={1.5}
+              strokeDasharray={bridge||e.back?'4 3':'none'}/>;
+          })}
+        </svg>
+        {g.cols.map((col,ci)=>col.length>0&&<div key={'ct'+ci} className="mono" style={{position:'absolute',left:20+ci*(g.NODE_W+72),top:0,fontSize:8,fontWeight:700,letterSpacing:'0.1em',color:'#6A6A6A'}}>{colTitle(ci)}</div>)}
+        {Object.values(g.nodes).map(nodeCard)}
+      </div>
+    </div>
+    <div style={{padding:'6px 16px',borderTop:'1px solid rgba(255,255,255,0.06)',display:'flex',gap:16,flexShrink:0}}>
+      {[['—','stolen funds','rgba(240,79,82,0.9)'],['◈','convergence','#FFBD42'],['■','exchange endpoint',R],['◇','bridge — continue manually on destination chain','#FFBD42']].map(([s,t,c])=>
+        <span key={t} className="mono" style={{fontSize:8,color:'#8A8A8E'}}><span style={{color:c}}>{s}</span> {t}</span>)}
+    </div>
+  </div>;
+}
+
+function SfylAcctRow({a,rec,active,onSelect,onRetry}){
+  const R='#F04F52';
+  const st=(rec||{}).status;
+  /* Quiet-tier arrival flash — same idiom as Accounts-tab balance arrivals (Q2). */
+  const settle=useSettleFlash(st==='done'?'ok':(st==='loading'?'loading':(st||'idle')),{slow:true});
+  const ch=a.ch||{};
+  const chip=(()=>{
+    if(st==='done')return <span className={'mono'+(settle?' bi-settle-slow':'')} style={{fontSize:9,color:'#7AC26C',fontWeight:700}}>{((rec||{}).txs||[]).length} tx</span>;
+    if(st==='loading')return <span className="mono bi-activity-pulse" style={{fontSize:9,color:'#FFBD42'}}>fetching…</span>;
+    if(st==='queued')return <span className="mono" style={{fontSize:9,color:'#8A8A8E'}}>queued</span>;
+    if(st==='error')return <span className="mono" style={{fontSize:9,color:R,cursor:'pointer',textDecoration:'underline'}} title={(rec||{}).error} onClick={e=>{e.stopPropagation();onRetry(a);}}>retry</span>;
+    if(st==='explorer')return <span className="mono" style={{fontSize:9,color:'#FFBD42'}} title={(rec||{}).error}>explorer only</span>;
+    return <span className="mono" style={{fontSize:9,color:'#8A8A8E'}} title={(rec||{}).error}>n/a</span>;
+  })();
+  return <div className="sfyl-acct-row" onClick={onSelect}
+    style={{padding:'6px 8px',borderRadius:2,marginBottom:2,background:active?'rgba(240,79,82,0.10)':'transparent',border:'1px solid '+(active?'rgba(240,79,82,0.4)':'transparent')}}>
+    <div style={{display:'flex',alignItems:'center',gap:6}}>
+      <span style={{width:7,height:7,borderRadius:'50%',background:ch.color||'#8A8A90',flexShrink:0}}/>
+      <span style={{fontSize:11,fontWeight:600,color:'#E8E8EA',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ch.name||a.cid}</span>
+      {chip}
+    </div>
+    <div className="mono" style={{fontSize:9,color:'#8A8A8E',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.addr}</div>
+  </div>;
+}
 function SFYLView({logData,sfylTxs,sfylMarked,setSfylMarked,onRetry,sfylTrace,onTrace}){
+  const R='#F04F52';
   const[selKey,setSelKey]=React.useState('all');
-  const[panel,setPanel]=React.useState('ledger');
+  const[dirFilter,setDirFilter]=React.useState('out');
   const[rptOk,setRptOk]=React.useState(null);
+  /* Suggestions NEVER auto-mark (SFYL rule: agent confirms every mark).
+     sug = {map:{rowKey:reason}, n} — amber tags + banner; agent clicks MARK per row. */
+  const[sug,setSug]=React.useState(null);
+  const[view,setView]=React.useState('ledger');
+  const[sancN,setSancN]=React.useState(_SFYL_SANCTIONS.raw.size);
+  const[usd,setUsd]=React.useState({total:0,priced:0,unpriced:0});
+  React.useEffect(()=>{let dead=false;Promise.all([_sfylLoadSanctions(),_sfylLoadBtcBook()]).then(()=>{if(!dead)setSancN(_SFYL_SANCTIONS.raw.size+Object.keys(_SFYL_LABELS.map).length);});return()=>{dead=true;};},[]);
   const accounts=React.useMemo(()=>{
     const seen=new Set();
     return (logData.accts||[]).filter(a=>{
@@ -5082,17 +5624,26 @@ function SFYLView({logData,sfylTxs,sfylMarked,setSfylMarked,onRetry,sfylTrace,on
       if(seen.has(k))return false;seen.add(k);return true;
     });
   },[logData]);
-  const rows=React.useMemo(()=>{
+  /* selKey can go stale across log loads (component may stay mounted) — fall back to 'all'. */
+  const effSel=(selKey!=='all'&&!accounts.some(a=>a.cid+':'+a.addr===selKey))?'all':selKey;
+  const allRows=React.useMemo(()=>{
     const out=[];
     for(const a of accounts){
       const key=a.cid+':'+a.addr;
-      if(selKey!=='all'&&selKey!==key)continue;
       const rec=sfylTxs[key];
       if(!rec||rec.status!=='done')continue;
+      /* rowKey construction MUST stay identical to suggest heuristics below. */
       (rec.txs||[]).forEach((tx,i)=>out.push(Object.assign({},tx,{acct:a,key,rowKey:key+'|'+(tx.hash||i)+'|'+(tx.asset||'')+'|'+(tx.dir||'')+'|'+i})));
     }
     return out.sort((x,y)=>(y.ts||0)-(x.ts||0));
-  },[accounts,sfylTxs,selKey]);
+  },[accounts,sfylTxs]);
+  const selRows=React.useMemo(()=>allRows.filter(r=>effSel==='all'||r.key===effSel),[allRows,effSel]);
+  const outCount=selRows.reduce((n,r)=>n+(r.dir==='out'?1:0),0);
+  const rows=React.useMemo(()=>selRows.filter(r=>{
+    if(dirFilter==='out')return r.dir==='out';
+    if(dirFilter==='suggested')return !!(sug&&sug.map[r.rowKey]);
+    return true;
+  }),[selRows,dirFilter,sug]);
   const prog=React.useMemo(()=>{
     let done=0,busy=0,err=0;
     for(const a of accounts){
@@ -5101,130 +5652,228 @@ function SFYLView({logData,sfylTxs,sfylMarked,setSfylMarked,onRetry,sfylTrace,on
     }
     return{done,busy,err,total:accounts.length};
   },[accounts,sfylTxs]);
-  const marked=rows.filter(r=>sfylMarked[r.rowKey]);
+  const busy=prog.busy>0;
+  /* marked is computed from ALL rows, never the filtered view — the report must not
+     silently shrink because the agent had an account filter active. */
+  const marked=allRows.filter(r=>sfylMarked[r.rowKey]);
   const markedDests=[...new Set(marked.map(r=>(r.to||'').toLowerCase()).filter(Boolean))];
+  const convCount=(()=>{const m={};marked.forEach(r=>{const k=(r.to||'').toLowerCase();if(!k)return;(m[k]=m[k]||new Set()).add(r.key);});return Object.values(m).filter(s=>s.size>1).length;})();
   const byAsset={};marked.forEach(r=>{byAsset[r.asset]=(byAsset[r.asset]||0)+(r.value||0);});
+  const tracedCount=Object.keys(sfylTrace||{}).length;
+  const markedSig=marked.map(r=>r.rowKey).sort().join(',');
+  React.useEffect(()=>{
+    let dead=false;
+    if(marked.length===0){setUsd({total:0,priced:0,unpriced:0});return;}
+    (async()=>{
+      let total=0,priced=0,unpriced=0;
+      for(const r of marked){
+        const p=await _sfylUsdAt(_sfylPriceKey(r),r.ts);
+        if(dead)return;
+        if(p&&p.usd>0){total+=p.usd*(r.value||0);priced++;}else unpriced++;
+      }
+      if(!dead)setUsd({total,priced,unpriced});
+    })();
+    return()=>{dead=true;};
+  },[markedSig]);
   const fmtTs=ts=>ts?new Date(ts).toISOString().replace('T',' ').slice(0,16)+' UTC':'—';
+  const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'}).toUpperCase():null;
   const trunc=(x,n)=>x&&x.length>n?x.slice(0,Math.ceil(n*0.55))+'…'+x.slice(-Math.floor(n*0.3)):(x||'—');
   const fmtVal=v=>v>=1000?v.toLocaleString('en-US',{maximumFractionDigits:2}):v>=1?v.toFixed(4).replace(/0+$/,'').replace(/\.$/,''):v>0?v.toPrecision(3):'0';
   const toggle=r=>setSfylMarked(p=>{const n=Object.assign({},p);if(n[r.rowKey])delete n[r.rowKey];else n[r.rowKey]=true;return n;});
-  const chip=(rec,a)=>{
-    const st=(rec||{}).status;
-    if(st==='done')return <span style={{fontSize:9,color:'#7AC26C',fontWeight:700}}>{(rec.txs||[]).length} tx</span>;
-    if(st==='loading')return <span style={{fontSize:9,color:'#FFBD42'}}>fetching…</span>;
-    if(st==='queued')return <span style={{fontSize:9,color:'#8A8A8E'}}>queued</span>;
-    if(st==='error')return <span style={{fontSize:9,color:'#EA4335',cursor:'pointer',textDecoration:'underline'}} title={rec.error} onClick={e=>{e.stopPropagation();onRetry(a);}}>retry</span>;
-    if(st==='explorer')return <span style={{fontSize:9,color:'#FFBD42'}} title={(rec||{}).error}>explorer only</span>;
-    return <span style={{fontSize:9,color:'#8A8A8E'}} title={(rec||{}).error}>n/a</span>;
+  /* Drain-signature detection: identical heuristics to Stage 1, but output is a
+     reason map for review — nothing is ticked. Priority: scam > convergence > cluster. */
+  const suggestTheft=()=>{
+    const outs=[];
+    for(const a of accounts){
+      const key=a.cid+':'+a.addr;const rec=sfylTxs[key];
+      if(!rec||rec.status!=='done')continue;
+      (rec.txs||[]).forEach((tx,i)=>{
+        if(tx.dir!=='out'||!(tx.value>0))return;
+        outs.push({rowKey:key+'|'+(tx.hash||i)+'|'+(tx.asset||'')+'|'+(tx.dir||'')+'|'+i,
+          acctKey:key,ts:tx.ts||0,to:((tx.to||'')+'').toLowerCase(),scam:!!tx.scamTo});
+      });
+    }
+    const byDest={};
+    outs.forEach(o=>{if(!o.to)return;(byDest[o.to]=byDest[o.to]||new Set()).add(o.acctKey);});
+    const W=45*60*1000;
+    const map={};
+    outs.forEach(o=>{
+      if(o.scam){map[o.rowKey]='destination flagged scam';return;}
+      if(o.to&&byDest[o.to]&&byDest[o.to].size>=2){map[o.rowKey]='same destination as another account';return;}
+      if(outs.some(p2=>p2!==o&&p2.acctKey!==o.acctKey&&Math.abs((p2.ts||0)-(o.ts||0))<=W))map[o.rowKey]='multi-account 45-min window';
+    });
+    setSug({map,n:Object.keys(map).length});
   };
-  return <div style={{display:'flex',height:'calc(100vh - 52px)',overflow:'hidden',background:'var(--bi-bg-0,#0D0D0F)',fontFamily:'Inter'}}>
-    <div style={{width:290,flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
-      <div style={{padding:'12px 14px 8px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-        <div style={{fontSize:11,fontWeight:700,color:'#EA4335',letterSpacing:'0.08em',textTransform:'uppercase'}}>SFYL — Live forensics</div>
-        <div style={{fontSize:10,color:'#8A8A8E',marginTop:3}}>
-          {prog.busy>0?('Fetching on-chain history… '+prog.done+'/'+prog.total+' accounts'):(prog.done+'/'+prog.total+' accounts loaded'+(prog.err>0?(' · '+prog.err+' failed'):''))}
-        </div>
-        <div style={{height:2,background:'rgba(255,255,255,0.06)',marginTop:6,borderRadius:1}}>
-          <div style={{height:2,width:(prog.total?Math.round(prog.done/prog.total*100):0)+'%',background:'#EA4335',borderRadius:1,transition:'width 300ms ease'}}/>
-        </div>
-      </div>
-      <div style={{flex:1,overflowY:'auto',padding:'6px 6px 10px'}}>
-        <div className="sfyl-acct-row" onClick={()=>setSelKey('all')}
-          style={{padding:'7px 8px',borderRadius:2,marginBottom:2,background:selKey==='all'?'rgba(234,67,53,0.10)':'transparent',border:'1px solid '+(selKey==='all'?'rgba(234,67,53,0.4)':'transparent'),fontSize:11,fontWeight:600,color:'#FFFFFF'}}>
-          All accounts
-        </div>
-        {accounts.map(a=>{
-          const key=a.cid+':'+a.addr,rec=sfylTxs[key],ch=a.ch||{};
-          return <div key={key} className="sfyl-acct-row" onClick={()=>setSelKey(key)}
-            style={{padding:'6px 8px',borderRadius:2,marginBottom:2,background:selKey===key?'rgba(234,67,53,0.10)':'transparent',border:'1px solid '+(selKey===key?'rgba(234,67,53,0.4)':'transparent')}}>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              <span style={{width:7,height:7,borderRadius:'50%',background:ch.color||'#8A8A90',flexShrink:0}}/>
-              <span style={{fontSize:11,fontWeight:600,color:'#E8E8EA',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ch.name||a.cid}</span>
-              {chip(rec,a)}
-            </div>
-            <div className="mono" style={{fontSize:9,color:'#8A8A8E',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.addr}</div>
-          </div>;
-        })}
-      </div>
+  const fchip=(id,label,count)=>
+    <button key={id} onClick={()=>setDirFilter(id)} className="mono" style={{padding:'3px 10px',fontSize:9,fontWeight:700,letterSpacing:'0.05em',borderRadius:2,cursor:'pointer',
+      border:'1px solid '+(dirFilter===id?'rgba(240,79,82,0.5)':'rgba(255,255,255,0.1)'),
+      background:dirFilter===id?'rgba(240,79,82,0.12)':'transparent',
+      color:dirFilter===id?R:'#8A8A8E'}}>{label} {count}</button>;
+  const step=(num,label,state,detail,onClick)=>
+    <div key={num} onClick={onClick} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',borderRight:'1px solid rgba(255,255,255,0.06)',cursor:onClick?'pointer':'default',height:'100%'}}>
+      <span className={'mono'+(state==='busy'?' bi-activity-pulse':'')} style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:state==='done'?'#7AC26C':(state==='busy'||state==='active')?R:'#6A6A6A'}}>
+        {state==='done'?'✓ ':''}{num} {label}
+      </span>
+      {detail&&<span className="mono" style={{fontSize:9,color:'#8A8A8E'}}>{detail}</span>}
+    </div>;
+  /* Table body with UTC date group headers. */
+  const bodyRows=[];
+  let lastD=null;
+  rows.forEach(r=>{
+    const d=fmtDate(r.ts);
+    if(d&&d!==lastD){lastD=d;bodyRows.push(<tr key={'d:'+d}><td colSpan={7} className="mono" style={{padding:'9px 10px 3px',fontSize:8,fontWeight:700,letterSpacing:'0.1em',color:'#6A6A6A',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>{d}</td></tr>);}
+    const ch=(r.acct&&r.acct.ch)||{};
+    const cp=r.dir==='out'?r.to:r.from;
+    const cpLabel=r.dir==='out'?r.labelTo:r.labelFrom;
+    const cpScam=r.dir==='out'?r.scamTo:r.scamFrom;
+    const cpSanc=sfylSanctioned(cp);
+    const txUrl=r.hash&&TX_EXPLORERS[r.acct.cid]?TX_EXPLORERS[r.acct.cid](r.hash):null;
+    const isMarked=!!sfylMarked[r.rowKey];
+    const sugReason=sug&&sug.map[r.rowKey];
+    bodyRows.push(<tr key={r.rowKey} className={'sfyl-tx-row'+(sugReason&&!isMarked?' sfyl-suggest-flash':'')}
+      style={{background:isMarked?'rgba(240,79,82,0.07)':(sugReason?'rgba(255,189,66,0.04)':'transparent'),
+        boxShadow:isMarked?('inset 2px 0 0 '+R):(sugReason?'inset 2px 0 0 rgba(255,189,66,0.7)':'none')}}>
+      <td className="mono" style={{padding:'5px 10px',fontSize:10,color:'#C8C8CC',whiteSpace:'nowrap',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>{fmtTs(r.ts)}</td>
+      <td style={{padding:'5px 10px',fontSize:10,borderBottom:'1px solid rgba(255,255,255,0.04)',whiteSpace:'nowrap'}}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:ch.color||'#8A8A90',display:'inline-block',marginRight:5}}/>
+        <span style={{color:'#C8C8CC'}}>{ch.name||r.acct.cid}</span>
+      </td>
+      <td style={{padding:'5px 10px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+        <span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:2,background:r.dir==='out'?'rgba(240,79,82,0.14)':'rgba(122,194,108,0.12)',color:r.dir==='out'?R:'#7AC26C'}}>{r.dir==='out'?'OUT':'IN'}</span>
+      </td>
+      <td className="mono" style={{padding:'5px 10px',fontSize:10,color:'#FFFFFF',whiteSpace:'nowrap',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+        {fmtVal(r.value)} <span style={{color:'#8A8A8E'}}>{r.asset}</span>{r.token&&<span style={{fontSize:8,color:'#8A8A8E',marginLeft:3}}>token</span>}
+      </td>
+      <td style={{padding:'5px 10px',fontSize:10,borderBottom:'1px solid rgba(255,255,255,0.04)',maxWidth:220,overflow:'hidden'}}>
+        {(()=>{const ent=!cpLabel?sfylEntityLabel(r.acct.cid,cp):null;
+          return <span className="mono" style={{color:cpScam?R:'#C8C8CC'}} title={(cp||'')+(ent&&ent.label?('\u000A'+ent.label+' \u2014 source: '+ent.src):'')}>{cpLabel?cpLabel+' · ':(ent&&ent.label?ent.label+' · ':'')}{trunc(cp,20)}</span>;})()}
+        {cpScam&&<span style={{fontSize:8,fontWeight:700,color:R,marginLeft:4}}>⚠ flagged scam</span>}
+        {cpSanc&&<span style={{fontSize:8,fontWeight:700,padding:'1px 4px',borderRadius:2,background:'#F04F52',color:'#0A0A0A',marginLeft:4}}>OFAC SDN</span>}
+        {r.hexAddr&&<span style={{fontSize:8,color:'#8A8A8E',marginLeft:4}}>(hex)</span>}
+        {cp&&<SfylCopy text={cp}/>}
+        {sugReason&&!isMarked&&<div style={{fontSize:8,fontWeight:700,color:'#FFBD42',marginTop:2,letterSpacing:'0.04em'}}>SUGGESTED — {sugReason}</div>}
+      </td>
+      <td style={{padding:'5px 10px',fontSize:10,borderBottom:'1px solid rgba(255,255,255,0.04)',whiteSpace:'nowrap'}}>
+        {txUrl?<a href={txUrl} target="_blank" rel="noopener noreferrer" className="mono" style={{color:'#8A8A8E',textDecoration:'none'}} onMouseEnter={e=>e.currentTarget.style.color=R} onMouseLeave={e=>e.currentTarget.style.color='#8A8A8E'}>{trunc(r.hash,14)} ↗</a>
+          :<span className="mono" style={{color:'#8A8A8E'}}>{trunc(r.hash,14)}</span>}
+        {r.hash&&<SfylCopy text={r.hash}/>}
+      </td>
+      <td style={{padding:'4px 10px',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.04)',whiteSpace:'nowrap'}}>
+        {r.dir==='out'&&<button onClick={()=>toggle(r)} className="mono" style={{padding:'3px 10px',borderRadius:2,cursor:'pointer',fontSize:9,fontWeight:700,letterSpacing:'0.05em',
+          border:'1px solid '+(isMarked?R:'rgba(255,255,255,0.18)'),
+          background:isMarked?'rgba(240,79,82,0.16)':'transparent',
+          color:isMarked?R:'#8A8A8E'}}>{isMarked?'THEFT ✓':'MARK'}</button>}
+      </td>
+    </tr>);
+  });
+  return <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 52px)',overflow:'hidden',background:'var(--bi-bg-0,#0D0D0F)',fontFamily:'Inter'}}>
+    {/* ── Stage stepper (status, not gating — agents can work in any order) ── */}
+    <div style={{display:'flex',alignItems:'center',height:34,borderBottom:'1px solid rgba(255,255,255,0.07)',flexShrink:0,paddingLeft:2}}>
+      {step('01','SYNC',busy?'busy':(prog.done>0?'done':'idle'),prog.done+'/'+prog.total+(prog.err>0?' · '+prog.err+' failed':''),()=>setView('ledger'))}
+      {step('02','MARK',marked.length>0?'active':(busy?'idle':(prog.done>0?'active':'idle')),marked.length>0?marked.length+' marked':null,()=>setView('ledger'))}
+      {step('03','TRACE',view==='trace'?'active':(tracedCount>0?'active':'idle'),tracedCount>0?tracedCount+' traced':(marked.length>0?'open ▸':null),marked.length>0?()=>setView('trace'):null)}
+      {step('04','REPORT',view==='report'?'active':(marked.length>0?'active':'idle'),marked.length>0?'open ▸':null,marked.length>0?()=>setView('report'):null)}
+      <span className="mono" style={{marginLeft:'auto',paddingRight:14,fontSize:9,color:'#6A6A6A',letterSpacing:'0.08em'}}>SFYL — LIVE FORENSICS</span>
     </div>
-    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
-      <div style={{padding:'10px 16px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
-        <div style={{display:'flex',border:'1px solid rgba(255,255,255,0.08)',borderRadius:2,overflow:'hidden'}}>
-          <button onClick={()=>setPanel('ledger')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:panel==='ledger'?'rgba(234,67,53,0.15)':'transparent',color:panel==='ledger'?'#EA4335':'#8A8A8E'}}>Ledger</button>
-          <button onClick={()=>setPanel('flow')} style={{padding:'4px 12px',fontSize:11,fontWeight:600,border:'none',cursor:'pointer',background:panel==='flow'?'rgba(234,67,53,0.15)':'transparent',color:panel==='flow'?'#EA4335':'#8A8A8E'}}>Flow & report</button>
+    {view==='trace'&&<SfylTraceMap marked={marked} sfylTrace={sfylTrace} onTrace={onTrace} fmtVal={fmtVal} fmtTs={fmtTs} onBack={()=>setView('ledger')}/>}
+    {view==='report'&&<SfylReport marked={marked} sfylTrace={sfylTrace} fmtVal={fmtVal} fmtTs={fmtTs} usd={usd} onBack={()=>setView('ledger')}/>}
+    <div style={{display:view==='ledger'?'flex':'none',flex:1,minHeight:0,overflow:'hidden'}}>
+      {/* ── Left: account rail ── */}
+      <div style={{width:250,flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div style={{padding:'10px 12px 8px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
+          <div className={busy?'bi-activity-pulse':undefined} style={{fontSize:10,fontWeight:700,color:R,letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            {busy?'● Fetching on-chain history':'Accounts'}
+          </div>
+          <div className="mono" style={{fontSize:10,color:'#8A8A8E',marginTop:3}}>
+            <CountUp value={prog.done}/>/{prog.total} loaded{prog.err>0?' · '+prog.err+' failed':''}
+          </div>
+          <div style={{height:2,background:'rgba(255,255,255,0.06)',marginTop:6,borderRadius:1,display:'flex',overflow:'hidden'}}>
+            <div style={{height:2,width:(prog.total?Math.round(prog.done/prog.total*100):0)+'%',background:R,transition:'width 300ms ease'}}/>
+            <div style={{height:2,width:(prog.total?Math.round(prog.err/prog.total*100):0)+'%',background:'rgba(240,79,82,0.35)',transition:'width 300ms ease'}}/>
+          </div>
         </div>
-        <div style={{fontSize:10,color:'#8A8A8E'}}>{rows.length} transactions · {rows.filter(r=>r.dir==='out').length} outgoing · live on-chain data, newest first</div>
-        <div style={{marginLeft:'auto',fontSize:10,color:'#8A8A8E'}}>Tick <span style={{color:'#EA4335',fontWeight:700}}>Theft</span> on outgoing transactions that are part of the drain</div>
+        <div style={{flex:1,overflowY:'auto',padding:'6px 6px 10px'}}>
+          <div className="sfyl-acct-row" onClick={()=>setSelKey('all')}
+            style={{padding:'7px 8px',borderRadius:2,marginBottom:2,background:effSel==='all'?'rgba(240,79,82,0.10)':'transparent',border:'1px solid '+(effSel==='all'?'rgba(240,79,82,0.4)':'transparent'),fontSize:11,fontWeight:600,color:'#FFFFFF'}}>
+            All accounts
+          </div>
+          {accounts.map(a=>{
+            const key=a.cid+':'+a.addr;
+            return <SfylAcctRow key={key} a={a} rec={sfylTxs[key]} active={effSel===key} onSelect={()=>setSelKey(key)} onRetry={onRetry}/>;
+          })}
+        </div>
       </div>
-      <div style={{flex:1,overflowY:'auto',display:panel==='ledger'?'block':'none'}}>
-        <table style={{width:'100%',borderCollapse:'collapse'}}>
-          <thead><tr style={{position:'sticky',top:0,background:'#151518',zIndex:2}}>
-            {['Time (UTC)','Account','Dir','Amount','Counterparty','Tx','Theft'].map(h=>
-              <th key={h} style={{textAlign:h==='Theft'?'center':'left',padding:'6px 10px',fontSize:9,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#8A8A8E',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>{h}</th>)}
-          </tr></thead>
-          <tbody>
-            {rows.map(r=>{
-              const ch=(r.acct&&r.acct.ch)||{};
-              const cp=r.dir==='out'?r.to:r.from;
-              const cpLabel=r.dir==='out'?r.labelTo:r.labelFrom;
-              const cpScam=r.dir==='out'?r.scamTo:r.scamFrom;
-              const txUrl=r.hash&&TX_EXPLORERS[r.acct.cid]?TX_EXPLORERS[r.acct.cid](r.hash):null;
-              const isMarked=!!sfylMarked[r.rowKey];
-              return <tr key={r.rowKey} className="sfyl-tx-row" style={{background:isMarked?'rgba(234,67,53,0.07)':'transparent'}}>
-                <td className="mono" style={{padding:'5px 10px',fontSize:10,color:'#C8C8CC',whiteSpace:'nowrap',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>{fmtTs(r.ts)}</td>
-                <td style={{padding:'5px 10px',fontSize:10,borderBottom:'1px solid rgba(255,255,255,0.04)',whiteSpace:'nowrap'}}>
-                  <span style={{width:6,height:6,borderRadius:'50%',background:ch.color||'#8A8A90',display:'inline-block',marginRight:5}}/>
-                  <span style={{color:'#C8C8CC'}}>{ch.name||r.acct.cid}</span>
-                </td>
-                <td style={{padding:'5px 10px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                  <span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:2,background:r.dir==='out'?'rgba(234,67,53,0.14)':'rgba(122,194,108,0.12)',color:r.dir==='out'?'#EA4335':'#7AC26C'}}>{r.dir==='out'?'OUT':'IN'}</span>
-                </td>
-                <td className="mono" style={{padding:'5px 10px',fontSize:10,color:'#FFFFFF',whiteSpace:'nowrap',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                  {fmtVal(r.value)} <span style={{color:'#8A8A8E'}}>{r.asset}</span>{r.token&&<span style={{fontSize:8,color:'#8A8A8E',marginLeft:3}}>token</span>}
-                </td>
-                <td style={{padding:'5px 10px',fontSize:10,borderBottom:'1px solid rgba(255,255,255,0.04)',maxWidth:220,overflow:'hidden'}}>
-                  <span className="mono" style={{color:cpScam?'#EA4335':'#C8C8CC'}} title={cp||''}>{cpLabel?cpLabel+' · ':''}{trunc(cp,20)}</span>
-                  {cpScam&&<span style={{fontSize:8,fontWeight:700,color:'#EA4335',marginLeft:4}}>⚠ flagged scam</span>}
-                  {r.hexAddr&&<span style={{fontSize:8,color:'#8A8A8E',marginLeft:4}}>(hex)</span>}
-                  {cp&&<SfylCopy text={cp}/>}
-                </td>
-                <td style={{padding:'5px 10px',fontSize:10,borderBottom:'1px solid rgba(255,255,255,0.04)',whiteSpace:'nowrap'}}>
-                  {txUrl?<a href={txUrl} target="_blank" rel="noopener noreferrer" className="mono" style={{color:'#8A8A8E',textDecoration:'none'}} onMouseEnter={e=>e.currentTarget.style.color='#EA4335'} onMouseLeave={e=>e.currentTarget.style.color='#8A8A8E'}>{trunc(r.hash,14)} ↗</a>
-                    :<span className="mono" style={{color:'#8A8A8E'}}>{trunc(r.hash,14)}</span>}
-                  {r.hash&&<SfylCopy text={r.hash}/>}
-                </td>
-                <td style={{padding:'5px 10px',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                  {r.dir==='out'&&<input type="checkbox" checked={isMarked} onChange={()=>toggle(r)} style={{accentColor:'#EA4335',cursor:'pointer'}}/>}
-                </td>
-              </tr>;
-            })}
-            {rows.length===0&&<tr><td colSpan={7} style={{padding:'40px 16px',textAlign:'center',fontSize:12,color:'#8A8A8E'}}>
-              {prog.busy>0?'Fetching live transaction history from public chain APIs — accounts populate as results arrive…':'No transactions loaded for this selection. Check per-account status on the left (retry failed accounts, or the chain may not have a keyless data source yet).'}
-            </td></tr>}
-          </tbody>
-        </table>
+      {/* ── Center: ledger ── */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
+        <div style={{padding:'8px 16px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+          {fchip('out','OUTGOING',outCount)}
+          {fchip('all','ALL',selRows.length)}
+          {sug&&sug.n>0&&fchip('suggested','SUGGESTED',sug.n)}
+          <span style={{fontSize:10,color:'#8A8A8E',marginLeft:6}}>live on-chain data · newest first</span>
+          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+            <button onClick={suggestTheft} style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(240,79,82,0.5)',background:'transparent',color:R,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Find suspicious transactions</button>
+            {Object.keys(sfylMarked).length>0&&<button onClick={()=>setSfylMarked({})} style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Clear marks</button>}
+          </div>
+        </div>
+        {sug&&<div style={{padding:'8px 16px',borderBottom:'1px solid rgba(255,255,255,0.07)',background:sug.n>0?'rgba(255,189,66,0.06)':'rgba(255,255,255,0.03)',display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+          {sug.n>0
+            ?<React.Fragment>
+              <span className="mono" style={{fontSize:10,fontWeight:700,color:'#FFBD42',letterSpacing:'0.06em',whiteSpace:'nowrap'}}>DRAIN PATTERN — {sug.n} suspicious</span>
+              <span style={{fontSize:10,color:'#C8C8CC',flex:1,minWidth:0}}>Money leaving multiple accounts around the same time, or going to one place. Review each amber row and click MARK to confirm it as theft — nothing is marked automatically.</span>
+              <button onClick={()=>setDirFilter('suggested')} style={{padding:'3px 10px',borderRadius:2,border:'1px solid rgba(255,189,66,0.5)',background:'transparent',color:'#FFBD42',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Show suggested only</button>
+              <button onClick={()=>{setSug(null);setDirFilter(f=>f==='suggested'?'out':f);}} style={{padding:'3px 10px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Dismiss</button>
+            </React.Fragment>
+            :<React.Fragment>
+              <span style={{fontSize:10,color:'#8A8A8E',flex:1}}>Nothing obviously suspicious found. Review the OUT rows and mark any the customer says they didn't make.</span>
+              <button onClick={()=>setSug(null)} style={{padding:'3px 10px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Dismiss</button>
+            </React.Fragment>}
+        </div>}
+        <div style={{flex:1,overflowY:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr style={{position:'sticky',top:0,background:'#151518',zIndex:2}}>
+              {['Time (UTC)','Account','Dir','Amount','Counterparty','Tx','Theft'].map(h=>
+                <th key={h} style={{textAlign:h==='Theft'?'center':'left',padding:'6px 10px',fontSize:9,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#8A8A8E',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {bodyRows}
+              {rows.length===0&&<tr><td colSpan={7} style={{padding:'40px 16px',textAlign:'center',fontSize:12,color:'#8A8A8E'}}>
+                {busy?'Fetching live transaction history from public chain APIs — accounts populate as results arrive…'
+                  :(dirFilter==='suggested'?'No suggestions in this view — run Find suspicious transactions, or switch to OUTGOING.'
+                  :'No transactions loaded for this selection. Check per-account status on the left (retry failed accounts, or the chain may not have a keyless data source yet).')}
+              </td></tr>}
+            </tbody>
+          </table>
+        </div>
+        <div style={{padding:'8px 16px',borderTop:'1px solid rgba(255,255,255,0.08)',background:'#111114',display:'flex',alignItems:'center',gap:16,flexShrink:0,minHeight:40}}>
+          {marked.length===0
+            ?<span style={{fontSize:10,color:'#8A8A8E'}}>No theft transactions marked yet. Click MARK on outgoing rows — marks build the live flow map and the report.</span>
+            :<React.Fragment>
+              <span className="mono" style={{fontSize:11,fontWeight:700,color:R}}><CountUp value={marked.length}/> theft transaction{marked.length!==1?'s':''}</span>
+              {usd.priced>0&&<span className="mono" style={{fontSize:11,fontWeight:700,color:'#FFFFFF'}} title={'USD at transaction time, DefiLlama coins API'+(usd.unpriced>0?(' · '+usd.unpriced+' row(s) unpriced'):'')}>≈ {fmtFiat(usd.total)}{usd.unpriced>0?'*':''}</span>}
+              <span style={{fontSize:10,color:'#C8C8CC'}}>{markedDests.length} destination{markedDests.length!==1?'s':''}</span>
+              <span className="mono" style={{fontSize:10,color:'#C8C8CC',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
+                {Object.entries(byAsset).map(([a2,v])=>fmtVal(v)+' '+a2).join(' · ')}
+              </span>
+              <button className="sfyl-cta" onClick={()=>{try{navigator.clipboard.writeText(_sfylReportText(marked,sfylTrace,usd));}catch(_){ }setRptOk('copy');setTimeout(()=>setRptOk(null),900);}}>
+                {rptOk==='copy'?'✓ Copied':'Copy report'}</button>
+              <button onClick={()=>{
+                const blob=new Blob([_sfylReportCsv(marked)],{type:'text/csv'});
+                const u=URL.createObjectURL(blob);const el=document.createElement('a');
+                el.href=u;el.download='sfyl-report-'+new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')+'.csv';
+                document.body.appendChild(el);el.click();document.body.removeChild(el);
+                setTimeout(()=>URL.revokeObjectURL(u),2000);
+                setRptOk('csv');setTimeout(()=>setRptOk(null),900);
+              }} style={{padding:'5px 12px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:rptOk==='csv'?'#7AC26C':'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{rptOk==='csv'?'✓ Saved':'Download CSV'}</button>
+            </React.Fragment>}
+        </div>
       </div>
-      {panel==='flow'&&<SfylFlow marked={marked} fmtVal={fmtVal} fmtTs={fmtTs} sfylTrace={sfylTrace} onTrace={onTrace}/>}
-      <div style={{padding:'8px 16px',borderTop:'1px solid rgba(255,255,255,0.08)',background:'#111114',display:'flex',alignItems:'center',gap:16,flexShrink:0,minHeight:38}}>
-        {marked.length===0
-          ?<span style={{fontSize:10,color:'#8A8A8E'}}>No transactions marked as theft yet. Tick Theft on outgoing rows — marks drive the Flow & report panel.</span>
-          :<React.Fragment>
-            <span style={{fontSize:11,fontWeight:700,color:'#EA4335'}}>{marked.length} theft transaction{marked.length!==1?'s':''} marked</span>
-            <span style={{fontSize:10,color:'#C8C8CC'}}>{markedDests.length} destination address{markedDests.length!==1?'es':''}</span>
-            <span className="mono" style={{fontSize:10,color:'#C8C8CC',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
-              {Object.entries(byAsset).map(([a2,v])=>fmtVal(v)+' '+a2).join(' · ')}
-            </span>
-            <button onClick={()=>{try{navigator.clipboard.writeText(_sfylReportText(marked,sfylTrace));}catch(_){ }setRptOk('copy');setTimeout(()=>setRptOk(null),900);}}
-              style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(234,67,53,0.5)',background:'transparent',color:rptOk==='copy'?'#7AC26C':'#EA4335',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{rptOk==='copy'?'✓ Copied':'Copy report'}</button>
-            <button onClick={()=>{
-              const blob=new Blob([_sfylReportCsv(marked)],{type:'text/csv'});
-              const u=URL.createObjectURL(blob);const el=document.createElement('a');
-              el.href=u;el.download='sfyl-report-'+new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')+'.csv';
-              document.body.appendChild(el);el.click();document.body.removeChild(el);
-              setTimeout(()=>URL.revokeObjectURL(u),2000);
-              setRptOk('csv');setTimeout(()=>setRptOk(null),900);
-            }} style={{padding:'4px 10px',borderRadius:2,border:'1px solid rgba(255,255,255,0.15)',background:'transparent',color:rptOk==='csv'?'#7AC26C':'#C8C8CC',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{rptOk==='csv'?'✓ Saved':'Download CSV'}</button>
-          </React.Fragment>}
+      {/* ── Right: live flow map — builds as marks land ── */}
+      <div style={{width:'36%',minWidth:330,maxWidth:520,flexShrink:0,borderLeft:'1px solid rgba(255,255,255,0.07)',display:'flex',flexDirection:'column',minHeight:0,overflow:'hidden'}}>
+        <div style={{padding:'8px 14px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+          <span className="mono" style={{fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:'#8A8A8E'}}>LIVE FLOW — BUILDS AS YOU MARK</span>
+          {marked.length>0&&<span className="mono" style={{marginLeft:'auto',fontSize:9,color:'#C8C8CC'}}>{markedDests.length} destination{markedDests.length!==1?'s':''}{convCount>0?' · '+convCount+' convergence':''}</span>}
+        </div>
+        <SfylFlow marked={marked} fmtVal={fmtVal} fmtTs={fmtTs} sfylTrace={sfylTrace} onTrace={onTrace}/>
       </div>
     </div>
   </div>;
@@ -5243,7 +5892,7 @@ function ModeToggle({mode,onChange}){
     <button className={`cv-mode-btn${isCust?' cv-active':''}`} onClick={()=>onChange('customer')} aria-pressed={isCust} style={{padding:'7px 14px',fontSize:12,fontWeight:600,border:'none',borderLeft:'1px solid rgba(255,255,255,0.07)',background:isCust?'#D4A0FF':'transparent',color:isCust?'#0a0a0a':'#C8C8CC',cursor:'pointer',letterSpacing:'0.01em',fontFamily:'Inter'}}>
       Customer View
     </button>
-    <button className={`cv-mode-btn${isSfyl?' cv-active':''}`} onClick={()=>onChange('sfyl')} aria-pressed={isSfyl} style={{padding:'7px 14px',fontSize:12,fontWeight:600,border:'none',borderLeft:'1px solid rgba(255,255,255,0.07)',background:isSfyl?'#EA4335':'transparent',color:isSfyl?'#fff':'#C8C8CC',cursor:'pointer',letterSpacing:'0.01em',fontFamily:'Inter'}}>
+    <button className={`cv-mode-btn${isSfyl?' cv-active':''}`} onClick={()=>onChange('sfyl')} aria-pressed={isSfyl} style={{padding:'7px 14px',fontSize:12,fontWeight:600,border:'none',borderLeft:'1px solid rgba(255,255,255,0.07)',background:isSfyl?'#F04F52':'transparent',color:isSfyl?'#fff':'#C8C8CC',cursor:'pointer',letterSpacing:'0.01em',fontFamily:'Inter'}}>
       SFYL
     </button>
   </div>;
@@ -8265,7 +8914,16 @@ function App(){
         return null;
       };
       const outflows=Object.values(grouped).sort((a,b)=>b.value-a.value).slice(0,6);
-      outflows.forEach(o=>{o.kind=cls(o.label);});
+      /* entity-label store fills gaps on chains whose APIs carry no labels (BTC via
+         DefiLlama bitcoin-book; TON via Tonapi) — then classify terminals as before. */
+      for(const o of outflows){
+        if(!o.label){
+          const ent=sfylEntityLabel(cid,o.to)||(cid==='ton'?await _sfylTonLookup(o.to):(cid==='stellar'?await _sfylStellarLookup(o.to):null));
+          if(ent&&ent.label){o.label=ent.label;o.labelSrc=ent.src;}
+          if(ent&&ent.scam)o.scam=true;
+        }
+        o.kind=cls(o.label);
+      }
       const rec={status:'done',outflows,terminal:outflows.length===0?'dormant':null};
       sfylTraceCacheRef.current[k]=rec;
       setSfylTrace(p=>Object.assign({},p,{[k]:rec}));
