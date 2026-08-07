@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>XRPScan CORS test</title>
+<style>
+  body{background:#0d0d0f;color:#e8e8e8;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:24px;max-width:800px;margin:0 auto}
+  h1{font-size:16px;color:#F04F52}
+  button{background:#F04F52;color:#fff;border:0;padding:10px 18px;font:inherit;cursor:pointer;border-radius:2px}
+  button:disabled{opacity:.4;cursor:wait}
+  .pass{color:#4ade80;font-weight:700}.fail{color:#F04F52;font-weight:700}
+  textarea{width:100%;height:160px;background:#141416;color:#ccc;border:1px solid #2a2a2e;margin-top:16px;font:12px ui-monospace,monospace;padding:8px;box-sizing:border-box}
+</style>
+</head>
+<body>
+<h1>XRPScan CORS test — throwaway page, delete after use</h1>
+<p>Click the button, wait a few seconds, copy the box below, paste it back to Claude.</p>
+<button id="btn" onclick="run()">Run XRPScan test</button>
+<div id="status" style="margin-top:12px"></div>
+<textarea id="out" readonly placeholder="Result will appear here."></textarea>
+<script>
+async function run(){
+  const btn=document.getElementById('btn'),st=document.getElementById('status'),out=document.getElementById('out');
+  btn.disabled=true;st.textContent='running…';
+  const lines=["XRPScan CORS test — "+location.origin+" — "+new Date().toISOString()];
+  // Test A: known-invalid txid — any JSON answer proves CORS works
+  try{
+    const t=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout 15s")),15000));
+    const d=await Promise.race([fetch("https://api.xrpscan.com/api/v1/account/rwpTh9DDa52XkM9nTKp2QrJuCGV5d1mQVP").then(r=>r.json()),t]);
+    lines.push("TEST A [known Coinbase account — expect accountName]: PASS — "+JSON.stringify(d).slice(0,300));
+    st.innerHTML='<span class="pass">PASS — XRPScan answers browsers</span>';
+  }catch(e){
+    lines.push("TEST A: FAIL — "+((e&&e.message)||e));
+    st.innerHTML='<span class="fail">FAIL — '+((e&&e.message)||e)+'</span>';
+  }
+  // Test B: health endpoint — extra signal on API shape/version
+  try{
+    const t=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout 15s")),15000));
+    const d=await Promise.race([fetch("https://api.xrpscan.com/api/v1/account/rrpNnNLKrartuEqfJGpqyDwPj1AFPg9vn1").then(r=>r.json()),t]);
+    lines.push("TEST B [second account — plain answer check]: PASS — "+JSON.stringify(d).slice(0,300));
+  }catch(e){
+    lines.push("TEST B [second account — plain answer check]: FAIL — "+((e&&e.message)||e));
+  }
+  out.value=lines.join("\n\n");
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
