@@ -1,6 +1,6 @@
 # Ledger Diagnostic Toolkit
 
-> One-file diagnostic dashboard for Ledger customer support. Drop a log, see everything.
+> One-file diagnostic dashboard for Ledger customer support. Drop a log, see everything
 
 **[Open the tool →](https://pj-casey.github.io/ledger-toolkit/ledger-toolkit.html)** · **[Agent Guide →](https://pj-casey.github.io/ledger-toolkit/agent-guide.html)** · **[Technical Reference →](https://pj-casey.github.io/ledger-toolkit/technical-reference.html)**
 
